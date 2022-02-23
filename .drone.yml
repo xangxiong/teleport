@@ -5039,7 +5039,33 @@ volumes:
     claim:
       name: drone-s3-debrepo-pvc
 ---
+kind: pipeline
+type: kubernetes
+name: test-gate
+
+trigger:
+  event:
+    - push
+  branch:
+    - walt/teleport-private-gating-test
+  repo:
+    include:
+      - gravitational/*
+
+steps:
+  - name: Check if repo is public
+    image: alpine
+    commands:
+      - if [ "${DRONE_REPO}" != "gravitational/teleport" ]; then echo "---> Not publishing ${DRONE_REPO} packages to RPM and DEB repos" && exit 78; fi
+  - name: Next step
+    image: alpine
+    commands:
+      - echo "Next step"
+
+clone:
+  disable: true
+---
 kind: signature
-hmac: 0c5316489efc1bfa9acfd87bed0e2807ec4f2b8e123649c168c9d675e3c8a4cc
+hmac: f71b11ee1462b0493ea89aba10482830fe10390e67e119e91afd88c7fde4c8ed
 
 ...
