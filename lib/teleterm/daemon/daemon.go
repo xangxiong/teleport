@@ -16,6 +16,7 @@ package daemon
 
 import (
 	"context"
+	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
 	"sync"
 
 	apiuri "github.com/gravitational/teleport/lib/teleterm/api/uri"
@@ -237,6 +238,15 @@ func (s *Service) ListGateways(ctx context.Context) ([]*gateway.Gateway, error) 
 	gateways := make([]*gateway.Gateway, len(s.gateways))
 	copy(gateways, s.gateways)
 	return gateways, nil
+}
+
+func (s *Service) Download(request *api.DownloadRequest, server api.TerminalService_DownloadServer) error {
+	cluster, err := s.ResolveCluster(request.ServerUri)
+	if err != nil {
+		return err
+	}
+
+	return cluster.DownloadSCP(request, server)
 }
 
 // Stop terminates all cluster open connections

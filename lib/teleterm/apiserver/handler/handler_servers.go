@@ -39,6 +39,14 @@ func (s *Handler) ListServers(ctx context.Context, req *api.ListServersRequest) 
 	return response, nil
 }
 
+func (s *Handler) Download(request *api.DownloadRequest, server api.TerminalService_DownloadServer) error {
+	err := s.DaemonService.Download(request, server)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
 func newAPIServer(server clusters.Server) *api.Server {
 	apiLabels := APILabels{}
 	serverLabels := server.GetLabels()

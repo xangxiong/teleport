@@ -77,6 +77,62 @@ export namespace LogoutRequest {
     }
 }
 
+export class DownloadRequest extends jspb.Message { 
+    getServerUri(): string;
+    setServerUri(value: string): DownloadRequest;
+
+    getLogin(): string;
+    setLogin(value: string): DownloadRequest;
+
+    getLocation(): string;
+    setLocation(value: string): DownloadRequest;
+
+    getFilename(): string;
+    setFilename(value: string): DownloadRequest;
+
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): DownloadRequest.AsObject;
+    static toObject(includeInstance: boolean, msg: DownloadRequest): DownloadRequest.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: DownloadRequest, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): DownloadRequest;
+    static deserializeBinaryFromReader(message: DownloadRequest, reader: jspb.BinaryReader): DownloadRequest;
+}
+
+export namespace DownloadRequest {
+    export type AsObject = {
+        serverUri: string,
+        login: string,
+        location: string,
+        filename: string,
+    }
+}
+
+export class DataChunk extends jspb.Message { 
+    getData(): Uint8Array | string;
+    getData_asU8(): Uint8Array;
+    getData_asB64(): string;
+    setData(value: Uint8Array | string): DataChunk;
+
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): DataChunk.AsObject;
+    static toObject(includeInstance: boolean, msg: DataChunk): DataChunk.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: DataChunk, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): DataChunk;
+    static deserializeBinaryFromReader(message: DataChunk, reader: jspb.BinaryReader): DataChunk;
+}
+
+export namespace DataChunk {
+    export type AsObject = {
+        data: Uint8Array | string,
+    }
+}
+
 export class LoginRequest extends jspb.Message { 
     getClusterUri(): string;
     setClusterUri(value: string): LoginRequest;

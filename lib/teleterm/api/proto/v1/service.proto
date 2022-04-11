@@ -59,6 +59,7 @@ service TerminalService {
     rpc Login(LoginRequest) returns (EmptyResponse);
     // ClusterLogin logs out a user from cluster
     rpc Logout(LogoutRequest) returns (EmptyResponse);
+    rpc Download(DownloadRequest) returns (stream DataChunk);
 }
 
 // RemoveClusterRequest describes RemoveClusterRequest
@@ -69,6 +70,12 @@ message GetClusterRequest { string cluster_uri = 1; }
 
 // LogoutRequest describes LogoutRequest
 message LogoutRequest { string cluster_uri = 1; }
+
+message DownloadRequest { string server_uri = 1; string login = 2; string location = 3; string filename = 4; }
+
+message DataChunk {
+    bytes data = 1;
+}
 
 // LoginRequest describes cluster login request
 message LoginRequest {
