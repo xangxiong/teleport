@@ -176,7 +176,7 @@ type HeartbeatConfig struct {
 	ServerTTL time.Duration
 	// KeepAlivePeriod is a period between light-weight
 	// keep alive calls, that only update TTLs and don't consume
-	// bandwidh, also is used to derive time between
+	// bandwidth, also is used to derive time between
 	// failed attempts as well for auth and proxy modes
 	KeepAlivePeriod time.Duration
 	// AnnouncePeriod is a period between announce calls,

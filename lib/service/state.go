@@ -60,7 +60,6 @@ type processState struct {
 	process             *TeleportProcess
 	mu                  sync.Mutex
 	states              map[string]*componentState
-	totalComponentCount int // number of components that will send updates
 }
 
 type componentState struct {
@@ -69,7 +68,7 @@ type componentState struct {
 }
 
 // newProcessState returns a new FSM that tracks the state of the Teleport process.
-func newProcessState(process *TeleportProcess, componentCount int) (*processState, error) {
+func newProcessState(process *TeleportProcess) (*processState, error) {
 	err := utils.RegisterPrometheusCollectors(stateGauge)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -78,8 +77,18 @@ func newProcessState(process *TeleportProcess, componentCount int) (*processStat
 	return &processState{
 		process:             process,
 		states:              make(map[string]*componentState),
-		totalComponentCount: componentCount,
 	}, nil
+}
+
+// registerComponents registers all Teleport components that will update their state.
+func (f *processState) registerComponents(components []string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	for _, component := range components {
+		s := &componentState{recoveryTime: f.process.Clock.Now(), state: stateStarting}
+		f.states[component] = s
+	}
 }
 
 // update the state of a Teleport component.
@@ -95,9 +104,8 @@ func (f *processState) update(event Event) {
 	}
 	s, ok := f.states[component]
 	if !ok {
-		// Register a new component.
-		s = &componentState{recoveryTime: f.process.Clock.Now(), state: stateStarting}
-		f.states[component] = s
+		f.process.log.Errorf("%v broadcasted with component %q not registered, this is a bug!", event.Name, component)
+		return
 	}
 
 	switch event.Name {
@@ -140,30 +148,25 @@ func (f *processState) update(event Event) {
 //
 // Note: f.mu must be locked by the caller!
 func (f *processState) getStateLocked() componentStateEnum {
-	// Return stateStarting if not all components have sent updates yet.
-	if len(f.states) < f.totalComponentCount {
-		return stateStarting
-	}
-
-	state := stateStarting
-	numOK := 0
+	recovering := 0
+	starting := 0
 	for _, s := range f.states {
 		switch s.state {
 		case stateDegraded:
 			return stateDegraded
 		case stateRecovering:
-			state = stateRecovering
-		case stateOK:
-			numOK++
+			recovering++
+		case stateStarting:
+			starting++
 		}
 	}
-	// Only return stateOK if *all* components are in stateOK.
-	if numOK == f.totalComponentCount {
-		state = stateOK
-	} else if numOK > f.totalComponentCount {
-		f.process.log.Errorf("incorrect count of components (found: %d; expected: %d), this is a bug!", numOK, f.totalComponentCount)
+	if recovering!= 0 {
+		return stateRecovering
 	}
-	return state
+	if starting !=0 {
+		return stateStarting
+	}
+	return stateOK
 }
 
 // Note: f.mu must be locked by the caller!

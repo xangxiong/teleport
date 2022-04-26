@@ -325,6 +325,9 @@ type TeleportProcess struct {
 
 	// clusterFeatures contain flags for supported and unsupported features.
 	clusterFeatures proto.Features
+
+	// components is a set of Teleport components that will send hearbeats
+	components map[string]bool
 }
 
 type keyPairKey struct {
@@ -339,6 +342,24 @@ var processID int32
 
 func nextProcessID() int32 {
 	return atomic.AddInt32(&processID, 1)
+}
+
+// Start starts the process in a non-blocking way.
+// It also ensures that a TeleportReadyEvent is produced when all components
+// enabled (based on the configuration) have started.
+func (process *TeleportProcess) Start() error {
+	// register TeleportReadyEvent
+	eventMapping := EventMapping{
+		Out: TeleportReadyEvent,
+	}
+	for component := range process.components {
+		eventMapping.In = append(eventMapping.In, component)
+	}
+	process.log.Debug("TeleportReadyEvent depends on these components: %v", eventMapping.In)
+	process.RegisterEventMapping(eventMapping)
+
+	// start Teleport process
+	return process.Supervisor.Start()
 }
 
 // GetAuthServer returns the process' auth server
@@ -358,6 +379,9 @@ func (process *TeleportProcess) GetBackend() backend.Backend {
 
 // onHeartbeat generates the default OnHeartbeat callback for the specified component.
 func (process *TeleportProcess) onHeartbeat(component string) func(err error) {
+	// save name of Teleport component that will send heartbeats
+	process.components[component] = true
+
 	return func(err error) {
 		if err != nil {
 			process.BroadcastEvent(Event{Name: TeleportDegradedEvent, Payload: component})
@@ -744,12 +768,13 @@ func NewTeleport(cfg *Config) (*TeleportProcess, error) {
 		id:                  processID,
 		keyPairs:            make(map[keyPairKey]KeyPair),
 		appDependCh:         make(chan Event, 1024),
+		components:          make(map[string]bool),
 	}
 
 	process.registerAppDepend()
 
 	// Produce global TeleportReadyEvent when all components have started
-	componentCount := process.registerTeleportReadyEvent(cfg)
+	// componentCount := process.registerTeleportReadyEvent(cfg)
 
 	process.log = cfg.Log.WithFields(logrus.Fields{
 		trace.Component: teleport.Component(teleport.ComponentProcess, process.id),
@@ -758,7 +783,7 @@ func NewTeleport(cfg *Config) (*TeleportProcess, error) {
 	serviceStarted := false
 
 	if !cfg.DiagnosticAddr.IsEmpty() {
-		if err := process.initDiagnosticService(componentCount); err != nil {
+		if err := process.initDiagnosticService(); err != nil {
 			return nil, trace.Wrap(err)
 		}
 	} else {
@@ -2210,7 +2235,7 @@ func (process *TeleportProcess) initMetricsService() error {
 
 // initDiagnosticService starts diagnostic service currently serving healthz
 // and prometheus endpoints
-func (process *TeleportProcess) initDiagnosticService(componentCount int) error {
+func (process *TeleportProcess) initDiagnosticService() error {
 	mux := http.NewServeMux()
 
 	// support legacy metrics collection in the diagnostic service.
@@ -2241,7 +2266,7 @@ func (process *TeleportProcess) initDiagnosticService(componentCount int) error 
 	// Create a state machine that will process and update the internal state of
 	// Teleport based off Events. Use this state machine to return return the
 	// status from the /readyz endpoint.
-	ps, err := newProcessState(process, componentCount)
+	ps, err := newProcessState(process)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -3450,52 +3475,6 @@ func (process *TeleportProcess) waitForAppDepend() {
 			process.log.Debugf("Process is exiting.")
 		}
 	}
-}
-
-// registerTeleportReadyEvent ensures that a TeleportReadyEvent is produced
-// when all components enabled (based on the configuration) have started.
-// It returns the number of components enabled.
-func (process *TeleportProcess) registerTeleportReadyEvent(cfg *Config) int {
-	eventMapping := EventMapping{
-		Out: TeleportReadyEvent,
-	}
-
-	if cfg.Auth.Enabled {
-		eventMapping.In = append(eventMapping.In, AuthTLSReady)
-	}
-
-	if cfg.SSH.Enabled {
-		eventMapping.In = append(eventMapping.In, NodeSSHReady)
-	}
-
-	proxyConfig := cfg.Proxy
-	if proxyConfig.Enabled {
-		eventMapping.In = append(eventMapping.In, ProxySSHReady)
-	}
-	if proxyConfig.Kube.Enabled && !proxyConfig.Kube.ListenAddr.IsEmpty() && !proxyConfig.DisableReverseTunnel {
-		eventMapping.In = append(eventMapping.In, ProxyKubeReady)
-	}
-
-	if cfg.Kube.Enabled {
-		eventMapping.In = append(eventMapping.In, KubernetesReady)
-	}
-
-	if cfg.Apps.Enabled {
-		eventMapping.In = append(eventMapping.In, AppsReady)
-	}
-
-	if cfg.Databases.Enabled {
-		eventMapping.In = append(eventMapping.In, DatabasesReady)
-	}
-
-	if cfg.WindowsDesktop.Enabled {
-		eventMapping.In = append(eventMapping.In, WindowsDesktopReady)
-	}
-
-	componentCount := len(eventMapping.In)
-	cfg.Log.Debug("TeleportReadyEvent depends on %d components: %v", componentCount, eventMapping.In)
-	process.RegisterEventMapping(eventMapping)
-	return componentCount
 }
 
 // appDependEvents is a list of events that the application service depends on.
