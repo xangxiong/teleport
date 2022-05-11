@@ -217,3 +217,11 @@ const (
 	// when HTTPS_PROXY or HTTP_PROXY is ignored
 	NoProxy = "NO_PROXY"
 )
+
+// /etc/os-release IDs
+const (
+	Ubuntu = "ubuntu"
+	Debian = "debian"
+	RHEL   = "rhel"
+	AZL2   = "amzn"
+)

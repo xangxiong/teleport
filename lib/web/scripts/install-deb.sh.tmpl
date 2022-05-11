@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Add teleport repository
+curl https://deb.releases.teleport.dev/teleport-pubkey.asc  -o /usr/share/keyrings/teleport-archive-keyring.asc
+echo "deb [signed-by=/usr/share/keyrings/teleport-archive-keyring.asc] https://deb.releases.teleport.dev/ stable main" | tee /etc/apt/sources.list.d/teleport.list > /dev/null
+apt-get update
+# install teleport
+apt-get install teleport
+# generate teleport ssh config
+teleport ssh configure --auth-agent="{{ .AuthAgent }}"  --join-method=iam --token-name="{{ .Token }}"
+# enable and start teleport service
+systemctl enable --now teleport

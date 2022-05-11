@@ -703,6 +703,8 @@ type Auth struct {
 
 	// RoutingStrategy configures the routing strategy to nodes.
 	RoutingStrategy types.RoutingStrategy `yaml:"routing_strategy,omitempty"`
+
+	AWSMatchers []AWSMatcher `yaml:"aws,omitempty"`
 }
 
 // CAKeyParams configures how CA private keys will be created and stored.
@@ -1149,6 +1151,12 @@ type ResourceMatcher struct {
 	Labels map[string]apiutils.Strings `yaml:"labels,omitempty"`
 }
 
+type AWSAccount struct {
+	// Account is the AWS account to match
+	Account string   `yaml:"aws_account,omitempty"`
+	Roles   []string `yaml:"aws_roles,omitempty"`
+}
+
 // AWSMatcher matches AWS databases.
 type AWSMatcher struct {
 	// Types are AWS database types to match, "rds", "redshift", or "elasticache".
@@ -1157,6 +1165,9 @@ type AWSMatcher struct {
 	Regions []string `yaml:"regions,omitempty"`
 	// Tags are AWS tags to match.
 	Tags map[string]apiutils.Strings `yaml:"tags,omitempty"`
+	// Accounts reprsents the list of AWS accounts and roles the auth
+	// agent should assume for this account
+	Accounts []AWSAccount `yaml:"accounts,omitempty"`
 }
 
 // Database represents a single database proxied by the service.

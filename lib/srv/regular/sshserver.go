@@ -32,6 +32,7 @@ import (
 	"sync"
 
 	"github.com/gravitational/teleport"
+	"github.com/gravitational/teleport/api/constants"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/observability/tracing"
 	tracessh "github.com/gravitational/teleport/api/observability/tracing/ssh"
@@ -191,6 +192,36 @@ type Server struct {
 
 	// nodeWatcher is the server's node watcher.
 	nodeWatcher *services.NodeWatcher
+
+	ec2InstanceWatch *ec2Watcher
+}
+
+type ec2Watcher struct {
+	ac        auth.ClientI
+	instances <-chan []struct{}
+}
+
+func (w *ec2Watcher) SetInstallerScript() error {
+	osReleaseFile, err := os.Open("/etc/os-release")
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	rel, err := utils.OSReleaseID(osReleaseFile)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	var script types.Installer
+
+	switch rel {
+	case constants.Ubuntu, constants.Debian:
+	case constants.RHEL, constants.AZL2:
+	}
+	err = w.ac.SetInstaller(context.TODO(), script)
+	if err == nil {
+		return trace.Wrap(err)
+	}
+	return nil
 }
 
 // GetClock returns server clock implementation
@@ -267,6 +298,28 @@ func (s *Server) isAuditedAtProxy() bool {
 	return false
 }
 
+func (s *Server) startEC2InstanceWatcher() {
+	_, err := s.ec2InstanceWatch.ac.GetInstaller(s.ctx)
+	if err != nil {
+		if trace.IsNotFound(err) {
+			if err := s.ec2InstanceWatch.SetInstallerScript(); err != nil {
+				log.Errorf("failed to set ec2 installer to a default value: %s", err)
+			}
+		} else {
+			log.Errorf("failed to retrieve installer, not starting node discovery: %s", err)
+			return
+		}
+	}
+
+	for instances := range s.ec2InstanceWatch.instances {
+		err := s.ec2InstanceWatch.SendInstallCommand(instances)
+		if err != nil {
+			log.Errorf("failed to send install command to instances %v, with error: %s", instances, err)
+			continue
+		}
+	}
+}
+
 // ServerOption is a functional option passed to the server
 type ServerOption func(s *Server) error
 
@@ -306,6 +359,10 @@ func (s *Server) Start() error {
 		go s.dynamicLabels.Start()
 	}
 
+	if s.ec2InstanceWatch != nil {
+		go s.startEC2InstanceWatcher()
+	}
+
 	// If the server requested connections to it arrive over a reverse tunnel,
 	// don't call Start() which listens on a socket, return right away.
 	if s.useTunnel {
@@ -331,6 +388,10 @@ func (s *Server) Serve(l net.Listener) error {
 	// asynchronously keep them updated.
 	if s.dynamicLabels != nil {
 		go s.dynamicLabels.Start()
+	}
+
+	if s.ec2InstanceWatch != nil {
+		go s.startEC2InstanceWatcher()
 	}
 
 	go s.heartbeat.Run()
@@ -570,6 +631,13 @@ func SetNodeWatcher(nodeWatcher *services.NodeWatcher) ServerOption {
 func SetX11ForwardingConfig(xc *x11.ServerConfig) ServerOption {
 	return func(s *Server) error {
 		s.x11 = xc
+		return nil
+	}
+}
+
+func SetEC2Discovery() ServerOption {
+	return func(s *Server) error {
+		s.ec2InstanceWatch = &ec2Watcher{}
 		return nil
 	}
 }

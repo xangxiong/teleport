@@ -29,6 +29,14 @@ type ResourceMatcher struct {
 	Labels types.Labels
 }
 
+type AWSAccount struct {
+	// Account is the AWS acount id to use for discovering EC2 instances
+	Account string
+	// Roles are the list of roles the agent will assume when
+	// discovering EC2 instances
+	Roles []string
+}
+
 // AWSMatcher matches AWS databases.
 type AWSMatcher struct {
 	// Types are AWS database types to match, "rds" or "redshift".
@@ -37,6 +45,9 @@ type AWSMatcher struct {
 	Regions []string
 	// Tags are AWS tags to match.
 	Tags types.Labels
+	// Accounts reprsents the list of AWS accounts and roles the auth
+	// agent should assume for this matcher
+	Accounts []AWSAccount
 }
 
 // MatchResourceLabels returns true if any of the provided selectors matches the provided database.
@@ -182,4 +193,6 @@ const (
 	AWSMatcherRedshift = "redshift"
 	// AWSMatcherElastiCache is the AWS matcher type for ElastiCache databases.
 	AWSMatcherElastiCache = "elasticache"
+	// AWSMatcherEC2 is the AWS matcher type for EC2 instances.
+	AWSMatcherEC2 = "ec2"
 )

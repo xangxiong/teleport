@@ -253,6 +253,9 @@ const (
 	// KindSessionTracker is a resource that tracks a live session.
 	KindSessionTracker = "session_tracker"
 
+	// KindInstaller is a resource that
+	KindInstaller = "installer"
+
 	// V5 is the fifth version of resources.
 	V5 = "v5"
 

@@ -523,6 +523,23 @@ func applyAuthConfig(fc *FileConfig, cfg *service.Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	for _, matcher := range fc.Auth.AWSMatchers {
+		var accounts []services.AWSAccount
+		for _, acc := range matcher.Accounts {
+			accounts = append(accounts, services.AWSAccount{
+				Account: acc.Account,
+				Roles:   acc.Roles,
+			})
+		}
+		cfg.Auth.AWSMatchers = append(cfg.Databases.AWSMatchers,
+			services.AWSMatcher{
+				Types:    matcher.Types,
+				Regions:  matcher.Regions,
+				Tags:     matcher.Tags,
+				Accounts: accounts,
+			})
+	}
+
 	if fc.Auth.ListenAddress != "" {
 		addr, err := utils.ParseHostPortAddr(fc.Auth.ListenAddress, int(defaults.AuthListenPort))
 		if err != nil {

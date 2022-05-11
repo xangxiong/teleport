@@ -315,3 +315,36 @@ func printDBBootstrapActionResult(configuratorName string, action dbconfigurator
 		fmt.Printf("Failure reason: %s\n", err)
 	}
 }
+
+type createSSHConfigFlags struct {
+	config.SSHServiceFlags
+	output string
+}
+
+// CheckAndSetDefaults checks and sets the defaults
+func (flags *createSSHConfigFlags) CheckAndSetDefaults() error {
+	flags.output = normalizeOutput(flags.output)
+	return nil
+}
+
+// onDumpSSHConfig is the handler of "ssh configure create" CLI command.
+func onDumpSSHConfig(flags createSSHConfigFlags) error {
+	if err := flags.CheckAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
+	}
+
+	sfc, err := config.MakeSSHServiceConfigString(flags.SSHServiceFlags)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	configPath, err := dumpConfigFile(flags.output, sfc, "")
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	if configPath != "" {
+		fmt.Printf("Wrote config to file %q. Now you can start the server. Happy Teleporting!\n", configPath)
+	}
+	return nil
+}

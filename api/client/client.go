@@ -2024,6 +2024,23 @@ func (c *Client) GetClusterAuditConfig(ctx context.Context) (types.ClusterAuditC
 	return resp, nil
 }
 
+func (c *Client) GetInstaller(ctx context.Context) (types.Installer, error) {
+	resp, err := c.grpc.GetInstaller(ctx, &empty.Empty{}, c.callOpts...)
+	if err != nil {
+		return nil, trail.FromGRPC(err)
+	}
+	return resp, nil
+}
+
+func (c *Client) SetInstaller(ctx context.Context, inst types.Installer) error {
+	instV1, ok := inst.(*types.InstallerV1)
+	if !ok {
+		return trace.BadParameter("invalid type %T", inst)
+	}
+	_, err := c.grpc.SetInstaller(ctx, instV1, c.callOpts...)
+	return trail.FromGRPC(err)
+}
+
 // GetLock gets a lock by name.
 func (c *Client) GetLock(ctx context.Context, name string) (types.Lock, error) {
 	if name == "" {

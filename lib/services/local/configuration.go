@@ -361,6 +361,35 @@ func (s *ClusterConfigurationService) DeleteSessionRecordingConfig(ctx context.C
 	return nil
 }
 
+// GetInstaller gets the script of the cluster from the backend.
+func (s *ClusterConfigurationService) GetInstaller(ctx context.Context) (types.Installer, error) {
+	item, err := s.Get(ctx, backend.Key(clusterConfigPrefix, installerScriptPrefix))
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return services.UnmarshalInstaller(item.Value)
+}
+
+// SetClusterName sets the name of the cluster in the backend. SetClusterName
+// can only be called once on a cluster after which it will return trace.AlreadyExists.
+func (s *ClusterConfigurationService) SetInstaller(ctx context.Context, ins types.Installer) error {
+	value, err := services.MarshalInstaller(ins)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	_, err = s.Put(ctx, backend.Item{
+		Key:     backend.Key(clusterConfigPrefix, installerScriptPrefix),
+		Value:   value,
+		Expires: ins.Expiry(),
+	})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return trace.Wrap(err)
+}
+
 const (
 	clusterConfigPrefix    = "cluster_configuration"
 	namePrefix             = "name"
@@ -371,4 +400,5 @@ const (
 	auditPrefix            = "audit"
 	networkingPrefix       = "networking"
 	sessionRecordingPrefix = "session_recording"
+	installerScriptPrefix  = "installer_script"
 )

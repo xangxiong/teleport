@@ -73,6 +73,7 @@ func Run(options Options) (app *kingpin.Application, executedCommand string, con
 		configureDatabaseAWSCreateFlags configureDatabaseAWSCreateFlags
 		configureDatabaseBootstrapFlags configureDatabaseBootstrapFlags
 		dbConfigCreateFlags             createDatabaseConfigFlags
+		sshConfigCreateFlags            createSSHConfigFlags
 	)
 
 	// define commands:
@@ -186,6 +187,18 @@ func Run(options Options) (app *kingpin.Application, executedCommand string, con
 	appStartCmd.Flag("diag-addr", "Start diagnostic prometheus and healthz endpoint.").StringVar(&ccf.DiagnosticAddr)
 	appStartCmd.Flag("insecure", "Insecure mode disables certificate validation").BoolVar(&ccf.InsecureMode)
 	appStartCmd.Alias(appUsageExamples) // We're using "alias" section to display usage examples.
+
+	// "teleport ssh" command and its sub commands
+	sshCmd := app.Command("ssh", "SSH service commands.")
+	sshConfigureCmd := sshCmd.Command("configure", "Generates teleport ssh configuration.")
+	sshCfgCreateCmd := sshConfigureCmd.Command("create", "Creates a sample teleport ssh configuration.")
+	sshCfgCreateCmd.Flag("auth-server", fmt.Sprintf("Address of the auth server [%s]", defaults.AuthConnectAddr().Addr)).StringsVar(&sshConfigCreateFlags.AuthServersAddr)
+	sshCfgCreateCmd.Flag("join-method", "Method used to join the closter").StringVar(&sshConfigCreateFlags.JoinMethod)
+	sshCfgCreateCmd.Flag("token", "Invitation token to register with an auth server [none].").StringVar(&sshConfigCreateFlags.AuthToken)
+	sshCfgCreateCmd.Flag("labels", "Comma-separated list of labels for this node, for example env=dev,app=web.").StringVar(&sshConfigCreateFlags.RawLabels)
+	sshCfgCreateCmd.Flag("output",
+		"Write to stdout with -o=stdout, default config file with -o=file or custom path with -o=file:///path").Short('o').Default(
+		teleport.SchemeStdout).StringVar(&sshConfigCreateFlags.output)
 
 	// "teleport db" command and its subcommands
 	dbCmd := app.Command("db", "Database proxy service commands.")
@@ -358,6 +371,8 @@ func Run(options Options) (app *kingpin.Application, executedCommand string, con
 		err = onConfigureDatabasesAWSCreate(configureDatabaseAWSCreateFlags)
 	case dbConfigureBootstrap.FullCommand():
 		err = onConfigureDatabaseBootstrap(configureDatabaseBootstrapFlags)
+	case sshCfgCreateCmd.FullCommand():
+		err = onDumpSSHConfig(sshConfigCreateFlags)
 	}
 	if err != nil {
 		utils.FatalError(err)

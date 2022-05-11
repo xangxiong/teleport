@@ -121,6 +121,8 @@ message Event {
         types.AppServerV3 AppServer = 29 [ (gogoproto.jsontag) = "app_server,omitempty" ];
         // App is an application resource.
         types.AppV3 App = 30 [ (gogoproto.jsontag) = "app,omitempty" ];
+
+        types.InstallerV1 Installer = 31 [ (gogoproto.jsontag) = "installer,omitempty" ];
     }
 }
 
@@ -2183,4 +2185,8 @@ service AuthService {
 
     // ListResources retrieves a paginated list of resources.
     rpc ListResources(ListResourcesRequest) returns (ListResourcesResponse);
+
+    rpc GetInstaller(google.protobuf.Empty) returns (types.InstallerV1);
+
+    rpc SetInstaller(types.InstallerV1) returns (google.protobuf.Empty);
 }

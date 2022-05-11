@@ -103,6 +103,7 @@ func (rc *ResourceCommand) Initialize(app *kingpin.Application, config *service.
 		types.KindApp:                     rc.createApp,
 		types.KindDatabase:                rc.createDatabase,
 		types.KindToken:                   rc.createToken,
+		types.KindInstaller:               rc.createInstaller,
 	}
 	rc.config = config
 
@@ -599,6 +600,16 @@ func (rc *ResourceCommand) createToken(client auth.ClientI, raw services.Unknown
 	}
 
 	err = client.UpsertToken(context.Background(), token)
+	return trace.Wrap(err)
+}
+
+func (rc *ResourceCommand) createInstaller(client auth.ClientI, raw services.UnknownResource) error {
+	inst, err := services.UnmarshalInstaller(raw.Raw)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	err = client.SetInstaller(context.Background(), inst)
 	return trace.Wrap(err)
 }
 
