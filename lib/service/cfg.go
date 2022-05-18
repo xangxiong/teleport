@@ -708,6 +708,8 @@ type DatabaseAWS struct {
 	ElastiCache DatabaseAWSElastiCache
 	// SecretStore contains settings for managing secrets.
 	SecretStore types.SecretStore
+	// MemoryDB contains MemoryDB specific settings.
+	MemoryDB DatabaseAWSMemoryDB
 }
 
 // DatabaseAWSRedshift contains AWS Redshift specific settings.
@@ -728,6 +730,12 @@ type DatabaseAWSRDS struct {
 type DatabaseAWSElastiCache struct {
 	// ReplicationGroupID is the ElastiCache replication group ID.
 	ReplicationGroupID string
+}
+
+// DatabaseAWSMemoryDB contains settings for MemoryDB databases.
+type DatabaseAWSMemoryDB struct {
+	// ClusterName is the MemoryDB cluster name.
+	ClusterName string
 }
 
 // DatabaseGCP contains GCP specific settings for Cloud SQL databases.
