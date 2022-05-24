@@ -84,6 +84,8 @@ type Config struct {
 	AWSMatchers []services.AWSMatcher
 	// Databases is a list of proxied databases from static configuration.
 	Databases types.Databases
+	// OnHeartbeatCreation is called when the heartbeat is created.
+	OnHeartbeatCreation func()
 	// OnHeartbeat is called after every heartbeat. Used to update process state.
 	OnHeartbeat func(error)
 	// OnReconcile is called after each database resource reconciliation.
@@ -471,6 +473,7 @@ func (s *Server) startHeartbeat(ctx context.Context, database types.Database) er
 		AnnouncePeriod:  apidefaults.ServerAnnounceTTL/2 + utils.RandomDuration(apidefaults.ServerAnnounceTTL/10),
 		CheckPeriod:     defaults.HeartbeatCheckPeriod,
 		ServerTTL:       apidefaults.ServerAnnounceTTL,
+		OnCreation:      s.cfg.OnHeartbeatCreation,
 		OnHeartbeat:     s.cfg.OnHeartbeat,
 	})
 	if err != nil {

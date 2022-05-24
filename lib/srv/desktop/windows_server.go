@@ -216,6 +216,8 @@ type HeartbeatConfig struct {
 	HostUUID string
 	// PublicAddr is the public address of this service.
 	PublicAddr string
+	// OnHeartbeatCreation is called when the heartbeat is created.
+	OnHeartbeatCreation func()
 	// OnHeartbeat is called after each heartbeat attempt.
 	OnHeartbeat func(error)
 	// StaticHosts is an optional list of static Windows hosts to register.
@@ -569,6 +571,7 @@ func (s *WindowsService) startServiceHeartbeat() error {
 		AnnouncePeriod:  apidefaults.ServerAnnounceTTL/2 + utils.RandomDuration(apidefaults.ServerAnnounceTTL/10),
 		CheckPeriod:     defaults.HeartbeatCheckPeriod,
 		ServerTTL:       apidefaults.ServerAnnounceTTL,
+		OnCreation:      s.cfg.Heartbeat.OnHeartbeatCreation,
 		OnHeartbeat:     s.cfg.Heartbeat.OnHeartbeat,
 	})
 	if err != nil {
@@ -601,6 +604,7 @@ func (s *WindowsService) startStaticHostHeartbeats() error {
 			AnnouncePeriod:  apidefaults.ServerAnnounceTTL/2 + utils.RandomDuration(apidefaults.ServerAnnounceTTL/10),
 			CheckPeriod:     defaults.HeartbeatCheckPeriod,
 			ServerTTL:       apidefaults.ServerAnnounceTTL,
+			OnCreation:      s.cfg.Heartbeat.OnHeartbeatCreation,
 			OnHeartbeat:     s.cfg.Heartbeat.OnHeartbeat,
 		})
 		if err != nil {

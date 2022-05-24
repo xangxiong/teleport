@@ -153,6 +153,8 @@ func NewHeartbeat(cfg HeartbeatConfig) (*Heartbeat, error) {
 		sendC:       make(chan struct{}, 1),
 	}
 	h.Debugf("Starting %v heartbeat with announce period: %v, keep-alive period %v, poll period: %v", cfg.Mode, cfg.AnnouncePeriod, cfg.KeepAlivePeriod, cfg.CheckPeriod)
+	cfg.OnCreation()
+
 	return h, nil
 }
 
@@ -187,6 +189,8 @@ type HeartbeatConfig struct {
 	CheckPeriod time.Duration
 	// Clock is a clock used to override time in tests
 	Clock clockwork.Clock
+	// OnCreation is called when the heartbeat is created.
+	OnCreation func()
 	// OnHeartbeat is called after every heartbeat. A non-nil error is passed
 	// when a heartbeat fails.
 	OnHeartbeat func(error)
@@ -223,6 +227,9 @@ func (cfg *HeartbeatConfig) CheckAndSetDefaults() error {
 	}
 	if cfg.Clock == nil {
 		cfg.Clock = clockwork.NewRealClock()
+	}
+	if cfg.OnCreation == nil {
+		cfg.OnCreation = func() {}
 	}
 	if cfg.OnHeartbeat == nil {
 		// Blackhole callback if none was specified.
@@ -291,7 +298,7 @@ func (h *Heartbeat) Run() error {
 func (h *Heartbeat) Close() error {
 	// note that close does not clean up resources,
 	// because it is unaware of heartbeat actual state,
-	// Run() could may as well be creating new keep aliver
+	// Run() could may as well be creating new keep alive
 	// while this function attempts to close it,
 	// so instead it relies on Run() loop to clean up after itself
 	h.cancel()

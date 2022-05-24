@@ -148,25 +148,30 @@ func (f *processState) update(event Event) {
 //
 // Note: f.mu must be locked by the caller!
 func (f *processState) getStateLocked() componentStateEnum {
-	recovering := 0
-	starting := 0
-	for _, s := range f.states {
-		switch s.state {
-		case stateDegraded:
-			return stateDegraded
-		case stateRecovering:
-			recovering++
-		case stateStarting:
-			starting++
+	components := f.process.getComponents()
+	state := stateStarting
+	numOK := 0
+
+	for _, component := range components {
+		// For each of the registered components, check first if they have
+		// already sent an update, i.e., if they exist in f.states
+		if s, ok := f.states[component]; ok {
+			switch s.state {
+			case stateDegraded:
+				return stateDegraded
+			case stateRecovering:
+				state = stateRecovering
+			case stateOK:
+				numOK++
+			}
 		}
 	}
-	if recovering!= 0 {
-		return stateRecovering
+
+	// Only return stateOK if *all* components are in stateOK.
+	if numOK == len(components) {
+		state = stateOK
 	}
-	if starting !=0 {
-		return stateStarting
-	}
-	return stateOK
+	return state
 }
 
 // Note: f.mu must be locked by the caller!

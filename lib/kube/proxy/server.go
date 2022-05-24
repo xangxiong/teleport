@@ -47,6 +47,8 @@ type TLSServerConfig struct {
 	LimiterConfig limiter.Config
 	// AccessPoint is caching access point
 	AccessPoint auth.ReadKubernetesAccessPoint
+	// OnHeartbeatCreation is a callback for when the kubernetes_service heartbeat is created.
+	OnHeartbeatCreation func()
 	// OnHeartbeat is a callback for kubernetes_service heartbeats.
 	OnHeartbeat func(error)
 	// Log is the logger.
@@ -149,6 +151,7 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 			ServerTTL:       apidefaults.ServerAnnounceTTL,
 			CheckPeriod:     defaults.HeartbeatCheckPeriod,
 			Clock:           cfg.Clock,
+			OnCreation:      cfg.OnHeartbeatCreation,
 			OnHeartbeat:     cfg.OnHeartbeat,
 		})
 		if err != nil {

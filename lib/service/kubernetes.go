@@ -246,10 +246,11 @@ func (process *TeleportProcess) initKubernetesService(log *logrus.Entry, conn *C
 			CheckImpersonationPermissions: cfg.Kube.CheckImpersonationPermissions,
 			PublicAddr:                    publicAddr,
 		},
-		TLS:           tlsConfig,
-		AccessPoint:   accessPoint,
-		LimiterConfig: cfg.Kube.Limiter,
-		OnHeartbeat:   process.onHeartbeat(teleport.ComponentKube),
+		TLS:                 tlsConfig,
+		AccessPoint:         accessPoint,
+		LimiterConfig:       cfg.Kube.Limiter,
+		OnHeartbeatCreation: process.onHeartbeatCreation(teleport.ComponentKube),
+		OnHeartbeat:         process.onHeartbeat(teleport.ComponentKube),
 	})
 	if err != nil {
 		return trace.Wrap(err)

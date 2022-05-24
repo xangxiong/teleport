@@ -326,7 +326,7 @@ type TeleportProcess struct {
 	// clusterFeatures contain flags for supported and unsupported features.
 	clusterFeatures proto.Features
 
-	// components is a set of Teleport components that will send hearbeats
+	// components is a set of Teleport components that will send heartbeats
 	components map[string]bool
 }
 
@@ -377,11 +377,15 @@ func (process *TeleportProcess) GetBackend() backend.Backend {
 	return process.backend
 }
 
+// onHeartbeatCreation generates the default OnCreation callback for the specified component.
+func (process *TeleportProcess) onHeartbeatCreation(component string) func() {
+	return func() {
+		process.registerComponent(component)
+	}
+}
+
 // onHeartbeat generates the default OnHeartbeat callback for the specified component.
 func (process *TeleportProcess) onHeartbeat(component string) func(err error) {
-	// save name of Teleport component that will send heartbeats
-	process.components[component] = true
-
 	return func(err error) {
 		if err != nil {
 			process.BroadcastEvent(Event{Name: TeleportDegradedEvent, Payload: component})
@@ -399,6 +403,32 @@ func (process *TeleportProcess) findStaticIdentity(id auth.IdentityID) (*auth.Id
 		}
 	}
 	return nil, trace.NotFound("identity %v not found", &id)
+}
+
+// registerComponent registers a new Teleport component that will send heartbeats.
+// This function may be called more than once for the same component as different
+// heartbeats are using the same component name. This happens for example in
+// WindowsService.startStaticHostHeartbeats().
+func (process *TeleportProcess) registerComponent(component string) {
+	process.Lock()
+	defer process.Unlock()
+	if _, ok := process.components[component]; ok {
+		process.log.Errorf("component %q already registered, this is a bug!", component)
+	} else {
+		process.components[component] = true
+	}
+}
+
+// getConnectors returns a copy of the identities registered for auth server
+func (process *TeleportProcess) getComponents() []string {
+	process.Lock()
+	defer process.Unlock()
+
+	out := make([]string, 0, len(process.components))
+	for component := range process.components {
+		out = append(out, component)
+	}
+	return out
 }
 
 // getConnectors returns a copy of the identities registered for auth server
@@ -1481,6 +1511,7 @@ func (process *TeleportProcess) initAuthService() error {
 		AnnouncePeriod:  apidefaults.ServerAnnounceTTL/2 + utils.RandomDuration(apidefaults.ServerAnnounceTTL/10),
 		CheckPeriod:     defaults.HeartbeatCheckPeriod,
 		ServerTTL:       apidefaults.ServerAnnounceTTL,
+		OnCreation:      process.onHeartbeatCreation(teleport.ComponentAuth),
 		OnHeartbeat:     process.onHeartbeat(teleport.ComponentAuth),
 	})
 	if err != nil {
@@ -1795,6 +1826,8 @@ func (process *TeleportProcess) initSSH() error {
 	var s *regular.Server
 	var asyncEmitter *events.AsyncEmitter
 
+	// TODO: this is problematic as the "heartbeat creation" will only occur when the
+	// critical function is started
 	process.RegisterCriticalFunc("ssh.node", func() error {
 		var ok bool
 		var event Event
@@ -1951,6 +1984,7 @@ func (process *TeleportProcess) initSSH() error {
 			regular.SetFIPS(cfg.FIPS),
 			regular.SetBPF(ebpf),
 			regular.SetRestrictedSessionManager(rm),
+			regular.SetOnHeartbeatCreation(process.onHeartbeatCreation(teleport.ComponentNode)),
 			regular.SetOnHeartbeat(process.onHeartbeat(teleport.ComponentNode)),
 			regular.SetAllowTCPForwarding(cfg.SSH.AllowTCPForwarding),
 			regular.SetLockWatcher(lockWatcher),
@@ -2979,6 +3013,7 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 		regular.SetNamespace(apidefaults.Namespace),
 		regular.SetRotationGetter(process.getRotation),
 		regular.SetFIPS(cfg.FIPS),
+		regular.SetOnHeartbeatCreation(process.onHeartbeatCreation(teleport.ComponentProxy)),
 		regular.SetOnHeartbeat(process.onHeartbeat(teleport.ComponentProxy)),
 		regular.SetEmitter(streamEmitter),
 		regular.SetLockWatcher(lockWatcher),
@@ -3069,10 +3104,11 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 				LockWatcher:                   lockWatcher,
 				CheckImpersonationPermissions: cfg.Kube.CheckImpersonationPermissions,
 			},
-			TLS:           tlsConfig,
-			LimiterConfig: cfg.Proxy.Limiter,
-			AccessPoint:   accessPoint,
-			OnHeartbeat:   process.onHeartbeat(component),
+			TLS:                 tlsConfig,
+			LimiterConfig:       cfg.Proxy.Limiter,
+			AccessPoint:         accessPoint,
+			OnHeartbeatCreation: process.onHeartbeatCreation(component),
+			OnHeartbeat:         process.onHeartbeat(component),
 		})
 		if err != nil {
 			return trace.Wrap(err)

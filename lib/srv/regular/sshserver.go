@@ -170,6 +170,9 @@ type Server struct {
 	// restrictedMgr is the service used for restricting access to kernel objects
 	restrictedMgr restricted.Manager
 
+	// onHeartbeatCreation is a callback for the heartbeat creation.
+	onHeartbeatCreation func()
+
 	// onHeartbeat is a callback for heartbeat status.
 	onHeartbeat func(error)
 
@@ -530,6 +533,13 @@ func SetRestrictedSessionManager(m restricted.Manager) ServerOption {
 	}
 }
 
+func SetOnHeartbeatCreation(fn func()) ServerOption {
+	return func(s *Server) error {
+		s.onHeartbeatCreation = fn
+		return nil
+	}
+}
+
 func SetOnHeartbeat(fn func(error)) ServerOption {
 	return func(s *Server) error {
 		s.onHeartbeat = fn
@@ -699,6 +709,7 @@ func New(addr utils.NetAddr,
 		ServerTTL:       apidefaults.ServerAnnounceTTL,
 		CheckPeriod:     defaults.HeartbeatCheckPeriod,
 		Clock:           s.clock,
+		OnCreation:      s.onHeartbeatCreation,
 		OnHeartbeat:     s.onHeartbeat,
 	})
 	if err != nil {

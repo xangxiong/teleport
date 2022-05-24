@@ -24,24 +24,24 @@ func TestProcessStateGetState(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		desc                string
-		states              map[string]*componentState
-		totalComponentCount int
-		want                componentStateEnum
+		desc       string
+		states     map[string]*componentState
+		components []string
+		want       componentStateEnum
 	}{
 		{
-			desc:                "no components",
-			states:              map[string]*componentState{},
-			totalComponentCount: 1,
-			want:                stateStarting,
+			desc:       "no components",
+			states:     map[string]*componentState{},
+			components: []string{"one"},
+			want:       stateStarting,
 		},
 		{
 			desc: "one component in stateOK",
 			states: map[string]*componentState{
 				"one": {state: stateOK},
 			},
-			totalComponentCount: 1,
-			want:                stateOK,
+			components: []string{"one"},
+			want:       stateOK,
 		},
 		{
 			desc: "multiple components in stateOK",
@@ -50,8 +50,8 @@ func TestProcessStateGetState(t *testing.T) {
 				"two":   {state: stateOK},
 				"three": {state: stateOK},
 			},
-			totalComponentCount: 3,
-			want:                stateOK,
+			components: []string{"one", "two", "three"},
+			want:       stateOK,
 		},
 		{
 			desc: "multiple components, one is degraded",
@@ -60,8 +60,8 @@ func TestProcessStateGetState(t *testing.T) {
 				"two":   {state: stateDegraded},
 				"three": {state: stateOK},
 			},
-			totalComponentCount: 3,
-			want:                stateDegraded,
+			components: []string{"one", "two", "three"},
+			want:       stateDegraded,
 		},
 		{
 			desc: "multiple components, one is recovering",
@@ -70,8 +70,8 @@ func TestProcessStateGetState(t *testing.T) {
 				"two":   {state: stateRecovering},
 				"three": {state: stateOK},
 			},
-			totalComponentCount: 3,
-			want:                stateRecovering,
+			components: []string{"one", "two", "three"},
+			want:       stateRecovering,
 		},
 		{
 			desc: "multiple components, one is starting",
@@ -80,14 +80,27 @@ func TestProcessStateGetState(t *testing.T) {
 				"two":   {state: stateStarting},
 				"three": {state: stateOK},
 			},
-			totalComponentCount: 3,
-			want:                stateStarting,
+			components: []string{"one", "two", "three"},
+			want:       stateStarting,
+		},
+		{
+			desc: "multiple components, one is missing",
+			states: map[string]*componentState{
+				"one":   {state: stateOK},
+				"three": {state: stateOK},
+			},
+			components: []string{"one", "two", "three"},
+			want:       stateStarting,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			ps := &processState{states: tt.states, totalComponentCount: tt.totalComponentCount}
+			process := &TeleportProcess{components: make(map[string]bool)}
+			for _, component := range tt.components {
+				process.registerComponent(component)
+			}
+			ps := &processState{process: process, states: tt.states}
 			got := ps.getState()
 			require.Equal(t, got, tt.want)
 		})
