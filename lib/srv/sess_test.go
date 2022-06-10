@@ -26,11 +26,11 @@ import (
 	"github.com/gravitational/teleport/api/constants"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
+	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/events/eventstest"
 	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
@@ -308,7 +308,8 @@ func TestSession_emitAuditEvent(t *testing.T) {
 	})
 
 	t.Run("FallbackConcurrency", func(t *testing.T) {
-		srv := newMockServer(t)
+		emitter := eventstest.NewChannelEmitter(2)
+		srv := newMockServer(t, withChannelEmitter(emitter))
 		reg, err := NewSessionRegistry(SessionRegistryConfig{
 			Srv:                   srv,
 			SessionTrackerService: srv.auth,
@@ -338,9 +339,13 @@ func TestSession_emitAuditEvent(t *testing.T) {
 		close(controlCh)
 
 		// Wait for the events on the new recorder
-		require.Eventually(t, func() bool {
-			return len(srv.Events()) == 2
-		}, 1000*time.Millisecond, 100*time.Millisecond)
+		expectedEventTypes := []string{
+			events.SessionStartEvent,
+			events.SessionStartEvent,
+		}
+		receivedEvents, err := emitter.WaitForNEvents(len(expectedEventTypes), time.Second*5)
+		require.NoError(t, err)
+		require.ElementsMatch(t, expectedEventTypes, eventTypes(receivedEvents))
 	})
 }
 
@@ -481,7 +486,8 @@ func TestSessionRecordingModes(t *testing.T) {
 		},
 	} {
 		t.Run(tt.desc, func(t *testing.T) {
-			srv := newMockServer(t)
+			emitter := eventstest.NewChannelEmitter(3)
+			srv := newMockServer(t, withChannelEmitter(emitter))
 			srv.component = teleport.ComponentNode
 
 			reg, err := NewSessionRegistry(SessionRegistryConfig{
@@ -524,29 +530,24 @@ func TestSessionRecordingModes(t *testing.T) {
 			// Wait until the session is stopped.
 			require.Eventually(t, sess.isStopped, time.Second*5, time.Millisecond*500)
 
-			// Wait until server receives all non-print events.
-			checkEventsReceived := func() bool {
-				expectedEventTypes := []string{
-					events.SessionStartEvent,
-					events.SessionLeaveEvent,
-					events.SessionEndEvent,
-				}
-
-				emittedEvents := srv.Events()
-				if len(emittedEvents) != len(expectedEventTypes) {
-					return false
-				}
-
-				// Events can appear in different orders. Use a set to track.
-				eventsNotReceived := utils.StringsSet(expectedEventTypes)
-				for _, e := range emittedEvents {
-					delete(eventsNotReceived, e.GetType())
-				}
-				return len(eventsNotReceived) == 0
+			// Ensure server receives all non-print events.
+			expectedEventTypes := []string{
+				events.SessionStartEvent,
+				events.SessionLeaveEvent,
+				events.SessionEndEvent,
 			}
-			require.Eventually(t, checkEventsReceived, time.Second*5, time.Millisecond*500, "Some events are not received.")
+			receivedEvents, err := emitter.WaitForNEvents(len(expectedEventTypes), time.Second*5)
+			require.NoError(t, err)
+			require.ElementsMatch(t, expectedEventTypes, eventTypes(receivedEvents))
 		})
 	}
+}
+
+func eventTypes(events []apievents.AuditEvent) (types []string) {
+	for _, event := range events {
+		types = append(types, event.GetType())
+	}
+	return types
 }
 
 func testOpenSession(t *testing.T, reg *SessionRegistry, roleSet services.RoleSet) (*session, ssh.Channel) {

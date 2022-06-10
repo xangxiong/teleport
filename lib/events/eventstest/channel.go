@@ -18,6 +18,7 @@ package eventstest
 
 import (
 	"context"
+	"time"
 
 	"github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/trace"
@@ -50,4 +51,24 @@ func (e *ChannelEmitter) EmitAuditEvent(ctx context.Context, event events.AuditE
 
 func (e *ChannelEmitter) C() <-chan events.AuditEvent {
 	return e.events
+}
+
+func (e *ChannelEmitter) WaitForNEvents(n int, timeout time.Duration) ([]events.AuditEvent, error) {
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	var events []events.AuditEvent
+	for {
+		if len(events) >= n {
+			return events, nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+
+		case event := <-e.events:
+			events = append(events, event)
+		}
+	}
 }

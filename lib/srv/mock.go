@@ -27,6 +27,7 @@ import (
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/types"
+	"github.com/gravitational/teleport/api/types/events"
 	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/auth/testauthority"
@@ -95,7 +96,9 @@ func newTestServerContext(t *testing.T, srv Server, roleSet services.RoleSet) *S
 	return scx
 }
 
-func newMockServer(t *testing.T) *mockServer {
+type newMockServerOpt func(*mockServer)
+
+func newMockServer(t *testing.T, opts ...newMockServerOpt) *mockServer {
 	ctx := context.Background()
 	clock := clockwork.NewFakeClock()
 
@@ -125,18 +128,40 @@ func newMockServer(t *testing.T) *mockServer {
 	authServer, err := auth.NewServer(authCfg, auth.WithClock(clock))
 	require.NoError(t, err)
 
-	return &mockServer{
+	m := &mockServer{
 		auth:        authServer,
 		MockEmitter: &eventstest.MockEmitter{},
 		clock:       clock,
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+func withChannelEmitter(channelEmitter *eventstest.ChannelEmitter) newMockServerOpt {
+	return func(m *mockServer) {
+		m.ChannelEmitter = channelEmitter
 	}
 }
 
 type mockServer struct {
 	*eventstest.MockEmitter
+	*eventstest.ChannelEmitter
+
 	auth      *auth.Server
 	component string
 	clock     clockwork.FakeClock
+}
+
+// EmitAuditEvent emit audit event.
+func (m *mockServer) EmitAuditEvent(ctx context.Context, event events.AuditEvent) error {
+	m.MockEmitter.EmitAuditEvent(ctx, event)
+
+	if m.ChannelEmitter != nil {
+		return m.ChannelEmitter.EmitAuditEvent(ctx, event)
+	}
+	return nil
 }
 
 // ID is the unique ID of the server.
