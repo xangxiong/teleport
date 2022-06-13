@@ -26,6 +26,7 @@ import (
 
 	"github.com/gravitational/teleport/lib/tlsca"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/ssocreds"
@@ -52,6 +53,8 @@ type AWSSigninRequest struct {
 	TargetURL string
 	// Issuer is the application public URL.
 	Issuer string
+	// ExternalID is the External ID used for AssumeRole.
+	ExternalID string
 }
 
 // CheckAndSetDefaults validates the request.
@@ -178,6 +181,11 @@ func (c *cloud) getAWSSigninToken(req *AWSSigninRequest, endpoint string, option
 		// Setting role session name to Teleport username will allow to
 		// associate CloudTrail events with the Teleport user.
 		creds.RoleSessionName = req.Identity.Username
+
+		// Set External ID if valid.
+		if req.ExternalID != "" {
+			creds.ExternalID = aws.String(req.ExternalID)
+		}
 
 		// Setting web console session duration through AssumeRole call for AWS
 		// sessions with temporary credentials.

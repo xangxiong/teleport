@@ -122,6 +122,9 @@ const (
 	AWSConsoleURL = "https://console.aws.amazon.com"
 	// AWSAccountIDLabel is the key of the label containing AWS account ID.
 	AWSAccountIDLabel = "aws_account_id"
+	// AWSExternalIDLabel is the key of the label containing the External ID
+	// used for AssumeRole.
+	AWSExternalIDLabel = "aws_external_id"
 
 	// RSAKeySize is the size of the RSA key.
 	RSAKeySize = 2048

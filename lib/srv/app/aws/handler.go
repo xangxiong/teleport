@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -34,6 +35,7 @@ import (
 	"github.com/jonboulle/clockwork"
 	"github.com/sirupsen/logrus"
 
+	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
@@ -147,7 +149,7 @@ func (s *SigningService) RoundTrip(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	signedReq, err := s.prepareSignedRequest(req, resolvedEndpoint, sessionCtx.Identity)
+	signedReq, err := s.prepareSignedRequest(req, resolvedEndpoint, sessionCtx)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -203,7 +205,7 @@ func (s *SigningService) formatForwardResponseError(rw http.ResponseWriter, r *h
 
 // prepareSignedRequest creates a new HTTP request and rewrites the header from the original request and returns a new
 // HTTP request signed by STS AWS API.
-func (s *SigningService) prepareSignedRequest(r *http.Request, re *endpoints.ResolvedEndpoint, identity *tlsca.Identity) (*http.Request, error) {
+func (s *SigningService) prepareSignedRequest(r *http.Request, re *endpoints.ResolvedEndpoint, sessionCtx *common.SessionContext) (*http.Request, error) {
 	payload, err := awsutils.GetAndReplaceReqBody(r)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -215,7 +217,7 @@ func (s *SigningService) prepareSignedRequest(r *http.Request, re *endpoints.Res
 	}
 	rewriteHeaders(r, reqCopy)
 	// Sign the copy of the request.
-	signer := v4.NewSigner(s.getSigningCredentials(s.Session, identity))
+	signer := v4.NewSigner(s.getSigningCredentials(s.Session, sessionCtx.Identity, sessionCtx.App))
 	_, err = signer.Sign(reqCopy, bytes.NewReader(payload), re.SigningName, re.SigningRegion, s.Clock.Now())
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -236,13 +238,17 @@ func rewriteHeaders(r *http.Request, reqCopy *http.Request) {
 	reqCopy.Header.Del("Content-Length")
 }
 
-type getSigningCredentialsFunc func(c client.ConfigProvider, identity *tlsca.Identity) *credentials.Credentials
+type getSigningCredentialsFunc func(c client.ConfigProvider, identity *tlsca.Identity, app types.Application) *credentials.Credentials
 
-func getAWSCredentialsFromSTSAPI(provider client.ConfigProvider, identity *tlsca.Identity) *credentials.Credentials {
+func getAWSCredentialsFromSTSAPI(provider client.ConfigProvider, identity *tlsca.Identity, app types.Application) *credentials.Credentials {
 	return stscreds.NewCredentials(provider, identity.RouteToApp.AWSRoleARN,
 		func(cred *stscreds.AssumeRoleProvider) {
 			cred.RoleSessionName = identity.Username
 			cred.Expiry.SetExpiration(identity.Expires, 0)
+
+			if externalID := app.GetAWSExternalID(); externalID != "" {
+				cred.ExternalID = aws.String(externalID)
+			}
 		},
 	)
 }

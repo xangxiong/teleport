@@ -157,7 +157,7 @@ func TestAWSSignerHandler(t *testing.T) {
 	}
 }
 
-func staticAWSCredentials(client.ConfigProvider, *tlsca.Identity) *credentials.Credentials {
+func staticAWSCredentials(client.ConfigProvider, *tlsca.Identity, types.Application) *credentials.Credentials {
 	return credentials.NewStaticCredentials("AKIDl", "SECRET", "SESSION")
 }
 
