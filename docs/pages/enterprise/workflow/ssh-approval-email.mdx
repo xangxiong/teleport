@@ -1,0 +1,165 @@
+---
+title: SSH login approval via Email
+description: How to configure SSH login approval using Email and Teleport
+h1: SSH Login Approval using Email
+---
+
+This guide demonstrates how to setup Teleport approval workflows via email.
+Teleport's Email Plugin allows you to send Teleport access and permission
+requests via emails.
+
+<Notice
+  type="danger"
+  scope="oss"
+>
+
+  This guide requires Teleport Cloud or Teleport Enterprise.
+
+</Notice>
+
+## Setup
+
+### Prerequisites
+
+This guide assumes that you have:
+
+- A running Teleport Cluster
+- Admin privileges with access to `tctl`
+- A SMTP or Mailgun account
+- A node to run the plugin. We recommend running it alongside the Teleport Proxy for convenience
+
+Teleport Cloud requires that plugins connect through the Proxy Service (`mytenant.teleport.sh:443`).
+Open Source and Enterprise installations can connect to the Auth Service (`auth.example.com:3025`) directly.
+
+(!docs/pages/includes/tctl.mdx!)
+
+### Create a user and role for access
+
+(!docs/pages/includes/plugins/rbac.mdx!)
+
+### Export the access-plugin certificate
+
+(!docs/pages/includes/plugins/identity-export.mdx!)
+
+We'll reference these files later when [configuring the plugins](#config-file).
+
+
+### Gather Email Credentials
+
+For SMTP
+
+For Mailgun
+
+## Downloading and installing the plugin
+
+We recommend installing Teleport plugins alongside the Teleport Proxy. This is an ideal
+location as plugins have a low memory footprint, and will require both public internet access
+and Teleport Auth Service access.
+
+<Tabs>
+<TabItem label="Download">
+  ```code
+  $ curl -L -O https://get.gravitational.com/teleport-access-email-v(=teleport.plugin.version=)-linux-amd64-bin.tar.gz
+  $ tar -xzf teleport-access-email-v(=teleport.plugin.version=)-linux-amd64-bin.tar.gz
+  $ cd teleport-access-email
+  $ ./install
+  ```
+</TabItem>
+<TabItem label="From Source">
+  To install from source you need `git` and `go` installed. If you do not have Go installed, visit the Go [downloads page](https://go.dev/dl/).
+
+  ```code
+  # Checkout teleport-plugins
+  $ git clone https://github.com/gravitational/teleport-plugins.git
+  $ cd teleport-plugins/access/email
+  $ make
+  ```
+Run `./install` from `teleport-email` or place the executable in the appropriate `/usr/bin` or `/usr/local/bin` on the server installation.
+</TabItem>
+<TabItem label="Docker">
+  ```code
+  $ docker pull quay.io/gravitational/teleport-plugin-email:(=teleport.plugin.version=)
+  ```
+</TabItem>
+</Tabs>
+
+### Config file
+
+Teleport's Email Plugin has its own configuration file in TOML format. Before starting the plugin for the first time, you'll need to generate and edit that config file.
+
+```code
+$ teleport-email configure > teleport-email.toml
+$ sudo mv teleport-email.toml /etc
+```
+
+This should result in a config file like the one below.
+
+```toml
+(!examples/resources/plugins/teleport-email.toml!)
+```
+
+Edit the following fields in the configuration file you generated with values specific to your Teleport and mail provider.
+
+<Tabs>
+  <TabItem label="Self-Hosted" scope={["oss","enterprise"]}>
+    
+Set `addr` to your Auth Server address. This address must be reachable from the Teleport Email Plugin.
+
+Set `client_key`, `client_crt`, and `root_cas` to the identity files
+generated in the [export identity](#step-37-export-the-access-plugin-identity) section.
+
+```toml
+[teleport]
+addr = "localhost:3025"
+client_key = "/var/lib/teleport/plugins/slack/auth.key" # Teleport GRPC client secret key
+client_crt = "/var/lib/teleport/plugins/slack/auth.crt" # Teleport GRPC client certificate
+root_cas = "/var/lib/teleport/plugins/slack/auth.cas"   # Teleport cluster CA certs
+```
+  </TabItem>
+  <TabItem label="Cloud" scope={["cloud"]}>
+
+Set `addr` to  your Teleport Cloud tenant address.
+
+Set `identity` to the identity file generated in the [export identity](#step-37-export-the-access-plugin-identity) section.
+
+```toml
+[teleport]
+addr = "mytenant.teleport.sh"
+identity = "/var/lib/teleport/plugins/email/auth.pem"
+```
+  </TabItem>
+</Tabs>
+
+### Testing the plugin
+
+With the config above, you should be able to run the plugin invoking
+`teleport-email start -d`. The will provide some debug information to make sure
+the bot can connect to the SMTP server or Mailgun.
+
+```code
+$ teleport-email start -d
+DEBU   DEBUG logging enabled email/main.go:81
+INFO   Starting Teleport Access Email Plugin 9.3.7:teleport-email-v9.3.7-1-g0912ebbe email/app.go:92
+DEBU   Attempting GET teleport.example.com:443/webapi/find webclient/webclient.go:118
+DEBU   Attempting GET teleport.example.com:443/webapi/find webclient/webclient.go:118
+DEBU   Checking Teleport server version email/app.go:163
+INFO   Using SMTP as email transport host:smtp.gmail.com port:587 username:username@gmail.com email/client.go:71
+DEBU   Watcher connected watcherjob/watcherjob.go:109
+INFO   Plugin is ready email/app.go:113
+```
+
+By default, `teleport-email` will assume its config is in `/etc/teleport-email.toml`, but you can override it with `--config` option.
+
+### Set up systemd
+
+In production, we recommend starting the Teleport plugin daemon via an init system like systemd. Here's the recommended Teleport plugin service unit file for systemd:
+
+```code
+(!examples/systemd/plugins/teleport-email.service!)
+```
+
+Save this as `teleport-email.service`.
+
+## Feedback
+
+If you have any issues with this plugin please create an [issue here](https://github.com/gravitational/teleport-plugins/issues/new).

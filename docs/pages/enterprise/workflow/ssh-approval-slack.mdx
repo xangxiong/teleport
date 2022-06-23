@@ -12,9 +12,7 @@ integration notifies individuals and channels of access requests.
   scope="oss"
 >
 
-  This guide requires Teleport Cloud or Teleport Enterprise. The open source
-  edition of Teleport only supports [GitHub](../../setup/admin/github-sso.mdx)
-  as an SSO provider.
+  This guide requires Teleport Cloud or Teleport Enterprise.
 
 </Notice>
 
@@ -172,7 +170,7 @@ client_key = "/var/lib/teleport/plugins/slack/auth.key" # Teleport GRPC client s
 client_crt = "/var/lib/teleport/plugins/slack/auth.crt" # Teleport GRPC client certificate
 root_cas = "/var/lib/teleport/plugins/slack/auth.cas"   # Teleport cluster CA certs
 ```
-</TabItem>
+  </TabItem>
   <TabItem label="Cloud" scope={["cloud"]}>
 
 Set `addr` to  your Teleport Cloud tenant address.

@@ -1,6 +1,6 @@
-<Details 
-title="Make sure you can connect to Teleport" 
-scope={["oss", "enterprise"]} 
+<Details
+title="Make sure you can connect to Teleport"
+scope={["oss", "enterprise"]}
 scopeOnly={true}
 opened={true}
 >
@@ -21,8 +21,8 @@ You can run subsequent `tctl` commands in this guide on your local machine.
 For full privileges, you can also run `tctl` commands on your Auth Service host.
 
 </Details>
-<Details 
-title="Make sure you can connect to Teleport" 
+<Details
+title="Make sure you can connect to Teleport"
 scope={["cloud"]}
 scopeOnly={true}
 opened={true}
@@ -36,7 +36,7 @@ $ tsh login --proxy=myinstance.teleport.sh --user=email@example.com
 $ tctl status
 # Cluster  myinstance.teleport.sh
 # Version  (=cloud.version=)
-# CA pin   sha256:sha-hash-here
+# CA pin   (=presets.ca_pin=)
 ```
 
 You must run subsequent `tctl` commands in this guide on your local machine.
