@@ -21,9 +21,12 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/lib/srv/alpnproxy/common"
@@ -504,4 +507,143 @@ func TestMatchMySQLConn(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestMultiplexTLSConnections(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ca := mustGenSelfSignedCert(t)
+	cert := mustGenCertSignedWithCA(t, ca)
+
+	clientConn, serverConn := net.Pipe()
+	defer clientConn.Close()
+	defer serverConn.Close()
+
+	tlsConfig := &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{cert}}
+
+	// First connection: wrapper.
+	clientWrapperConn, serverWrapperConn := establishTLSConnection(t, clientConn, serverConn, tlsConfig, []byte("wrapper content"))
+
+	// Second connection.
+	secondClientConn, secondServerConn := establishTLSConnection(t, clientWrapperConn, serverWrapperConn, tlsConfig, []byte("second content"))
+
+	// Third connection.
+	// thirdClientConn, thirdServerConn := establishTLSConnection(t, clientWrapperConn, serverWrapperConn, tlsConfig, []byte("third content"))
+	thirdClientConn, thirdServerConn := establishTLSConnection(t, secondClientConn, secondServerConn, tlsConfig, []byte("third content"))
+
+	// Write to second connection.
+	secondMessage := []byte("hello second")
+	var secondWg sync.WaitGroup
+	secondWg.Add(2)
+	go func() {
+		defer secondWg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				_, err := secondClientConn.Write(secondMessage)
+				fmt.Println("-->> writing to SECOND conn", err)
+				if err != io.ErrClosedPipe {
+					require.NoError(t, err)
+				}
+			}
+		}
+	}()
+	go func() {
+		defer secondWg.Done()
+		buf := make([]byte, len(secondMessage))
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				_, err := secondServerConn.Read(buf)
+				fmt.Println("-->> reading to SECOND conn", err, string(buf))
+				if err != io.ErrClosedPipe {
+					require.NoError(t, err)
+					require.Equal(t, secondMessage, buf)
+				}
+			}
+		}
+	}()
+
+	// Write to third connection.
+	thirdMessage := []byte("hello third")
+	var thirdWg sync.WaitGroup
+	thirdWg.Add(2)
+	go func() {
+		defer thirdWg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				_, err := thirdClientConn.Write(thirdMessage)
+				fmt.Println("-->> writing to THIRD conn", err)
+				if err != io.ErrClosedPipe {
+					require.NoError(t, err)
+				}
+			}
+		}
+	}()
+	go func() {
+		defer thirdWg.Done()
+		buf := make([]byte, len(thirdMessage))
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				_, err := thirdServerConn.Read(buf)
+				fmt.Println("-->> reading to THIRD conn", err, string(buf))
+				if err != io.ErrClosedPipe {
+					require.NoError(t, err)
+					require.Equal(t, thirdMessage, buf)
+				}
+			}
+		}
+	}()
+
+
+	time.Sleep(10*time.Second)
+	clientConn.Close()
+	serverConn.Close()
+	cancel()
+	secondWg.Wait()
+	t.Fail()
+}
+
+func establishTLSConnection(t *testing.T, clientConn, serverConn net.Conn, tlsConfig *tls.Config, content []byte) (*tls.Conn, *tls.Conn) {
+	t.Helper()
+
+	serverDoneCh := make(chan struct{})
+	var serverTlsConn *tls.Conn
+	go func() {
+		serverTlsConn = tls.Server(serverConn, tlsConfig)
+		require.NoError(t, serverTlsConn.Handshake())
+		_, err := serverTlsConn.Write(content)
+		require.NoError(t, err)
+		serverDoneCh <- struct{}{}
+	}()
+
+	clientTlsConn := tls.Client(clientConn, tlsConfig)
+	require.Eventually(t, func() bool {
+		// fmt.Println("-->> doing handshake", string(content))
+		// require.NoError(t, clientTlsConn.Handshake())
+		// fmt.Println("-->> handshake done", string(content))
+		buf := make([]byte, len(content))
+		_, err := clientTlsConn.Read(buf)
+		require.NoError(t, err)
+		require.Equal(t, content, buf)
+		return true
+	}, time.Second, 200*time.Millisecond)
+
+	require.Eventually(t, func() bool {
+		<-serverDoneCh
+		return true
+	}, time.Second, 200*time.Millisecond)
+
+	return clientTlsConn, serverTlsConn
 }
