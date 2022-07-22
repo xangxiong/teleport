@@ -236,6 +236,8 @@ func (a *LocalKeyAgent) LoadKey(key Key) (*agent.AddedKey, error) {
 // UnloadKey will unload keys for the given user and cluster from the teleport ssh agent as well as
 // the system agent.
 func (a *LocalKeyAgent) UnloadKey(key KeyIndex) error {
+	agentKeyComment := sshutils.TeleportAgentKeyComment(key.ClusterName, key.Username)
+
 	agents := []agent.Agent{a.Agent}
 	if a.sshAgent != nil {
 		agents = append(agents, a.sshAgent)
@@ -251,7 +253,7 @@ func (a *LocalKeyAgent) UnloadKey(key KeyIndex) error {
 
 		// remove any teleport keys we currently have loaded in the agent for this user and cluster
 		for _, agentKey := range keyList {
-			if agentKey.Comment == sshutils.TeleportAgentKeyComment(key.ClusterName, key.Username) {
+			if agentKey.Comment == agentKeyComment {
 				err = agent.Remove(agentKey)
 				if err != nil {
 					a.log.Warnf("Unable to communicate with agent and remove key: %v", err)
