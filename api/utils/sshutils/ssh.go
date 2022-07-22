@@ -22,14 +22,10 @@ import (
 	"crypto/subtle"
 	"io"
 	"net"
-	"runtime"
-	"strings"
 
-	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/trace"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 )
 
 const (
@@ -134,15 +130,15 @@ func ProxyClientSSHConfig(sshCert, privKey []byte, caCerts [][]byte) (*ssh.Clien
 
 // AsSigner returns an ssh.Signer from raw marshaled key and certificate.
 func AsSigner(sshCert *ssh.Certificate, privKey []byte) (ssh.Signer, error) {
-	keys, err := AsAgentKeys(sshCert, privKey)
+	privateKey, err := ssh.ParseRawPrivateKey(privKey)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	signer, err := ssh.NewSignerFromKey(keys[0].PrivateKey)
+	signer, err := ssh.NewSignerFromKey(privateKey)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	signer, err = ssh.NewCertSigner(keys[0].Certificate, signer)
+	signer, err = ssh.NewCertSigner(sshCert, signer)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -158,75 +154,6 @@ func AsAuthMethod(sshCert *ssh.Certificate, privKey []byte) (ssh.AuthMethod, err
 		return nil, trace.Wrap(err)
 	}
 	return ssh.PublicKeys(signer), nil
-}
-
-const (
-	agentCommentPrefix    = "teleport"
-	agentCommentSeparator = ":"
-)
-
-func TeleportAgentKeyComment(clusterName, userName string) string {
-	return strings.Join([]string{agentCommentPrefix, clusterName, userName}, agentCommentSeparator)
-}
-
-func IsTeleportAgentKey(key *agent.Key) bool {
-	return strings.HasPrefix(key.Comment, agentCommentPrefix+agentCommentSeparator)
-}
-
-// AsAgentKeys converts Key struct to a []*agent.AddedKey. All elements
-// of the []*agent.AddedKey slice need to be loaded into the agent!
-func AsAgentKeys(sshCert *ssh.Certificate, privKey []byte) ([]agent.AddedKey, error) {
-	// unmarshal private key bytes into a *rsa.PrivateKey
-	privateKey, err := ssh.ParseRawPrivateKey(privKey)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// put a teleport identifier along with the teleport user into the comment field
-	clusterName := sshCert.Permissions.Extensions[constants.CertExtensionTeleportRouteToCluster]
-	comment := TeleportAgentKeyComment(clusterName, sshCert.KeyId)
-
-	// On Windows, return the certificate with the private key embedded.
-	if runtime.GOOS == constants.WindowsOS {
-		return []agent.AddedKey{
-			{
-				PrivateKey:       privateKey,
-				Certificate:      sshCert,
-				Comment:          comment,
-				LifetimeSecs:     0,
-				ConfirmBeforeUse: false,
-			},
-		}, nil
-	}
-
-	// On Unix, return the certificate (with embedded private key) as well as
-	// a private key.
-	//
-	// This is done because OpenSSH clients older than OpenSSH 7.3/7.3p1
-	// (2016-08-01) have a bug in how they use certificates that have been loaded
-	// in an agent. Specifically when you add a certificate to an agent, you can't
-	// just embed the private key within the certificate, you have to add the
-	// certificate and private key to the agent separately. Teleport works around
-	// this behavior to ensure OpenSSH interoperability.
-	//
-	// For more details see the following: https://bugzilla.mindrot.org/show_bug.cgi?id=2550
-	// WARNING: callers expect the returned slice to be __exactly as it is__
-	return []agent.AddedKey{
-		{
-			PrivateKey:       privateKey,
-			Certificate:      sshCert,
-			Comment:          comment,
-			LifetimeSecs:     0,
-			ConfirmBeforeUse: false,
-		},
-		{
-			PrivateKey:       privateKey,
-			Certificate:      nil,
-			Comment:          comment,
-			LifetimeSecs:     0,
-			ConfirmBeforeUse: false,
-		},
-	}, nil
 }
 
 // HostKeyCallback returns an ssh.HostKeyCallback that validates host

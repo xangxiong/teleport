@@ -37,7 +37,6 @@ import (
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/api/utils/keypaths"
-	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/auth/testauthority"
 	"github.com/gravitational/teleport/lib/fixtures"
@@ -80,7 +79,7 @@ func makeSuite(t *testing.T) *KeyAgentTestSuite {
 	s.tlsca, s.tlscaCert, err = newSelfSignedCA(pemBytes)
 	require.NoError(t, err)
 
-	s.key = s.makeKey(t, s.username, s.clusterName)
+	s.key = s.makeKey(t, s.username, s.hostname)
 
 	return s
 }
@@ -126,7 +125,7 @@ func TestAddKey(t *testing.T) {
 
 	// check that we've loaded a cert as well as a private key into the teleport agent
 	// and it's for the user we expected to add a certificate for
-	expectComment := apisshutils.TeleportAgentKeyComment(s.clusterName, s.username)
+	expectComment := teleportAgentKeyName(s.key.KeyIndex)
 	require.Len(t, teleportAgentKeys, 2)
 	require.Equal(t, "ssh-rsa-cert-v01@openssh.com", teleportAgentKeys[0].Type())
 	require.Equal(t, expectComment, teleportAgentKeys[0].Comment)
@@ -171,8 +170,8 @@ func TestLoadKey(t *testing.T) {
 	// Create 3 separate keys, with overlapping user and cluster names
 	keys := []*Key{
 		s.key,
-		s.makeKey(t, s.username, "other-cluster"),
-		s.makeKey(t, "other-user", s.clusterName),
+		s.makeKey(t, s.key.Username, "other-proxy-host"),
+		s.makeKey(t, "other-user", s.key.ProxyHost),
 	}
 
 	// We should see two agent keys for each key added
@@ -192,7 +191,7 @@ func TestLoadKey(t *testing.T) {
 			// load each key to the agent twice, this should not
 			// lead to duplicate keys in the agent.
 			keyAgent.username = key.Username
-			keyAgent.siteName = key.ClusterName
+			keyAgent.proxyHost = key.ProxyHost
 			_, err = keyAgent.LoadKey(*key)
 			require.NoError(t, err)
 			_, err = keyAgent.LoadKey(*key)
@@ -211,15 +210,16 @@ func TestLoadKey(t *testing.T) {
 
 			// gather all agent keys for the added key, making sure
 			// we added the correct amount to each agent.
+			keyAgentName := teleportAgentKeyName(key.KeyIndex)
 			var agentKeysForKey []*agent.Key
 			for _, agentKey := range teleportAgentKeys {
-				if agentKey.Comment == apisshutils.TeleportAgentKeyComment(key.ClusterName, key.Username) {
+				if agentKey.Comment == keyAgentName {
 					agentKeysForKey = append(agentKeysForKey, agentKey)
 				}
 			}
 			require.Len(t, agentKeysForKey, agentsPerKey)
 			for _, agentKey := range systemAgentKeys {
-				if agentKey.Comment == apisshutils.TeleportAgentKeyComment(key.ClusterName, key.Username) {
+				if agentKey.Comment == keyAgentName {
 					agentKeysForKey = append(agentKeysForKey, agentKey)
 				}
 			}
@@ -495,7 +495,7 @@ func TestLocalKeyAgent_AddDatabaseKey(t *testing.T) {
 	})
 }
 
-func (s *KeyAgentTestSuite) makeKey(t *testing.T, username, clusterName string) *Key {
+func (s *KeyAgentTestSuite) makeKey(t *testing.T, username, proxyHost string) *Key {
 	keygen := testauthority.New()
 	ttl := time.Minute
 
@@ -535,7 +535,7 @@ func (s *KeyAgentTestSuite) makeKey(t *testing.T, username, clusterName string) 
 		TTL:                   ttl,
 		PermitAgentForwarding: true,
 		PermitPortForwarding:  true,
-		RouteToCluster:        clusterName,
+		RouteToCluster:        s.clusterName,
 	})
 	require.NoError(t, err)
 
@@ -545,9 +545,9 @@ func (s *KeyAgentTestSuite) makeKey(t *testing.T, username, clusterName string) 
 		Cert:    certificate,
 		TLSCert: tlsCert,
 		KeyIndex: KeyIndex{
-			ProxyHost:   s.hostname,
+			ProxyHost:   proxyHost,
 			Username:    username,
-			ClusterName: clusterName,
+			ClusterName: s.clusterName,
 		},
 	}
 }

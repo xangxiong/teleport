@@ -20,6 +20,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/gravitational/teleport"
@@ -384,14 +386,80 @@ func (k *Key) CertRoles() ([]string, error) {
 	return roles, nil
 }
 
+const (
+	agentCommentPrefix    = "teleport"
+	agentCommentSeparator = ":"
+)
+
+// teleportAgentKeyName returns an teleport agent key name like "teleport:<proxyHost>:<userName>".
+// This name should be used/seen in the comment section of Teleport agent keys.
+func teleportAgentKeyName(k KeyIndex) string {
+	return strings.Join([]string{agentCommentPrefix, k.ProxyHost, k.Username}, agentCommentSeparator)
+}
+
+// IsTeleportAgentKey whether the given agent key has the Teleport agent key name prefix.
+func isTeleportAgentKey(key *agent.Key) bool {
+	return strings.HasPrefix(key.Comment, agentCommentPrefix+agentCommentSeparator)
+}
+
 // AsAgentKeys converts client.Key struct to a []*agent.AddedKey. All elements
 // of the []*agent.AddedKey slice need to be loaded into the agent!
 func (k *Key) AsAgentKeys() ([]agent.AddedKey, error) {
-	cert, err := k.SSHCert()
+	sshCert, err := k.SSHCert()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return sshutils.AsAgentKeys(cert, k.Priv)
+
+	// unmarshal private key bytes into a *rsa.PrivateKey
+	privateKey, err := ssh.ParseRawPrivateKey(k.Priv)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	// put a teleport identifier along with the teleport user and proxy host into the comment field
+	agentKeyName := teleportAgentKeyName(k.KeyIndex)
+
+	// On Windows, return the certificate with the private key embedded.
+	if runtime.GOOS == constants.WindowsOS {
+		return []agent.AddedKey{
+			{
+				PrivateKey:       privateKey,
+				Certificate:      sshCert,
+				Comment:          agentKeyName,
+				LifetimeSecs:     0,
+				ConfirmBeforeUse: false,
+			},
+		}, nil
+	}
+
+	// On Unix, return the certificate (with embedded private key) as well as
+	// a private key.
+	//
+	// This is done because OpenSSH clients older than OpenSSH 7.3/7.3p1
+	// (2016-08-01) have a bug in how they use certificates that have been loaded
+	// in an agent. Specifically when you add a certificate to an agent, you can't
+	// just embed the private key within the certificate, you have to add the
+	// certificate and private key to the agent separately. Teleport works around
+	// this behavior to ensure OpenSSH interoperability.
+	//
+	// For more details see the following: https://bugzilla.mindrot.org/show_bug.cgi?id=2550
+	// WARNING: callers expect the returned slice to be __exactly as it is__
+	return []agent.AddedKey{
+		{
+			PrivateKey:       privateKey,
+			Certificate:      sshCert,
+			Comment:          agentKeyName,
+			LifetimeSecs:     0,
+			ConfirmBeforeUse: false,
+		},
+		{
+			PrivateKey:       privateKey,
+			Certificate:      nil,
+			Comment:          agentKeyName,
+			LifetimeSecs:     0,
+			ConfirmBeforeUse: false,
+		},
+	}, nil
 }
 
 // TeleportTLSCertificate returns the parsed x509 certificate for
