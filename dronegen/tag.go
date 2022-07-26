@@ -84,6 +84,9 @@ func tagBuildCommands(b buildType) []string {
 
 	// Build Teleport Connect on suported OS/arch
 	if b.hasTeleportConnect() {
+		if b.os == "windows" {
+			commands = append(commands, `export CSC_LINK=windows-signing-cert.pfx`)
+		}
 		commands = append(commands,
 			`cd /go/src/github.com/gravitational/webapps`,
 			`yarn install --frozen-lockfile && yarn build-term && yarn package-term`,
@@ -131,6 +134,14 @@ func tagCopyArtifactCommands(b buildType) []string {
 		)
 	}
 
+	// copy Teleport Connect artifacts
+	if b.hasTeleportConnect() {
+		commands = append(commands,
+			`cd /go/src/github.com/gravitational/webapps/packages/teleterm/build/release`,
+			`cp *.exe /go/artifacts`,
+		)
+	}
+
 	// we need to specifically rename artifacts which are created for CentOS
 	// these is the only special case where renaming is not handled inside the Makefile
 	if b.centos7 {
@@ -150,6 +161,12 @@ func tagCopyArtifactCommands(b buildType) []string {
 
 	// generate checksums
 	commands = append(commands, fmt.Sprintf(`cd /go/artifacts && for FILE in teleport*%s; do sha256sum $FILE > $FILE.sha256; done && ls -l`, extension))
+
+	if b.hasTeleportConnect() {
+		commands = append(commands,
+			`cd /go/artifacts && for FILE in *.exe; do shasum -a 256 "$FILE" > "$FILE.sha256"; done && ls -l`,
+		)
+	}
 	return commands
 }
 
