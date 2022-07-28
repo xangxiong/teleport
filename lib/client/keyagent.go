@@ -233,8 +233,8 @@ func (a *LocalKeyAgent) LoadKey(key Key) (*agent.AddedKey, error) {
 	return &agentKeys[0], nil
 }
 
-// UnloadKey will unload keys for the given user and cluster from the teleport ssh agent as well as
-// the system agent.
+// UnloadKey will unload keys for the given user and proxy from
+// the teleport ssh agent and the system agent.
 func (a *LocalKeyAgent) UnloadKey(key KeyIndex) error {
 	agentKeyComment := teleportAgentKeyName(key)
 

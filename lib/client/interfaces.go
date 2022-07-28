@@ -391,11 +391,24 @@ const (
 	agentCommentSeparator = ":"
 )
 
-// teleportAgentKeyName returns an teleport agent key name like "teleport:<proxyHost>:<userName>".
-// This name should be used/seen in the comment section of Teleport agent keys.
+// teleportAgentKeyName returns a teleport agent key name like "teleport:<proxyHost>:<userName>".
+// This name should be used/seen in the comment section of Teleport agent keys, as the prefix for
+// Teleport agent cert keys.
 func teleportAgentKeyName(k KeyIndex) string {
 	return strings.Join([]string{agentCommentPrefix, k.ProxyHost, k.Username}, agentCommentSeparator)
 }
+
+// teleportAgentKeyCertName returns a teleport agent key cert name like "teleport:<proxyHost>:<userName>:<clusterName>".
+// This name should be used/seen in the comment section of Teleport agent cert keys.
+func teleportAgentKeyCertName(k KeyIndex) string {
+	return strings.Join([]string{teleportAgentKeyName(k), k.ClusterName}, agentCommentSeparator)
+}
+
+// // teleportAgentKeyName returns an teleport agent key name like "teleport:<proxyHost>:<clusterName>:<userName>".
+// // This name should be used/seen in the comment section of Teleport agent keys.
+// func teleportAgentKeyName(k KeyIndex) string {
+// 	return strings.Join([]string{agentCommentPrefix, k.ProxyHost, k.ClusterName, k.Username}, agentCommentSeparator)
+// }
 
 // IsTeleportAgentKey whether the given agent key has the Teleport agent key name prefix.
 func isTeleportAgentKey(key *agent.Key) bool {
@@ -416,21 +429,13 @@ func (k *Key) AsAgentKeys() ([]agent.AddedKey, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// put a teleport identifier along with the teleport user and proxy host into the comment field
-	agentKeyName := teleportAgentKeyName(k.KeyIndex)
-
-	// On Windows, return the certificate with the private key embedded.
-	if runtime.GOOS == constants.WindowsOS {
-		return []agent.AddedKey{
-			{
-				PrivateKey:       privateKey,
-				Certificate:      sshCert,
-				Comment:          agentKeyName,
-				LifetimeSecs:     0,
-				ConfirmBeforeUse: false,
-			},
-		}, nil
-	}
+	agentKeys := []agent.AddedKey{{
+		PrivateKey:       privateKey,
+		Certificate:      sshCert,
+		Comment:          teleportAgentKeyCertName(k.KeyIndex),
+		LifetimeSecs:     0,
+		ConfirmBeforeUse: false,
+	}}
 
 	// On Unix, return the certificate (with embedded private key) as well as
 	// a private key.
@@ -444,22 +449,17 @@ func (k *Key) AsAgentKeys() ([]agent.AddedKey, error) {
 	//
 	// For more details see the following: https://bugzilla.mindrot.org/show_bug.cgi?id=2550
 	// WARNING: callers expect the returned slice to be __exactly as it is__
-	return []agent.AddedKey{
-		{
-			PrivateKey:       privateKey,
-			Certificate:      sshCert,
-			Comment:          agentKeyName,
-			LifetimeSecs:     0,
-			ConfirmBeforeUse: false,
-		},
-		{
+	if runtime.GOOS != constants.WindowsOS {
+		agentKeys = append(agentKeys, agent.AddedKey{
 			PrivateKey:       privateKey,
 			Certificate:      nil,
-			Comment:          agentKeyName,
+			Comment:          teleportAgentKeyName(k.KeyIndex),
 			LifetimeSecs:     0,
 			ConfirmBeforeUse: false,
-		},
-	}, nil
+		})
+	}
+
+	return agentKeys, nil
 }
 
 // TeleportTLSCertificate returns the parsed x509 certificate for
