@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gravitational/teleport/plugins/lib/logger"
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/api/types/events"
+	"github.com/gravitational/teleport/plugins/lib/logger"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -46,6 +46,8 @@ type TeleportSearchEventsClient interface {
 type TeleportEventsWatcher struct {
 	// client is an instance of GRPC Teleport client
 	client TeleportSearchEventsClient
+	// serverName is the name of the server
+	serverName string
 	// cursor current page cursor value
 	cursor string
 	// nextCursor next page cursor value
@@ -76,7 +78,7 @@ func NewTeleportEventsWatcher(
 		Addrs: []string{c.TeleportAddr},
 		Credentials: []client.Credentials{
 			client.LoadIdentityFile(c.TeleportIdentityFile),
-			client.LoadKeyPair(c.TeleportCert, c.TeleportKey, c.TeleportCA),
+			// client.LoadKeyPair(c.TeleportCert, c.TeleportKey, c.TeleportCA),
 		},
 	}
 
@@ -85,13 +87,16 @@ func NewTeleportEventsWatcher(
 		return nil, trace.Wrap(err)
 	}
 
+	serverName := client.Config().ServerName
+
 	tc := TeleportEventsWatcher{
-		client:    client,
-		pos:       -1,
-		cursor:    cursor,
-		config:    c,
-		id:        id,
-		startTime: startTime,
+		client:     client,
+		serverName: serverName,
+		pos:        -1,
+		cursor:     cursor,
+		config:     c,
+		id:         id,
+		startTime:  startTime,
 	}
 
 	return &tc, nil

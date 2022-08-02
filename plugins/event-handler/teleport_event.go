@@ -21,8 +21,9 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/gravitational/teleport/plugins/event-handler/lib"
 	"github.com/gravitational/teleport/api/types/events"
+	libevents "github.com/gravitational/teleport/lib/events"
+	"github.com/gravitational/teleport/plugins/event-handler/lib"
 	"github.com/gravitational/trace"
 )
 
@@ -49,6 +50,8 @@ type TeleportEvent struct {
 	Time time.Time
 	// Index is an event index within session
 	Index int64
+	// User is the teleport user responsible for the event (may be empty)
+	User string
 	// IsSessionEnd is true when this event is session.end
 	IsSessionEnd bool
 	// SessionID is the session ID this event belongs to
@@ -81,24 +84,25 @@ type printEvent struct {
 }
 
 // NewTeleportEvent creates TeleportEvent using AuditEvent as a source
-func NewTeleportEvent(e events.AuditEvent, cursor string) (*TeleportEvent, error) {
-	evt := &TeleportEvent{
+func NewTeleportEvent(evt events.AuditEvent, cursor string) (*TeleportEvent, error) {
+	e := &TeleportEvent{
 		Cursor: cursor,
-		Type:   e.GetType(),
-		Time:   e.GetTime(),
-		Index:  e.GetIndex(),
+		Type:   evt.GetType(),
+		Time:   evt.GetTime(),
+		Index:  evt.GetIndex(),
 	}
 
-	err := evt.setID(e)
+	err := e.setID(evt)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	evt.setSessionID(e)
-	evt.setEvent(e)
-	evt.setLoginData(e)
+	e.setUser(evt)
+	e.setSessionID(evt)
+	e.setEvent(evt)
+	e.setLoginData(evt)
 
-	return evt, nil
+	return e, nil
 }
 
 // setID sets or generates TeleportEvent id
@@ -118,6 +122,12 @@ func (e *TeleportEvent) setID(evt events.AuditEvent) error {
 	e.ID = id
 
 	return nil
+}
+
+// setUser sets TeleportEvent.User
+func (e *TeleportEvent) setUser(evt events.AuditEvent) {
+	user := libevents.GetUser(evt)
+	e.User = user
 }
 
 // setEvent sets TeleportEvent.Event

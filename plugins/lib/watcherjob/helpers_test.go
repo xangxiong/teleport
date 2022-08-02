@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gravitational/teleport/plugins/lib"
 	"github.com/gravitational/teleport/api/types"
+	"github.com/gravitational/teleport/plugins/lib"
 	"github.com/gravitational/trace"
 
 	"github.com/stretchr/testify/assert"

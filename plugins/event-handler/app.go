@@ -32,6 +32,8 @@ import (
 type App struct {
 	// Fluentd represents the instance of Fluentd client
 	Fluentd *FluentdClient
+	// Timestream represents the instance of the Amazon Timestream client
+	Timestream *TimestreamClient
 	// EventWatcher represents the instance of TeleportEventWatcher
 	EventWatcher *TeleportEventsWatcher
 	// State represents the instance of the persistent state
@@ -102,7 +104,7 @@ func (a *App) WaitReady(ctx context.Context) (bool, error) {
 }
 
 // SendEvent sends an event to fluentd. Shared method used by jobs.
-func (a *App) SendEvent(ctx context.Context, url string, e *TeleportEvent) error {
+func (a *App) SendEvent(ctx context.Context, db string, e *TeleportEvent) error {
 	log := logger.Get(ctx)
 
 	if !a.Config.DryRun {
@@ -110,12 +112,12 @@ func (a *App) SendEvent(ctx context.Context, url string, e *TeleportEvent) error
 		backoffCount := sendBackoffNumTries
 
 		for {
-			err := a.Fluentd.Send(ctx, url, e.Event)
+			err := a.Timestream.Send(ctx, db, e)
 			if err == nil {
 				break
 			}
 
-			log.Error("Error sending event to Teleport: ", err)
+			log.Error("Error sending event to Timestream: ", err)
 
 			bErr := backoff.Do(ctx)
 			if bErr != nil {
@@ -159,11 +161,6 @@ func (a *App) init(ctx context.Context) error {
 		return trace.Wrap(err)
 	}
 
-	f, err := NewFluentdClient(&a.Config.FluentdConfig)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
 	latestCursor, err := s.GetCursor()
 	if err != nil {
 		return trace.Wrap(err)
@@ -179,14 +176,19 @@ func (a *App) init(ctx context.Context) error {
 		return trace.Wrap(err)
 	}
 
-	t, err := NewTeleportEventsWatcher(ctx, a.Config, *startTime, latestCursor, latestID)
+	eventWatcher, err := NewTeleportEventsWatcher(ctx, a.Config, *startTime, latestCursor, latestID)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	timestream, err := NewTimestreamClient(&a.Config.TimestreamConfig, eventWatcher.serverName)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
 	a.State = s
-	a.Fluentd = f
-	a.EventWatcher = t
+	a.Timestream = timestream
+	a.EventWatcher = eventWatcher
 
 	log.WithField("cursor", latestCursor).Info("Using initial cursor value")
 	log.WithField("id", latestID).Info("Using initial ID value")

@@ -21,8 +21,8 @@ import (
 	"os/exec"
 	"regexp"
 
-	"github.com/gravitational/teleport/plugins/lib/logger"
 	"github.com/gravitational/teleport/api/types"
+	"github.com/gravitational/teleport/plugins/lib/logger"
 	"github.com/gravitational/trace"
 )
 

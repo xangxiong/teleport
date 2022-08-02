@@ -20,8 +20,8 @@ import (
 	"os/user"
 	"testing"
 
-	"github.com/gravitational/teleport/plugins/lib/tsh"
 	"github.com/gravitational/teleport/api/types"
+	"github.com/gravitational/teleport/plugins/lib/tsh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

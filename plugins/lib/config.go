@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gravitational/teleport/plugins/lib/stringset"
 	"github.com/gravitational/teleport/api/client"
+	"github.com/gravitational/teleport/plugins/lib/stringset"
 	"github.com/gravitational/trace"
 
 	log "github.com/sirupsen/logrus"

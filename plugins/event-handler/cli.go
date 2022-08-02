@@ -29,19 +29,35 @@ import (
 // FluentdConfig represents fluentd instance configuration
 type FluentdConfig struct {
 	// FluentdURL fluentd url for audit log events
-	FluentdURL string `help:"fluentd url" required:"true" env:"FDFWD_FLUENTD_URL"`
+	FluentdURL string `help:"fluentd url" env:"FDFWD_FLUENTD_URL"`
 
 	// FluentdSessionURL
-	FluentdSessionURL string `help:"fluentd session url" required:"true" env:"FDFWD_FLUENTD_SESSION_URL"`
+	FluentdSessionURL string `help:"fluentd session url" env:"FDFWD_FLUENTD_SESSION_URL"`
 
 	// FluentdCert is a path to fluentd cert
-	FluentdCert string `help:"fluentd TLS certificate file" required:"true" type:"existingfile" env:"FDWRD_FLUENTD_CERT"`
+	FluentdCert string `help:"fluentd TLS certificate file" type:"existingfile" env:"FDWRD_FLUENTD_CERT"`
 
 	// FluentdKey is a path to fluentd key
-	FluentdKey string `help:"fluentd TLS key file" required:"true" type:"existingfile" env:"FDWRD_FLUENTD_KEY"`
+	FluentdKey string `help:"fluentd TLS key file" type:"existingfile" env:"FDWRD_FLUENTD_KEY"`
 
 	// FluentdCA is a path to fluentd CA
 	FluentdCA string `help:"fluentd TLS CA file" type:"existingfile" env:"FDWRD_FLUENTD_CA"`
+}
+
+// TimestreamConfig represents Amazon Timestream instance configuration
+type TimestreamConfig struct {
+	// TimestreamDatabase timestream database
+	TimestreamDatabase string `help:"timestream database"`
+
+	// TimestreamTable timestream table for audit log events
+	// TODO: implement session events
+	TimestreamTable string `help:"timestream table"`
+
+	// TimestreamAwsRegion
+	TimestreamAwsRegion string `help:"timestream aws region"`
+
+	// TimestreamAwsProfile
+	TimestreamAwsProfile string `help:"timestream aws profile"`
 }
 
 // TeleportConfig is Teleport instance configuration
@@ -113,6 +129,7 @@ type LockConfig struct {
 // StartCmdConfig is start command description
 type StartCmdConfig struct {
 	FluentdConfig
+	TimestreamConfig
 	TeleportConfig
 	IngestConfig
 	LockConfig
@@ -195,22 +212,22 @@ func (c *StartCmdConfig) Dump(ctx context.Context) {
 	log.WithField("types", c.SkipSessionTypes).Info("Skipping session events of type")
 	log.WithField("value", c.StartTime).Info("Using start time")
 	log.WithField("timeout", c.Timeout).Info("Using timeout")
+
 	log.WithField("url", c.FluentdURL).Info("Using Fluentd url")
 	log.WithField("url", c.FluentdSessionURL).Info("Using Fluentd session url")
 	log.WithField("ca", c.FluentdCA).Info("Using Fluentd ca")
 	log.WithField("cert", c.FluentdCert).Info("Using Fluentd cert")
 	log.WithField("key", c.FluentdKey).Info("Using Fluentd key")
 
-	if c.TeleportIdentityFile != "" {
-		log.WithField("file", c.TeleportIdentityFile).Info("Using Teleport identity file")
-	}
+	log.WithField("db", c.TimestreamDatabase).Info("Using Timestream database")
+	log.WithField("region", c.TimestreamAwsRegion).Info("Using Timestream AWS region")
+	log.WithField("profile", c.TimestreamAwsProfile).Info("Using Timestream AWS profile")
 
-	if c.TeleportKey != "" {
-		log.WithField("addr", c.TeleportAddr).Info("Using Teleport addr")
-		log.WithField("ca", c.TeleportCA).Info("Using Teleport CA")
-		log.WithField("cert", c.TeleportCert).Info("Using Teleport cert")
-		log.WithField("key", c.TeleportKey).Info("Using Teleport key")
-	}
+	log.WithField("addr", c.TeleportAddr).Info("Using Teleport addr")
+	log.WithField("file", c.TeleportIdentityFile).Info("Using Teleport identity file")
+	log.WithField("ca", c.TeleportCA).Info("Using Teleport CA")
+	log.WithField("cert", c.TeleportCert).Info("Using Teleport cert")
+	log.WithField("key", c.TeleportKey).Info("Using Teleport key")
 
 	if c.LockEnabled {
 		log.WithField("count", c.LockFailedAttemptsCount).WithField("period", c.LockPeriod).Info("Auto-locking enabled")

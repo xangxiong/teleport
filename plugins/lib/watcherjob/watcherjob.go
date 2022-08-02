@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/gravitational/teleport/plugins/lib"
-	"github.com/gravitational/teleport/plugins/lib/logger"
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/types"
+	"github.com/gravitational/teleport/plugins/lib"
+	"github.com/gravitational/teleport/plugins/lib/logger"
 	"github.com/gravitational/trace"
 
 	"google.golang.org/grpc"
