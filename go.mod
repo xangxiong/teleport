@@ -86,7 +86,7 @@ require (
 	github.com/sethvargo/go-diceware v0.2.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/snowflakedb/gosnowflake v1.6.9
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.0
 	github.com/tstranex/u2f v0.0.0-20160508205855-eb799ce68da4
 	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb
 	github.com/vulcand/predicate v1.2.0
@@ -131,6 +131,16 @@ require (
 	k8s.io/kubectl v0.24.0
 	sigs.k8s.io/controller-runtime v0.12.3
 	sigs.k8s.io/controller-tools v0.9.2
+)
+
+require (
+	github.com/alecthomas/kong v0.6.1 // indirect
+	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
+	github.com/manifoldco/promptui v0.9.0 // indirect
+	github.com/pelletier/go-toml v1.9.5 // indirect
+	github.com/peterbourgon/diskv/v3 v3.0.1 // indirect
+	github.com/sethvargo/go-limiter v0.7.2 // indirect
 )
 
 require (
