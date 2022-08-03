@@ -221,15 +221,14 @@ func (c *CircularBuffer) emit(r Event) {
 	if !c.init {
 		panic("push called on uninitialized buffer instance")
 	}
-	if c.size == 0 {
+	if c.size == 0 { // buffer is empty
 		c.start = 0
 		c.end = 0
-		c.size = 1
-	} else if c.size < len(c.events) {
-		c.end = (c.end + 1) % len(c.events)
-		c.events[c.end] = r
 		c.size++
-	} else {
+	} else if c.size < len(c.events) {
+		c.end = c.end + 1
+		c.size++
+	} else { // buffer is full
 		c.end = c.start
 		c.start = (c.start + 1) % len(c.events)
 	}
@@ -307,7 +306,6 @@ func (c *CircularBuffer) NewWatcher(ctx context.Context, watch Watch) (Watcher, 
 		eventsC:  make(chan Event, watch.QueueSize),
 		ctx:      closeCtx,
 		cancel:   cancel,
-		capacity: watch.QueueSize,
 	}
 	c.Debugf("Add %v.", w)
 	if c.init {
@@ -349,13 +347,12 @@ type BufferWatcher struct {
 	cancel   context.CancelFunc
 	initOnce sync.Once
 	initOk   bool
-	capacity int
 }
 
 // String returns user-friendly representation
 // of the buffer watcher
 func (w *BufferWatcher) String() string {
-	return fmt.Sprintf("Watcher(name=%v, prefixes=%v, capacity=%v, size=%v)", w.Name, string(bytes.Join(w.Prefixes, []byte(", "))), w.capacity, len(w.eventsC))
+	return fmt.Sprintf("Watcher(name=%v, prefixes=%v, size=%v)", w.Name, string(bytes.Join(w.Prefixes, []byte(", "))), len(w.eventsC))
 }
 
 // Events returns events channel.  This method performs internal work and should be re-called after each event
@@ -459,7 +456,7 @@ const (
 // closeAndRemove closes the watcher, could
 // be called multiple times, removes the watcher
 // from the buffer queue synchronously (used in tests)
-// or asyncronously, used in prod, to avoid potential deadlocks
+// or asynchronously, used in prod, to avoid potential deadlocks
 func (w *BufferWatcher) closeAndRemove(sync bool) {
 	w.closeWatcher()
 	if sync {
