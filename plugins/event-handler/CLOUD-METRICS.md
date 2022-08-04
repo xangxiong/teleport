@@ -16,7 +16,7 @@ metadata:
 spec:
   allow:
     rules:
-      - resources: ['event']
+      - resources: ['event', 'session']
         verbs: ['list','read']
 version: v5" | tctl create
 
