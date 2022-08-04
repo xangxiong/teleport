@@ -19,10 +19,10 @@ package main
 import (
 	"context"
 	"flag"
-	"sync"
 	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gravitational/teleport/lib/utils"
@@ -34,6 +34,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	log "github.com/sirupsen/logrus"
 )
@@ -59,6 +60,11 @@ type backend struct {
 	PollStreamPeriod time.Duration
 }
 
+type record struct {
+	HashKey string
+	Value   []byte
+}
+
 type shardEvent struct {
 	records []*dynamodbstreams.Record
 	shardID string
@@ -66,7 +72,7 @@ type shardEvent struct {
 }
 
 type writerConfig struct {
-	key string
+	key             string
 	writesPerSecond int64
 }
 
@@ -109,7 +115,7 @@ func main() {
 				log.Fatalf("Invalid writers argument: %s; %s", flag.Arg(i), err)
 			}
 			config := writerConfig{
-				key: key,
+				key:             key,
 				writesPerSecond: int64(writesPerSecond),
 			}
 			configs = append(configs, config)
@@ -173,7 +179,9 @@ func (b *backend) setup(ctx context.Context) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	if !exists {
+	if exists {
+		b.Log.Infof("Table %s already exists.", b.TableName)
+	} else {
 		err = b.createTable(ctx)
 		if err != nil {
 			return trace.Wrap(err)
@@ -216,13 +224,34 @@ func (b *backend) writer(ctx context.Context, config writerConfig) error {
 	index := 0
 	for {
 		select {
-        case t := <-ticker.C:
+		case t := <-ticker.C:
 			b.Log.Debugf("Writing %d to key %s at %s", index, config.key, t)
+			err := b.putRecord(ctx, config.key, index)
+			if err != nil {
+				return trace.Wrap(err)
+			}
 		case <-ctx.Done():
 			b.Log.Debugf("Closed, returning from writer loop.")
 			return nil
 		}
 	}
+}
+
+func (b *backend) putRecord(ctx context.Context, key string, value int) error {
+	r := record{
+		HashKey: key,
+		Value:   []byte(strconv.Itoa(value)),
+	}
+	av, err := dynamodbattribute.MarshalMap(r)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	input := dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(b.TableName),
+	}
+	_, err = b.Dynamo.PutItemWithContext(ctx, &input)
+	return trace.Wrap(err)
 }
 
 func (b *backend) asyncPollStreams(ctx context.Context, streamArn string, recordC chan *dynamodbstreams.Record) error {
