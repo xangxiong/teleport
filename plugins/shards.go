@@ -19,7 +19,10 @@ package main
 import (
 	"context"
 	"flag"
+	"sync"
 	"io"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gravitational/teleport/lib/utils"
@@ -62,16 +65,23 @@ type shardEvent struct {
 	err     error
 }
 
+type writerConfig struct {
+	key string
+	writesPerSecond int64
+}
+
 func main() {
 	// parse arguments
+	debug := false
+	flag.BoolVar(&debug, "debug", false, "Debug logging")
 	flag.Parse()
 	if len(flag.Args()) == 0 {
-		log.Fatalf("Missing one of the following arguments: setup, reader, writer")
+		log.Fatalf("Missing one of the following arguments: setup, reader, writers")
 	}
 	component := flag.Arg(0)
 
 	ctx := context.Background()
-	b, err := newBackend(ctx, component)
+	b, err := newBackend(ctx, component, debug)
 	if err != nil {
 		log.Fatal(trace.DebugReport(err))
 	}
@@ -85,16 +95,50 @@ func main() {
 		if err := b.reader(ctx); err != nil {
 			log.Fatal(trace.DebugReport(err))
 		}
-	case "writer":
-		if err := b.writer(ctx); err != nil {
-			log.Fatal(trace.DebugReport(err))
+	case "writers":
+		configs := make([]writerConfig, 0)
+		for i := 1; i < len(flag.Args()); i++ {
+			parts := strings.Split(flag.Arg(i), ":")
+			if len(parts) != 2 {
+				log.Fatalf("Invalid writers argument: %s", flag.Arg(i))
+			}
+
+			key := parts[0]
+			writesPerSecond, err := strconv.Atoi(parts[1])
+			if err != nil {
+				log.Fatalf("Invalid writers argument: %s; %s", flag.Arg(i), err)
+			}
+			config := writerConfig{
+				key: key,
+				writesPerSecond: int64(writesPerSecond),
+			}
+			configs = append(configs, config)
 		}
+
+		if len(configs) == 0 {
+			log.Fatalf("Missing writers configuration")
+		}
+
+		var wg sync.WaitGroup
+		for i := range configs {
+			config := configs[i]
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+				if err := b.writer(ctx, config); err != nil {
+					log.Fatal(trace.DebugReport(err))
+				}
+			}()
+		}
+
+		wg.Wait()
 	default:
 		log.Fatalf("Unexpected argument: %s", component)
 	}
 }
 
-func newBackend(ctx context.Context, component string) (*backend, error) {
+func newBackend(ctx context.Context, component string, debug bool) (*backend, error) {
 	// aws session
 	opts := session.Options{
 		Config: aws.Config{
@@ -109,8 +153,12 @@ func newBackend(ctx context.Context, component string) (*backend, error) {
 		return nil, trace.Wrap(err)
 	}
 
+	l := log.WithFields(log.Fields{trace.Component: component})
+	if debug {
+		l.Logger.SetLevel(log.DebugLevel)
+	}
 	return &backend{
-		Log:              log.WithFields(log.Fields{trace.Component: component}),
+		Log:              l,
 		Dynamo:           *dynamodb.New(session),
 		Streams:          *dynamodbstreams.New(session),
 		TableName:        TableName,
@@ -120,7 +168,7 @@ func newBackend(ctx context.Context, component string) (*backend, error) {
 }
 
 func (b *backend) setup(ctx context.Context) error {
-	// create table if it does not exist
+	// create table (with dynamoDB streams enabled) if it does not exist
 	exists, err := b.tableExists(ctx)
 	if err != nil {
 		return trace.Wrap(err)
@@ -131,10 +179,7 @@ func (b *backend) setup(ctx context.Context) error {
 			return trace.Wrap(err)
 		}
 	}
-
-	// Turn on DynamoDB streams, needed to implement events.
-	err = b.turnOnStreams(ctx)
-	return trace.Wrap(err)
+	return nil
 }
 
 func (b *backend) reader(ctx context.Context) error {
@@ -163,8 +208,21 @@ func (b *backend) reader(ctx context.Context) error {
 	}
 }
 
-func (b *backend) writer(ctx context.Context) error {
-	return nil
+func (b *backend) writer(ctx context.Context, config writerConfig) error {
+	interval := time.Duration(int64(time.Second) / config.writesPerSecond)
+	b.Log.Infof("Starting writer on key %s at %d writes per second (1 write every %s)", config.key, config.writesPerSecond, interval)
+
+	ticker := time.NewTicker(interval)
+	index := 0
+	for {
+		select {
+        case t := <-ticker.C:
+			b.Log.Debugf("Writing %d to key %s at %s", index, config.key, t)
+		case <-ctx.Done():
+			b.Log.Debugf("Closed, returning from writer loop.")
+			return nil
+		}
+	}
 }
 
 func (b *backend) asyncPollStreams(ctx context.Context, streamArn string, recordC chan *dynamodbstreams.Record) error {
@@ -475,6 +533,10 @@ func (b *backend) createTable(ctx context.Context) error {
 		KeySchema:            elems,
 		// on-demand mode so that auto-scaling will occur as needed
 		BillingMode: aws.String("PAY_PER_REQUEST"),
+		StreamSpecification: &dynamodb.StreamSpecification{
+			StreamEnabled:  aws.Bool(true),
+			StreamViewType: aws.String(dynamodb.StreamViewTypeNewImage),
+		},
 	}
 	_, err := b.Dynamo.CreateTableWithContext(ctx, &c)
 	if err != nil {
@@ -487,25 +549,5 @@ func (b *backend) createTable(ctx context.Context) error {
 	if err == nil {
 		b.Log.Infof("Table %q has been created.", b.TableName)
 	}
-	return trace.Wrap(err)
-}
-
-func (b *backend) turnOnStreams(ctx context.Context) error {
-	status, err := b.Dynamo.DescribeTableWithContext(ctx, &dynamodb.DescribeTableInput{
-		TableName: aws.String(b.TableName),
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if status.Table.StreamSpecification != nil && aws.BoolValue(status.Table.StreamSpecification.StreamEnabled) {
-		return nil
-	}
-	_, err = b.Dynamo.UpdateTableWithContext(ctx, &dynamodb.UpdateTableInput{
-		TableName: aws.String(b.TableName),
-		StreamSpecification: &dynamodb.StreamSpecification{
-			StreamEnabled:  aws.Bool(true),
-			StreamViewType: aws.String(dynamodb.StreamViewTypeNewImage),
-		},
-	})
 	return trace.Wrap(err)
 }
