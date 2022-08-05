@@ -44,7 +44,7 @@ import (
 const (
 	AwsRegion               = endpoints.UsWest2RegionID
 	AwsProfile              = "cloudteam-dev-role"
-	DynamoDBTable           = "test-stream-shards-iter-vitor3"
+	DynamoDBTable           = "test-stream-shards-iter-vitor"
 	TimestreamDB            = "test-stream-shards-iter-vitor-db"
 	TimestreamTable         = "test-stream-shards-iter-vitor"
 	HighResPollingPeriod    = 10 * time.Second
