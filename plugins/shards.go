@@ -47,8 +47,9 @@ const (
 	DefaultPollStreamPeriod = time.Second
 
 	// hashKeyKey is a name of the hash key
-	hashKeyKey  = "HashKey"
-	channelSize = 1024 * 1024
+	hashKeyKey    = "HashKey"
+	channelSize   = 1024 * 1024
+	maxRetryCount = 128
 )
 
 type backend struct {
@@ -111,7 +112,7 @@ func main() {
 		}
 
 		var wg sync.WaitGroup
-		for i := 0; i < writersCount; i++{
+		for i := 0; i < writersCount; i++ {
 			prefix := fmt.Sprintf("%s-%d", keyPrefixPrefix, i)
 			wg.Add(1)
 
@@ -203,24 +204,26 @@ func (b *backend) reader(ctx context.Context) error {
 
 func (b *backend) writer(ctx context.Context, prefix string) error {
 	b.Log.Infof("Starting writer on prefix %s", prefix)
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(time.Minute)
 	start := time.Now()
-	count := 0
+	recordsCount := 0
+	retriesCount := 0
 	for {
 		select {
 		case <-ticker.C:
-			throughput := count / int(time.Since(start).Seconds())
-			b.Log.Debugf("Wrote %d items (at %d items/s) with prefix %s", count, throughput, prefix)
+			throughput := recordsCount / int(time.Since(start).Seconds())
+			b.Log.Debugf("records=%d, tput=%d items/s, retries=%d, prefix=%s", recordsCount, throughput, retriesCount, prefix)
 		case <-ctx.Done():
 			b.Log.Debugf("Closed, returning from writer loop.")
 			return nil
 		default:
-			key := toKey(prefix, count)
-			err := b.putRecord(ctx, key)
+			key := toKey(prefix, recordsCount)
+			retries, err := b.putRecord(ctx, key, 0)
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			count++
+			recordsCount++
+			retriesCount += retries
 		}
 	}
 }
@@ -229,22 +232,31 @@ func toKey(prefix string, index int) string {
 	return fmt.Sprintf("%s-%d", prefix, index)
 }
 
-func (b *backend) putRecord(ctx context.Context, key string) error {
-		r := record{HashKey: key}
-		av, err := dynamodbattribute.MarshalMap(r)
-		if err != nil {
-			return trace.Wrap(err)
-		}
+func (b *backend) putRecord(ctx context.Context, key string, retryCount int) (int, error) {
+	r := record{HashKey: key}
+	av, err := dynamodbattribute.MarshalMap(r)
+	if err != nil {
+		return retryCount, trace.Wrap(err)
+	}
 
 	input := &dynamodb.PutItemInput{
-		Item : av,
-		TableName: &b.TableName,
-		ReturnConsumedCapacity: aws.String("NONE"),
+		Item:                        av,
+		TableName:                   &b.TableName,
+		ReturnConsumedCapacity:      aws.String("NONE"),
 		ReturnItemCollectionMetrics: aws.String("NONE"),
-		ReturnValues: aws.String("NONE"),
+		ReturnValues:                aws.String("NONE"),
 	}
 	_, err = b.Dynamo.PutItemWithContext(ctx, input)
-	return trace.Wrap(err)
+
+	if err != nil && retryCount < maxRetryCount {
+		// log only if we have already retried this key
+		if retryCount > 0 {
+			b.Log.Debugf("Error when calling PutItem on key %s (retries %d/%d)", key, retryCount, maxRetryCount)
+		}
+		return b.putRecord(ctx, key, retryCount+1)
+	} else {
+		return retryCount, trace.Wrap(err)
+	}
 }
 
 func (b *backend) asyncPollStreams(ctx context.Context, streamArn string, recordC chan *dynamodbstreams.Record) error {
