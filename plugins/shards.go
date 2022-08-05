@@ -44,7 +44,7 @@ import (
 const (
 	AwsRegion               = endpoints.UsWest2RegionID
 	AwsProfile              = "cloudteam-dev-role"
-	DynamoDBTable           = "test-stream-shards-iter-vitor"
+	DynamoDBTable           = "test-stream-shards-iter-vitor3"
 	TimestreamDB            = "test-stream-shards-iter-vitor-db"
 	TimestreamTable         = "test-stream-shards-iter-vitor"
 	HighResPollingPeriod    = 10 * time.Second
@@ -53,8 +53,9 @@ const (
 	// HashKeyKey is a name of the hash key
 	HashKeyKey    = "HashKey"
 	CreationTime  = "creationTime"
-	channelSize   = 1024 * 1024
-	maxRetryCount = 128
+	ChannelSize   = 1024 * 1024
+	MaxRetryCount = 128
+	MaxTxSize     = 25 // 1
 )
 
 type backend struct {
@@ -189,6 +190,7 @@ func (b *backend) setupDynamoDB(ctx context.Context) error {
 	if exists {
 		b.Log.Infof("DynamoDB table %s already exists.", b.DynamoDBTable)
 	} else {
+		b.Log.Infof("DynamoDB table %s does not yet exists.", b.DynamoDBTable)
 		err = b.createDynamoDBTable(ctx)
 		if err != nil {
 			return trace.Wrap(err)
@@ -215,6 +217,7 @@ func (b *backend) setupTimestreamDatabase(ctx context.Context) error {
 	if exists {
 		b.Log.Infof("Timestream database %s already exists.", b.TimestreamDB)
 	} else {
+		b.Log.Infof("Timestream database %s does not yet exists.", b.TimestreamDB)
 		err = b.createTimestreamDatabase(ctx)
 		if err != nil {
 			return trace.Wrap(err)
@@ -231,6 +234,7 @@ func (b *backend) setupTimestreamTable(ctx context.Context) error {
 	if exists {
 		b.Log.Infof("Timestream table %s already exists.", b.TimestreamTable)
 	} else {
+		b.Log.Infof("Timestream table %s does not yet exists.", b.TimestreamTable)
 		err = b.createTimestreamTable(ctx)
 		if err != nil {
 			return trace.Wrap(err)
@@ -246,7 +250,7 @@ func (b *backend) reader(ctx context.Context) error {
 	}
 	b.Log.Debugf("Found latest event stream %v.", aws.StringValue(streamArn))
 
-	recordC := make(chan []*dynamodbstreams.Record, channelSize)
+	recordC := make(chan []*dynamodbstreams.Record, ChannelSize)
 
 	go func() {
 		if err := b.asyncPollStreams(ctx, *streamArn, recordC); err != nil {
@@ -264,6 +268,7 @@ func (b *backend) reader(ctx context.Context) error {
 			for i := range records {
 				record := records[i]
 				key := *record.Dynamodb.NewImage[HashKeyKey].S
+				log.Debugf("Key on stream: %s", key)
 				creationTime := *record.Dynamodb.ApproximateCreationDateTime
 				prefix, index := fromKey(key)
 
@@ -323,13 +328,19 @@ func (b *backend) writer(ctx context.Context, prefix string) error {
 		select {
 		case <-ticker.C:
 			throughput := recordsCount / int(time.Since(start).Seconds())
-			b.Log.Debugf("records=%d, tput=%d items/s, retries=%d, prefix=%s", recordsCount, throughput, retriesCount, prefix)
+			b.Log.Infof("records=%d, tput=%d items/s, retries=%d, prefix=%s", recordsCount, throughput, retriesCount, prefix)
 		case <-ctx.Done():
 			b.Log.Debugf("Closed, returning from writer loop.")
 			return nil
 		default:
-			key := toKey(prefix, recordsCount)
-			retries, err := b.putRecord(ctx, key, 0)
+			keys := make([]string, 0)
+			for i := 0; i < MaxTxSize; i++ {
+				key := toKey(prefix, recordsCount)
+				keys = append(keys, key)
+				recordsCount++
+			}
+
+			retries, err := b.txWriteItems(ctx, keys, 0)
 			if err != nil {
 				return trace.Wrap(err)
 			}
@@ -356,28 +367,37 @@ func fromKey(key string) (string, int) {
 	return prefix, index
 }
 
-func (b *backend) putRecord(ctx context.Context, key string, retryCount int) (int, error) {
-	r := record{HashKey: key}
-	av, err := dynamodbattribute.MarshalMap(r)
-	if err != nil {
-		return retryCount, trace.Wrap(err)
+func (b *backend) txWriteItems(ctx context.Context, keys []string, retryCount int) (int, error) {
+	txItems := make([]*dynamodb.TransactWriteItem, 0)
+	for i := range keys {
+		r := record{HashKey: keys[i]}
+		av, err := dynamodbattribute.MarshalMap(r)
+		if err != nil {
+			return retryCount, trace.Wrap(err)
+		}
+		txItem := &dynamodb.TransactWriteItem{
+			Put: &dynamodb.Put{
+				Item:      av,
+				TableName: aws.String(b.DynamoDBTable),
+			},
+		}
+		txItems = append(txItems, txItem)
 	}
 
-	input := &dynamodb.PutItemInput{
-		Item:                        av,
-		TableName:                   &b.DynamoDBTable,
+	// TODO: include client token to ensure idempotence
+	input := &dynamodb.TransactWriteItemsInput{
+		TransactItems:               txItems,
 		ReturnConsumedCapacity:      aws.String("NONE"),
 		ReturnItemCollectionMetrics: aws.String("NONE"),
-		ReturnValues:                aws.String("NONE"),
 	}
-	_, err = b.Dynamo.PutItemWithContext(ctx, input)
+	_, err := b.Dynamo.TransactWriteItemsWithContext(ctx, input)
 
-	if err != nil && retryCount < maxRetryCount {
+	if err != nil && retryCount < MaxRetryCount {
 		// log only if we have already retried this key
 		if retryCount > 0 {
-			b.Log.Debugf("Error when calling PutItem on key %s (retries %d/%d)", key, retryCount, maxRetryCount)
+			b.Log.Debugf("Error when calling TransactWriteItems on keys [%s] (retries %d/%d)", strings.Join(keys, ","), retryCount, MaxRetryCount)
 		}
-		return b.putRecord(ctx, key, retryCount+1)
+		return b.txWriteItems(ctx, keys, retryCount+1)
 	} else {
 		return retryCount, trace.Wrap(err)
 	}
