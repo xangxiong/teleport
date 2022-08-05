@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -62,7 +63,6 @@ type backend struct {
 
 type record struct {
 	HashKey string
-	Value   []byte
 }
 
 type shardEvent struct {
@@ -72,7 +72,7 @@ type shardEvent struct {
 }
 
 type writerConfig struct {
-	key             string
+	prefix          string
 	writesPerSecond int64
 }
 
@@ -109,13 +109,13 @@ func main() {
 				log.Fatalf("Invalid writers argument: %s", flag.Arg(i))
 			}
 
-			key := parts[0]
+			prefix := parts[0]
 			writesPerSecond, err := strconv.Atoi(parts[1])
 			if err != nil {
 				log.Fatalf("Invalid writers argument: %s; %s", flag.Arg(i), err)
 			}
 			config := writerConfig{
-				key:             key,
+				prefix:          prefix,
 				writesPerSecond: int64(writesPerSecond),
 			}
 			configs = append(configs, config)
@@ -218,18 +218,20 @@ func (b *backend) reader(ctx context.Context) error {
 
 func (b *backend) writer(ctx context.Context, config writerConfig) error {
 	interval := time.Duration(int64(time.Second) / config.writesPerSecond)
-	b.Log.Infof("Starting writer on key %s at %d writes per second (1 write every %s)", config.key, config.writesPerSecond, interval)
+	b.Log.Infof("Starting writer on prefix %s at %d writes per second (1 write every %s)", config.prefix, config.writesPerSecond, interval)
 
 	ticker := time.NewTicker(interval)
 	index := 0
 	for {
 		select {
 		case t := <-ticker.C:
-			b.Log.Debugf("Writing %d to key %s at %s", index, config.key, t)
-			err := b.putRecord(ctx, config.key, index)
+			key := toKey(config.prefix, index)
+			b.Log.Debugf("Writing to %s at %s", key, t)
+			err := b.putRecord(ctx, key)
 			if err != nil {
 				return trace.Wrap(err)
 			}
+			index++
 		case <-ctx.Done():
 			b.Log.Debugf("Closed, returning from writer loop.")
 			return nil
@@ -237,10 +239,13 @@ func (b *backend) writer(ctx context.Context, config writerConfig) error {
 	}
 }
 
-func (b *backend) putRecord(ctx context.Context, key string, value int) error {
+func toKey(prefix string, index int) string {
+	return fmt.Sprintf("%s-%d", prefix, index)
+}
+
+func (b *backend) putRecord(ctx context.Context, key string) error {
 	r := record{
 		HashKey: key,
-		Value:   []byte(strconv.Itoa(value)),
 	}
 	av, err := dynamodbattribute.MarshalMap(r)
 	if err != nil {

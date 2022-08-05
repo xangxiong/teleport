@@ -28,7 +28,7 @@ go build -o shards shards.go && chmod u+x shards
 - writer
 ```bash
 # usage
-# ./shards writer key1:writes_per_second key2:writes_per_second ..
+# ./shards writer prefix1:writes_per_second prefix2:writes_per_second ..
 
 go build -o shards shards.go && chmod u+x shards
 ./shards writer a:100 b:200 c:300
