@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -71,11 +70,6 @@ type shardEvent struct {
 	err     error
 }
 
-type writerConfig struct {
-	prefix          string
-	writesPerSecond int64
-}
-
 func main() {
 	// parse arguments
 	debug := false
@@ -102,37 +96,28 @@ func main() {
 			log.Fatal(trace.DebugReport(err))
 		}
 	case "writers":
-		configs := make([]writerConfig, 0)
-		for i := 1; i < len(flag.Args()); i++ {
-			parts := strings.Split(flag.Arg(i), ":")
-			if len(parts) != 2 {
-				log.Fatalf("Invalid writers argument: %s", flag.Arg(i))
-			}
-
-			prefix := parts[0]
-			writesPerSecond, err := strconv.Atoi(parts[1])
-			if err != nil {
-				log.Fatalf("Invalid writers argument: %s; %s", flag.Arg(i), err)
-			}
-			config := writerConfig{
-				prefix:          prefix,
-				writesPerSecond: int64(writesPerSecond),
-			}
-			configs = append(configs, config)
+		if len(flag.Args()) != 3 {
+			log.Fatalf("Invalid writers configuration")
 		}
 
-		if len(configs) == 0 {
-			log.Fatalf("Missing writers configuration")
+		keyPrefixPrefix := flag.Arg(1)
+		writersCount, err := strconv.Atoi(flag.Arg(2))
+		if err != nil {
+			log.Fatalf("Invalid writers argument: %s; %s", flag.Arg(2), err)
+		}
+
+		if writersCount == 0 {
+			log.Fatalf("Number of writes cannot be 0")
 		}
 
 		var wg sync.WaitGroup
-		for i := range configs {
-			config := configs[i]
+		for i := 0; i < writersCount; i++{
+			prefix := fmt.Sprintf("%s-%d", keyPrefixPrefix, i)
 			wg.Add(1)
 
 			go func() {
 				defer wg.Done()
-				if err := b.writer(ctx, config); err != nil {
+				if err := b.writer(ctx, prefix); err != nil {
 					log.Fatal(trace.DebugReport(err))
 				}
 			}()
@@ -216,25 +201,26 @@ func (b *backend) reader(ctx context.Context) error {
 	}
 }
 
-func (b *backend) writer(ctx context.Context, config writerConfig) error {
-	interval := time.Duration(int64(time.Second) / config.writesPerSecond)
-	b.Log.Infof("Starting writer on prefix %s at %d writes per second (1 write every %s)", config.prefix, config.writesPerSecond, interval)
-
-	ticker := time.NewTicker(interval)
-	index := 0
+func (b *backend) writer(ctx context.Context, prefix string) error {
+	b.Log.Infof("Starting writer on prefix %s", prefix)
+	ticker := time.NewTicker(10 * time.Second)
+	start := time.Now()
+	count := 0
 	for {
 		select {
-		case t := <-ticker.C:
-			key := toKey(config.prefix, index)
-			b.Log.Debugf("Writing to %s at %s", key, t)
+		case <-ticker.C:
+			throughput := count / int(time.Since(start).Seconds())
+			b.Log.Debugf("Wrote %d items (at %d items/s) with prefix %s", count, throughput, prefix)
+		case <-ctx.Done():
+			b.Log.Debugf("Closed, returning from writer loop.")
+			return nil
+		default:
+			key := toKey(prefix, count)
 			err := b.putRecord(ctx, key)
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			index++
-		case <-ctx.Done():
-			b.Log.Debugf("Closed, returning from writer loop.")
-			return nil
+			count++
 		}
 	}
 }
@@ -244,18 +230,20 @@ func toKey(prefix string, index int) string {
 }
 
 func (b *backend) putRecord(ctx context.Context, key string) error {
-	r := record{
-		HashKey: key,
+		r := record{HashKey: key}
+		av, err := dynamodbattribute.MarshalMap(r)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
+	input := &dynamodb.PutItemInput{
+		Item : av,
+		TableName: &b.TableName,
+		ReturnConsumedCapacity: aws.String("NONE"),
+		ReturnItemCollectionMetrics: aws.String("NONE"),
+		ReturnValues: aws.String("NONE"),
 	}
-	av, err := dynamodbattribute.MarshalMap(r)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	input := dynamodb.PutItemInput{
-		Item:      av,
-		TableName: aws.String(b.TableName),
-	}
-	_, err = b.Dynamo.PutItemWithContext(ctx, &input)
+	_, err = b.Dynamo.PutItemWithContext(ctx, input)
 	return trace.Wrap(err)
 }
 
