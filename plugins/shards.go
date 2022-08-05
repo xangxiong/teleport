@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,27 +37,34 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
+	"github.com/aws/aws-sdk-go/service/timestreamwrite"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
 	AwsRegion               = endpoints.UsWest2RegionID
 	AwsProfile              = "cloudteam-dev-role"
-	TableName               = "test-stream-shards-iter-vitor"
+	DynamoDBTable           = "test-stream-shards-iter-vitor"
+	TimestreamDB            = "test-stream-shards-iter-vitor-db"
+	TimestreamTable         = "test-stream-shards-iter-vitor"
 	HighResPollingPeriod    = 10 * time.Second
 	DefaultPollStreamPeriod = time.Second
 
-	// hashKeyKey is a name of the hash key
-	hashKeyKey    = "HashKey"
+	// HashKeyKey is a name of the hash key
+	HashKeyKey    = "HashKey"
+	CreationTime  = "creationTime"
 	channelSize   = 1024 * 1024
 	maxRetryCount = 128
 )
 
 type backend struct {
 	Log              *log.Entry
-	Dynamo           dynamodb.DynamoDB
-	Streams          dynamodbstreams.DynamoDBStreams
-	TableName        string
+	Dynamo           *dynamodb.DynamoDB
+	Streams          *dynamodbstreams.DynamoDBStreams
+	TimestreamWrite  *timestreamwrite.TimestreamWrite
+	DynamoDBTable    string
+	TimestreamDB     string
+	TimestreamTable  string
 	RetryPeriod      time.Duration
 	PollStreamPeriod time.Duration
 }
@@ -151,24 +159,79 @@ func newBackend(ctx context.Context, component string, debug bool) (*backend, er
 	}
 	return &backend{
 		Log:              l,
-		Dynamo:           *dynamodb.New(session),
-		Streams:          *dynamodbstreams.New(session),
-		TableName:        TableName,
+		Dynamo:           dynamodb.New(session),
+		Streams:          dynamodbstreams.New(session),
+		TimestreamWrite:  timestreamwrite.New(session),
+		DynamoDBTable:    DynamoDBTable,
+		TimestreamDB:     TimestreamDB,
+		TimestreamTable:  TimestreamTable,
 		RetryPeriod:      HighResPollingPeriod,
 		PollStreamPeriod: DefaultPollStreamPeriod,
 	}, nil
 }
 
 func (b *backend) setup(ctx context.Context) error {
+	if err := b.setupDynamoDB(ctx); err != nil {
+		return trace.Wrap(err)
+	}
+	if err := b.setupTimestream(ctx); err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
+func (b *backend) setupDynamoDB(ctx context.Context) error {
 	// create table (with dynamoDB streams enabled) if it does not exist
-	exists, err := b.tableExists(ctx)
+	exists, err := b.dynamoDBTableExists(ctx)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	if exists {
-		b.Log.Infof("Table %s already exists.", b.TableName)
+		b.Log.Infof("DynamoDB table %s already exists.", b.DynamoDBTable)
 	} else {
-		err = b.createTable(ctx)
+		err = b.createDynamoDBTable(ctx)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	return nil
+}
+
+func (b *backend) setupTimestream(ctx context.Context) error {
+	if err := b.setupTimestreamDatabase(ctx); err != nil {
+		return trace.Wrap(err)
+	}
+	if err := b.setupTimestreamTable(ctx); err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
+func (b *backend) setupTimestreamDatabase(ctx context.Context) error {
+	exists, err := b.timestreamDatabaseExists(ctx)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if exists {
+		b.Log.Infof("Timestream database %s already exists.", b.TimestreamDB)
+	} else {
+		err = b.createTimestreamDatabase(ctx)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	return nil
+}
+
+func (b *backend) setupTimestreamTable(ctx context.Context) error {
+	exists, err := b.timestreamTableExists(ctx)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if exists {
+		b.Log.Infof("Timestream table %s already exists.", b.TimestreamTable)
+	} else {
+		err = b.createTimestreamTable(ctx)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -183,7 +246,7 @@ func (b *backend) reader(ctx context.Context) error {
 	}
 	b.Log.Debugf("Found latest event stream %v.", aws.StringValue(streamArn))
 
-	recordC := make(chan *dynamodbstreams.Record, channelSize)
+	recordC := make(chan []*dynamodbstreams.Record, channelSize)
 
 	go func() {
 		if err := b.asyncPollStreams(ctx, *streamArn, recordC); err != nil {
@@ -191,10 +254,58 @@ func (b *backend) reader(ctx context.Context) error {
 		}
 	}()
 
+	indexes := make(map[string]int)
+
 	for {
 		select {
-		case record := <-recordC:
-			b.Log.Debug("%+v", record)
+		case records := <-recordC:
+			timestreamRecords := make([]*timestreamwrite.Record, 0)
+
+			for i := range records {
+				record := records[i]
+				key := *record.Dynamodb.NewImage[HashKeyKey].S
+				creationTime := *record.Dynamodb.ApproximateCreationDateTime
+				prefix, index := fromKey(key)
+
+				// if there was a previous index, then it must be smaller than the current one just by 1
+				if val, ok := indexes[prefix]; ok {
+					if val+1 != index {
+						log.Fatalf("Error streaming: key=%s, previous index=%d, current index=%d", prefix, val, index)
+					}
+				}
+				indexes[prefix] = index
+
+				timestreamRecord := &timestreamwrite.Record{
+					Dimensions: []*timestreamwrite.Dimension{
+						{
+							Name:  aws.String("prefix"),
+							Value: aws.String(prefix),
+						},
+					},
+					MeasureName:      aws.String("index"),
+					MeasureValue:     aws.String(strconv.Itoa(index)),
+					MeasureValueType: aws.String(timestreamwrite.MeasureValueTypeBigint),
+					Time:             aws.String(strconv.FormatInt(creationTime.Unix(), 10)),
+					TimeUnit:         aws.String("SECONDS"),
+				}
+
+				timestreamRecords = append(timestreamRecords, timestreamRecord)
+			}
+
+			output, err := b.TimestreamWrite.WriteRecords(&timestreamwrite.WriteRecordsInput{
+				DatabaseName: aws.String(b.TimestreamDB),
+				TableName:    aws.String(b.TimestreamTable),
+				Records:      timestreamRecords,
+			})
+
+			if err != nil {
+				return trace.Wrap(err)
+			}
+
+			if len(timestreamRecords) != int(*output.RecordsIngested.MemoryStore) {
+				b.Log.Warn("Not all timestream records were ingested by the memory store")
+			}
+
 		case <-ctx.Done():
 			b.Log.Debugf("Closed, returning reader loop.")
 			return nil
@@ -232,6 +343,19 @@ func toKey(prefix string, index int) string {
 	return fmt.Sprintf("%s-%d", prefix, index)
 }
 
+func fromKey(key string) (string, int) {
+	parts := strings.Split(key, "-")
+	prefix := strings.Join([]string{parts[0], parts[1]}, "-")
+	indexStr := parts[2]
+
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		log.Fatalf("Error converting index to int: %s", err)
+	}
+
+	return prefix, index
+}
+
 func (b *backend) putRecord(ctx context.Context, key string, retryCount int) (int, error) {
 	r := record{HashKey: key}
 	av, err := dynamodbattribute.MarshalMap(r)
@@ -241,7 +365,7 @@ func (b *backend) putRecord(ctx context.Context, key string, retryCount int) (in
 
 	input := &dynamodb.PutItemInput{
 		Item:                        av,
-		TableName:                   &b.TableName,
+		TableName:                   &b.DynamoDBTable,
 		ReturnConsumedCapacity:      aws.String("NONE"),
 		ReturnItemCollectionMetrics: aws.String("NONE"),
 		ReturnValues:                aws.String("NONE"),
@@ -259,7 +383,7 @@ func (b *backend) putRecord(ctx context.Context, key string, retryCount int) (in
 	}
 }
 
-func (b *backend) asyncPollStreams(ctx context.Context, streamArn string, recordC chan *dynamodbstreams.Record) error {
+func (b *backend) asyncPollStreams(ctx context.Context, streamArn string, recordC chan []*dynamodbstreams.Record) error {
 	retry, err := utils.NewLinear(utils.LinearConfig{
 		Step: b.RetryPeriod / 10,
 		Max:  b.RetryPeriod,
@@ -285,7 +409,7 @@ func (b *backend) asyncPollStreams(ctx context.Context, streamArn string, record
 	}
 }
 
-func (b *backend) pollStreams(externalCtx context.Context, streamArn string, recordC chan *dynamodbstreams.Record) error {
+func (b *backend) pollStreams(externalCtx context.Context, streamArn string, recordC chan []*dynamodbstreams.Record) error {
 	ctx, cancel := context.WithCancel(externalCtx)
 	defer cancel()
 
@@ -378,13 +502,11 @@ func (b *backend) pollStreams(externalCtx context.Context, streamArn string, rec
 				b.Log.Debugf("Shard ID %v exited gracefully.", event.shardID)
 			} else {
 				// Q: It seems that there's no checkpointing when streaming changes to the backend.
-				for i := range event.records {
-					select {
-					case recordC <- event.records[i]:
-					case <-ctx.Done():
-						b.Log.Debugf("Context is closing, returning")
-						return nil
-					}
+				select {
+				case recordC <- event.records:
+				case <-ctx.Done():
+					b.Log.Debugf("Context is closing, returning")
+					return nil
 				}
 			}
 		case <-ticker.C:
@@ -400,13 +522,13 @@ func (b *backend) pollStreams(externalCtx context.Context, streamArn string, rec
 
 func (b *backend) findStream(ctx context.Context) (*string, error) {
 	status, err := b.Dynamo.DescribeTableWithContext(ctx, &dynamodb.DescribeTableInput{
-		TableName: aws.String(b.TableName),
+		TableName: aws.String(b.DynamoDBTable),
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	if status.Table.LatestStreamArn == nil {
-		return nil, trace.NotFound("No streams found for table %v", b.TableName)
+		return nil, trace.NotFound("No streams found for table %v", b.DynamoDBTable)
 	}
 	return status.Table.LatestStreamArn, nil
 }
@@ -417,7 +539,7 @@ func (b *backend) pollShard(ctx context.Context, streamArn string, shard *dynamo
 		// Q: Besides no checkpointing, the shard iterator type is set to LATEST, meaning that there's no worry about retrieving all events.
 		// With checkpointing, we would know the last event retrieved from each (known) shard, and could set the shard iterator type to AFTER_SEQUENCE_NUMBER.
 		// If the shard is unknown (i.e. no checkpointing info about it), we should probably set the shard iterator type to TRIM_HORIZON, which can retrieve events up-to 24h old.
-		ShardIteratorType: aws.String(dynamodbstreams.ShardIteratorTypeLatest),
+		ShardIteratorType: aws.String(dynamodbstreams.ShardIteratorTypeTrimHorizon),
 		StreamArn:         aws.String(streamArn),
 	})
 
@@ -528,14 +650,32 @@ func (b *backend) asyncPollShard(ctx context.Context, streamArn string, shard *d
 	err = b.pollShard(ctx, streamArn, shard, eventsC, initC)
 }
 
-func (b *backend) tableExists(ctx context.Context) (bool, error) {
+func (b *backend) dynamoDBTableExists(ctx context.Context) (bool, error) {
 	_, err := b.Dynamo.DescribeTableWithContext(ctx, &dynamodb.DescribeTableInput{
-		TableName: aws.String(b.TableName),
+		TableName: aws.String(b.DynamoDBTable),
 	})
+	return exists(err)
+}
+
+func (b *backend) timestreamDatabaseExists(ctx context.Context) (bool, error) {
+	_, err := b.TimestreamWrite.DescribeDatabaseWithContext(ctx, &timestreamwrite.DescribeDatabaseInput{
+		DatabaseName: aws.String(b.TimestreamDB),
+	})
+	return exists(err)
+}
+
+func (b *backend) timestreamTableExists(ctx context.Context) (bool, error) {
+	_, err := b.TimestreamWrite.DescribeTableWithContext(ctx, &timestreamwrite.DescribeTableInput{
+		DatabaseName: aws.String(b.TimestreamDB),
+		TableName:    aws.String(b.TimestreamTable),
+	})
+	return exists(err)
+}
+
+func exists(err error) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
-
 	aerr, ok := err.(awserr.Error)
 	if !ok {
 		return false, trace.Wrap(err)
@@ -548,21 +688,21 @@ func (b *backend) tableExists(ctx context.Context) (bool, error) {
 	}
 }
 
-func (b *backend) createTable(ctx context.Context) error {
+func (b *backend) createDynamoDBTable(ctx context.Context) error {
 	def := []*dynamodb.AttributeDefinition{
 		{
-			AttributeName: aws.String(hashKeyKey),
+			AttributeName: aws.String(HashKeyKey),
 			AttributeType: aws.String("S"),
 		},
 	}
 	elems := []*dynamodb.KeySchemaElement{
 		{
-			AttributeName: aws.String(hashKeyKey),
+			AttributeName: aws.String(HashKeyKey),
 			KeyType:       aws.String("HASH"),
 		},
 	}
-	c := dynamodb.CreateTableInput{
-		TableName:            aws.String(b.TableName),
+	input := dynamodb.CreateTableInput{
+		TableName:            aws.String(b.DynamoDBTable),
 		AttributeDefinitions: def,
 		KeySchema:            elems,
 		// on-demand mode so that auto-scaling will occur as needed
@@ -572,16 +712,46 @@ func (b *backend) createTable(ctx context.Context) error {
 			StreamViewType: aws.String(dynamodb.StreamViewTypeNewImage),
 		},
 	}
-	_, err := b.Dynamo.CreateTableWithContext(ctx, &c)
+	_, err := b.Dynamo.CreateTableWithContext(ctx, &input)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	b.Log.Infof("Waiting until table %q is created.", b.TableName)
+
+	b.Log.Infof("Waiting until table %q is created.", b.DynamoDBTable)
 	err = b.Dynamo.WaitUntilTableExistsWithContext(ctx, &dynamodb.DescribeTableInput{
-		TableName: aws.String(b.TableName),
+		TableName: aws.String(b.DynamoDBTable),
 	})
-	if err == nil {
-		b.Log.Infof("Table %q has been created.", b.TableName)
+	if err != nil {
+		return trace.Wrap(err)
+	} else {
+		b.Log.Infof("DynamoDB table %q has been created.", b.DynamoDBTable)
+		return nil
 	}
-	return trace.Wrap(err)
+}
+
+func (b *backend) createTimestreamDatabase(ctx context.Context) error {
+	input := timestreamwrite.CreateDatabaseInput{
+		DatabaseName: aws.String(b.TimestreamDB),
+	}
+	_, err := b.TimestreamWrite.CreateDatabaseWithContext(ctx, &input)
+	if err != nil {
+		return trace.Wrap(err)
+	} else {
+		b.Log.Infof("Timestream database %q has been created.", b.TimestreamDB)
+		return nil
+	}
+}
+
+func (b *backend) createTimestreamTable(ctx context.Context) error {
+	input := timestreamwrite.CreateTableInput{
+		DatabaseName: aws.String(b.TimestreamDB),
+		TableName:    aws.String(b.TimestreamTable),
+	}
+	_, err := b.TimestreamWrite.CreateTableWithContext(ctx, &input)
+	if err != nil {
+		return trace.Wrap(err)
+	} else {
+		b.Log.Infof("Timestream table %q has been created.", b.TimestreamTable)
+		return nil
+	}
 }
