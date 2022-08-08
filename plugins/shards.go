@@ -146,8 +146,8 @@ func newBackend(ctx context.Context, component string, debug bool) (*backend, er
 			Region:                        aws.String(AwsRegion),
 			CredentialsChainVerboseErrors: aws.Bool(true),
 		},
-		Profile:           AwsProfile,
-		SharedConfigState: session.SharedConfigEnable,
+		// Profile:           AwsProfile,
+		// SharedConfigState: session.SharedConfigEnable,
 	}
 	session, err := session.NewSessionWithOptions(opts)
 	if err != nil {
