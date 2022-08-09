@@ -145,8 +145,6 @@ func (t *TeleportEventsWatcher) fetch(ctx context.Context) error {
 		return nil
 	}
 
-	pos := 0
-
 	// Convert batch to TeleportEvent
 	for i, e := range b {
 		evt, err := NewTeleportEvent(e, t.cursor)
@@ -155,20 +153,15 @@ func (t *TeleportEventsWatcher) fetch(ctx context.Context) error {
 		}
 
 		t.batch[i] = evt
-	}
 
-	// If last known id is not empty, let's try to find it's pos
-	if t.id != "" {
-		for i, e := range t.batch {
-			if e.ID == t.id {
-				pos = i + 1
-				t.id = e.ID
-			}
+		// If last known id is not empty, let's try to find it's pos
+		if t.id != "" && t.id == evt.ID {
+			// Set the position of the last known event
+			// Q: why don't we just save the pos then?
+			// Q: why i + 1 and not just i?
+			t.pos = i + 1
 		}
 	}
-
-	// Set the position of the last known event
-	t.pos = pos
 
 	log.WithField("id", t.id).WithField("new_pos", t.pos).Debug("Skipping last known event")
 

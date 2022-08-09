@@ -31,7 +31,7 @@ type session struct {
 	Index int64
 }
 
-// SessionEventsJob incapsulates session events consumption logic
+// SessionEventsJob encapsulates session events consumption logic
 type SessionEventsJob struct {
 	lib.ServiceJob
 	app       *App
