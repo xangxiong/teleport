@@ -37,6 +37,7 @@ const (
 // TeleportSearchEventsClient is an interface for client.Client, required for testing
 type TeleportSearchEventsClient interface {
 	SearchEvents(ctx context.Context, fromUTC, toUTC time.Time, namespace string, eventTypes []string, limit int, order types.EventOrder, startKey string) ([]events.AuditEvent, string, error)
+	StreamEvents(ctx context.Context, cursor string) (chan events.StreamEvent, error)
 	StreamSessionEvents(ctx context.Context, sessionID string, startIndex int64) (chan events.AuditEvent, chan error)
 	UpsertLock(ctx context.Context, lock types.Lock) error
 	Close() error

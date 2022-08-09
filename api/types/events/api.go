@@ -96,3 +96,8 @@ type Stream interface {
 	// the stream completed and closes the stream instance
 	Close(ctx context.Context) error
 }
+
+type StreamEvent struct {
+	event AuditEvent
+	cursor string
+}

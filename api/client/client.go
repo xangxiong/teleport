@@ -2048,6 +2048,11 @@ func (c *Client) SearchEvents(ctx context.Context, fromUTC, toUTC time.Time, nam
 	return decodedEvents, response.LastKey, nil
 }
 
+// StreamEvents
+func (c *Client) StreamEvents(ctx context.Context, cursor string) (chan events.StreamEvent, error) {
+	return nil, nil
+}
+
 // SearchSessionEvents allows searching for session events with a full pagination support.
 func (c *Client) SearchSessionEvents(ctx context.Context, fromUTC time.Time, toUTC time.Time, limit int, order types.EventOrder, startKey string) ([]events.AuditEvent, string, error) {
 	request := &proto.GetSessionEventsRequest{
