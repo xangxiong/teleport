@@ -98,6 +98,6 @@ type Stream interface {
 }
 
 type StreamEvent struct {
-	event AuditEvent
+	event  AuditEvent
 	cursor string
 }

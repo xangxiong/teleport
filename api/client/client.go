@@ -1971,6 +1971,11 @@ func (c *Client) DeleteAllNodes(ctx context.Context, namespace string) error {
 	return trail.FromGRPC(err)
 }
 
+// StreamEvents
+func (c *Client) StreamEvents(ctx context.Context, cursor string) (chan events.StreamEvent, error) {
+	return nil, nil
+}
+
 // StreamSessionEvents streams audit events from a given session recording.
 func (c *Client) StreamSessionEvents(ctx context.Context, sessionID string, startIndex int64) (chan events.AuditEvent, chan error) {
 	request := &proto.StreamSessionEventsRequest{
@@ -2046,11 +2051,6 @@ func (c *Client) SearchEvents(ctx context.Context, fromUTC, toUTC time.Time, nam
 	}
 
 	return decodedEvents, response.LastKey, nil
-}
-
-// StreamEvents
-func (c *Client) StreamEvents(ctx context.Context, cursor string) (chan events.StreamEvent, error) {
-	return nil, nil
 }
 
 // SearchSessionEvents allows searching for session events with a full pagination support.
