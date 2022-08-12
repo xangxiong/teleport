@@ -90,7 +90,7 @@ steps:
   - apk add --no-cache make
   - chown -R $UID:$GID /go
   - cd /go/src/github.com/gravitational/teleport
-  - make -C build.assets release-amd64-centos7
+  - make -C build.assets release-amd64-connect
   environment:
     ARCH: amd64
     GID: "1000"
@@ -1366,7 +1366,7 @@ steps:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:250
+# Generated at dronegen/tag.go:269
 ################################################
 
 kind: pipeline
@@ -1526,7 +1526,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:250
+# Generated at dronegen/tag.go:269
 ################################################
 
 kind: pipeline
@@ -1685,7 +1685,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:250
+# Generated at dronegen/tag.go:269
 ################################################
 
 kind: pipeline
@@ -1730,6 +1730,11 @@ steps:
       exit 1
     fi
     echo "$$VERSION" > /go/.version.txt
+  - mkdir -p $WORKSPACE_DIR/go/src/github.com/gravitational/webapps
+  - cd $WORKSPACE_DIR/go/src/github.com/gravitational/webapps
+  - git clone https://github.com/gravitational/webapps.git .
+  - git checkout $(go run $WORKSPACE_DIR/go/src/github.com/gravitational/teleport/build.assets/tooling/cmd/get-webapps-version/main.go)
+  - cd $WORKSPACE_DIR/go/src/github.com/gravitational/teleport
   environment:
     GITHUB_PRIVATE_KEY:
       from_secret: GITHUB_PRIVATE_KEY
@@ -1746,7 +1751,10 @@ steps:
   - apk add --no-cache make
   - chown -R $UID:$GID /go
   - cd /go/src/github.com/gravitational/teleport
-  - make -C build.assets release-amd64-centos7
+  - make -C build.assets release-amd64-connect
+  - cd /go/src/github.com/gravitational/webapps
+  - yarn install --frozen-lockfile && yarn build-term && yarn package-term
+  - cd -
   environment:
     ARCH: amd64
     GID: "1000"
@@ -1765,6 +1773,8 @@ steps:
     \;
   - find e/ -maxdepth 1 -iname "teleport*.tar.gz" -print -exec cp {} /go/artifacts
     \;
+  - cd /go/src/github.com/gravitational/webapps/packages/teleterm/build/release
+  - cp teleconnect*.{tar.gz,deb,rpm} /go/artifacts
   - cd /go/artifacts && for FILE in teleport*.tar.gz; do sha256sum $FILE > $FILE.sha256;
     done && ls -l
 - name: Upload to S3
@@ -1842,7 +1852,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:250
+# Generated at dronegen/tag.go:269
 ################################################
 
 kind: pipeline
@@ -1999,7 +2009,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -2183,7 +2193,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -2364,7 +2374,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -2408,6 +2418,11 @@ steps:
       exit 1
     fi
     echo "$$VERSION" > /go/.version.txt
+  - mkdir -p $WORKSPACE_DIR/go/src/github.com/gravitational/webapps
+  - cd $WORKSPACE_DIR/go/src/github.com/gravitational/webapps
+  - git clone https://github.com/gravitational/webapps.git .
+  - git checkout $(go run $WORKSPACE_DIR/go/src/github.com/gravitational/teleport/build.assets/tooling/cmd/get-webapps-version/main.go)
+  - cd $WORKSPACE_DIR/go/src/github.com/gravitational/teleport
   environment:
     GITHUB_PRIVATE_KEY:
       from_secret: GITHUB_PRIVATE_KEY
@@ -2534,7 +2549,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -2701,7 +2716,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:250
+# Generated at dronegen/tag.go:269
 ################################################
 
 kind: pipeline
@@ -2858,7 +2873,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -3042,7 +3057,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -3838,7 +3853,7 @@ steps:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:250
+# Generated at dronegen/tag.go:269
 ################################################
 
 kind: pipeline
@@ -3995,7 +4010,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:250
+# Generated at dronegen/tag.go:269
 ################################################
 
 kind: pipeline
@@ -4152,7 +4167,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -4322,7 +4337,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -4492,7 +4507,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -4676,7 +4691,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:464
+# Generated at dronegen/tag.go:483
 ################################################
 
 kind: pipeline
@@ -4860,7 +4875,7 @@ volumes:
 ################################################
 # Generated using dronegen, do not edit by hand!
 # Use 'make dronegen' to update.
-# Generated at dronegen/tag.go:250
+# Generated at dronegen/tag.go:269
 ################################################
 
 kind: pipeline
@@ -6365,6 +6380,6 @@ volumes:
       medium: memory
 ---
 kind: signature
-hmac: 435e18755866e12d1b6cc018ea75e457c1d6aa4054cdce89f0ffeac9119841f4
+hmac: 9d7954303f4eef2c5086e78a089788bb283963a23c28087ef335cecb801cd62e
 
 ...
