@@ -419,6 +419,10 @@
             {
               "title": "Host User Creation",
               "slug": "/server-access/guides/host-user-creation/"
+            },
+            {
+              "title": "Linux Auditing System",
+              "slug": "/server-access/guides/auditd/"
             }
           ]
         }
