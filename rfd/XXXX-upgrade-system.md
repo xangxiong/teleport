@@ -610,10 +610,21 @@ to the installer.  The target to be used for a given server is the first target 
 incompatible with a server if that server's version cannot safely upgrade/downgrade to that target version,
 *or* if the target specifies a build attribute that differs from a build attribute of the current
 installation (e.g. `fips:yes` when current build is `fips:no`). We don't require that all build attributes
-are present since not all systems require knowledge of said attributes.  It is the responsibility of
-an installer to fail if it is not provided with sufficient attributes to perform the installation
-safely (e.g. the `tuf` installer would fail if the target passed to it did not contain the expected
-length and hash data).
+are present since not all systems require knowledge of said attributes.
+
+It is the responsibility of an installer to fail if it is not provided with sufficient target attributes to perform
+the installation safely (e.g. the `tuf` installer would fail if the target passed to it did not contain the
+expected length and hash data). The first compatible installer from the installer list will be selected. Compatibility
+will be determined *at least* by the version of the instance, as older instances may not support all installer
+types. How rich of compatibility checks we want to support here is an open question. I am wary of being too
+"smart" about it (per-installer selectors, pre-checking expected attributes, etc), as too much customization
+may result in configurations that are harder to review and more likely to silently misbehave.
+
+Within the context of installation target matching, version compatibility for a given server is defined
+as any version within the inclusive range of `vN.0.0` through `vN+1.*`, where `N` is the current major
+version of the server. Stated another way, upgrades may keep the major version the same, or increment it
+by one major version. Downgrades may revert as far back as the earliest release of the current major
+version. Downgrades to an earlier major version are not supported.
 
 All matchers in the `version-directive` resource are lists of matchers that are checked in sequence, with
 the first matching entry being selected. If a server matches a specific sub-directive, but no installation
