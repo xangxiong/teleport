@@ -19,6 +19,7 @@ package auth
 import (
 	"context"
 	"crypto/x509"
+	"fmt"
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/breaker"
@@ -120,6 +121,8 @@ type RegisterParams struct {
 	ec2IdentityDocument []byte
 	// CircuitBreakerConfig defines how the circuit breaker should behave.
 	CircuitBreakerConfig breaker.Config
+	// FIPS is true if FIPS mode is enabled
+	FIPS bool
 }
 
 func (r *RegisterParams) setDefaults() {
@@ -212,6 +215,7 @@ func registerThroughProxy(token string, params RegisterParams) (*proto.Certs, er
 
 	var certs *proto.Certs
 	if params.JoinMethod == types.JoinMethodIAM {
+		fmt.Println("NIC registerThroughProxy JoinMethodIAM")
 		// IAM join method requires gRPC client
 		client, err := proxyJoinServiceClient(params)
 		if err != nil {
@@ -267,6 +271,7 @@ func registerThroughAuth(token string, params RegisterParams) (*proto.Certs, err
 
 	var certs *proto.Certs
 	if params.JoinMethod == types.JoinMethodIAM {
+		fmt.Println("NIC registerThroughAuth JoinMethodIAM")
 		// IAM method uses unique gRPC endpoint
 		certs, err = registerUsingIAMMethod(client, token, params)
 	} else {
@@ -470,22 +475,28 @@ func registerUsingIAMMethod(joinServiceClient joinServiceClient, token string, p
 	var errs []error
 	for _, s := range []struct {
 		desc string
-		opt  stsEndpointOption
+		opts []stsIdentityRequestOption
 	}{
 		{
 			desc: "regional",
-			opt:  stsEndpointOptionRegional,
+			opts: []stsIdentityRequestOption{
+				withFipsEndpoint(params.FIPS),
+				withRegionalEndpoint(true),
+			},
 		},
 		{
 			desc: "global",
-			opt:  stsEndpointOptionGlobal,
+			opts: []stsIdentityRequestOption{
+				withFipsEndpoint(params.FIPS),
+				withRegionalEndpoint(false),
+			},
 		},
 	} {
 		log.Infof("Attempting to register %s with IAM method using %s STS endpoint", params.ID.Role, s.desc)
 		// Call RegisterUsingIAMMethod and pass a callback to respond to the challenge with a signed join request.
 		certs, err := joinServiceClient.RegisterUsingIAMMethod(ctx, func(challenge string) (*proto.RegisterUsingIAMMethodRequest, error) {
 			// create the signed sts:GetCallerIdentity request and include the challenge
-			signedRequest, err := createSignedSTSIdentityRequest(ctx, s.opt, challenge)
+			signedRequest, err := createSignedSTSIdentityRequest(ctx, challenge, s.opts...)
 			if err != nil {
 				return nil, trace.Wrap(err)
 			}
