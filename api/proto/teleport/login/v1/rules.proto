@@ -1,0 +1,54 @@
+// Copyright 2022 Gravitational, Inc
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package teleport.login.v1;
+
+import "gogoproto/gogo.proto";
+import "teleport/legacy/types/types.proto";
+
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+
+// LoginRule is a login_rule resource to configure rules and logic which should
+// run during Teleport user login.
+message LoginRule {
+  option (gogoproto.goproto_stringer) = false;
+  option (gogoproto.stringer) = false;
+
+  // Kind is a resource kind
+  string kind = 1 [(gogoproto.jsontag) = "kind"];
+  // SubKind is an optional resource sub kind, used in some resources
+  string sub_kind = 2 [(gogoproto.jsontag) = "sub_kind,omitempty"];
+  // Version is a resource version
+  string version = 3 [(gogoproto.jsontag) = "version"];
+  // Metadata is resource metadata
+  types.Metadata metadata = 4 [
+    (gogoproto.nullable) = false,
+    (gogoproto.jsontag) = "metadata"
+  ];
+  // Spec is a login rule specification
+  LoginRuleSpec spec = 5 [
+    (gogoproto.nullable) = false,
+    (gogoproto.jsontag) = "spec"
+  ];
+}
+
+// LoginRuleSpec is a login rule specification.
+message LoginRuleSpec {
+  string priority = 1;
+  string traits = 2;
+}
