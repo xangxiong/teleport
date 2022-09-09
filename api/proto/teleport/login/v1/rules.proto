@@ -19,6 +19,7 @@ package teleport.login.v1;
 import "gogoproto/gogo.proto";
 import "teleport/legacy/types/types.proto";
 
+option go_package = "github.com/gravitational/teleport/api/gen/proto/go/teleport/login/v1";
 option (gogoproto.goproto_getters_all) = false;
 option (gogoproto.marshaler_all) = true;
 option (gogoproto.unmarshaler_all) = true;
