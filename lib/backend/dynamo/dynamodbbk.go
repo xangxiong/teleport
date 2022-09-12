@@ -41,7 +41,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
-	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	log "github.com/sirupsen/logrus"
@@ -126,10 +125,9 @@ func (cfg *Config) CheckAndSetDefaults() error {
 type Backend struct {
 	*log.Entry
 	Config
-	svc     dynamodbiface.DynamoDBAPI
-	streams dynamodbstreamsiface.DynamoDBStreamsAPI
-	clock   clockwork.Clock
-	buf     *backend.CircularBuffer
+	svc   dynamodbiface.DynamoDBAPI
+	clock clockwork.Clock
+	buf   *backend.CircularBuffer
 	// closedFlag is set to indicate that the database is closed
 	closedFlag int32
 
@@ -162,6 +160,9 @@ const (
 
 	// BackendName is the name of this backend
 	BackendName = "dynamodb"
+
+	// StreamName is the name of the DynamoDB stream
+	StreamName = "dynamodb_stream"
 
 	// ttlKey is a key used for TTL specification
 	ttlKey = "Expires"
@@ -256,11 +257,6 @@ func New(ctx context.Context, params backend.Params) (*Backend, error) {
 		return nil, trace.Wrap(err)
 	}
 	b.svc = svc
-	streams, err := dynamometrics.NewStreamsMetricsAPI(dynamometrics.Backend, dynamodbstreams.New(b.session))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	b.streams = streams
 
 	// check if the table exists?
 	ts, err := b.getTableStatus(ctx, b.TableName)
@@ -939,9 +935,7 @@ func (b *Backend) asyncPollStream(ctx context.Context) error {
 	}
 
 	cfg := StreamConfig{
-		Entry:            b.Entry,
-		DynamoDB:         b.svc,
-		DynamoDBStreams:  b.streams,
+		AwsSession:       b.session,
 		PollStreamPeriod: b.PollStreamPeriod,
 		TableName:        b.TableName,
 		OnStreamRecords: func(records []*dynamodbstreams.Record) error {
@@ -962,7 +956,7 @@ func (b *Backend) asyncPollStream(ctx context.Context) error {
 		// there's no stream resuming for backend changes so the stream cursor is empty
 		cursor := ""
 
-		stream, err := StreamInit(ctx, cfg)
+		stream, err := NewStream(ctx, cfg)
 		if err == nil {
 			// shard iterators are initialized, unblock any registered watchers
 			b.buf.SetInit()

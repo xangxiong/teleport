@@ -215,10 +215,6 @@ type Log struct {
 
 	// session holds the AWS client.
 	session *awssession.Session
-
-	// Backend holds the data backend used.
-	// This is used for locking.
-	backend backend.Backend
 }
 
 type event struct {
@@ -267,7 +263,7 @@ const (
 
 // New returns new instance of DynamoDB backend.
 // It's an implementation of backend API's NewFunc
-func New(ctx context.Context, cfg Config, backend backend.Backend) (*Log, error) {
+func New(ctx context.Context, cfg Config) (*Log, error) {
 	l := log.WithFields(log.Fields{
 		trace.Component: teleport.Component(teleport.ComponentDynamoDB),
 	})
@@ -278,9 +274,8 @@ func New(ctx context.Context, cfg Config, backend backend.Backend) (*Log, error)
 		return nil, trace.Wrap(err)
 	}
 	b := &Log{
-		Entry:   l,
-		Config:  cfg,
-		backend: backend,
+		Entry:  l,
+		Config: cfg,
 	}
 	// create an AWS session using default SDK behavior, i.e. it will interpret
 	// the environment and ~/.aws directory just like an AWS CLI tool would:
@@ -1073,43 +1068,20 @@ func convertError(err error) error {
 // StreamEvents TODO
 func (l *Log) StreamEvents(ctx context.Context, cursor string) (chan apievents.StreamEvent, chan error) {
 	c, e := make(chan apievents.StreamEvent), make(chan error, 1)
-	go func() {
-		cfg := dynamo.StreamConfig{
-			Entry:              l.Entry,
-			DynamoDB:         l.svc,
-			DynamoDBStreams:  l.streams,
-			PollStreamPeriod: l.PollStreamPeriod,
-			TableName:        l.TableName,
-			OnStreamRecords: func(records []*dynamodbstreams.Record) error {
-				for i := range records {
-					var e event
-					if err := dynamodbattribute.UnmarshalMap(records[i].Dynamodb.NewImage, &e); err != nil {
-						return trace.WrapWithMessage(err, "failed to unmarshal event")
-					}
-					event, err := events.FromEventFields(e.FieldsMap)
-					if err != nil {
-						return trace.WrapWithMessage(err, "failed to convert event")
-					}
-					streamEvent := apievents.StreamEvent{
-						Event:  event,
-						Cursor: cursor,
-					}
-					c <- streamEvent
-				}
-				return nil
-			},
-		}
-		stream, err := dynamo.StreamInit(ctx, cfg);
-		if err != nil {
-			l.Errorf("PollStream returned with error: %v.", err)
-			e <- trace.Wrap(err)
-		}
-		if err := stream.Poll(ctx, cursor); err != nil {
-			l.Errorf("PollStream returned with error: %v.", err)
-			e <- trace.Wrap(err)
-		}
-	}()
+	e <- trace.NotImplemented("not implemented")
 	return c, e
+}
+
+func DynamoEventToAuditEvent(record map[string]*dynamodb.AttributeValue) (apievents.AuditEvent, error) {
+	var e event
+	if err := dynamodbattribute.UnmarshalMap(record, &e); err != nil {
+		return nil, trace.WrapWithMessage(err, "failed to unmarshal event")
+	}
+	event, err := events.FromEventFields(e.FieldsMap)
+	if err != nil {
+		return nil, trace.WrapWithMessage(err, "failed to convert event")
+	}
+	return event, nil
 }
 
 // StreamSessionEvents streams all events from a given session recording. An error is returned on the first
