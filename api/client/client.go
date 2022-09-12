@@ -2085,57 +2085,6 @@ func (c *Client) DeleteAllNodes(ctx context.Context, namespace string) error {
 	return trail.FromGRPC(err)
 }
 
-// StreamEvents TODO
-func (c *Client) StreamEvents(ctx context.Context, cursor string) (chan events.StreamEvent, chan error) {
-	request := &proto.StreamEventsRequest{
-		Cursor: cursor,
-	}
-
-	ch := make(chan events.StreamEvent)
-	e := make(chan error, 1)
-
-	stream, err := c.grpc.StreamEvents(ctx, request)
-	if err != nil {
-		e <- trace.Wrap(err)
-		return ch, e
-	}
-
-	go func() {
-	outer:
-		for {
-			recv, err := stream.Recv()
-			if err != nil {
-				if err != io.EOF {
-					e <- trace.Wrap(trail.FromGRPC(err))
-				} else {
-					close(ch)
-				}
-
-				break outer
-			}
-
-			event, err := events.FromOneOf(*recv.Event)
-			if err != nil {
-				e <- trace.Wrap(trail.FromGRPC(err))
-				break outer
-			}
-
-			streamEvent := events.StreamEvent{
-				Event:  event,
-				Cursor: recv.Cursor,
-			}
-			select {
-			case ch <- streamEvent:
-			case <-ctx.Done():
-				e <- trace.Wrap(ctx.Err())
-				break outer
-			}
-		}
-	}()
-
-	return ch, e
-}
-
 // StreamSessionEvents streams audit events from a given session recording.
 func (c *Client) StreamSessionEvents(ctx context.Context, sessionID string, startIndex int64) (chan events.AuditEvent, chan error) {
 	request := &proto.StreamSessionEventsRequest{

@@ -3220,41 +3220,6 @@ func (g *GRPCServer) ResetAuthPreference(ctx context.Context, _ *empty.Empty) (*
 	return &empty.Empty{}, nil
 }
 
-// StreamEvents streams audit events. An error is returned on the first channel if one is encountered.
-// The event channel is not closed on error to prevent race conditions in downstream select statements.
-func (g *GRPCServer) StreamEvents(req *proto.StreamEventsRequest, stream proto.AuthService_StreamEventsServer) error {
-	auth, err := g.authenticate(stream.Context())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	c, e := auth.ServerWithRoles.StreamEvents(stream.Context(), req.Cursor)
-
-	for {
-		select {
-		case streamEvent, more := <-c:
-			if !more {
-				return nil
-			}
-
-			oneOf, err := apievents.ToOneOf(streamEvent.Event)
-			if err != nil {
-				return trail.ToGRPC(trace.Wrap(err))
-			}
-
-			send := &proto.StreamEvent{
-				Event:  oneOf,
-				Cursor: streamEvent.Cursor,
-			}
-			if err := stream.Send(send); err != nil {
-				return trail.ToGRPC(trace.Wrap(err))
-			}
-		case err := <-e:
-			return trail.ToGRPC(trace.Wrap(err))
-		}
-	}
-}
-
 // StreamSessionEvents streams all events from a given session recording. An error is returned on the first
 // channel if one is encountered. Otherwise the event channel is closed when the stream ends.
 // The event channel is not closed on error to prevent race conditions in downstream select statements.

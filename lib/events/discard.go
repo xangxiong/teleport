@@ -53,11 +53,6 @@ func (d *DiscardAuditLog) SearchSessionEvents(fromUTC, toUTC time.Time, limit in
 func (d *DiscardAuditLog) EmitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
 	return nil
 }
-func (d *DiscardAuditLog) StreamEvents(ctx context.Context, cursor string) (chan apievents.StreamEvent, chan error) {
-	c, e := make(chan apievents.StreamEvent), make(chan error, 1)
-	close(c)
-	return c, e
-}
 func (d *DiscardAuditLog) StreamSessionEvents(ctx context.Context, sessionID session.ID, startIndex int64) (chan apievents.AuditEvent, chan error) {
 	c, e := make(chan apievents.AuditEvent), make(chan error, 1)
 	close(c)

@@ -1065,13 +1065,6 @@ func convertError(err error) error {
 	}
 }
 
-// StreamEvents TODO
-func (l *Log) StreamEvents(ctx context.Context, cursor string) (chan apievents.StreamEvent, chan error) {
-	c, e := make(chan apievents.StreamEvent), make(chan error, 1)
-	e <- trace.NotImplemented("not implemented")
-	return c, e
-}
-
 func DynamoEventToAuditEvent(record map[string]*dynamodb.AttributeValue) (apievents.AuditEvent, error) {
 	var e event
 	if err := dynamodbattribute.UnmarshalMap(record, &e); err != nil {
