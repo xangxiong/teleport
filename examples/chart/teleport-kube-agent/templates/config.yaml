@@ -20,12 +20,12 @@ metadata:
 data:
   teleport.yaml: |
     teleport:
-  {{- if ne .Values.joinParams.method "token" }}
       join_params:
-        token_name: "{{ .Values.joinParams.tokenName }}"
         method: "{{ .Values.joinParams.method }}"
+  {{- if eq .Values.joinParams.method "token" }}
+        token_name: "/etc/teleport-secrets/auth-token"
   {{- else }}
-      auth_token: "/etc/teleport-secrets/auth-token"
+        token_name: "{{ .Values.joinParams.tokenName }}"
   {{- end }}
       auth_servers: ["{{ required "proxyAddr is required in chart values" .Values.proxyAddr }}"]
       {{- if .Values.caPin }}
