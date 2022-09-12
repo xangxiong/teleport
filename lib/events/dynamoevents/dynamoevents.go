@@ -36,9 +36,7 @@ import (
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/backend/dynamo"
-	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	dynamometrics "github.com/gravitational/teleport/lib/observability/metrics/dynamo"
 	"github.com/gravitational/teleport/lib/session"
@@ -51,8 +49,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
-	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
 	"github.com/google/uuid"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
@@ -101,8 +97,8 @@ var tableSchema = []*dynamodb.AttributeDefinition{
 type Config struct {
 	// Region is where DynamoDB Table will be used to store k/v
 	Region string `json:"region,omitempty"`
-	// TableName where to store K/V in DynamoDB
-	TableName string `json:"table_name,omitempty"`
+	// Tablename where to store K/V in DynamoDB
+	Tablename string `json:"table_name,omitempty"`
 	// ReadCapacityUnits is Dynamodb read capacity units
 	ReadCapacityUnits int64 `json:"read_capacity_units"`
 	// WriteCapacityUnits is Dynamodb write capacity units
@@ -115,10 +111,6 @@ type Config struct {
 	UIDGenerator utils.UID
 	// Endpoint is an optional non-AWS endpoint
 	Endpoint string `json:"endpoint,omitempty"`
-	// PollStreamPeriod is a polling period for event stream
-	PollStreamPeriod time.Duration `json:"poll_stream_period,omitempty"`
-	// RetryPeriod is a period between dynamo backend retries on failures
-	RetryPeriod time.Duration `json:"retry_period"`
 
 	// ReadMaxCapacity is the maximum provisioned read capacity.
 	ReadMaxCapacity int64
@@ -174,7 +166,7 @@ func (cfg *Config) SetFromURL(in *url.URL) error {
 // is not enough to connect to DynamoDB
 func (cfg *Config) CheckAndSetDefaults() error {
 	// Table name is required.
-	if cfg.TableName == "" {
+	if cfg.Tablename == "" {
 		return trace.BadParameter("DynamoDB: table_name is not specified")
 	}
 
@@ -194,12 +186,6 @@ func (cfg *Config) CheckAndSetDefaults() error {
 	if cfg.UIDGenerator == nil {
 		cfg.UIDGenerator = utils.NewRealUID()
 	}
-	if cfg.PollStreamPeriod == 0 {
-		cfg.PollStreamPeriod = backend.DefaultPollStreamPeriod
-	}
-	if cfg.RetryPeriod == 0 {
-		cfg.RetryPeriod = defaults.HighResPollingPeriod
-	}
 
 	return nil
 }
@@ -210,8 +196,7 @@ type Log struct {
 	*log.Entry
 	// Config is a backend configuration
 	Config
-	svc     dynamodbiface.DynamoDBAPI
-	streams dynamodbstreamsiface.DynamoDBStreamsAPI
+	svc dynamodbiface.DynamoDBAPI
 
 	// session holds the AWS client.
 	session *awssession.Session
@@ -306,14 +291,9 @@ func New(ctx context.Context, cfg Config) (*Log, error) {
 		return nil, trace.Wrap(err)
 	}
 	b.svc = svc
-	streams, err := dynamometrics.NewStreamsMetricsAPI(dynamometrics.Backend, dynamodbstreams.New(b.session))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	b.streams = streams
 
 	// check if the table exists?
-	ts, err := b.getTableStatus(ctx, b.TableName)
+	ts, err := b.getTableStatus(ctx, b.Tablename)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -321,7 +301,7 @@ func New(ctx context.Context, cfg Config) (*Log, error) {
 	case tableStatusOK:
 		break
 	case tableStatusMissing:
-		err = b.createTable(ctx, b.TableName)
+		err = b.createTable(ctx, b.Tablename)
 	case tableStatusNeedsMigration:
 		return nil, trace.BadParameter("unsupported schema")
 	}
@@ -330,28 +310,21 @@ func New(ctx context.Context, cfg Config) (*Log, error) {
 	}
 
 	// Enable TTL on table.
-	err = dynamo.TurnOnTimeToLive(ctx, b.svc, b.TableName, keyExpires)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Turn on DynamoDB streams, needed to implement events.
-	// TODO: maybe make this configurable
-	err = dynamo.TurnOnStreams(ctx, b.svc, b.TableName)
+	err = dynamo.TurnOnTimeToLive(ctx, b.svc, b.Tablename, keyExpires)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
 	// Enable continuous backups if requested.
 	if b.Config.EnableContinuousBackups {
-		if err := dynamo.SetContinuousBackups(ctx, b.svc, b.TableName); err != nil {
+		if err := dynamo.SetContinuousBackups(ctx, b.svc, b.Tablename); err != nil {
 			return nil, trace.Wrap(err)
 		}
 	}
 
 	// Enable auto scaling if requested.
 	if b.Config.EnableAutoScaling {
-		if err := dynamo.SetAutoScaling(ctx, applicationautoscaling.New(b.session), dynamo.GetTableID(b.TableName), dynamo.AutoScalingParams{
+		if err := dynamo.SetAutoScaling(ctx, applicationautoscaling.New(b.session), dynamo.GetTableID(b.Tablename), dynamo.AutoScalingParams{
 			ReadMinCapacity:  b.Config.ReadMinCapacity,
 			ReadMaxCapacity:  b.Config.ReadMaxCapacity,
 			ReadTargetValue:  b.Config.ReadTargetValue,
@@ -362,7 +335,7 @@ func New(ctx context.Context, cfg Config) (*Log, error) {
 			return nil, trace.Wrap(err)
 		}
 
-		if err := dynamo.SetAutoScaling(ctx, applicationautoscaling.New(b.session), dynamo.GetIndexID(b.TableName, indexTimeSearchV2), dynamo.AutoScalingParams{
+		if err := dynamo.SetAutoScaling(ctx, applicationautoscaling.New(b.session), dynamo.GetIndexID(b.Tablename, indexTimeSearchV2), dynamo.AutoScalingParams{
 			ReadMinCapacity:  b.Config.ReadMinCapacity,
 			ReadMaxCapacity:  b.Config.ReadMaxCapacity,
 			ReadTargetValue:  b.Config.ReadTargetValue,
@@ -467,7 +440,7 @@ func (l *Log) createPutItem(sessionID string, in apievents.AuditEvent) (*dynamod
 	}
 	return &dynamodb.PutItemInput{
 		Item:      av,
-		TableName: aws.String(l.TableName),
+		TableName: aws.String(l.Tablename),
 	}, nil
 }
 
@@ -512,7 +485,7 @@ func (l *Log) GetSessionEvents(namespace string, sid session.ID, after int, inlc
 	}
 	input := dynamodb.QueryInput{
 		KeyConditionExpression:    aws.String(query),
-		TableName:                 aws.String(l.TableName),
+		TableName:                 aws.String(l.Tablename),
 		ExpressionAttributeValues: attributeValues,
 	}
 	out, err := l.svc.Query(&input)
@@ -713,7 +686,7 @@ func (l *Log) searchEventsRaw(ctx context.Context, fromUTC, toUTC time.Time, nam
 		left:       left,
 		fromUTC:    fromUTC,
 		toUTC:      toUTC,
-		tableName:  l.TableName,
+		tableName:  l.Tablename,
 		api:        l.svc,
 		forward:    forward,
 		indexName:  indexName,
@@ -982,7 +955,7 @@ func (l *Log) Close() error {
 
 // deleteAllItems deletes all items from the database, used in tests
 func (l *Log) deleteAllItems(ctx context.Context) error {
-	out, err := l.svc.ScanWithContext(ctx, &dynamodb.ScanInput{TableName: aws.String(l.TableName)})
+	out, err := l.svc.ScanWithContext(ctx, &dynamodb.ScanInput{TableName: aws.String(l.Tablename)})
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -1008,7 +981,7 @@ func (l *Log) deleteAllItems(ctx context.Context) error {
 
 		_, err := l.svc.BatchWriteItemWithContext(ctx, &dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]*dynamodb.WriteRequest{
-				l.TableName: chunk,
+				l.Tablename: chunk,
 			},
 		})
 		err = convertError(err)

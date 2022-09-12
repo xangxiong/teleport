@@ -62,7 +62,7 @@ func setupDynamoContext(t *testing.T) *dynamoContext {
 
 	log, err := New(context.Background(), Config{
 		Region:       "eu-north-1",
-		TableName:    fmt.Sprintf("teleport-test-%v", uuid.New().String()),
+		Tablename:    fmt.Sprintf("teleport-test-%v", uuid.New().String()),
 		Clock:        fakeClock,
 		UIDGenerator: utils.NewFakeUID(),
 	})
@@ -90,7 +90,7 @@ func setupDynamoContext(t *testing.T) *dynamoContext {
 
 func (tt *dynamoContext) Close(t *testing.T) {
 	if tt.log != nil {
-		err := tt.log.deleteTable(context.Background(), tt.log.TableName, true)
+		err := tt.log.deleteTable(context.Background(), tt.log.Tablename, true)
 		require.NoError(t, err)
 	}
 }
@@ -167,7 +167,7 @@ func TestSizeBreak(t *testing.T) {
 func TestIndexExists(t *testing.T) {
 	tt := setupDynamoContext(t)
 
-	hasIndex, err := tt.log.indexExists(context.Background(), tt.log.TableName, indexTimeSearchV2)
+	hasIndex, err := tt.log.indexExists(context.Background(), tt.log.Tablename, indexTimeSearchV2)
 	require.NoError(t, err)
 	require.True(t, hasIndex)
 }

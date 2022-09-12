@@ -1339,7 +1339,7 @@ func initExternalLog(ctx context.Context, auditConfig types.ClusterAuditConfig, 
 			hasNonFileLog = true
 
 			cfg := dynamoevents.Config{
-				TableName:               uri.Host,
+				Tablename:               uri.Host,
 				Region:                  auditConfig.Region(),
 				EnableContinuousBackups: auditConfig.EnableContinuousBackups(),
 				EnableAutoScaling:       auditConfig.EnableAutoScaling(),
