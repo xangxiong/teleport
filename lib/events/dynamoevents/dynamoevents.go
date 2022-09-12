@@ -50,6 +50,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/google/uuid"
+	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	log "github.com/sirupsen/logrus"
@@ -200,6 +201,10 @@ type Log struct {
 
 	// session holds the AWS client.
 	session *awssession.Session
+
+	// Backend holds the data backend used.
+	// This is used for locking.
+	backend backend.Backend
 }
 
 type event struct {
@@ -248,7 +253,7 @@ const (
 
 // New returns new instance of DynamoDB backend.
 // It's an implementation of backend API's NewFunc
-func New(ctx context.Context, cfg Config) (*Log, error) {
+func New(ctx context.Context, cfg Config, backend backend.Backend) (*Log, error) {
 	l := log.WithFields(log.Fields{
 		trace.Component: teleport.Component(teleport.ComponentDynamoDB),
 	})
@@ -259,8 +264,9 @@ func New(ctx context.Context, cfg Config) (*Log, error) {
 		return nil, trace.Wrap(err)
 	}
 	b := &Log{
-		Entry:  l,
-		Config: cfg,
+		Entry:   l,
+		Config:  cfg,
+		backend: backend,
 	}
 	// create an AWS session using default SDK behavior, i.e. it will interpret
 	// the environment and ~/.aws directory just like an AWS CLI tool would:
@@ -308,8 +314,6 @@ func New(ctx context.Context, cfg Config) (*Log, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-
-	// Enable TTL on table.
 	err = dynamo.TurnOnTimeToLive(ctx, b.svc, b.Tablename, keyExpires)
 	if err != nil {
 		return nil, trace.Wrap(err)
