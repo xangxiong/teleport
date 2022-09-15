@@ -872,6 +872,7 @@ func (fs *fsLocalNonSessionKeyStore) GetTrustedCertsPEM(proxyHost string) ([][]b
 
 // GetSSHCertificates gets all certificates signed for the given user and proxy.
 func (fs *fsLocalNonSessionKeyStore) GetSSHCertificates(proxyHost, username string) ([]*ssh.Certificate, error) {
+	fmt.Println("HERE: we are loading from a fs keystore")
 	certDir := fs.sshDir(proxyHost, username)
 	certFiles, err := os.ReadDir(certDir)
 	if err != nil {

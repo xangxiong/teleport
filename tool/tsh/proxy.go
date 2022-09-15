@@ -44,6 +44,7 @@ import (
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/srv/alpnproxy"
 	alpncommon "github.com/gravitational/teleport/lib/srv/alpnproxy/common"
+	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 )
 
@@ -435,6 +436,7 @@ type localProxyOpts struct {
 	keyFile                 string
 	rootCAs                 *x509.CertPool
 	alpnConnUpgradeRequired bool
+	onNewConnection         alpnproxy.OnNewConnectionFunc
 }
 
 // protocol returns the first protocol or string if configuration doesn't contain any protocols.
@@ -467,13 +469,14 @@ func mkLocalProxy(ctx context.Context, opts localProxyOpts) (*alpnproxy.LocalPro
 	lp, err := alpnproxy.NewLocalProxy(alpnproxy.LocalProxyConfig{
 		InsecureSkipVerify:      opts.insecure,
 		RemoteProxyAddr:         opts.proxyAddr,
-		Protocols:               protocols,
+		Protocols:               append([]alpncommon.Protocol{alpnProtocol}, opts.protocols...),
 		Listener:                opts.listener,
 		ParentContext:           ctx,
 		SNI:                     address.Host(),
 		Certs:                   certs,
 		RootCAs:                 opts.rootCAs,
 		ALPNConnUpgradeRequired: opts.alpnConnUpgradeRequired,
+		OnNewConnection:         opts.onNewConnection,
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -731,6 +734,35 @@ func envVarCommand(format, key, value string) (string, error) {
 	default:
 		return "", trace.BadParameter("unsupported format %q", format)
 	}
+}
+
+func needProxyDBLogin(lp *alpnproxy.LocalProxy, cf *CLIConf, tc *libclient.TeleportClient, db *tlsca.RouteToDatabase) (bool, error) {
+	certs := lp.GetCerts()
+	if len(certs) == 0 {
+		return true, nil
+	}
+	// NOTE: We only ever set a single cert for db access.
+	// If the local proxy has certs, there will be one and we will not need further checking/searching.
+	// Every cert returned by X509KeyPair is guaranteed to have at least one cert in the chain,
+	// the leaf cert, which is always the first cert in the chain.
+	// TODO(gavin): revisit both these assumptions/assertions and see if we should do checking
+	// or enforce this invariant more explicitly.
+	// Perhaps an error if multiple certs are given somewhere?
+	dbCert, err := x509.ParseCertificate(certs[0].Certificate[0])
+	if err != nil {
+		return false, trace.Wrap(err)
+	}
+	fmt.Println("HERE: leaf cert expire time: ", dbCert.NotAfter)
+	if time.Now().After(dbCert.NotAfter) {
+		fmt.Println("HERE: cert is expired, so we should relog")
+		return true, nil
+	}
+	mfaRequired, err := isMFADatabaseAccessRequired(cf, tc, db)
+	if err != nil {
+		return false, trace.Wrap(err)
+	}
+	fmt.Println("HERE: mfa is required: ", mfaRequired)
+	return mfaRequired, nil
 }
 
 var awsTemplateFuncs = template.FuncMap{

@@ -18,6 +18,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -30,6 +32,7 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/types"
+	"github.com/gravitational/teleport/api/utils/keys"
 	"github.com/gravitational/teleport/lib/client"
 	dbprofile "github.com/gravitational/teleport/lib/client/db"
 	"github.com/gravitational/teleport/lib/client/db/dbcmd"
@@ -632,12 +635,13 @@ type localProxyConfig struct {
 
 // prepareLocalProxyOptions created localProxyOpts needed to create local proxy from localProxyConfig.
 func prepareLocalProxyOptions(arg *localProxyConfig) (localProxyOpts, error) {
-	// If user requested no client auth, open an authenticated tunnel using
-	// client cert/key of the database.
 	certFile := arg.cliConf.LocalProxyCertFile
 	keyFile := arg.cliConf.LocalProxyKeyFile
-	if certFile == "" && arg.localProxyTunnel {
-		certFile = arg.profile.DatabaseCertPathForCluster(arg.cliConf.SiteName, arg.routeToDatabase.ServiceName)
+	// For SQL Server connections, local proxy must be configured with the
+	// client certificate that will be used to route connections.
+	// If opening an authenticated tunnel, we will get the cert at connection time from the local agent instead.
+	if !arg.localProxyTunnel && arg.routeToDatabase.Protocol == defaults.ProtocolSQLServer {
+		certFile = arg.profile.DatabaseCertPathForCluster("", arg.routeToDatabase.ServiceName)
 		keyFile = arg.profile.KeyPath()
 	}
 
@@ -661,11 +665,33 @@ func prepareLocalProxyOptions(arg *localProxyConfig) (localProxyOpts, error) {
 		opts.rootCAs = profileCAs
 	}
 
-	// For SQL Server connections, local proxy must be configured with the
-	// client certificate that will be used to route connections.
-	if arg.routeToDatabase.Protocol == defaults.ProtocolSQLServer {
-		opts.certFile = arg.profile.DatabaseCertPathForCluster("", arg.routeToDatabase.ServiceName)
-		opts.keyFile = arg.profile.KeyPath()
+	if arg.localProxyTunnel {
+		cf := arg.cliConf
+		tc := arg.teleportClient
+		dbRoute := arg.routeToDatabase
+		opts.onNewConnection = func(lp *alpnproxy.LocalProxy, conn net.Conn) error {
+			fmt.Println("HERE: on new conn called")
+			if needDBLogin, err := needProxyDBLogin(lp, cf, tc, dbRoute); err != nil {
+				return trace.Wrap(err)
+			} else if !needDBLogin {
+				return nil
+			}
+			databaseLogin(cf, tc, *dbRoute)
+			key, err := tc.LocalAgent().GetKey(cf.SiteName, client.WithDBCerts{})
+			if err != nil {
+				return trace.Wrap(err)
+			}
+			dbCert, ok := key.DBTLSCerts[dbRoute.ServiceName]
+			if !ok {
+				return trace.NotFound("database '%v' TLS cert not found in agent keystore", dbRoute.ServiceName)
+			}
+			tlsCert, err := keys.X509KeyPair(dbCert, key.PrivateKeyPEM())
+			if err != nil {
+				return trace.Wrap(err)
+			}
+			lp.SetCerts([]tls.Certificate{tlsCert})
+			return nil
+		}
 	}
 
 	// To set correct MySQL server version DB proxy needs additional protocol.
@@ -855,11 +881,7 @@ func dbInfoHasChanged(cf *CLIConf, certPath string) (bool, error) {
 		return false, nil
 	}
 
-	buff, err := os.ReadFile(certPath)
-	if err != nil {
-		return false, trace.Wrap(err)
-	}
-	cert, err := tlsca.ParseCertificatePEM(buff)
+	cert, err := certFromPath(certPath)
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
@@ -879,13 +901,34 @@ func dbInfoHasChanged(cf *CLIConf, certPath string) (bool, error) {
 	return false, nil
 }
 
+// certFromPath parses the PEM-encoded certificate from the provided path. Note
+// that this function expects only one certificate in the file.
+func certFromPath(path string) (*x509.Certificate, error) {
+	buff, err := os.ReadFile(path)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	cert, err := tlsca.ParseCertificatePEM(buff)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return cert, nil
+}
+
 // isMFADatabaseAccessRequired calls the IsMFARequired endpoint in order to get from user roles if access to the database
 // requires MFA.
 func isMFADatabaseAccessRequired(cf *CLIConf, tc *client.TeleportClient, database *tlsca.RouteToDatabase) (bool, error) {
-	proxy, err := tc.ConnectToProxy(cf.Context)
+	var proxy *client.ProxyClient
+	var err error
+	err = client.RetryWithRelogin(cf.Context, tc, func() error {
+		proxy, err = tc.ConnectToProxy(cf.Context)
+		return trace.Wrap(err)
+	})
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
+	defer proxy.Close()
+
 	cluster, err := proxy.ConnectToCluster(cf.Context, tc.SiteName)
 	if err != nil {
 		return false, trace.Wrap(err)

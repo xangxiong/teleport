@@ -3098,6 +3098,15 @@ func makeClientForProxy(cf *CLIConf, proxy string, useProfileLogin bool) (*clien
 	if !cf.UseLocalSSHAgent {
 		c.AddKeysToAgent = client.AddKeysToAgentNo
 	}
+	if cf.LocalProxyTunnel {
+		if c.AddKeysToAgent == client.AddKeysToAgentNo {
+			return nil, trace.BadParameter("--add-keys-to-agent=no conflicts with --tunnel")
+		}
+		if c.AddKeysToAgent != client.AddKeysToAgentOnly {
+			log.Warning("--tunnel implies --add-keys-to-agent=only")
+			c.AddKeysToAgent = client.AddKeysToAgentOnly
+		}
+	}
 
 	c.EnableEscapeSequences = cf.EnableEscapeSequences
 

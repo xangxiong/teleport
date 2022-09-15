@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/gravitational/trace"
@@ -34,9 +35,14 @@ import (
 	"github.com/gravitational/teleport/lib/utils/aws"
 )
 
+// OnNewConnectionFunc is a callback triggered when a new downstream connection is
+// accepted by the local proxy.
+type OnNewConnectionFunc func(lp *LocalProxy, conn net.Conn) error
+
 // LocalProxy allows upgrading incoming connection to TLS where custom TLS values are set SNI ALPN and
 // updated connection is forwarded to remote ALPN SNI teleport proxy service.
 type LocalProxy struct {
+	*sync.Mutex
 	cfg     LocalProxyConfig
 	context context.Context
 	cancel  context.CancelFunc
@@ -72,6 +78,11 @@ type LocalProxyConfig struct {
 	RootCAs *x509.CertPool
 	// ALPNConnUpgradeRequired specifies if ALPN connection upgrade is required.
 	ALPNConnUpgradeRequired bool
+	// OnNewConnection is a callback triggered when a new downstream connection
+	// is accepted by the local proxy.
+	//
+	// Note that the callback blocks handling of the connection.
+	OnNewConnection OnNewConnectionFunc
 }
 
 // CheckAndSetDefaults verifies the constraints for LocalProxyConfig.
@@ -109,6 +120,7 @@ func NewLocalProxy(cfg LocalProxyConfig) (*LocalProxy, error) {
 		cfg:     cfg,
 		context: ctx,
 		cancel:  cancel,
+		Mutex:   &sync.Mutex{},
 	}, nil
 }
 
@@ -129,7 +141,14 @@ func (l *LocalProxy) Start(ctx context.Context) error {
 			log.WithError(err).Errorf("Failed to accept client connection.")
 			return trace.Wrap(err)
 		}
+
 		go func() {
+			if l.cfg.OnNewConnection != nil {
+				if err := l.cfg.OnNewConnection(l, conn); err != nil {
+					log.WithError(err).Error("Failed to handle connection.")
+					return
+				}
+			}
 			if err := l.handleDownstreamConnection(ctx, conn); err != nil {
 				if utils.IsOKNetworkError(err) {
 					return
@@ -220,4 +239,16 @@ func (l *LocalProxy) StartAWSAccessProxy(ctx context.Context) error {
 		return trace.Wrap(err)
 	}
 	return nil
+}
+
+func (l *LocalProxy) GetCerts() []tls.Certificate {
+	l.Lock()
+	defer l.Unlock()
+	return l.cfg.Certs
+}
+
+func (l *LocalProxy) SetCerts(certs []tls.Certificate) {
+	l.Lock()
+	defer l.Unlock()
+	l.cfg.Certs = certs
 }

@@ -3043,7 +3043,10 @@ func (tc *TeleportClient) connectToProxy(ctx context.Context) (*ProxyClient, err
 			return nil, trace.Wrap(err)
 		}
 		if len(signers) > 0 {
+			fmt.Println("HERE: adding auth method with pub key signers: ", signers)
 			authMethods = append(authMethods, ssh.PublicKeys(signers...))
+		} else {
+			fmt.Println("HERE: no signers")
 		}
 	}
 
