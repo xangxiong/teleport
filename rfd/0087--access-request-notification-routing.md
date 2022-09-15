@@ -11,7 +11,7 @@ Provide a granular way for administrators to configure which access-requests not
 ## Why
 
 - Teleport access request routing is not configured the same way depending on the plugin: Pagerduty uses annotations while most plugins use a role_to_recipient map in the plugin config. Users leveraging both PagerDuty and Slack plugins have to deal with two configuration languages.
-- Current Pageduty request routing applies the same rule to all requests from the same role, regardless of the requested role. All access requests don't have the same severity, users wanting to route access requests differently have to create multiple roles. Depemding on the company size and strucutre cardinality can become a problem. See https://github.com/gravitational/teleport-plugins/issues/597
+- Current Pagerduty request routing applies the same rule to all requests from the same role, regardless of the requested role. All access requests don't have the same severity, users wanting to route access requests differently have to create multiple roles. Depending on the company size and structure cardinality can become a problem. See https://github.com/gravitational/teleport-plugins/issues/597
 - Access request routing map baked in the plugin deployment:
   - Will become huge for big orgs
   - Requires redeploying each time a change is done
@@ -21,14 +21,14 @@ Provide a granular way for administrators to configure which access-requests not
 
 ### User story
 
-Bob is a developper. He deploys code using CI/CD pipelines. He can request access to prod in read-only mode and dev in read-write mode for debugging. In case of incident he can request prod read-write access.
+Bob is a developer. He deploys code using CI/CD pipelines. He can request access to prod in read-only mode and dev in read-write mode for debugging. In case of incident he can request prod read-write access.
 Alice is the lead-dev, she grants regular access requests through MsTeams during open hours and can also approve urgent read-write requests.
 Alice should not be paged each time Bob needs to debug something during open hours, but in case of incident Bob needs immediate access and Alice should be paged.
 
 In Teleport terms:
 
-- the role `developper` can request roles `dev-rw`, `prod-ro` and `prod-rw`
-- the role `lead-developper` can accept requests
+- the role `developer` can request roles `dev-rw`, `prod-ro` and `prod-rw`
+- the role `lead-developer` can accept requests
 - only `prod-rw` access requests should trigger a PagerDuty incident
 - `dev-rw` and `prod-ro` access requests should trigger a MsTeams message
 
@@ -37,7 +37,7 @@ In Teleport terms:
 ```
 kind: role
 metadata:
-  name: developper
+  name: developer
 spec:
   allow:
     request:
@@ -65,7 +65,7 @@ The destinations are additive:
 ```
 kind: role
 metadata:
- name: developper
+ name: developer
 spec:
  allow:
   request:
