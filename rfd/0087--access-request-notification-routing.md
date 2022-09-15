@@ -15,7 +15,7 @@ Provide a granular way for administrators to configure which access-requests not
 - Access request routing map baked in the plugin deployment:
   - Will become huge for big orgs
   - Requires redeploying each time a change is done
-  - Do not allow to route requests regarding of who requests
+  - Does not allow to route requests regarding of the requestor
 
 ## Details
 
@@ -41,12 +41,14 @@ metadata:
 spec:
   allow:
     request:
-      roles: ["dev-ro", "prod-ro","prod-rw"]
+      roles: ["dev-rw", "prod-ro","prod-rw"]
       destinations:
-      - where: "role eq prod-ro"
+        # Send requests for prod-rw through PagerDuty
+      - where: "equals(resource.spec.requested_role, "prod-rw")"
         plugin: pagerduty
         target: ["Teleport Alice"]
-      - where: "role neq prod-rw"
+        # Send all other requests through MsTeams
+      - where: "equals(resource.spec.requested_role, "prod-rw")"
         plugin: msteams
         target: ["Alice@example.com"]
 ```
@@ -55,8 +57,8 @@ spec:
 `plugin` acts as a label and each plugin instance can filter based on this
 
 The destinations are additive:
-- they can come from the role_to_recipient map
-- they can come from the destinations on the role
+- they can come from the `role_to_recipient map`
+- they can come from the `destinations` on the role
 - they can be added in the requests additional recpipients
 - they can come from annotations (backward compatibility for pagerduty plugin)
 
@@ -69,7 +71,7 @@ metadata:
 spec:
  allow:
   request:
-   roles: ["prod-ro","prod-rw"]
+   roles: ["dev-rw","prod-ro","prod-rw"]
    annotations:
     pagerduty_services: ["Teleport Alice"]
     pagerduty_allow_roles: "prod-rw"
