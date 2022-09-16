@@ -739,6 +739,7 @@ func envVarCommand(format, key, value string) (string, error) {
 func needProxyDBLogin(lp *alpnproxy.LocalProxy, cf *CLIConf, tc *libclient.TeleportClient, db *tlsca.RouteToDatabase) (bool, error) {
 	certs := lp.GetCerts()
 	if len(certs) == 0 {
+		fmt.Println("HERE: no certs configured, we need to relogin")
 		return true, nil
 	}
 	// NOTE: We only ever set a single cert for db access.
@@ -748,12 +749,10 @@ func needProxyDBLogin(lp *alpnproxy.LocalProxy, cf *CLIConf, tc *libclient.Telep
 	// TODO(gavin): revisit both these assumptions/assertions and see if we should do checking
 	// or enforce this invariant more explicitly.
 	// Perhaps an error if multiple certs are given somewhere?
-	dbCert, err := x509.ParseCertificate(certs[0].Certificate[0])
-	if err != nil {
-		return false, trace.Wrap(err)
-	}
-	fmt.Println("HERE: leaf cert expire time: ", dbCert.NotAfter)
-	if time.Now().After(dbCert.NotAfter) {
+	expiresAt, err := getTLSCertExpireTime(certs[0])
+	fmt.Println("HERE: leaf cert expire time: ", expiresAt)
+	fmt.Println("HERE: time now: ", time.Now().UTC())
+	if time.Now().After(expiresAt) {
 		fmt.Println("HERE: cert is expired, so we should relog")
 		return true, nil
 	}

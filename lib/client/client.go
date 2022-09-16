@@ -23,6 +23,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -2211,6 +2212,12 @@ func (proxy *ProxyClient) sessionSSHCertificate(ctx context.Context, nodeAddr No
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	sshCert, err := x509.ParseCertificate(key.Cert)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	fmt.Println("HERE: ssh cert not after: ", sshCert.NotAfter)
+	fmt.Println("HERE: time now: ", time.Now().UTC())
 	am, err := key.AsAuthMethod()
 	if err != nil {
 		return nil, trace.Wrap(err)

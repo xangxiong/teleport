@@ -2667,6 +2667,7 @@ func retryWithAccessRequest(cf *CLIConf, tc *client.TeleportClient, fn func() er
 
 // onSSH executes 'tsh ssh' command
 func onSSH(cf *CLIConf) error {
+	fmt.Println("HERE: onSSH")
 	tc, err := makeClient(cf, false)
 	if err != nil {
 		return trace.Wrap(err)

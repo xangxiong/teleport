@@ -303,6 +303,7 @@ func databaseLogin(cf *CLIConf, tc *client.TeleportClient, db tlsca.RouteToDatab
 	} else {
 		var key *client.Key
 		if err = client.RetryWithRelogin(cf.Context, tc, func() error {
+			fmt.Println("HERE: asking for reissue certs")
 			key, err = tc.IssueUserCertsWithMFA(cf.Context, client.ReissueParams{
 				RouteToCluster: tc.SiteName,
 				RouteToDatabase: proto.RouteToDatabase{
@@ -317,6 +318,7 @@ func databaseLogin(cf *CLIConf, tc *client.TeleportClient, db tlsca.RouteToDatab
 		}); err != nil {
 			return trace.Wrap(err)
 		}
+		fmt.Println("HERE: adding key to agent")
 		if err = tc.LocalAgent().AddDatabaseKey(key); err != nil {
 			return trace.Wrap(err)
 		}
@@ -674,6 +676,7 @@ func prepareLocalProxyOptions(arg *localProxyConfig) (localProxyOpts, error) {
 			if needDBLogin, err := needProxyDBLogin(lp, cf, tc, dbRoute); err != nil {
 				return trace.Wrap(err)
 			} else if !needDBLogin {
+				fmt.Println("HERE: we dont need to relog in onNewConnection")
 				return nil
 			}
 			databaseLogin(cf, tc, *dbRoute)

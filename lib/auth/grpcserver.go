@@ -48,6 +48,7 @@ import (
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/api/types/installers"
 	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
+	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/joinserver"
@@ -2481,9 +2482,11 @@ func validateUserSingleUseCertRequest(ctx context.Context, actx *grpcContext, re
 		return trace.BadParameter("unknown certificate Usage %q", req.Usage)
 	}
 
-	maxExpiry := actx.authServer.GetClock().Now().Add(teleport.UserSingleUseCertTTL)
-	if req.Expires.After(maxExpiry) {
-		req.Expires = maxExpiry
+	if !(req.Usage == proto.UserCertsRequest_Database && req.RouteToDatabase.Protocol == defaults.ProtocolSQLServer) {
+		maxExpiry := actx.authServer.GetClock().Now().Add(teleport.UserSingleUseCertTTL)
+		if req.Expires.After(maxExpiry) {
+			req.Expires = maxExpiry
+		}
 	}
 	return nil
 }
