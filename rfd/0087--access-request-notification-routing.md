@@ -44,17 +44,17 @@ spec:
       roles: ["dev-rw", "prod-ro","prod-rw"]
       destinations:
         # Send requests for prod-rw through PagerDuty
-      - where: "equals(resource.spec.requested_role, "prod-rw")"
+      - where: 'equals(resource.spec.requested_role, "prod-rw")'
         plugin: pagerduty
         target: ["Teleport Alice"]
         # Send all other requests through MsTeams
-      - where: "equals(resource.spec.requested_role, "prod-rw")"
+      - where: 'equals(resource.spec.requested_role, "prod-rw")'
         plugin: msteams
         target: ["Alice@example.com"]
 ```
 
-`where` is a where clause it can be evaluated server-side or client-side
-`plugin` acts as a label and each plugin instance can filter based on this
+- `where` is a where clause it can be evaluated server-side or client-side. An empty where evaluates to true.
+- `plugin` acts as a label and each plugin instance can filter based on this.
 
 The destinations are additive:
 - they can come from the `role_to_recipient map`
@@ -73,14 +73,39 @@ spec:
   request:
    roles: ["dev-rw","prod-ro","prod-rw"]
    annotations:
-    pagerduty_services: ["Teleport Alice"]
-    pagerduty_allow_roles: "prod-rw"
+    pagerduty_destinations: ["Teleport Alice"]
+    pagerduty_send_roles: "prod-rw"
     msteams_services: ["alice@example.com"]
-    msteams_deny_roles: "prod-rw"
+    msteams_ignore_roles: "prod-rw"
 ```
 
 Each plugin watches its own annotations:
 
-*`_services` lists the destinations
-*`_allow_roles`  allowlist
-*`_deny_roles` blocklist
+* `_destinations` lists the destinations (keep `_service`in pager duty for backward compatibility)
+* `_send_roles`  allowlist
+* `_ignore_roles` blocklist
+
+### Comparing the 2 suggestions
+
+Time to feature:
+- The where clause implementation requires to extend the role API, it also
+  requires evaluating the where clause. If this happens server-side, ths will
+  require more logig into the Teleport codebase. If this happens plugin-side this
+  will require exporting the existing where clause logic so it can be imported in
+  teleport plugins. One can safely estimate the dev time to at least 2/3 weeks.
+- The annotation sysytem is a convention, it does not require changing the API
+  and can be implemented in less than a week.
+
+Possibilities:
+- The where clause is more granular than the annotation system, if needed the
+  context passed to the rule evaluation engine can be extended to route access
+  requests based on time for example.
+- The annotation system only supports allow and blocklist per plugin, more
+  logic comparisons cannot be easily added. It also does not easily support
+  multiple instances of the same plugin with different destinations
+
+UX considerations:
+- The where clause seems less affordant than the annotation, a first time user
+  will likely prefer the simpler annotation syntax
+- Having a lot (10+) rules can make reading the role itself hard (like
+  [managedFields in Kubernetes](https://github.com/kubernetes/kubernetes/issues/90066))
