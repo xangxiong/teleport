@@ -35,6 +35,20 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/gravitational/oxy/ratelimit"
+	"github.com/gravitational/roundtrip"
+	"github.com/gravitational/trace"
+	"github.com/jonboulle/clockwork"
+	"github.com/julienschmidt/httprouter"
+	lemma_secret "github.com/mailgun/lemma/secret"
+	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	oteltrace "go.opentelemetry.io/otel/trace"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/mod/semver"
+
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/client/webclient"
@@ -63,17 +77,6 @@ import (
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/teleport/lib/web/app"
 	"github.com/gravitational/teleport/lib/web/ui"
-
-	"github.com/gravitational/oxy/ratelimit"
-	"github.com/gravitational/roundtrip"
-	"github.com/gravitational/trace"
-
-	"github.com/jonboulle/clockwork"
-	"github.com/julienschmidt/httprouter"
-	lemma_secret "github.com/mailgun/lemma/secret"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/mod/semver"
 )
 
 const (
@@ -204,6 +207,9 @@ type Config struct {
 	// ALPNHandler is the ALPN connection handler for handling upgraded ALPN
 	// connection through a HTTP upgrade call.
 	ALPNHandler ConnectionHandler
+
+	// traceClient is used to forward spans to the upstream collector for the webui
+	TraceClient otlptrace.Client
 }
 
 type APIHandler struct {
@@ -472,6 +478,8 @@ func (h *Handler) bindDefaultEndpoints(challengeLimiter *limiter.RateLimiter) {
 	//
 	// Migrated this endpoint to /webapi/sessions/web below.
 	h.POST("/webapi/sessions", httplib.WithCSRFProtection(h.createWebSession))
+
+	h.POST("/webapi/traces", httplib.MakeHandler(h.traces))
 
 	// Web sessions
 	h.POST("/webapi/sessions/web", httplib.WithCSRFProtection(h.createWebSession))
@@ -893,6 +901,64 @@ func getAuthSettings(ctx context.Context, authClient auth.ClientI) (webclient.Au
 	as.HasMessageOfTheDay = cap.GetMessageOfTheDay() != ""
 
 	return as, nil
+}
+
+// traces forwards spans from the web ui to the upstream collector configured for the proxy. If tracing is
+// disabled then the forwarding is a noop.
+func (h *Handler) traces(w http.ResponseWriter, r *http.Request, _ httprouter.Params) (interface{}, error) {
+	var data tracepb.TracesData
+	if err := jsonpb.Unmarshal(r.Body, &data); err != nil {
+		h.log.WithError(err).Error("Failed to unmarshal traces request")
+		return nil, trace.Wrap(err)
+	}
+
+	if len(data.ResourceSpans) == 0 {
+		return nil, nil
+	}
+
+	// Unmarshalling of TraceId, SpanId, and ParentSpanId are all incorrect. The raw values are
+	// hex encoded, but the unmarshal call above will decode them as base64. In order to ensure
+	// the ids are in the right format and won't be rejected by the upstream collector we need to
+	// convert them back into their raw form and then hex decode them.
+	for _, resourceSpan := range data.ResourceSpans {
+		for _, scopeSpan := range resourceSpan.ScopeSpans {
+			for _, span := range scopeSpan.Spans {
+
+				traceId := base64.StdEncoding.EncodeToString(span.TraceId)
+				tid, err := oteltrace.TraceIDFromHex(traceId)
+				if err != nil {
+					h.log.WithError(err).Error("Failed to decode trace id")
+					return nil, trace.Wrap(err)
+				}
+				span.TraceId = tid[:]
+
+				spanId := base64.StdEncoding.EncodeToString(span.SpanId)
+				sid, err := oteltrace.SpanIDFromHex(spanId)
+				if err != nil {
+					h.log.WithError(err).Error("Failed to decode span id")
+					return nil, trace.Wrap(err)
+				}
+				span.SpanId = sid[:]
+
+				if len(span.ParentSpanId) > 0 {
+					parentSpanID := base64.StdEncoding.EncodeToString(span.ParentSpanId)
+					psid, err := oteltrace.SpanIDFromHex(parentSpanID)
+					if err != nil {
+						h.log.WithError(err).Error("Failed to decode parent span id")
+						return nil, trace.Wrap(err)
+					}
+					span.ParentSpanId = psid[:]
+				}
+			}
+		}
+	}
+
+	if err := h.cfg.TraceClient.UploadTraces(r.Context(), data.ResourceSpans); err != nil {
+		h.log.WithError(err).Errorf("Failed to upload traces")
+		return nil, trace.Wrap(err)
+	}
+
+	return nil, nil
 }
 
 func (h *Handler) ping(w http.ResponseWriter, r *http.Request, p httprouter.Params) (interface{}, error) {
