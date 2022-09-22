@@ -31,7 +31,7 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/backend"
@@ -148,7 +148,9 @@ storage:
 			Params backend.Params `yaml:",inline"`
 		} `yaml:"storage"`
 	}
-	err := yaml.UnmarshalStrict([]byte(source), &doc)
+	dec := yaml.NewDecoder(bytes.NewReader([]byte(source)))
+	dec.KnownFields(true)
+	err := dec.Decode(&doc)
 	require.NoError(t, err)
 
 	doc.Storage.Params.Cleanse()

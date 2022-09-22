@@ -39,6 +39,7 @@ linters-settings:
     - io/ioutil: 'use "io" or "os" packages instead'
     - github.com/siddontang/go/log: 'use "github.com/sirupsen/logrus" instead'
     - github.com/siddontang/go-log/log: 'use "github.com/sirupsen/logrus" instead'
+    - gopkg.in/yaml.v2: 'use "gopkg.in/yaml.v3" instead'
   misspell:
     locale: US
 output:
