@@ -2908,6 +2908,23 @@ message KubernetesClusterSpecV3 {
   // Kubeconfig is the kubeconfig file payload that grants access to the cluster.
   // If multiple contexts are specified, the first will be selected.
   bytes Kubeconfig = 2 [(gogoproto.jsontag) = "kubeconfig,omitempty"];
+
+  KubeAzure Azure = 3 [
+    (gogoproto.nullable) = false,
+    (gogoproto.jsontag) = "azure,omitempty"
+  ];
+}
+
+// KubeAzure contains the information about the cluster.
+message KubeAzure {
+  // ResourceName is the AKS cluster name.
+  string ResourceName = 1;
+  // ResourceGroup is the Azure resource group name.
+  string ResourceGroup = 2;
+  // TenantID is the AKS cluster Tenant ID.
+  string TenantID = 3;
+  // SubscriptionID is the AKS cluster SubscriptionID.
+  string SubscriptionID = 4;
 }
 
 // KubernetesClusterV3List represents a list of kubernetes clusters.
