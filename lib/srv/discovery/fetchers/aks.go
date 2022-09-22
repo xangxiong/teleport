@@ -31,14 +31,21 @@ type aksFetcher struct {
 	AKSFetcherConfig
 }
 
+// AKSFetcherConfig configures the AKS fetcher.
 type AKSFetcherConfig struct {
-	Client         azure.AKSClient
-	Regions        []string
+	// Client is the Azure AKS client.
+	Client azure.AKSClient
+	// Regions are the regions where the clusters should be located.
+	Regions []string
+	// ResourceGroups are the Azure resource groups the clusters must belong to.
 	ResourceGroups []string
-	FilterLabels   types.Labels
-	Log            logrus.FieldLogger
+	// FilterLabels are the filter criteria.
+	FilterLabels types.Labels
+	// Log is the logger.
+	Log logrus.FieldLogger
 }
 
+// CheckAndSetDefaults validates and sets the defaults values.
 func (c *AKSFetcherConfig) CheckAndSetDefaults() error {
 	if c.Client == nil {
 		return trace.BadParameter("missing Client field")
@@ -57,6 +64,7 @@ func (c *AKSFetcherConfig) CheckAndSetDefaults() error {
 	return nil
 }
 
+// NewAKSFetcher creates a new AKS fetcher configuration.
 func NewAKSFetcher(cfg AKSFetcherConfig) (Fetcher, error) {
 	if err := cfg.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
@@ -68,25 +76,6 @@ func NewAKSFetcher(cfg AKSFetcherConfig) (Fetcher, error) {
 func (a *aksFetcher) Get(ctx context.Context) (types.ResourcesWithLabels, error) {
 
 	clusters, err := a.getAKSClusters(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if len(a.ResourceGroups) == 1 && a.ResourceGroups[0] == types.Wildcard {
-		clusters, err = a.Client.ListAll(ctx)
-
-	} else {
-		var errs []error
-		for _, resourceGroup := range a.ResourceGroups {
-			lClusters, lerr := a.Client.ListWithinGroup(ctx, resourceGroup)
-			if err != nil {
-				errs = append(errs, trace.Wrap(lerr))
-				continue
-			}
-			clusters = append(clusters, lClusters...)
-		}
-		err = trace.NewAggregate(errs...)
-	}
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
