@@ -1354,6 +1354,8 @@ func ApplyDefaults(cfg *Config) {
 	var sc ssh.Config
 	sc.SetDefaults()
 
+	cfg.Version = defaults.TeleportConfigVersionV1
+
 	if cfg.Log == nil {
 		cfg.Log = utils.NewLogger()
 	}
