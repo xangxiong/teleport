@@ -2290,7 +2290,7 @@ func (tc *TeleportClient) ExecuteSCP(ctx context.Context, cmd scp.Command) (err 
 	return nil
 }
 
-// SFTP securely copies file(s) from one SSH server to another
+// SFTP securely copies files between Nodes or SSH servers using SFTP
 func (tc *TeleportClient) SFTP(ctx context.Context, args []string, port int, opts sftp.Options, quiet bool) (err error) {
 	ctx, span := tc.Tracer.Start(
 		ctx,
@@ -2310,40 +2310,9 @@ func (tc *TeleportClient) SFTP(ctx context.Context, args []string, port int, opt
 		return trace.BadParameter("making local copies is not supported")
 	}
 
-	if !tc.Config.ProxySpecified() {
-		return trace.BadParameter("proxy server is not specified")
-	}
-	log.Infof("Connecting to proxy to copy (recursively=%v)...", opts.Recursive)
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	defer proxyClient.Close()
-
 	var progressWriter io.Writer
 	if !quiet {
 		progressWriter = tc.Stdout
-	}
-
-	// helper function connects to the src/target node:
-	connectToNode := func(addr, hostLogin string) (*NodeClient, error) {
-		// determine which cluster we're connecting to:
-		siteInfo, err := proxyClient.currentCluster(ctx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if hostLogin == "" {
-			hostLogin = tc.Config.HostLogin
-		}
-		return proxyClient.ConnectToNode(
-			ctx,
-			NodeDetails{
-				Addr:      addr,
-				Namespace: tc.Namespace,
-				Cluster:   siteInfo.Name,
-			},
-			hostLogin,
-		)
 	}
 
 	var config *sftpConfig
@@ -2360,12 +2329,13 @@ func (tc *TeleportClient) SFTP(ctx context.Context, args []string, port int, opt
 	}
 	config.cfg.ProgressWriter = progressWriter
 
-	client, err := connectToNode(config.addr, config.hostLogin)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	return trace.Wrap(tc.TransferFiles(ctx, config.hostLogin, config.addr, config.cfg))
+}
 
-	return trace.Wrap(client.TransferFiles(ctx, config.cfg))
+type sftpConfig struct {
+	cfg       *sftp.Config
+	addr      string
+	hostLogin string
 }
 
 func (tc *TeleportClient) uploadConfig(args []string, port int, opts sftp.Options) (*sftpConfig, error) {
@@ -2404,12 +2374,6 @@ func (tc *TeleportClient) downloadConfig(args []string, port int, opts sftp.Opti
 	}, nil
 }
 
-type sftpConfig struct {
-	cfg       *sftp.Config
-	addr      string
-	hostLogin string
-}
-
 func getSCPDestination(target string, port int) (dest *scp.Destination, addr string, err error) {
 	dest, err = scp.ParseSCPDestination(target)
 	if err != nil {
@@ -2417,6 +2381,46 @@ func getSCPDestination(target string, port int) (dest *scp.Destination, addr str
 	}
 	addr = net.JoinHostPort(dest.Host.Host(), strconv.Itoa(port))
 	return dest, addr, nil
+}
+
+// TransferFiles copies files between the current machine and the
+// specified Node using the supplied config
+func (tc *TeleportClient) TransferFiles(ctx context.Context, hostLogin, nodeAddr string, cfg *sftp.Config) error {
+	ctx, span := tc.Tracer.Start(
+		ctx,
+		"teleportClient/TransferFiles",
+		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+	)
+	defer span.End()
+
+	if !tc.Config.ProxySpecified() {
+		return trace.BadParameter("proxy server is not specified")
+	}
+	proxyClient, err := tc.ConnectToProxy(ctx)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer proxyClient.Close()
+
+	// determine which cluster we're connecting to
+	siteInfo, err := proxyClient.currentCluster(ctx)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	client, err := proxyClient.ConnectToNode(
+		ctx,
+		NodeDetails{
+			Addr:      nodeAddr,
+			Namespace: tc.Namespace,
+			Cluster:   siteInfo.Name,
+		},
+		hostLogin,
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return trace.Wrap(client.TransferFiles(ctx, cfg))
 }
 
 func isRemoteDest(name string) bool {
