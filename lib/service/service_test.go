@@ -94,7 +94,7 @@ func TestMonitor(t *testing.T) {
 	var err error
 	cfg.DataDir = t.TempDir()
 	cfg.DiagnosticAddr = utils.NetAddr{AddrNetwork: "tcp", Addr: "127.0.0.1:0"}
-	cfg.SetAuthServerAddresses([]utils.NetAddr{{AddrNetwork: "tcp", Addr: "127.0.0.1:0"}})
+	cfg.SetAuthServerAddress(utils.NetAddr{AddrNetwork: "tcp", Addr: "127.0.0.1:0"})
 	cfg.Auth.Enabled = true
 	cfg.Auth.StorageConfig.Params["path"] = t.TempDir()
 	cfg.Auth.ListenAddr = utils.NetAddr{AddrNetwork: "tcp", Addr: "127.0.0.1:0"}
@@ -455,7 +455,7 @@ func TestDesktopAccessFIPS(t *testing.T) {
 
 	// Create and configure a default Teleport configuration.
 	cfg := MakeDefaultConfig()
-	cfg.SetAuthServerAddresses([]utils.NetAddr{{AddrNetwork: "tcp", Addr: "127.0.0.1:0"}})
+	cfg.SetAuthServerAddress(utils.NetAddr{AddrNetwork: "tcp", Addr: "127.0.0.1:0"})
 	cfg.Clock = clockwork.NewFakeClock()
 	cfg.DataDir = t.TempDir()
 	cfg.Auth.Enabled = false
@@ -576,7 +576,7 @@ func TestTeleportProcess_reconnectToAuth(t *testing.T) {
 	clock := clockwork.NewFakeClock()
 	// Create and configure a default Teleport configuration.
 	cfg := MakeDefaultConfig()
-	cfg.SetAuthServerAddresses([]utils.NetAddr{{AddrNetwork: "tcp", Addr: "127.0.0.1:0"}})
+	cfg.SetAuthServerAddress(utils.NetAddr{AddrNetwork: "tcp", Addr: "127.0.0.1:0"})
 	cfg.Clock = clock
 	cfg.DataDir = t.TempDir()
 	cfg.Auth.Enabled = false
@@ -637,7 +637,7 @@ func TestTeleportProcessAuthVersionCheck(t *testing.T) {
 
 	// Create Node process.
 	nodeCfg := MakeDefaultConfig()
-	nodeCfg.SetAuthServerAddresses([]utils.NetAddr{listenAddr})
+	nodeCfg.SetAuthServerAddress(listenAddr)
 	nodeCfg.DataDir = t.TempDir()
 	nodeCfg.SetToken(token)
 	nodeCfg.Auth.Enabled = false
@@ -665,7 +665,7 @@ func TestTeleportProcessAuthVersionCheck(t *testing.T) {
 	require.NoError(t, err)
 
 	authCfg := MakeDefaultConfig()
-	authCfg.SetAuthServerAddresses([]utils.NetAddr{listenAddr})
+	authCfg.SetAuthServerAddress(listenAddr)
 	authCfg.DataDir = t.TempDir()
 	authCfg.Auth.Enabled = true
 	authCfg.Auth.StaticTokens = staticTokens
