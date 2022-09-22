@@ -185,7 +185,7 @@ func setKubeName(meta types.Metadata, firstNamePart string, extraNameParts ...st
 	return meta
 }
 
-// NewDatabaseFromAzureServer creates a database resource from an AzureDB server.
+// NewKubeClusterFromAzureAKS creates a kube_cluster resource from an AKSCluster.
 func NewKubeClusterFromAzureAKS(cluster *azure.AKSCluster) (types.KubeCluster, error) {
 	labels := labelsFromAzureKubeCluster(cluster)
 	return types.NewKubernetesClusterV3(
