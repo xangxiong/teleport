@@ -2915,16 +2915,16 @@ message KubernetesClusterSpecV3 {
   ];
 }
 
-// KubeAzure contains the information about the cluster.
+// KubeAzure contains the Azure information about the cluster.
 message KubeAzure {
   // ResourceName is the AKS cluster name.
-  string ResourceName = 1;
+  string ResourceName = 1 [(gogoproto.jsontag) = "resource_name,omitempty"];
   // ResourceGroup is the Azure resource group name.
-  string ResourceGroup = 2;
+  string ResourceGroup = 2 [(gogoproto.jsontag) = "resource_group,omitempty"];
   // TenantID is the AKS cluster Tenant ID.
-  string TenantID = 3;
+  string TenantID = 3 [(gogoproto.jsontag) = "tenant_id,omitempty"];
   // SubscriptionID is the AKS cluster SubscriptionID.
-  string SubscriptionID = 4;
+  string SubscriptionID = 4 [(gogoproto.jsontag) = "subscription_id,omitempty"];
 }
 
 // KubernetesClusterV3List represents a list of kubernetes clusters.
