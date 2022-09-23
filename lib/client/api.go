@@ -2310,11 +2310,6 @@ func (tc *TeleportClient) SFTP(ctx context.Context, args []string, port int, opt
 		return trace.BadParameter("making local copies is not supported")
 	}
 
-	var progressWriter io.Writer
-	if !quiet {
-		progressWriter = tc.Stdout
-	}
-
 	var config *sftpConfig
 	if isRemoteDest(last) {
 		config, err = tc.uploadConfig(args, port, opts)
@@ -2327,7 +2322,10 @@ func (tc *TeleportClient) SFTP(ctx context.Context, args []string, port int, opt
 			return trace.Wrap(err)
 		}
 	}
-	config.cfg.ProgressWriter = progressWriter
+
+	if !quiet {
+		config.cfg.ProgressWriter = tc.Stdout
+	}
 
 	return trace.Wrap(tc.TransferFiles(ctx, config.hostLogin, config.addr, config.cfg))
 }
