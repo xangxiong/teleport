@@ -16,65 +16,65 @@ limitations under the License.
 
 package dynamo
 
-import (
-	"context"
-	"os"
-	"testing"
-	"time"
+// import (
+// 	"context"
+// 	"os"
+// 	"testing"
+// 	"time"
 
-	"github.com/gravitational/trace"
-	"github.com/jonboulle/clockwork"
+// 	"github.com/gravitational/trace"
+// 	"github.com/jonboulle/clockwork"
 
-	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/backend/test"
-	"github.com/gravitational/teleport/lib/utils"
-)
+// 	"github.com/gravitational/teleport/lib/backend"
+// 	"github.com/gravitational/teleport/lib/backend/test"
+// 	"github.com/gravitational/teleport/lib/utils"
+// )
 
-func TestMain(m *testing.M) {
-	utils.InitLoggerForTests()
-	os.Exit(m.Run())
-}
+// func TestMain(m *testing.M) {
+// 	utils.InitLoggerForTests()
+// 	os.Exit(m.Run())
+// }
 
-const tableName = "teleport.dynamo.test"
+// const tableName = "teleport.dynamo.test"
 
-func ensureTestsEnabled(t *testing.T) {
-	const varName = "TELEPORT_DYNAMODB_TEST"
-	if os.Getenv(varName) == "" {
-		t.Skipf("DynamoDB tests are disabled. Enable by defining the %v environment variable", varName)
-	}
-}
+// func ensureTestsEnabled(t *testing.T) {
+// 	const varName = "TELEPORT_DYNAMODB_TEST"
+// 	if os.Getenv(varName) == "" {
+// 		t.Skipf("DynamoDB tests are disabled. Enable by defining the %v environment variable", varName)
+// 	}
+// }
 
-func TestDynamoDB(t *testing.T) {
-	ensureTestsEnabled(t)
+// func TestDynamoDB(t *testing.T) {
+// 	ensureTestsEnabled(t)
 
-	dynamoCfg := map[string]interface{}{
-		"table_name":         tableName,
-		"poll_stream_period": 300 * time.Millisecond,
-	}
+// 	dynamoCfg := map[string]interface{}{
+// 		"table_name":         tableName,
+// 		"poll_stream_period": 300 * time.Millisecond,
+// 	}
 
-	newBackend := func(options ...test.ConstructionOption) (backend.Backend, clockwork.FakeClock, error) {
-		testCfg, err := test.ApplyOptions(options)
-		if err != nil {
-			return nil, nil, trace.Wrap(err)
-		}
+// 	newBackend := func(options ...test.ConstructionOption) (backend.Backend, clockwork.FakeClock, error) {
+// 		testCfg, err := test.ApplyOptions(options)
+// 		if err != nil {
+// 			return nil, nil, trace.Wrap(err)
+// 		}
 
-		if testCfg.MirrorMode {
-			return nil, nil, test.ErrMirrorNotSupported
-		}
+// 		if testCfg.MirrorMode {
+// 			return nil, nil, test.ErrMirrorNotSupported
+// 		}
 
-		// This would seem to be a bad thing for dynamo to omit
-		if testCfg.ConcurrentBackend != nil {
-			return nil, nil, test.ErrConcurrentAccessNotSupported
-		}
+// 		// This would seem to be a bad thing for dynamo to omit
+// 		if testCfg.ConcurrentBackend != nil {
+// 			return nil, nil, test.ErrConcurrentAccessNotSupported
+// 		}
 
-		uut, err := New(context.Background(), dynamoCfg)
-		if err != nil {
-			return nil, nil, trace.Wrap(err)
-		}
-		clock := clockwork.NewFakeClockAt(time.Now())
-		uut.clock = clock
-		return uut, clock, nil
-	}
+// 		uut, err := New(context.Background(), dynamoCfg)
+// 		if err != nil {
+// 			return nil, nil, trace.Wrap(err)
+// 		}
+// 		clock := clockwork.NewFakeClockAt(time.Now())
+// 		uut.clock = clock
+// 		return uut, clock, nil
+// 	}
 
-	test.RunBackendComplianceSuite(t, newBackend)
-}
+// 	test.RunBackendComplianceSuite(t, newBackend)
+// }

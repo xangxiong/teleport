@@ -61,17 +61,13 @@ import (
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/backend/dynamo"
-	"github.com/gravitational/teleport/lib/backend/firestore"
 	"github.com/gravitational/teleport/lib/backend/memory"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/cache"
 	"github.com/gravitational/teleport/lib/cloud/aws"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/events/dynamoevents"
 	"github.com/gravitational/teleport/lib/events/filesessions"
-	"github.com/gravitational/teleport/lib/events/firestoreevents"
 	"github.com/gravitational/teleport/lib/events/gcssessions"
 	"github.com/gravitational/teleport/lib/events/s3sessions"
 	"github.com/gravitational/teleport/lib/inventory"
@@ -1306,46 +1302,46 @@ func initExternalLog(ctx context.Context, auditConfig types.ClusterAuditConfig, 
 			return nil, trace.Wrap(err)
 		}
 		switch uri.Scheme {
-		case firestore.GetName():
-			hasNonFileLog = true
-			cfg := firestoreevents.EventsConfig{}
-			err = cfg.SetFromURL(uri)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			logger, err := firestoreevents.New(cfg)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			loggers = append(loggers, logger)
-		case dynamo.GetName():
-			hasNonFileLog = true
+		// case firestore.GetName():
+		// 	hasNonFileLog = true
+		// 	cfg := firestoreevents.EventsConfig{}
+		// 	err = cfg.SetFromURL(uri)
+		// 	if err != nil {
+		// 		return nil, trace.Wrap(err)
+		// 	}
+		// 	logger, err := firestoreevents.New(cfg)
+		// 	if err != nil {
+		// 		return nil, trace.Wrap(err)
+		// 	}
+		// 	loggers = append(loggers, logger)
+		// case dynamo.GetName():
+		// 	hasNonFileLog = true
 
-			cfg := dynamoevents.Config{
-				Tablename:               uri.Host,
-				Region:                  auditConfig.Region(),
-				EnableContinuousBackups: auditConfig.EnableContinuousBackups(),
-				EnableAutoScaling:       auditConfig.EnableAutoScaling(),
-				ReadMinCapacity:         auditConfig.ReadMinCapacity(),
-				ReadMaxCapacity:         auditConfig.ReadMaxCapacity(),
-				ReadTargetValue:         auditConfig.ReadTargetValue(),
-				WriteMinCapacity:        auditConfig.WriteMinCapacity(),
-				WriteMaxCapacity:        auditConfig.WriteMaxCapacity(),
-				WriteTargetValue:        auditConfig.WriteTargetValue(),
-				RetentionPeriod:         auditConfig.RetentionPeriod(),
-				UseFIPSEndpoint:         auditConfig.GetUseFIPSEndpoint(),
-			}
+		// 	cfg := dynamoevents.Config{
+		// 		Tablename:               uri.Host,
+		// 		Region:                  auditConfig.Region(),
+		// 		EnableContinuousBackups: auditConfig.EnableContinuousBackups(),
+		// 		EnableAutoScaling:       auditConfig.EnableAutoScaling(),
+		// 		ReadMinCapacity:         auditConfig.ReadMinCapacity(),
+		// 		ReadMaxCapacity:         auditConfig.ReadMaxCapacity(),
+		// 		ReadTargetValue:         auditConfig.ReadTargetValue(),
+		// 		WriteMinCapacity:        auditConfig.WriteMinCapacity(),
+		// 		WriteMaxCapacity:        auditConfig.WriteMaxCapacity(),
+		// 		WriteTargetValue:        auditConfig.WriteTargetValue(),
+		// 		RetentionPeriod:         auditConfig.RetentionPeriod(),
+		// 		UseFIPSEndpoint:         auditConfig.GetUseFIPSEndpoint(),
+		// 	}
 
-			err = cfg.SetFromURL(uri)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
+		// 	err = cfg.SetFromURL(uri)
+		// 	if err != nil {
+		// 		return nil, trace.Wrap(err)
+		// 	}
 
-			logger, err := dynamoevents.New(ctx, cfg, backend)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			loggers = append(loggers, logger)
+		// 	logger, err := dynamoevents.New(ctx, cfg, backend)
+		// 	if err != nil {
+		// 		return nil, trace.Wrap(err)
+		// 	}
+		// 	loggers = append(loggers, logger)
 		case teleport.SchemeFile:
 			if uri.Path == "" {
 				return nil, trace.BadParameter("unsupported audit uri: %q (missing path component)", uri)
@@ -1367,9 +1363,12 @@ func initExternalLog(ctx context.Context, auditConfig types.ClusterAuditConfig, 
 			logger := events.NewWriterEmitter(utils.NopWriteCloser(os.Stdout))
 			loggers = append(loggers, logger)
 		default:
+			// return nil, trace.BadParameter(
+			// 	"unsupported scheme for audit_events_uri: %q, currently supported schemes are %q and %q",
+			// 	uri.Scheme, dynamo.GetName(), teleport.SchemeFile)
 			return nil, trace.BadParameter(
-				"unsupported scheme for audit_events_uri: %q, currently supported schemes are %q and %q",
-				uri.Scheme, dynamo.GetName(), teleport.SchemeFile)
+				"unsupported scheme for audit_events_uri: %q, currently supported schemes are %q",
+				uri.Scheme, teleport.SchemeFile)
 		}
 	}
 

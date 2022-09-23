@@ -16,50 +16,50 @@ limitations under the License.
 
 package postgres
 
-import "fmt"
+// import "fmt"
 
-// schemaVersion defines the current schema version.
-// Increment this value when adding a new migration.
-const schemaVersion = 1
+// // schemaVersion defines the current schema version.
+// // Increment this value when adding a new migration.
+// const schemaVersion = 1
 
-// getMigration returns migration SQL for a schema version.
-func getMigration(version int) string {
-	switch version {
-	case 1:
-		return migrateV1
-		// case 2:
-		//   return migrateV2
-	}
-	panic(fmt.Sprintf("migration version not implemented: %v", version))
-}
+// // getMigration returns migration SQL for a schema version.
+// func getMigration(version int) string {
+// 	switch version {
+// 	case 1:
+// 		return migrateV1
+// 		// case 2:
+// 		//   return migrateV2
+// 	}
+// 	panic(fmt.Sprintf("migration version not implemented: %v", version))
+// }
 
-// migrateV1 is the baseline schema.
-//
-// Keys are stored as BYTEA to avoid collation ordering.
-// When debugging, convert the key to a readable value using:
-//   SELECT encode(key, 'escape') FROM lease;
-const migrateV1 = `
-	CREATE TABLE item (
-		key BYTEA NOT NULL,
-		id BIGINT NOT NULL,
-		value BYTEA NOT NULL,
-		CONSTRAINT item_pk PRIMARY KEY (key,id)
-	);
+// // migrateV1 is the baseline schema.
+// //
+// // Keys are stored as BYTEA to avoid collation ordering.
+// // When debugging, convert the key to a readable value using:
+// //   SELECT encode(key, 'escape') FROM lease;
+// const migrateV1 = `
+// 	CREATE TABLE item (
+// 		key BYTEA NOT NULL,
+// 		id BIGINT NOT NULL,
+// 		value BYTEA NOT NULL,
+// 		CONSTRAINT item_pk PRIMARY KEY (key,id)
+// 	);
 
-	CREATE TABLE lease (
-		key BYTEA NOT NULL,
-		id BIGINT NOT NULL,
-		expires TIMESTAMPTZ,
-		CONSTRAINT lease_pk PRIMARY KEY (key)
-	);
-	CREATE INDEX lease_expires ON lease (expires);
+// 	CREATE TABLE lease (
+// 		key BYTEA NOT NULL,
+// 		id BIGINT NOT NULL,
+// 		expires TIMESTAMPTZ,
+// 		CONSTRAINT lease_pk PRIMARY KEY (key)
+// 	);
+// 	CREATE INDEX lease_expires ON lease (expires);
 
-	CREATE TABLE event (
-		eventid BIGSERIAL NOT NULL,
-		created TIMESTAMPTZ NOT NULL,
-		key BYTEA NOT NULL,
-		id BIGINT NOT NULL,
-		type SMALLINT NOT NULL,
-		CONSTRAINT event_pk PRIMARY KEY (eventid)
-	);
-`
+// 	CREATE TABLE event (
+// 		eventid BIGSERIAL NOT NULL,
+// 		created TIMESTAMPTZ NOT NULL,
+// 		key BYTEA NOT NULL,
+// 		id BIGINT NOT NULL,
+// 		type SMALLINT NOT NULL,
+// 		CONSTRAINT event_pk PRIMARY KEY (eventid)
+// 	);
+// `
