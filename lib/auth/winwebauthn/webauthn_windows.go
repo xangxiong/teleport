@@ -134,12 +134,15 @@ func (c client) GetAssertion(origin string, in protocol.PublicKeyCredentialReque
 	if out == nil {
 		return nil, fmt.Errorf("unexpected nil response from GetAssertion")
 	}
+
+	// Note that we need to copy bytes out of out if we want to free object.
+	// That's why mkBytesSliceOutOfCbytes is used.
 	defer freeAssertion(out)
 
-	authData := bytePtrToByte(out.cbAuthenticatorData, out.pbAuthenticatorData)
-	signiture := bytePtrToByte(out.cbSignature, out.pbSignature)
-	userID := bytePtrToByte(out.cbUserId, out.pbUserId)
-	credential := bytePtrToByte(out.Credential.cbId, out.Credential.pbId)
+	authData := mkBytesSliceOutOfCbytes(out.cbAuthenticatorData, out.pbAuthenticatorData)
+	signiture := mkBytesSliceOutOfCbytes(out.cbSignature, out.pbSignature)
+	userID := mkBytesSliceOutOfCbytes(out.cbUserId, out.pbUserId)
+	credential := mkBytesSliceOutOfCbytes(out.Credential.cbId, out.Credential.pbId)
 	credType := windows.UTF16PtrToString(out.Credential.pwszCredentialType)
 
 	return &wanlib.CredentialAssertionResponse{
@@ -208,9 +211,11 @@ func (c client) MakeCredential(origin string, in protocol.PublicKeyCredentialCre
 		return nil, fmt.Errorf("unexpected nil response from MakeCredential")
 	}
 
+	// Note that we need to copy bytes out of out if we want to free object.
+	// That's why mkBytesSliceOutOfCbytes is used.
 	defer freeCredentialAttestation(out)
 
-	credential := bytePtrToByte(out.CbCredentialId, out.PbCredentialId)
+	credential := mkBytesSliceOutOfCbytes(out.CbCredentialId, out.PbCredentialId)
 
 	return &wanlib.CredentialCreationResponse{
 		PublicKeyCredential: wanlib.PublicKeyCredential{
@@ -224,7 +229,7 @@ func (c client) MakeCredential(origin string, in protocol.PublicKeyCredentialCre
 			AuthenticatorResponse: wanlib.AuthenticatorResponse{
 				ClientDataJSON: jsonEncodedCd,
 			},
-			AttestationObject: bytePtrToByte(out.CbAttestationObject, out.PbAttestationObject),
+			AttestationObject: mkBytesSliceOutOfCbytes(out.CbAttestationObject, out.PbAttestationObject),
 		},
 	}, nil
 }
@@ -911,6 +916,15 @@ func boolToUint32(in bool) uint32 {
 		return 1
 	}
 	return 0
+}
+
+// mkBytesSliceOutOfCbytes uses bytePtrToByte to get slice of bytes and copies
+// it to new slice so that it won't interfere when main objects is free.
+func mkBytesSliceOutOfCbytes(size uint32, p *byte) []byte {
+	tmp := bytePtrToByte(size, p)
+	out := make([]byte, len(tmp))
+	copy(out, tmp)
+	return out
 }
 
 func bytePtrToByte(size uint32, p *byte) []byte {
