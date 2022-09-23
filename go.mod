@@ -32,7 +32,7 @@ require (
 	github.com/coreos/go-semver v0.3.0
 	github.com/creack/pty v1.1.18
 	github.com/denisenkom/go-mssqldb v0.11.0
-	github.com/duo-labs/webauthn v0.0.0-20210727191636-9f1b88ef44cc
+	github.com/duo-labs/webauthn v0.0.0-20220122034320-81aea484c951
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elastic/go-elasticsearch/v8 v8.4.0
 	github.com/flynn/hid v0.0.0-20190502022136-f1b9b6cc019a
