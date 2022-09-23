@@ -51,7 +51,6 @@ import (
 	"github.com/gravitational/teleport/lib/client/identityfile"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/kube/kubeconfig"
 	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/reversetunnel"
 	"github.com/gravitational/teleport/lib/service"
@@ -643,7 +642,7 @@ func (i *TeleInstance) GenerateConfig(t *testing.T, trustedSecrets []*InstanceSe
 		Params: backend.Params{"path": dataDir + string(os.PathListSeparator) + defaults.BackendDir, "poll_stream_period": 50 * time.Millisecond},
 	}
 
-	tconf.Kube.CheckImpersonationPermissions = nullImpersonationCheck
+	//tconf.Kube.CheckImpersonationPermissions = nullImpersonationCheck
 
 	tconf.Keygen = testauthority.New()
 	tconf.MaxRetryPeriod = defaults.HighResPollingPeriod
@@ -1738,46 +1737,46 @@ func fatalIf(err error) {
 	}
 }
 
-func enableKubernetesService(t *testing.T, config *service.Config) {
-	config.Kube.KubeconfigPath = filepath.Join(t.TempDir(), "kube_config")
-	require.NoError(t, enableKube(config, "teleport-cluster"))
-}
+// func enableKubernetesService(t *testing.T, config *service.Config) {
+// 	config.Kube.KubeconfigPath = filepath.Join(t.TempDir(), "kube_config")
+// 	require.NoError(t, enableKube(config, "teleport-cluster"))
+// }
 
-func enableDesktopService(config *service.Config) {
-	// This config won't actually work, because there is no LDAP server,
-	// but it's enough to force desktop service to run.
-	config.WindowsDesktop.Enabled = true
-	config.WindowsDesktop.ListenAddr = *utils.MustParseAddr("127.0.0.1:0")
-	config.WindowsDesktop.Discovery.BaseDN = ""
-	config.WindowsDesktop.LDAP = service.LDAPConfig{
-		Domain:             "example.com",
-		Addr:               "127.0.0.1:636",
-		Username:           "test",
-		InsecureSkipVerify: true,
-	}
-}
+// func enableDesktopService(config *service.Config) {
+// 	// This config won't actually work, because there is no LDAP server,
+// 	// but it's enough to force desktop service to run.
+// 	config.WindowsDesktop.Enabled = true
+// 	config.WindowsDesktop.ListenAddr = *utils.MustParseAddr("127.0.0.1:0")
+// 	config.WindowsDesktop.Discovery.BaseDN = ""
+// 	config.WindowsDesktop.LDAP = service.LDAPConfig{
+// 		Domain:             "example.com",
+// 		Addr:               "127.0.0.1:636",
+// 		Username:           "test",
+// 		InsecureSkipVerify: true,
+// 	}
+// }
 
-func enableKube(config *service.Config, clusterName string) error {
-	kubeConfigPath := config.Kube.KubeconfigPath
-	if kubeConfigPath == "" {
-		return trace.BadParameter("missing kubeconfig path")
-	}
-	key, err := genUserKey()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	err = kubeconfig.Update(kubeConfigPath, kubeconfig.Values{
-		TeleportClusterName: clusterName,
-		ClusterAddr:         "https://" + net.JoinHostPort(Host, ports.Pop()),
-		Credentials:         key,
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	config.Kube.Enabled = true
-	config.Kube.ListenAddr = utils.MustParseAddr(net.JoinHostPort(Host, ports.Pop()))
-	return nil
-}
+// func enableKube(config *service.Config, clusterName string) error {
+// 	kubeConfigPath := config.Kube.KubeconfigPath
+// 	if kubeConfigPath == "" {
+// 		return trace.BadParameter("missing kubeconfig path")
+// 	}
+// 	key, err := genUserKey()
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	err = kubeconfig.Update(kubeConfigPath, kubeconfig.Values{
+// 		TeleportClusterName: clusterName,
+// 		ClusterAddr:         "https://" + net.JoinHostPort(Host, ports.Pop()),
+// 		Credentials:         key,
+// 	})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	config.Kube.Enabled = true
+// 	config.Kube.ListenAddr = utils.MustParseAddr(net.JoinHostPort(Host, ports.Pop()))
+// 	return nil
+// }
 
 // getKubeClusters gets all kubernetes clusters accessible from a given auth server.
 func getKubeClusters(t *testing.T, as *auth.Server) []*types.KubernetesCluster {

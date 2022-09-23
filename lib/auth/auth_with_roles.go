@@ -19,7 +19,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -2734,26 +2733,26 @@ func (a *ServerWithRoles) GetOIDCConnectors(ctx context.Context, withSecrets boo
 	return a.authServer.GetOIDCConnectors(ctx, withSecrets)
 }
 
-func (a *ServerWithRoles) CreateOIDCAuthRequest(ctx context.Context, req types.OIDCAuthRequest) (*types.OIDCAuthRequest, error) {
-	if err := a.action(apidefaults.Namespace, types.KindOIDCRequest, types.VerbCreate); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// func (a *ServerWithRoles) CreateOIDCAuthRequest(ctx context.Context, req types.OIDCAuthRequest) (*types.OIDCAuthRequest, error) {
+// 	if err := a.action(apidefaults.Namespace, types.KindOIDCRequest, types.VerbCreate); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	// require additional permissions for executing SSO test flow.
-	if req.SSOTestFlow {
-		if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbCreate); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
+// 	// require additional permissions for executing SSO test flow.
+// 	if req.SSOTestFlow {
+// 		if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbCreate); err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 	}
 
-	oidcReq, err := a.authServer.CreateOIDCAuthRequest(ctx, req)
-	if err != nil {
-		emitSSOLoginFailureEvent(a.CloseContext(), a.authServer.emitter, events.LoginMethodOIDC, err, req.SSOTestFlow)
-		return nil, trace.Wrap(err)
-	}
+// 	oidcReq, err := a.authServer.CreateOIDCAuthRequest(ctx, req)
+// 	if err != nil {
+// 		emitSSOLoginFailureEvent(a.CloseContext(), a.authServer.emitter, events.LoginMethodOIDC, err, req.SSOTestFlow)
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return oidcReq, nil
-}
+// 	return oidcReq, nil
+// }
 
 // GetOIDCAuthRequest returns OIDC auth request if found.
 func (a *ServerWithRoles) GetOIDCAuthRequest(ctx context.Context, id string) (*types.OIDCAuthRequest, error) {
@@ -2764,10 +2763,10 @@ func (a *ServerWithRoles) GetOIDCAuthRequest(ctx context.Context, id string) (*t
 	return a.authServer.GetOIDCAuthRequest(ctx, id)
 }
 
-func (a *ServerWithRoles) ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error) {
-	// auth callback is it's own authz, no need to check extra permissions
-	return a.authServer.ValidateOIDCAuthCallback(ctx, q)
-}
+// func (a *ServerWithRoles) ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error) {
+// 	// auth callback is it's own authz, no need to check extra permissions
+// 	return a.authServer.ValidateOIDCAuthCallback(ctx, q)
+// }
 
 func (a *ServerWithRoles) DeleteOIDCConnector(ctx context.Context, connectorID string) error {
 	if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbDelete); err != nil {
@@ -2817,32 +2816,32 @@ func (a *ServerWithRoles) GetSAMLConnectors(ctx context.Context, withSecrets boo
 	return a.authServer.GetSAMLConnectors(ctx, withSecrets)
 }
 
-func (a *ServerWithRoles) CreateSAMLAuthRequest(ctx context.Context, req types.SAMLAuthRequest) (*types.SAMLAuthRequest, error) {
-	if err := a.action(apidefaults.Namespace, types.KindSAMLRequest, types.VerbCreate); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// func (a *ServerWithRoles) CreateSAMLAuthRequest(ctx context.Context, req types.SAMLAuthRequest) (*types.SAMLAuthRequest, error) {
+// 	if err := a.action(apidefaults.Namespace, types.KindSAMLRequest, types.VerbCreate); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	// require additional permissions for executing SSO test flow.
-	if req.SSOTestFlow {
-		if err := a.authConnectorAction(apidefaults.Namespace, types.KindSAML, types.VerbCreate); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
+// 	// require additional permissions for executing SSO test flow.
+// 	if req.SSOTestFlow {
+// 		if err := a.authConnectorAction(apidefaults.Namespace, types.KindSAML, types.VerbCreate); err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 	}
 
-	samlReq, err := a.authServer.CreateSAMLAuthRequest(ctx, req)
-	if err != nil {
-		emitSSOLoginFailureEvent(a.CloseContext(), a.authServer.emitter, events.LoginMethodSAML, err, req.SSOTestFlow)
-		return nil, trace.Wrap(err)
-	}
+// 	samlReq, err := a.authServer.CreateSAMLAuthRequest(ctx, req)
+// 	if err != nil {
+// 		emitSSOLoginFailureEvent(a.CloseContext(), a.authServer.emitter, events.LoginMethodSAML, err, req.SSOTestFlow)
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return samlReq, nil
-}
+// 	return samlReq, nil
+// }
 
-// ValidateSAMLResponse validates SAML auth response.
-func (a *ServerWithRoles) ValidateSAMLResponse(ctx context.Context, re string, connectorID string) (*SAMLAuthResponse, error) {
-	// auth callback is it's own authz, no need to check extra permissions
-	return a.authServer.ValidateSAMLResponse(ctx, re, connectorID)
-}
+// // ValidateSAMLResponse validates SAML auth response.
+// func (a *ServerWithRoles) ValidateSAMLResponse(ctx context.Context, re string, connectorID string) (*SAMLAuthResponse, error) {
+// 	// auth callback is it's own authz, no need to check extra permissions
+// 	return a.authServer.ValidateSAMLResponse(ctx, re, connectorID)
+// }
 
 // GetSAMLAuthRequest returns SAML auth request if found.
 func (a *ServerWithRoles) GetSAMLAuthRequest(ctx context.Context, id string) (*types.SAMLAuthRequest, error) {
@@ -2902,19 +2901,19 @@ func (a *ServerWithRoles) checkGithubConnector(connector types.GithubConnector) 
 	return nil
 }
 
-// UpsertGithubConnector creates or updates a Github connector.
-func (a *ServerWithRoles) UpsertGithubConnector(ctx context.Context, connector types.GithubConnector) error {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.checkGithubConnector(connector); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.upsertGithubConnector(ctx, connector)
-}
+// // UpsertGithubConnector creates or updates a Github connector.
+// func (a *ServerWithRoles) UpsertGithubConnector(ctx context.Context, connector types.GithubConnector) error {
+// 	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbCreate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbUpdate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.checkGithubConnector(connector); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return a.authServer.upsertGithubConnector(ctx, connector)
+// }
 
 func (a *ServerWithRoles) GetGithubConnector(ctx context.Context, id string, withSecrets bool) (types.GithubConnector, error) {
 	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbReadNoSecrets); err != nil {
@@ -2943,34 +2942,34 @@ func (a *ServerWithRoles) GetGithubConnectors(ctx context.Context, withSecrets b
 	return a.authServer.GetGithubConnectors(ctx, withSecrets)
 }
 
-// DeleteGithubConnector deletes a Github connector by name.
-func (a *ServerWithRoles) DeleteGithubConnector(ctx context.Context, connectorID string) error {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.deleteGithubConnector(ctx, connectorID)
-}
+// // DeleteGithubConnector deletes a Github connector by name.
+// func (a *ServerWithRoles) DeleteGithubConnector(ctx context.Context, connectorID string) error {
+// 	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbDelete); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return a.authServer.deleteGithubConnector(ctx, connectorID)
+// }
 
-func (a *ServerWithRoles) CreateGithubAuthRequest(ctx context.Context, req types.GithubAuthRequest) (*types.GithubAuthRequest, error) {
-	if err := a.action(apidefaults.Namespace, types.KindGithubRequest, types.VerbCreate); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// func (a *ServerWithRoles) CreateGithubAuthRequest(ctx context.Context, req types.GithubAuthRequest) (*types.GithubAuthRequest, error) {
+// 	if err := a.action(apidefaults.Namespace, types.KindGithubRequest, types.VerbCreate); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	// require additional permissions for executing SSO test flow.
-	if req.SSOTestFlow {
-		if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbCreate); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
+// 	// require additional permissions for executing SSO test flow.
+// 	if req.SSOTestFlow {
+// 		if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbCreate); err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 	}
 
-	githubReq, err := a.authServer.CreateGithubAuthRequest(ctx, req)
-	if err != nil {
-		emitSSOLoginFailureEvent(a.authServer.closeCtx, a.authServer.emitter, events.LoginMethodGithub, err, req.SSOTestFlow)
-		return nil, trace.Wrap(err)
-	}
+// 	githubReq, err := a.authServer.CreateGithubAuthRequest(ctx, req)
+// 	if err != nil {
+// 		emitSSOLoginFailureEvent(a.authServer.closeCtx, a.authServer.emitter, events.LoginMethodGithub, err, req.SSOTestFlow)
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return githubReq, nil
-}
+// 	return githubReq, nil
+// }
 
 // GetGithubAuthRequest returns Github auth request if found.
 func (a *ServerWithRoles) GetGithubAuthRequest(ctx context.Context, stateToken string) (*types.GithubAuthRequest, error) {
@@ -2981,9 +2980,9 @@ func (a *ServerWithRoles) GetGithubAuthRequest(ctx context.Context, stateToken s
 	return a.authServer.GetGithubAuthRequest(ctx, stateToken)
 }
 
-func (a *ServerWithRoles) ValidateGithubAuthCallback(ctx context.Context, q url.Values) (*GithubAuthResponse, error) {
-	return a.authServer.ValidateGithubAuthCallback(ctx, q)
-}
+// func (a *ServerWithRoles) ValidateGithubAuthCallback(ctx context.Context, q url.Values) (*GithubAuthResponse, error) {
+// 	return a.authServer.ValidateGithubAuthCallback(ctx, q)
+// }
 
 // EmitAuditEvent emits a single audit event
 func (a *ServerWithRoles) EmitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
@@ -3712,15 +3711,15 @@ func (a *ServerWithRoles) DeleteSemaphore(ctx context.Context, filter types.Sema
 	return a.authServer.DeleteSemaphore(ctx, filter)
 }
 
-// ProcessKubeCSR processes CSR request against Kubernetes CA, returns
-// signed certificate if successful.
-func (a *ServerWithRoles) ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error) {
-	// limits the requests types to proxies to make it harder to break
-	if !a.hasBuiltinRole(types.RoleProxy) {
-		return nil, trace.AccessDenied("this request can be only executed by a proxy")
-	}
-	return a.authServer.ProcessKubeCSR(req)
-}
+// // ProcessKubeCSR processes CSR request against Kubernetes CA, returns
+// // signed certificate if successful.
+// func (a *ServerWithRoles) ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error) {
+// 	// limits the requests types to proxies to make it harder to break
+// 	if !a.hasBuiltinRole(types.RoleProxy) {
+// 		return nil, trace.AccessDenied("this request can be only executed by a proxy")
+// 	}
+// 	return a.authServer.ProcessKubeCSR(req)
+// }
 
 // GetDatabaseServers returns all registered database servers.
 func (a *ServerWithRoles) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {
@@ -3784,15 +3783,15 @@ func (a *ServerWithRoles) SignDatabaseCSR(ctx context.Context, req *proto.Databa
 //
 // This certificate can be requested by:
 //
-//  - Cluster administrator using "tctl auth sign --format=db" command locally
-//    on the auth server to produce a certificate for configuring a self-hosted
-//    database.
-//  - Remote user using "tctl auth sign --format=db" command with a remote
-//    proxy (e.g. Teleport Cloud), as long as they can impersonate system
-//    role Db.
-//  - Database service when initiating connection to a database instance to
-//    produce a client certificate.
-//  - Proxy service when generating mTLS files to a database
+//   - Cluster administrator using "tctl auth sign --format=db" command locally
+//     on the auth server to produce a certificate for configuring a self-hosted
+//     database.
+//   - Remote user using "tctl auth sign --format=db" command with a remote
+//     proxy (e.g. Teleport Cloud), as long as they can impersonate system
+//     role Db.
+//   - Database service when initiating connection to a database instance to
+//     produce a client certificate.
+//   - Proxy service when generating mTLS files to a database
 func (a *ServerWithRoles) GenerateDatabaseCert(ctx context.Context, req *proto.DatabaseCertRequest) (*proto.DatabaseCertResponse, error) {
 	// Check if the User can `create` DatabaseCertificates
 	err := a.action(apidefaults.Namespace, types.KindDatabaseCertificate, types.VerbCreate)
@@ -5011,20 +5010,20 @@ func (a *ServerWithRoles) MaintainSessionPresence(ctx context.Context) (proto.Au
 	return nil, trace.NotImplemented(notImplementedMessage)
 }
 
-// NewAdminAuthServer returns auth server authorized as admin,
-// used for auth server cached access
-func NewAdminAuthServer(authServer *Server, sessions session.Service, alog events.IAuditLog) (ClientI, error) {
-	ctx, err := NewAdminContext()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &ServerWithRoles{
-		authServer: authServer,
-		context:    *ctx,
-		alog:       alog,
-		sessions:   sessions,
-	}, nil
-}
+// // NewAdminAuthServer returns auth server authorized as admin,
+// // used for auth server cached access
+// func NewAdminAuthServer(authServer *Server, sessions session.Service, alog events.IAuditLog) (ClientI, error) {
+// 	ctx, err := NewAdminContext()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &ServerWithRoles{
+// 		authServer: authServer,
+// 		context:    *ctx,
+// 		alog:       alog,
+// 		sessions:   sessions,
+// 	}, nil
+// }
 
 func emitSSOLoginFailureEvent(ctx context.Context, emitter apievents.Emitter, method string, err error, testFlow bool) {
 	code := events.UserSSOLoginFailureCode

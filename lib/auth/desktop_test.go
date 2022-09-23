@@ -14,30 +14,30 @@
 
 package auth
 
-import (
-	"context"
-	"testing"
+// import (
+// 	"context"
+// 	"testing"
 
-	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/lib/modules"
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/gravitational/teleport/api/client/proto"
+// 	"github.com/gravitational/teleport/lib/modules"
+// 	"github.com/stretchr/testify/require"
+// )
 
-// TestDesktopAccessDisabled makes sure desktop access can be disabled via modules.
-// Since desktop connections require a cert, this is mediated via the cert generating function.
-func TestDesktopAccessDisabled(t *testing.T) {
-	modules.SetTestModules(t, &modules.TestModules{
-		TestFeatures: modules.Features{
-			Desktop: false, // Explicily turn off desktop access.
-		},
-	})
+// // TestDesktopAccessDisabled makes sure desktop access can be disabled via modules.
+// // Since desktop connections require a cert, this is mediated via the cert generating function.
+// func TestDesktopAccessDisabled(t *testing.T) {
+// 	modules.SetTestModules(t, &modules.TestModules{
+// 		TestFeatures: modules.Features{
+// 			Desktop: false, // Explicily turn off desktop access.
+// 		},
+// 	})
 
-	ctx := context.Background()
-	p, err := newTestPack(ctx, t.TempDir())
-	require.NoError(t, err)
+// 	ctx := context.Background()
+// 	p, err := newTestPack(ctx, t.TempDir())
+// 	require.NoError(t, err)
 
-	r, err := p.a.GenerateWindowsDesktopCert(ctx, &proto.WindowsDesktopCertRequest{})
-	require.Nil(t, r)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "this Teleport cluster is not licensed for desktop access, please contact the cluster administrator")
-}
+// 	r, err := p.a.GenerateWindowsDesktopCert(ctx, &proto.WindowsDesktopCertRequest{})
+// 	require.Nil(t, r)
+// 	require.Error(t, err)
+// 	require.Contains(t, err.Error(), "this Teleport cluster is not licensed for desktop access, please contact the cluster administrator")
+// }

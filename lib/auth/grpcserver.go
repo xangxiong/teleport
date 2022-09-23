@@ -2584,18 +2584,18 @@ func (g *GRPCServer) DeleteOIDCConnector(ctx context.Context, req *types.Resourc
 	return &empty.Empty{}, nil
 }
 
-// CreateOIDCAuthRequest creates OIDCAuthRequest
-func (g *GRPCServer) CreateOIDCAuthRequest(ctx context.Context, req *types.OIDCAuthRequest) (*types.OIDCAuthRequest, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response, err := auth.CreateOIDCAuthRequest(ctx, *req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return response, nil
-}
+// // CreateOIDCAuthRequest creates OIDCAuthRequest
+// func (g *GRPCServer) CreateOIDCAuthRequest(ctx context.Context, req *types.OIDCAuthRequest) (*types.OIDCAuthRequest, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	response, err := auth.CreateOIDCAuthRequest(ctx, *req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return response, nil
+// }
 
 // GetOIDCAuthRequest gets OIDC AuthnRequest
 func (g *GRPCServer) GetOIDCAuthRequest(ctx context.Context, req *proto.GetOIDCAuthRequestRequest) (*types.OIDCAuthRequest, error) {
@@ -2676,18 +2676,18 @@ func (g *GRPCServer) DeleteSAMLConnector(ctx context.Context, req *types.Resourc
 	return &empty.Empty{}, nil
 }
 
-// CreateSAMLAuthRequest creates SAMLAuthRequest.
-func (g *GRPCServer) CreateSAMLAuthRequest(ctx context.Context, req *types.SAMLAuthRequest) (*types.SAMLAuthRequest, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response, err := auth.CreateSAMLAuthRequest(ctx, *req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return response, nil
-}
+// // CreateSAMLAuthRequest creates SAMLAuthRequest.
+// func (g *GRPCServer) CreateSAMLAuthRequest(ctx context.Context, req *types.SAMLAuthRequest) (*types.SAMLAuthRequest, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	response, err := auth.CreateSAMLAuthRequest(ctx, *req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return response, nil
+// }
 
 // GetSAMLAuthRequest gets a SAMLAuthRequest by id.
 func (g *GRPCServer) GetSAMLAuthRequest(ctx context.Context, req *proto.GetSAMLAuthRequestRequest) (*types.SAMLAuthRequest, error) {
@@ -2741,42 +2741,42 @@ func (g *GRPCServer) GetGithubConnectors(ctx context.Context, req *types.Resourc
 	}, nil
 }
 
-// UpsertGithubConnector upserts a Github connector.
-func (g *GRPCServer) UpsertGithubConnector(ctx context.Context, GithubConnector *types.GithubConnectorV3) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err = auth.ServerWithRoles.UpsertGithubConnector(ctx, GithubConnector); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // UpsertGithubConnector upserts a Github connector.
+// func (g *GRPCServer) UpsertGithubConnector(ctx context.Context, GithubConnector *types.GithubConnectorV3) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err = auth.ServerWithRoles.UpsertGithubConnector(ctx, GithubConnector); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
-// DeleteGithubConnector deletes a Github connector by name.
-func (g *GRPCServer) DeleteGithubConnector(ctx context.Context, req *types.ResourceRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.ServerWithRoles.DeleteGithubConnector(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // DeleteGithubConnector deletes a Github connector by name.
+// func (g *GRPCServer) DeleteGithubConnector(ctx context.Context, req *types.ResourceRequest) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err := auth.ServerWithRoles.DeleteGithubConnector(ctx, req.Name); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
-// CreateGithubAuthRequest creates GithubAuthRequest.
-func (g *GRPCServer) CreateGithubAuthRequest(ctx context.Context, req *types.GithubAuthRequest) (*types.GithubAuthRequest, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response, err := auth.CreateGithubAuthRequest(ctx, *req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return response, nil
-}
+// // CreateGithubAuthRequest creates GithubAuthRequest.
+// func (g *GRPCServer) CreateGithubAuthRequest(ctx context.Context, req *types.GithubAuthRequest) (*types.GithubAuthRequest, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	response, err := auth.CreateGithubAuthRequest(ctx, *req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return response, nil
+// }
 
 // GetGithubAuthRequest gets a GithubAuthRequest by id.
 func (g *GRPCServer) GetGithubAuthRequest(ctx context.Context, req *proto.GetGithubAuthRequestRequest) (*types.GithubAuthRequest, error) {
@@ -4292,7 +4292,7 @@ func NewGRPCServer(cfg GRPCServerConfig) (*GRPCServer, error) {
 		}),
 		server: server,
 	}
-	proto.RegisterAuthServiceServer(server, authServer)
+	//proto.RegisterAuthServiceServer(server, authServer)
 	collectortracepb.RegisterTraceServiceServer(server, authServer)
 
 	// create server with no-op role to pass to JoinService server

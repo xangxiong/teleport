@@ -4154,9 +4154,9 @@ func (process *TeleportProcess) registerExpectedServices(cfg *Config) {
 	// 	process.setExpectedInstanceRole(types.RoleAuth, AuthIdentityEvent)
 	// }
 
-	// if cfg.SSH.Enabled {
-	// 	process.setExpectedInstanceRole(types.RoleNode, SSHIdentityEvent)
-	// }
+	if cfg.SSH.Enabled {
+		process.setExpectedInstanceRole(types.RoleNode, SSHIdentityEvent)
+	}
 
 	// if cfg.Proxy.Enabled {
 	// 	process.setExpectedInstanceRole(types.RoleProxy, ProxyIdentityEvent)

@@ -274,22 +274,22 @@ func (c *Client) Delete(ctx context.Context, u string) (*roundtrip.Response, err
 	return httplib.ConvertResponse(c.Client.Delete(ctx, u))
 }
 
-// ProcessKubeCSR processes CSR request against Kubernetes CA, returns
-// signed certificate if successful.
-func (c *Client) ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error) {
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	out, err := c.PostJSON(context.TODO(), c.Endpoint("kube", "csr"), req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var re KubeCSRResponse
-	if err := json.Unmarshal(out.Bytes(), &re); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &re, nil
-}
+// // ProcessKubeCSR processes CSR request against Kubernetes CA, returns
+// // signed certificate if successful.
+// func (c *Client) ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error) {
+// 	if err := req.CheckAndSetDefaults(); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	out, err := c.PostJSON(context.TODO(), c.Endpoint("kube", "csr"), req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	var re KubeCSRResponse
+// 	if err := json.Unmarshal(out.Bytes(), &re); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &re, nil
+// }
 
 // GetSessions returns a list of active sessions in the cluster as reported by
 // the auth server.
@@ -960,80 +960,80 @@ func (c *Client) GenerateHostCert(
 	return []byte(cert), nil
 }
 
-// ValidateOIDCAuthCallback validates OIDC auth callback returned from redirect
-func (c *Client) ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error) {
-	out, err := c.PostJSON(ctx, c.Endpoint("oidc", "requests", "validate"), validateOIDCAuthCallbackReq{
-		Query: q,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var rawResponse *oidcAuthRawResponse
-	if err := json.Unmarshal(out.Bytes(), &rawResponse); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response := OIDCAuthResponse{
-		Username: rawResponse.Username,
-		Identity: rawResponse.Identity,
-		Cert:     rawResponse.Cert,
-		Req:      rawResponse.Req,
-		TLSCert:  rawResponse.TLSCert,
-	}
-	if len(rawResponse.Session) != 0 {
-		session, err := services.UnmarshalWebSession(rawResponse.Session)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		response.Session = session
-	}
-	response.HostSigners = make([]types.CertAuthority, len(rawResponse.HostSigners))
-	for i, raw := range rawResponse.HostSigners {
-		ca, err := services.UnmarshalCertAuthority(raw)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		response.HostSigners[i] = ca
-	}
-	return &response, nil
-}
+// // ValidateOIDCAuthCallback validates OIDC auth callback returned from redirect
+// func (c *Client) ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error) {
+// 	out, err := c.PostJSON(ctx, c.Endpoint("oidc", "requests", "validate"), validateOIDCAuthCallbackReq{
+// 		Query: q,
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	var rawResponse *oidcAuthRawResponse
+// 	if err := json.Unmarshal(out.Bytes(), &rawResponse); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	response := OIDCAuthResponse{
+// 		Username: rawResponse.Username,
+// 		Identity: rawResponse.Identity,
+// 		Cert:     rawResponse.Cert,
+// 		Req:      rawResponse.Req,
+// 		TLSCert:  rawResponse.TLSCert,
+// 	}
+// 	if len(rawResponse.Session) != 0 {
+// 		session, err := services.UnmarshalWebSession(rawResponse.Session)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		response.Session = session
+// 	}
+// 	response.HostSigners = make([]types.CertAuthority, len(rawResponse.HostSigners))
+// 	for i, raw := range rawResponse.HostSigners {
+// 		ca, err := services.UnmarshalCertAuthority(raw)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		response.HostSigners[i] = ca
+// 	}
+// 	return &response, nil
+// }
 
-// ValidateSAMLResponse validates response returned by SAML identity provider
-func (c *Client) ValidateSAMLResponse(ctx context.Context, re string, connectorID string) (*SAMLAuthResponse, error) {
-	out, err := c.PostJSON(ctx, c.Endpoint("saml", "requests", "validate"), validateSAMLResponseReq{
-		Response:    re,
-		ConnectorID: connectorID,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var rawResponse *samlAuthRawResponse
-	if err := json.Unmarshal(out.Bytes(), &rawResponse); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response := SAMLAuthResponse{
-		Username: rawResponse.Username,
-		Identity: rawResponse.Identity,
-		Cert:     rawResponse.Cert,
-		Req:      rawResponse.Req,
-		TLSCert:  rawResponse.TLSCert,
-	}
-	if len(rawResponse.Session) != 0 {
-		session, err := services.UnmarshalWebSession(rawResponse.Session)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		response.Session = session
-	}
-	response.HostSigners = make([]types.CertAuthority, len(rawResponse.HostSigners))
-	for i, raw := range rawResponse.HostSigners {
-		ca, err := services.UnmarshalCertAuthority(raw)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		response.HostSigners[i] = ca
-	}
-	return &response, nil
-}
+// // ValidateSAMLResponse validates response returned by SAML identity provider
+// func (c *Client) ValidateSAMLResponse(ctx context.Context, re string, connectorID string) (*SAMLAuthResponse, error) {
+// 	out, err := c.PostJSON(ctx, c.Endpoint("saml", "requests", "validate"), validateSAMLResponseReq{
+// 		Response:    re,
+// 		ConnectorID: connectorID,
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	var rawResponse *samlAuthRawResponse
+// 	if err := json.Unmarshal(out.Bytes(), &rawResponse); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	response := SAMLAuthResponse{
+// 		Username: rawResponse.Username,
+// 		Identity: rawResponse.Identity,
+// 		Cert:     rawResponse.Cert,
+// 		Req:      rawResponse.Req,
+// 		TLSCert:  rawResponse.TLSCert,
+// 	}
+// 	if len(rawResponse.Session) != 0 {
+// 		session, err := services.UnmarshalWebSession(rawResponse.Session)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		response.Session = session
+// 	}
+// 	response.HostSigners = make([]types.CertAuthority, len(rawResponse.HostSigners))
+// 	for i, raw := range rawResponse.HostSigners {
+// 		ca, err := services.UnmarshalCertAuthority(raw)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		response.HostSigners[i] = ca
+// 	}
+// 	return &response, nil
+// }
 
 // ValidateGithubAuthCallback validates Github auth callback returned from redirect
 // func (c *Client) ValidateGithubAuthCallback(ctx context.Context, q url.Values) (*GithubAuthResponse, error) {
@@ -1468,8 +1468,8 @@ type IdentityService interface {
 	CreateOIDCAuthRequest(ctx context.Context, req types.OIDCAuthRequest) (*types.OIDCAuthRequest, error)
 	// GetOIDCAuthRequest returns OIDC auth request if found
 	GetOIDCAuthRequest(ctx context.Context, id string) (*types.OIDCAuthRequest, error)
-	// ValidateOIDCAuthCallback validates OIDC auth callback returned from redirect
-	ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error)
+	// // ValidateOIDCAuthCallback validates OIDC auth callback returned from redirect
+	// ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error)
 
 	// UpsertSAMLConnector updates or creates SAML connector
 	UpsertSAMLConnector(ctx context.Context, connector types.SAMLConnector) error
@@ -1481,8 +1481,8 @@ type IdentityService interface {
 	DeleteSAMLConnector(ctx context.Context, connectorID string) error
 	// CreateSAMLAuthRequest creates SAML AuthnRequest
 	CreateSAMLAuthRequest(ctx context.Context, req types.SAMLAuthRequest) (*types.SAMLAuthRequest, error)
-	// ValidateSAMLResponse validates SAML auth response
-	ValidateSAMLResponse(ctx context.Context, re string, connectorID string) (*SAMLAuthResponse, error)
+	// // ValidateSAMLResponse validates SAML auth response
+	// ValidateSAMLResponse(ctx context.Context, re string, connectorID string) (*SAMLAuthResponse, error)
 	// GetSAMLAuthRequest returns SAML auth request if found
 	GetSAMLAuthRequest(ctx context.Context, authRequestID string) (*types.SAMLAuthRequest, error)
 
@@ -1722,9 +1722,9 @@ type ClientI interface {
 	// short-lived certificates as a result
 	AuthenticateSSHUser(ctx context.Context, req AuthenticateSSHRequest) (*SSHLoginResponse, error)
 
-	// ProcessKubeCSR processes CSR request against Kubernetes CA, returns
-	// signed certificate if successful.
-	ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error)
+	// // ProcessKubeCSR processes CSR request against Kubernetes CA, returns
+	// // signed certificate if successful.
+	// ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error)
 
 	// Ping gets basic info about the auth server.
 	Ping(ctx context.Context) (proto.PingResponse, error)

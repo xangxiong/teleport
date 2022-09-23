@@ -70,7 +70,6 @@ import (
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/inventory"
-	kubeutils "github.com/gravitational/teleport/lib/kube/utils"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/observability/tracing"
@@ -228,9 +227,9 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		Services:        services,
 		Cache:           services,
 		keyStore:        keyStore,
-		getClaimsFun:    getClaims,
-		inventory:       inventory.NewController(cfg.Presence),
-		traceClient:     cfg.TraceClient,
+		// getClaimsFun:    getClaims,
+		inventory:   inventory.NewController(cfg.Presence),
+		traceClient: cfg.TraceClient,
 	}
 	for _, o := range opts {
 		if err := o(&as); err != nil {
@@ -1233,21 +1232,21 @@ func (a *Server) generateUserCert(req certRequest) (*proto.Certs, error) {
 	// Only validate/default kubernetes cluster name for the current teleport
 	// cluster. If this cert is targeting a trusted teleport cluster, leave all
 	// the kubernetes cluster validation up to them.
-	if req.routeToCluster == clusterName {
-		req.kubernetesCluster, err = kubeutils.CheckOrSetKubeCluster(a.closeCtx, a, req.kubernetesCluster, clusterName)
-		if err != nil {
-			if !trace.IsNotFound(err) {
-				return nil, trace.Wrap(err)
-			}
-			log.Debug("Failed setting default kubernetes cluster for user login (user did not provide a cluster); leaving KubernetesCluster extension in the TLS certificate empty")
-		}
-	}
+	// if req.routeToCluster == clusterName {
+	// 	req.kubernetesCluster, err = kubeutils.CheckOrSetKubeCluster(a.closeCtx, a, req.kubernetesCluster, clusterName)
+	// 	if err != nil {
+	// 		if !trace.IsNotFound(err) {
+	// 			return nil, trace.Wrap(err)
+	// 		}
+	// 		log.Debug("Failed setting default kubernetes cluster for user login (user did not provide a cluster); leaving KubernetesCluster extension in the TLS certificate empty")
+	// 	}
+	// }
 
 	// See which database names and users this user is allowed to use.
-	dbNames, dbUsers, err := req.checker.CheckDatabaseNamesAndUsers(sessionTTL, req.overrideRoleTTL)
-	if err != nil && !trace.IsNotFound(err) {
-		return nil, trace.Wrap(err)
-	}
+	// dbNames, dbUsers, err := req.checker.CheckDatabaseNamesAndUsers(sessionTTL, req.overrideRoleTTL)
+	// if err != nil && !trace.IsNotFound(err) {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	// See which AWS role ARNs this user is allowed to assume.
 	roleARNs, err := req.checker.CheckAWSRoleARNs(sessionTTL, req.overrideRoleTTL)
@@ -1289,8 +1288,8 @@ func (a *Server) generateUserCert(req certRequest) (*proto.Certs, error) {
 			Username:    req.dbUser,
 			Database:    req.dbName,
 		},
-		DatabaseNames:      dbNames,
-		DatabaseUsers:      dbUsers,
+		// DatabaseNames:      dbNames,
+		// DatabaseUsers:      dbUsers,
 		MFAVerified:        req.mfaVerified,
 		ClientIP:           req.clientIP,
 		AWSRoleARNs:        roleARNs,

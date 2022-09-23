@@ -86,110 +86,110 @@ func NewAPIServer(config *APIConfig) (http.Handler, error) {
 	srv.Router = *httprouter.New()
 	srv.Router.UseRawPath = true
 
-	// Kubernetes extensions
-	srv.POST("/:version/kube/csr", srv.withAuth(srv.processKubeCSR))
+	// // Kubernetes extensions
+	// srv.POST("/:version/kube/csr", srv.withAuth(srv.processKubeCSR))
 
-	// Operations on certificate authorities
-	srv.GET("/:version/domain", srv.withAuth(srv.getDomainName))    // DELETE IN 11.0.0 REST method replaced by gRPC
-	srv.GET("/:version/cacert", srv.withAuth(srv.getClusterCACert)) // DELETE IN 11.0.0 REST method replaced by gRPC
+	// // Operations on certificate authorities
+	// srv.GET("/:version/domain", srv.withAuth(srv.getDomainName))    // DELETE IN 11.0.0 REST method replaced by gRPC
+	// srv.GET("/:version/cacert", srv.withAuth(srv.getClusterCACert)) // DELETE IN 11.0.0 REST method replaced by gRPC
 
-	srv.POST("/:version/authorities/:type", srv.withAuth(srv.upsertCertAuthority))
-	srv.POST("/:version/authorities/:type/rotate", srv.withAuth(srv.rotateCertAuthority))
-	srv.POST("/:version/authorities/:type/rotate/external", srv.withAuth(srv.rotateExternalCertAuthority))
-	srv.DELETE("/:version/authorities/:type/:domain", srv.withAuth(srv.deleteCertAuthority))
-	srv.GET("/:version/authorities/:type/:domain", srv.withAuth(srv.getCertAuthority))
-	srv.GET("/:version/authorities/:type", srv.withAuth(srv.getCertAuthorities))
+	// srv.POST("/:version/authorities/:type", srv.withAuth(srv.upsertCertAuthority))
+	// srv.POST("/:version/authorities/:type/rotate", srv.withAuth(srv.rotateCertAuthority))
+	// srv.POST("/:version/authorities/:type/rotate/external", srv.withAuth(srv.rotateExternalCertAuthority))
+	// srv.DELETE("/:version/authorities/:type/:domain", srv.withAuth(srv.deleteCertAuthority))
+	// srv.GET("/:version/authorities/:type/:domain", srv.withAuth(srv.getCertAuthority))
+	// srv.GET("/:version/authorities/:type", srv.withAuth(srv.getCertAuthorities))
 
-	// Generating certificates for user and host authorities
-	srv.POST("/:version/ca/host/certs", srv.withAuth(srv.generateHostCert))
+	// // Generating certificates for user and host authorities
+	// srv.POST("/:version/ca/host/certs", srv.withAuth(srv.generateHostCert))
 
-	// Operations on users
-	srv.GET("/:version/users", srv.withAuth(srv.getUsers))
-	srv.GET("/:version/users/:user", srv.withAuth(srv.getUser))
-	srv.DELETE("/:version/users/:user", srv.withAuth(srv.deleteUser)) // DELETE IN: 5.2 REST method is replaced by grpc method with context.
+	// // Operations on users
+	// srv.GET("/:version/users", srv.withAuth(srv.getUsers))
+	// srv.GET("/:version/users/:user", srv.withAuth(srv.getUser))
+	// srv.DELETE("/:version/users/:user", srv.withAuth(srv.deleteUser)) // DELETE IN: 5.2 REST method is replaced by grpc method with context.
 
-	// Passwords and sessions
-	srv.POST("/:version/users", srv.withAuth(srv.upsertUser))
-	srv.PUT("/:version/users/:user/web/password", srv.withAuth(srv.changePassword))
-	srv.POST("/:version/users/:user/web/password/check", srv.withRate(srv.withAuth(srv.checkPassword)))
-	srv.POST("/:version/users/:user/web/sessions", srv.withAuth(srv.createWebSession))
-	srv.POST("/:version/users/:user/web/authenticate", srv.withAuth(srv.authenticateWebUser))
-	srv.POST("/:version/users/:user/ssh/authenticate", srv.withAuth(srv.authenticateSSHUser))
-	srv.GET("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.getWebSession))
-	srv.DELETE("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.deleteWebSession))
+	// // Passwords and sessions
+	// srv.POST("/:version/users", srv.withAuth(srv.upsertUser))
+	// srv.PUT("/:version/users/:user/web/password", srv.withAuth(srv.changePassword))
+	// srv.POST("/:version/users/:user/web/password/check", srv.withRate(srv.withAuth(srv.checkPassword)))
+	// srv.POST("/:version/users/:user/web/sessions", srv.withAuth(srv.createWebSession))
+	// srv.POST("/:version/users/:user/web/authenticate", srv.withAuth(srv.authenticateWebUser))
+	// srv.POST("/:version/users/:user/ssh/authenticate", srv.withAuth(srv.authenticateSSHUser))
+	// srv.GET("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.getWebSession))
+	// srv.DELETE("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.deleteWebSession))
 
-	// Servers and presence heartbeat
-	srv.POST("/:version/namespaces/:namespace/nodes/keepalive", srv.withAuth(srv.keepAliveNode))
-	srv.POST("/:version/authservers", srv.withAuth(srv.upsertAuthServer))
-	srv.GET("/:version/authservers", srv.withAuth(srv.getAuthServers))
-	srv.POST("/:version/proxies", srv.withAuth(srv.upsertProxy))
-	srv.GET("/:version/proxies", srv.withAuth(srv.getProxies))
-	srv.DELETE("/:version/proxies", srv.withAuth(srv.deleteAllProxies))
-	srv.DELETE("/:version/proxies/:name", srv.withAuth(srv.deleteProxy))
-	srv.POST("/:version/tunnelconnections", srv.withAuth(srv.upsertTunnelConnection))
-	srv.GET("/:version/tunnelconnections/:cluster", srv.withAuth(srv.getTunnelConnections))
-	srv.GET("/:version/tunnelconnections", srv.withAuth(srv.getAllTunnelConnections))
-	srv.DELETE("/:version/tunnelconnections/:cluster/:conn", srv.withAuth(srv.deleteTunnelConnection))
-	srv.DELETE("/:version/tunnelconnections/:cluster", srv.withAuth(srv.deleteTunnelConnections))
-	srv.DELETE("/:version/tunnelconnections", srv.withAuth(srv.deleteAllTunnelConnections))
+	// // Servers and presence heartbeat
+	// srv.POST("/:version/namespaces/:namespace/nodes/keepalive", srv.withAuth(srv.keepAliveNode))
+	// srv.POST("/:version/authservers", srv.withAuth(srv.upsertAuthServer))
+	// srv.GET("/:version/authservers", srv.withAuth(srv.getAuthServers))
+	// srv.POST("/:version/proxies", srv.withAuth(srv.upsertProxy))
+	// srv.GET("/:version/proxies", srv.withAuth(srv.getProxies))
+	// srv.DELETE("/:version/proxies", srv.withAuth(srv.deleteAllProxies))
+	// srv.DELETE("/:version/proxies/:name", srv.withAuth(srv.deleteProxy))
+	// srv.POST("/:version/tunnelconnections", srv.withAuth(srv.upsertTunnelConnection))
+	// srv.GET("/:version/tunnelconnections/:cluster", srv.withAuth(srv.getTunnelConnections))
+	// srv.GET("/:version/tunnelconnections", srv.withAuth(srv.getAllTunnelConnections))
+	// srv.DELETE("/:version/tunnelconnections/:cluster/:conn", srv.withAuth(srv.deleteTunnelConnection))
+	// srv.DELETE("/:version/tunnelconnections/:cluster", srv.withAuth(srv.deleteTunnelConnections))
+	// srv.DELETE("/:version/tunnelconnections", srv.withAuth(srv.deleteAllTunnelConnections))
 
-	// Remote clusters
-	srv.POST("/:version/remoteclusters", srv.withAuth(srv.createRemoteCluster))
-	srv.GET("/:version/remoteclusters/:cluster", srv.withAuth(srv.getRemoteCluster))
-	srv.GET("/:version/remoteclusters", srv.withAuth(srv.getRemoteClusters))
-	srv.DELETE("/:version/remoteclusters/:cluster", srv.withAuth(srv.deleteRemoteCluster))
-	srv.DELETE("/:version/remoteclusters", srv.withAuth(srv.deleteAllRemoteClusters))
+	// // Remote clusters
+	// srv.POST("/:version/remoteclusters", srv.withAuth(srv.createRemoteCluster))
+	// srv.GET("/:version/remoteclusters/:cluster", srv.withAuth(srv.getRemoteCluster))
+	// srv.GET("/:version/remoteclusters", srv.withAuth(srv.getRemoteClusters))
+	// srv.DELETE("/:version/remoteclusters/:cluster", srv.withAuth(srv.deleteRemoteCluster))
+	// srv.DELETE("/:version/remoteclusters", srv.withAuth(srv.deleteAllRemoteClusters))
 
-	// Reverse tunnels
-	srv.POST("/:version/reversetunnels", srv.withAuth(srv.upsertReverseTunnel))
-	srv.GET("/:version/reversetunnels", srv.withAuth(srv.getReverseTunnels))
-	srv.DELETE("/:version/reversetunnels/:domain", srv.withAuth(srv.deleteReverseTunnel))
+	// // Reverse tunnels
+	// srv.POST("/:version/reversetunnels", srv.withAuth(srv.upsertReverseTunnel))
+	// srv.GET("/:version/reversetunnels", srv.withAuth(srv.getReverseTunnels))
+	// srv.DELETE("/:version/reversetunnels/:domain", srv.withAuth(srv.deleteReverseTunnel))
 
-	// trusted clusters
-	srv.POST("/:version/trustedclusters/validate", srv.withAuth(srv.validateTrustedCluster))
+	// // trusted clusters
+	// srv.POST("/:version/trustedclusters/validate", srv.withAuth(srv.validateTrustedCluster))
 
-	// Tokens
-	srv.POST("/:version/tokens", srv.withAuth(srv.generateToken))
-	srv.POST("/:version/tokens/register", srv.withAuth(srv.registerUsingToken))
-	srv.POST("/:version/tokens/register/auth", srv.withAuth(srv.registerNewAuthServer))
+	// // Tokens
+	// srv.POST("/:version/tokens", srv.withAuth(srv.generateToken))
+	// srv.POST("/:version/tokens/register", srv.withAuth(srv.registerUsingToken))
+	// srv.POST("/:version/tokens/register/auth", srv.withAuth(srv.registerNewAuthServer))
 
-	// Active sessions
-	srv.POST("/:version/namespaces/:namespace/sessions", srv.withAuth(srv.createSession))
-	srv.PUT("/:version/namespaces/:namespace/sessions/:id", srv.withAuth(srv.updateSession))
-	srv.DELETE("/:version/namespaces/:namespace/sessions/:id", srv.withAuth(srv.deleteSession))
-	srv.GET("/:version/namespaces/:namespace/sessions", srv.withAuth(srv.getSessions))
-	srv.GET("/:version/namespaces/:namespace/sessions/:id", srv.withAuth(srv.getSession))
-	srv.GET("/:version/namespaces/:namespace/sessions/:id/stream", srv.withAuth(srv.getSessionChunk))
-	srv.GET("/:version/namespaces/:namespace/sessions/:id/events", srv.withAuth(srv.getSessionEvents))
+	// // Active sessions
+	// srv.POST("/:version/namespaces/:namespace/sessions", srv.withAuth(srv.createSession))
+	// srv.PUT("/:version/namespaces/:namespace/sessions/:id", srv.withAuth(srv.updateSession))
+	// srv.DELETE("/:version/namespaces/:namespace/sessions/:id", srv.withAuth(srv.deleteSession))
+	// srv.GET("/:version/namespaces/:namespace/sessions", srv.withAuth(srv.getSessions))
+	// srv.GET("/:version/namespaces/:namespace/sessions/:id", srv.withAuth(srv.getSession))
+	// srv.GET("/:version/namespaces/:namespace/sessions/:id/stream", srv.withAuth(srv.getSessionChunk))
+	// srv.GET("/:version/namespaces/:namespace/sessions/:id/events", srv.withAuth(srv.getSessionEvents))
 
-	// Namespaces
-	srv.POST("/:version/namespaces", srv.withAuth(srv.upsertNamespace))
-	srv.GET("/:version/namespaces", srv.withAuth(srv.getNamespaces))
-	srv.GET("/:version/namespaces/:namespace", srv.withAuth(srv.getNamespace))
-	srv.DELETE("/:version/namespaces/:namespace", srv.withAuth(srv.deleteNamespace))
+	// // Namespaces
+	// srv.POST("/:version/namespaces", srv.withAuth(srv.upsertNamespace))
+	// srv.GET("/:version/namespaces", srv.withAuth(srv.getNamespaces))
+	// srv.GET("/:version/namespaces/:namespace", srv.withAuth(srv.getNamespace))
+	// srv.DELETE("/:version/namespaces/:namespace", srv.withAuth(srv.deleteNamespace))
 
-	// cluster configuration
-	srv.GET("/:version/configuration/name", srv.withAuth(srv.getClusterName))
-	srv.POST("/:version/configuration/name", srv.withAuth(srv.setClusterName))
-	srv.GET("/:version/configuration/static_tokens", srv.withAuth(srv.getStaticTokens))
-	srv.DELETE("/:version/configuration/static_tokens", srv.withAuth(srv.deleteStaticTokens))
-	srv.POST("/:version/configuration/static_tokens", srv.withAuth(srv.setStaticTokens))
+	// // cluster configuration
+	// srv.GET("/:version/configuration/name", srv.withAuth(srv.getClusterName))
+	// srv.POST("/:version/configuration/name", srv.withAuth(srv.setClusterName))
+	// srv.GET("/:version/configuration/static_tokens", srv.withAuth(srv.getStaticTokens))
+	// srv.DELETE("/:version/configuration/static_tokens", srv.withAuth(srv.deleteStaticTokens))
+	// srv.POST("/:version/configuration/static_tokens", srv.withAuth(srv.setStaticTokens))
 
-	// OIDC
-	srv.POST("/:version/oidc/requests/create", srv.withAuth(srv.createOIDCAuthRequest)) // DELETE in 11.0.0
-	srv.POST("/:version/oidc/requests/validate", srv.withAuth(srv.validateOIDCAuthCallback))
+	// // OIDC
+	// srv.POST("/:version/oidc/requests/create", srv.withAuth(srv.createOIDCAuthRequest)) // DELETE in 11.0.0
+	// srv.POST("/:version/oidc/requests/validate", srv.withAuth(srv.validateOIDCAuthCallback))
 
-	// SAML handlers
-	srv.POST("/:version/saml/requests/create", srv.withAuth(srv.createSAMLAuthRequest)) // DELETE in 11.0.0
-	srv.POST("/:version/saml/requests/validate", srv.withAuth(srv.validateSAMLResponse))
+	// // SAML handlers
+	// srv.POST("/:version/saml/requests/create", srv.withAuth(srv.createSAMLAuthRequest)) // DELETE in 11.0.0
+	// srv.POST("/:version/saml/requests/validate", srv.withAuth(srv.validateSAMLResponse))
 
-	// Github connector
-	srv.POST("/:version/github/requests/create", srv.withAuth(srv.createGithubAuthRequest)) // DELETE in 11.0.0
-	srv.POST("/:version/github/requests/validate", srv.withAuth(srv.validateGithubAuthCallback))
+	// // Github connector
+	// srv.POST("/:version/github/requests/create", srv.withAuth(srv.createGithubAuthRequest)) // DELETE in 11.0.0
+	// srv.POST("/:version/github/requests/validate", srv.withAuth(srv.validateGithubAuthCallback))
 
 	// Audit logs AKA events
-	srv.GET("/:version/events", srv.withAuth(srv.searchEvents))
-	srv.GET("/:version/events/session", srv.withAuth(srv.searchSessionEvents))
+	// srv.GET("/:version/events", srv.withAuth(srv.searchEvents))
+	// srv.GET("/:version/events/session", srv.withAuth(srv.searchSessionEvents))
 
 	if config.PluginRegistry != nil {
 		if err := config.PluginRegistry.RegisterAuthWebHandlers(&srv); err != nil {
@@ -207,38 +207,38 @@ func NewAPIServer(config *APIConfig) (http.Handler, error) {
 // HandlerWithAuthFunc is http handler with passed auth context
 type HandlerWithAuthFunc func(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error)
 
-func (s *APIServer) withAuth(handler HandlerWithAuthFunc) httprouter.Handle {
-	const accessDeniedMsg = "auth API: access denied "
-	return httplib.MakeHandler(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) (interface{}, error) {
-		// HTTPS server expects auth context to be set by the auth middleware
-		authContext, err := s.Authorizer.Authorize(r.Context())
-		if err != nil {
-			// propagate connection problem error so we can differentiate
-			// between connection failed and access denied
-			if trace.IsConnectionProblem(err) {
-				return nil, trace.ConnectionProblem(err, "[07] failed to connect to the database")
-			} else if trace.IsAccessDenied(err) {
-				// don't print stack trace, just log the warning
-				log.Warn(err)
-			} else {
-				log.Warn(trace.DebugReport(err))
-			}
+// func (s *APIServer) withAuth(handler HandlerWithAuthFunc) httprouter.Handle {
+// 	const accessDeniedMsg = "auth API: access denied "
+// 	return httplib.MakeHandler(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) (interface{}, error) {
+// 		// HTTPS server expects auth context to be set by the auth middleware
+// 		authContext, err := s.Authorizer.Authorize(r.Context())
+// 		if err != nil {
+// 			// propagate connection problem error so we can differentiate
+// 			// between connection failed and access denied
+// 			if trace.IsConnectionProblem(err) {
+// 				return nil, trace.ConnectionProblem(err, "[07] failed to connect to the database")
+// 			} else if trace.IsAccessDenied(err) {
+// 				// don't print stack trace, just log the warning
+// 				log.Warn(err)
+// 			} else {
+// 				log.Warn(trace.DebugReport(err))
+// 			}
 
-			return nil, trace.AccessDenied(accessDeniedMsg + "[00]")
-		}
-		auth := &ServerWithRoles{
-			authServer: s.AuthServer,
-			context:    *authContext,
-			sessions:   s.SessionService,
-			alog:       s.AuthServer,
-		}
-		version := p.ByName("version")
-		if version == "" {
-			return nil, trace.BadParameter("missing version")
-		}
-		return handler(auth, w, r, p, version)
-	})
-}
+// 			return nil, trace.AccessDenied(accessDeniedMsg + "[00]")
+// 		}
+// 		auth := &ServerWithRoles{
+// 			authServer: s.AuthServer,
+// 			context:    *authContext,
+// 			sessions:   s.SessionService,
+// 			alog:       s.AuthServer,
+// 		}
+// 		version := p.ByName("version")
+// 		if version == "" {
+// 			return nil, trace.BadParameter("missing version")
+// 		}
+// 		return handler(auth, w, r, p, version)
+// 	})
+// }
 
 // withRate wrap a rate limiter around the passed in httprouter.Handle and
 // returns a httprouter.Handle. Because the rate limiter wraps a http.Handler,
@@ -979,39 +979,39 @@ type oidcAuthRawResponse struct {
 	HostSigners []json.RawMessage `json:"host_signers"`
 }
 
-func (s *APIServer) validateOIDCAuthCallback(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	var req *validateOIDCAuthCallbackReq
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response, err := auth.ValidateOIDCAuthCallback(r.Context(), req.Query)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	raw := oidcAuthRawResponse{
-		Username: response.Username,
-		Identity: response.Identity,
-		Cert:     response.Cert,
-		TLSCert:  response.TLSCert,
-		Req:      response.Req,
-	}
-	if response.Session != nil {
-		rawSession, err := services.MarshalWebSession(response.Session, services.WithVersion(version))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		raw.Session = rawSession
-	}
-	raw.HostSigners = make([]json.RawMessage, len(response.HostSigners))
-	for i, ca := range response.HostSigners {
-		data, err := services.MarshalCertAuthority(ca, services.WithVersion(version))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		raw.HostSigners[i] = data
-	}
-	return &raw, nil
-}
+// func (s *APIServer) validateOIDCAuthCallback(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+// 	var req *validateOIDCAuthCallbackReq
+// 	if err := httplib.ReadJSON(r, &req); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	response, err := auth.ValidateOIDCAuthCallback(r.Context(), req.Query)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	raw := oidcAuthRawResponse{
+// 		Username: response.Username,
+// 		Identity: response.Identity,
+// 		Cert:     response.Cert,
+// 		TLSCert:  response.TLSCert,
+// 		Req:      response.Req,
+// 	}
+// 	if response.Session != nil {
+// 		rawSession, err := services.MarshalWebSession(response.Session, services.WithVersion(version))
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		raw.Session = rawSession
+// 	}
+// 	raw.HostSigners = make([]json.RawMessage, len(response.HostSigners))
+// 	for i, ca := range response.HostSigners {
+// 		data, err := services.MarshalCertAuthority(ca, services.WithVersion(version))
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		raw.HostSigners[i] = data
+// 	}
+// 	return &raw, nil
+// }
 
 type createSAMLAuthRequestReq struct {
 	Req types.SAMLAuthRequest `json:"req"`
@@ -1055,39 +1055,39 @@ type samlAuthRawResponse struct {
 	TLSCert []byte `json:"tls_cert,omitempty"`
 }
 
-func (s *APIServer) validateSAMLResponse(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	var req *validateSAMLResponseReq
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response, err := auth.ValidateSAMLResponse(r.Context(), req.Response, req.ConnectorID)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	raw := samlAuthRawResponse{
-		Username: response.Username,
-		Identity: response.Identity,
-		Cert:     response.Cert,
-		Req:      response.Req,
-		TLSCert:  response.TLSCert,
-	}
-	if response.Session != nil {
-		rawSession, err := services.MarshalWebSession(response.Session, services.WithVersion(version))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		raw.Session = rawSession
-	}
-	raw.HostSigners = make([]json.RawMessage, len(response.HostSigners))
-	for i, ca := range response.HostSigners {
-		data, err := services.MarshalCertAuthority(ca, services.WithVersion(version))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		raw.HostSigners[i] = data
-	}
-	return &raw, nil
-}
+// func (s *APIServer) validateSAMLResponse(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+// 	var req *validateSAMLResponseReq
+// 	if err := httplib.ReadJSON(r, &req); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	response, err := auth.ValidateSAMLResponse(r.Context(), req.Response, req.ConnectorID)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	raw := samlAuthRawResponse{
+// 		Username: response.Username,
+// 		Identity: response.Identity,
+// 		Cert:     response.Cert,
+// 		Req:      response.Req,
+// 		TLSCert:  response.TLSCert,
+// 	}
+// 	if response.Session != nil {
+// 		rawSession, err := services.MarshalWebSession(response.Session, services.WithVersion(version))
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		raw.Session = rawSession
+// 	}
+// 	raw.HostSigners = make([]json.RawMessage, len(response.HostSigners))
+// 	for i, ca := range response.HostSigners {
+// 		data, err := services.MarshalCertAuthority(ca, services.WithVersion(version))
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		raw.HostSigners[i] = data
+// 	}
+// 	return &raw, nil
+// }
 
 // createGithubAuthRequestReq is a request to start Github OAuth2 flow
 type createGithubAuthRequestReq struct {
@@ -1102,17 +1102,17 @@ type createGithubAuthRequestReq struct {
    Success response: types.GithubAuthRequest
 */
 // DELETE IN 11.0.0
-func (s *APIServer) createGithubAuthRequest(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	var req createGithubAuthRequestReq
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response, err := auth.CreateGithubAuthRequest(r.Context(), req.Req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return response, nil
-}
+// func (s *APIServer) createGithubAuthRequest(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+// 	var req createGithubAuthRequestReq
+// 	if err := httplib.ReadJSON(r, &req); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	response, err := auth.CreateGithubAuthRequest(r.Context(), req.Req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return response, nil
+// }
 
 // validateGithubAuthCallbackReq is a request to validate Github OAuth2 callback
 type validateGithubAuthCallbackReq struct {
@@ -1146,48 +1146,49 @@ type githubAuthRawResponse struct {
 
    Success response: githubAuthRawResponse
 */
-func (s *APIServer) validateGithubAuthCallback(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	var req validateGithubAuthCallbackReq
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response, err := auth.ValidateGithubAuthCallback(r.Context(), req.Query)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	raw := githubAuthRawResponse{
-		Username: response.Username,
-		Identity: response.Identity,
-		Cert:     response.Cert,
-		TLSCert:  response.TLSCert,
-		Req:      response.Req,
-	}
-	if response.Session != nil {
-		rawSession, err := services.MarshalWebSession(
-			response.Session, services.WithVersion(version), services.PreserveResourceID())
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		raw.Session = rawSession
-	}
-	raw.HostSigners = make([]json.RawMessage, len(response.HostSigners))
-	for i, ca := range response.HostSigners {
-		data, err := services.MarshalCertAuthority(
-			ca, services.WithVersion(version), services.PreserveResourceID())
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		raw.HostSigners[i] = data
-	}
-	return &raw, nil
-}
+// func (s *APIServer) validateGithubAuthCallback(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+// 	var req validateGithubAuthCallbackReq
+// 	if err := httplib.ReadJSON(r, &req); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	response, err := auth.ValidateGithubAuthCallback(r.Context(), req.Query)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	raw := githubAuthRawResponse{
+// 		Username: response.Username,
+// 		Identity: response.Identity,
+// 		Cert:     response.Cert,
+// 		TLSCert:  response.TLSCert,
+// 		Req:      response.Req,
+// 	}
+// 	if response.Session != nil {
+// 		rawSession, err := services.MarshalWebSession(
+// 			response.Session, services.WithVersion(version), services.PreserveResourceID())
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		raw.Session = rawSession
+// 	}
+// 	raw.HostSigners = make([]json.RawMessage, len(response.HostSigners))
+// 	for i, ca := range response.HostSigners {
+// 		data, err := services.MarshalCertAuthority(
+// 			ca, services.WithVersion(version), services.PreserveResourceID())
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		raw.HostSigners[i] = data
+// 	}
+// 	return &raw, nil
+// }
 
 // HTTP GET /:version/events?query
 //
 // Query fields:
-//	'from'  : time filter in RFC3339 format
-//	'to'    : time filter in RFC3339 format
-//  ...     : other fields are passed directly to the audit backend
+//
+//		'from'  : time filter in RFC3339 format
+//		'to'    : time filter in RFC3339 format
+//	 ...     : other fields are passed directly to the audit backend
 func (s *APIServer) searchEvents(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
 	var err error
 	to := time.Now().In(time.UTC)
@@ -1268,8 +1269,9 @@ func (s *APIServer) searchSessionEvents(auth ClientI, w http.ResponseWriter, r *
 
 // HTTP GET /:version/sessions/:id/stream?offset=x&bytes=y
 // Query parameters:
-//   "offset"   : bytes from the beginning
-//   "bytes"    : number of bytes to read (it won't return more than 512Kb)
+//
+//	"offset"   : bytes from the beginning
+//	"bytes"    : number of bytes to read (it won't return more than 512Kb)
 func (s *APIServer) getSessionChunk(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
 	sid, err := session.ParseID(p.ByName("id"))
 	if err != nil {
@@ -1306,7 +1308,8 @@ func (s *APIServer) getSessionChunk(auth ClientI, w http.ResponseWriter, r *http
 
 // HTTP GET /:version/sessions/:id/events?maxage=n
 // Query:
-//    'after' : cursor value to return events newer than N. Defaults to 0, (return all)
+//
+//	'after' : cursor value to return events newer than N. Defaults to 0, (return all)
 func (s *APIServer) getSessionEvents(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
 	sid, err := session.ParseID(p.ByName("id"))
 	if err != nil {
@@ -1599,20 +1602,20 @@ func (s *APIServer) deleteAllRemoteClusters(auth ClientI, w http.ResponseWriter,
 	return message("ok"), nil
 }
 
-func (s *APIServer) processKubeCSR(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	var req KubeCSR
+// func (s *APIServer) processKubeCSR(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
+// 	var req KubeCSR
 
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	if err := httplib.ReadJSON(r, &req); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	re, err := auth.ProcessKubeCSR(req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	re, err := auth.ProcessKubeCSR(req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return re, nil
-}
+// 	return re, nil
+// }
 
 func message(msg string) map[string]interface{} {
 	return map[string]interface{}{"message": msg}
