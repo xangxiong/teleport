@@ -16,65 +16,65 @@ limitations under the License.
 
 package config
 
-import (
-	"github.com/gravitational/trace"
-	"gopkg.in/yaml.v3"
-)
+// import (
+// 	"github.com/gravitational/trace"
+// 	"gopkg.in/yaml.v3"
+// )
 
-// DestinationMemory is a memory certificate destination
-type DestinationMemory struct {
-	store map[string][]byte `yaml:"-"`
-}
+// // DestinationMemory is a memory certificate destination
+// type DestinationMemory struct {
+// 	store map[string][]byte `yaml:"-"`
+// }
 
-func (dm *DestinationMemory) UnmarshalYAML(node *yaml.Node) error {
-	// Accept either a bool or a raw (in this case empty) struct
-	//   memory: {}
-	// or:
-	//   memory: true
+// func (dm *DestinationMemory) UnmarshalYAML(node *yaml.Node) error {
+// 	// Accept either a bool or a raw (in this case empty) struct
+// 	//   memory: {}
+// 	// or:
+// 	//   memory: true
 
-	var boolVal bool
-	if err := node.Decode(&boolVal); err == nil {
-		if !boolVal {
-			return trace.BadParameter("memory must not be false (leave unset to disable)")
-		}
-		return nil
-	}
+// 	var boolVal bool
+// 	if err := node.Decode(&boolVal); err == nil {
+// 		if !boolVal {
+// 			return trace.BadParameter("memory must not be false (leave unset to disable)")
+// 		}
+// 		return nil
+// 	}
 
-	type rawMemory DestinationMemory
-	return trace.Wrap(node.Decode((*rawMemory)(dm)))
-}
+// 	type rawMemory DestinationMemory
+// 	return trace.Wrap(node.Decode((*rawMemory)(dm)))
+// }
 
-func (dm *DestinationMemory) CheckAndSetDefaults() error {
-	dm.store = make(map[string][]byte)
+// func (dm *DestinationMemory) CheckAndSetDefaults() error {
+// 	dm.store = make(map[string][]byte)
 
-	return nil
-}
+// 	return nil
+// }
 
-func (dm *DestinationMemory) Init(subdirs []string) error {
-	// Nothing to do.
-	return nil
-}
+// func (dm *DestinationMemory) Init(subdirs []string) error {
+// 	// Nothing to do.
+// 	return nil
+// }
 
-func (dm *DestinationMemory) Verify(keys []string) error {
-	// Nothing to do.
-	return nil
-}
+// func (dm *DestinationMemory) Verify(keys []string) error {
+// 	// Nothing to do.
+// 	return nil
+// }
 
-func (dm *DestinationMemory) Write(name string, data []byte) error {
-	dm.store[name] = data
+// func (dm *DestinationMemory) Write(name string, data []byte) error {
+// 	dm.store[name] = data
 
-	return nil
-}
+// 	return nil
+// }
 
-func (dm *DestinationMemory) Read(name string) ([]byte, error) {
-	b, ok := dm.store[name]
-	if !ok {
-		return nil, trace.NotFound("not found: %s", name)
-	}
+// func (dm *DestinationMemory) Read(name string) ([]byte, error) {
+// 	b, ok := dm.store[name]
+// 	if !ok {
+// 		return nil, trace.NotFound("not found: %s", name)
+// 	}
 
-	return b, nil
-}
+// 	return b, nil
+// }
 
-func (dm *DestinationMemory) String() string {
-	return "[memory]"
-}
+// func (dm *DestinationMemory) String() string {
+// 	return "[memory]"
+// }

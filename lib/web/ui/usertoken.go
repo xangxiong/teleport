@@ -16,16 +16,16 @@ limitations under the License.
 
 package ui
 
-import "time"
+// import "time"
 
-// ResetPasswordToken describes a reset password token UI object.
-type ResetPasswordToken struct {
-	// TokenID is token ID
-	TokenID string `json:"tokenId"`
-	// User is user name associated with this token
-	User string `json:"user"`
-	// QRCode is a QR code value
-	QRCode []byte `json:"qrCode,omitempty"`
-	// Expiry is token expiration time
-	Expiry time.Time `json:"expiry,omitempty"`
-}
+// // ResetPasswordToken describes a reset password token UI object.
+// type ResetPasswordToken struct {
+// 	// TokenID is token ID
+// 	TokenID string `json:"tokenId"`
+// 	// User is user name associated with this token
+// 	User string `json:"user"`
+// 	// QRCode is a QR code value
+// 	QRCode []byte `json:"qrCode,omitempty"`
+// 	// Expiry is token expiration time
+// 	Expiry time.Time `json:"expiry,omitempty"`
+// }

@@ -16,100 +16,100 @@ limitations under the License.
 
 package ui
 
-import (
-	"fmt"
-	"sort"
+// import (
+// 	"fmt"
+// 	"sort"
 
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/tlsca"
-	"github.com/gravitational/teleport/lib/utils/aws"
-)
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/tlsca"
+// 	"github.com/gravitational/teleport/lib/utils/aws"
+// )
 
-// App describes an application
-type App struct {
-	// Name is the name of the application.
-	Name string `json:"name"`
-	// Description is the app description.
-	Description string `json:"description"`
-	// URI is the internal address the application is available at.
-	URI string `json:"uri"`
-	// PublicAddr is the public address the application is accessible at.
-	PublicAddr string `json:"publicAddr"`
-	// FQDN is a fully qualified domain name of the application (app.example.com)
-	FQDN string `json:"fqdn"`
-	// ClusterID is this app cluster ID
-	ClusterID string `json:"clusterId"`
-	// Labels is a map of static labels associated with an application.
-	Labels []Label `json:"labels"`
-	// AWSConsole if true, indicates that the app represents AWS management console.
-	AWSConsole bool `json:"awsConsole"`
-	// AWSRoles is a list of AWS IAM roles for the application representing AWS console.
-	AWSRoles []aws.Role `json:"awsRoles,omitempty"`
-}
+// // App describes an application
+// type App struct {
+// 	// Name is the name of the application.
+// 	Name string `json:"name"`
+// 	// Description is the app description.
+// 	Description string `json:"description"`
+// 	// URI is the internal address the application is available at.
+// 	URI string `json:"uri"`
+// 	// PublicAddr is the public address the application is accessible at.
+// 	PublicAddr string `json:"publicAddr"`
+// 	// FQDN is a fully qualified domain name of the application (app.example.com)
+// 	FQDN string `json:"fqdn"`
+// 	// ClusterID is this app cluster ID
+// 	ClusterID string `json:"clusterId"`
+// 	// Labels is a map of static labels associated with an application.
+// 	Labels []Label `json:"labels"`
+// 	// AWSConsole if true, indicates that the app represents AWS management console.
+// 	AWSConsole bool `json:"awsConsole"`
+// 	// AWSRoles is a list of AWS IAM roles for the application representing AWS console.
+// 	AWSRoles []aws.Role `json:"awsRoles,omitempty"`
+// }
 
-// MakeAppsConfig contains parameters for converting apps to UI representation.
-type MakeAppsConfig struct {
-	// LocalClusterName is the name of the local cluster.
-	LocalClusterName string
-	// LocalProxyDNSName is the public hostname of the local cluster.
-	LocalProxyDNSName string
-	// AppClusterName is the name of the cluster apps reside in.
-	AppClusterName string
-	// Apps is a list of registered apps.
-	Apps types.Apps
-	// Identity is identity of the logged in user.
-	Identity *tlsca.Identity
-}
+// // MakeAppsConfig contains parameters for converting apps to UI representation.
+// type MakeAppsConfig struct {
+// 	// LocalClusterName is the name of the local cluster.
+// 	LocalClusterName string
+// 	// LocalProxyDNSName is the public hostname of the local cluster.
+// 	LocalProxyDNSName string
+// 	// AppClusterName is the name of the cluster apps reside in.
+// 	AppClusterName string
+// 	// Apps is a list of registered apps.
+// 	Apps types.Apps
+// 	// Identity is identity of the logged in user.
+// 	Identity *tlsca.Identity
+// }
 
-// MakeApps creates server application objects
-func MakeApps(c MakeAppsConfig) []App {
-	result := []App{}
-	for _, teleApp := range c.Apps {
-		fqdn := AssembleAppFQDN(c.LocalClusterName, c.LocalProxyDNSName, c.AppClusterName, teleApp)
-		labels := []Label{}
-		for name, value := range teleApp.GetAllLabels() {
-			labels = append(labels, Label{
-				Name:  name,
-				Value: value,
-			})
-		}
+// // MakeApps creates server application objects
+// func MakeApps(c MakeAppsConfig) []App {
+// 	result := []App{}
+// 	for _, teleApp := range c.Apps {
+// 		fqdn := AssembleAppFQDN(c.LocalClusterName, c.LocalProxyDNSName, c.AppClusterName, teleApp)
+// 		labels := []Label{}
+// 		for name, value := range teleApp.GetAllLabels() {
+// 			labels = append(labels, Label{
+// 				Name:  name,
+// 				Value: value,
+// 			})
+// 		}
 
-		sort.Sort(sortedLabels(labels))
+// 		sort.Sort(sortedLabels(labels))
 
-		app := App{
-			Name:        teleApp.GetName(),
-			Description: teleApp.GetDescription(),
-			URI:         teleApp.GetURI(),
-			PublicAddr:  teleApp.GetPublicAddr(),
-			Labels:      labels,
-			ClusterID:   c.AppClusterName,
-			FQDN:        fqdn,
-			AWSConsole:  teleApp.IsAWSConsole(),
-		}
+// 		app := App{
+// 			Name:        teleApp.GetName(),
+// 			Description: teleApp.GetDescription(),
+// 			URI:         teleApp.GetURI(),
+// 			PublicAddr:  teleApp.GetPublicAddr(),
+// 			Labels:      labels,
+// 			ClusterID:   c.AppClusterName,
+// 			FQDN:        fqdn,
+// 			AWSConsole:  teleApp.IsAWSConsole(),
+// 		}
 
-		if teleApp.IsAWSConsole() {
-			app.AWSRoles = aws.FilterAWSRoles(c.Identity.AWSRoleARNs,
-				teleApp.GetAWSAccountID())
-		}
+// 		if teleApp.IsAWSConsole() {
+// 			app.AWSRoles = aws.FilterAWSRoles(c.Identity.AWSRoleARNs,
+// 				teleApp.GetAWSAccountID())
+// 		}
 
-		result = append(result, app)
-	}
+// 		result = append(result, app)
+// 	}
 
-	return result
-}
+// 	return result
+// }
 
-// AssembleAppFQDN returns the application's FQDN.
-//
-// If the application is running within the local cluster and it has a public
-// address specified, the application's public address is used.
-//
-// In all other cases, i.e. if the public address is not set or the application
-// is running in a remote cluster, the FQDN is formatted as
-// <appName>.<localProxyDNSName>
-func AssembleAppFQDN(localClusterName string, localProxyDNSName string, appClusterName string, app types.Application) string {
-	isLocalCluster := localClusterName == appClusterName
-	if isLocalCluster && app.GetPublicAddr() != "" {
-		return app.GetPublicAddr()
-	}
-	return fmt.Sprintf("%v.%v", app.GetName(), localProxyDNSName)
-}
+// // AssembleAppFQDN returns the application's FQDN.
+// //
+// // If the application is running within the local cluster and it has a public
+// // address specified, the application's public address is used.
+// //
+// // In all other cases, i.e. if the public address is not set or the application
+// // is running in a remote cluster, the FQDN is formatted as
+// // <appName>.<localProxyDNSName>
+// func AssembleAppFQDN(localClusterName string, localProxyDNSName string, appClusterName string, app types.Application) string {
+// 	isLocalCluster := localClusterName == appClusterName
+// 	if isLocalCluster && app.GetPublicAddr() != "" {
+// 		return app.GetPublicAddr()
+// 	}
+// 	return fmt.Sprintf("%v.%v", app.GetName(), localProxyDNSName)
+// }

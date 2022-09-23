@@ -14,25 +14,25 @@
 
 package tdp
 
-import "image/png"
+// import "image/png"
 
-// PNGEncoder returns the encoder used for PNG Frames.
-// It is not safe for concurrent use.
-func PNGEncoder() *png.Encoder {
-	return &png.Encoder{
-		CompressionLevel: png.BestSpeed,
-		BufferPool:       &pool{},
-	}
-}
+// // PNGEncoder returns the encoder used for PNG Frames.
+// // It is not safe for concurrent use.
+// func PNGEncoder() *png.Encoder {
+// 	return &png.Encoder{
+// 		CompressionLevel: png.BestSpeed,
+// 		BufferPool:       &pool{},
+// 	}
+// }
 
-// pool implements png.EncoderBufferPool,
-// allowing us to reuse encoding resources
-type pool struct {
-	b *png.EncoderBuffer
-}
+// // pool implements png.EncoderBufferPool,
+// // allowing us to reuse encoding resources
+// type pool struct {
+// 	b *png.EncoderBuffer
+// }
 
-// all encoding happens in a single thread, so we don't
-// need anything as sophisticated as a sync.Pool here
+// // all encoding happens in a single thread, so we don't
+// // need anything as sophisticated as a sync.Pool here
 
-func (p *pool) Get() *png.EncoderBuffer   { return p.b }
-func (p *pool) Put(eb *png.EncoderBuffer) { p.b = eb }
+// func (p *pool) Get() *png.EncoderBuffer   { return p.b }
+// func (p *pool) Put(eb *png.EncoderBuffer) { p.b = eb }

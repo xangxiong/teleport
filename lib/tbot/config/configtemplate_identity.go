@@ -16,78 +16,78 @@ limitations under the License.
 
 package config
 
-import (
-	"context"
+// import (
+// 	"context"
 
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/client/identityfile"
-	"github.com/gravitational/teleport/lib/tbot/bot"
-	"github.com/gravitational/teleport/lib/tbot/identity"
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/client/identityfile"
+// 	"github.com/gravitational/teleport/lib/tbot/bot"
+// 	"github.com/gravitational/teleport/lib/tbot/identity"
+// 	"github.com/gravitational/trace"
+// )
 
-const defaultIdentityFileName = "identity"
+// const defaultIdentityFileName = "identity"
 
-// TemplateIdentity is a config template that generates a Teleport identity
-// file that can be used by tsh and tctl.
-type TemplateIdentity struct {
-	FileName string `yaml:"file_name,omitempty"`
-}
+// // TemplateIdentity is a config template that generates a Teleport identity
+// // file that can be used by tsh and tctl.
+// type TemplateIdentity struct {
+// 	FileName string `yaml:"file_name,omitempty"`
+// }
 
-func (t *TemplateIdentity) CheckAndSetDefaults() error {
-	if t.FileName == "" {
-		t.FileName = defaultIdentityFileName
-	}
+// func (t *TemplateIdentity) CheckAndSetDefaults() error {
+// 	if t.FileName == "" {
+// 		t.FileName = defaultIdentityFileName
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (t *TemplateIdentity) Name() string {
-	return TemplateIdentityName
-}
+// func (t *TemplateIdentity) Name() string {
+// 	return TemplateIdentityName
+// }
 
-func (t *TemplateIdentity) Describe(destination bot.Destination) []FileDescription {
-	return []FileDescription{
-		{
-			Name: t.FileName,
-		},
-	}
-}
+// func (t *TemplateIdentity) Describe(destination bot.Destination) []FileDescription {
+// 	return []FileDescription{
+// 		{
+// 			Name: t.FileName,
+// 		},
+// 	}
+// }
 
-func (t *TemplateIdentity) Render(ctx context.Context, bot Bot, currentIdentity *identity.Identity, destination *DestinationConfig) error {
-	dest, err := destination.GetDestination()
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// func (t *TemplateIdentity) Render(ctx context.Context, bot Bot, currentIdentity *identity.Identity, destination *DestinationConfig) error {
+// 	dest, err := destination.GetDestination()
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	hostCAs, err := bot.GetCertAuthorities(ctx, types.HostCA)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	hostCAs, err := bot.GetCertAuthorities(ctx, types.HostCA)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	key, err := newClientKey(currentIdentity, hostCAs)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	key, err := newClientKey(currentIdentity, hostCAs)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	cfg := identityfile.WriteConfig{
-		OutputPath: t.FileName,
-		Writer: &BotConfigWriter{
-			dest: dest,
-		},
-		Key:    key,
-		Format: identityfile.FormatFile,
+// 	cfg := identityfile.WriteConfig{
+// 		OutputPath: t.FileName,
+// 		Writer: &BotConfigWriter{
+// 			dest: dest,
+// 		},
+// 		Key:    key,
+// 		Format: identityfile.FormatFile,
 
-		// Always overwrite to avoid hitting our no-op Stat() and Remove() functions.
-		OverwriteDestination: true,
-	}
+// 		// Always overwrite to avoid hitting our no-op Stat() and Remove() functions.
+// 		OverwriteDestination: true,
+// 	}
 
-	files, err := identityfile.Write(cfg)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	files, err := identityfile.Write(cfg)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	log.Debugf("Wrote identity file: %+v", files)
+// 	log.Debugf("Wrote identity file: %+v", files)
 
-	return nil
-}
+// 	return nil
+// }

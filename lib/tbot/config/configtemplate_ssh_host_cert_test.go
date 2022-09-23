@@ -16,76 +16,76 @@ limitations under the License.
 
 package config
 
-import (
-	"context"
-	"testing"
-	"time"
+// import (
+// 	"context"
+// 	"testing"
+// 	"time"
 
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/auth"
-	"github.com/gravitational/teleport/lib/fixtures"
-	"github.com/gravitational/teleport/lib/tbot/identity"
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/auth"
+// 	"github.com/gravitational/teleport/lib/fixtures"
+// 	"github.com/gravitational/teleport/lib/tbot/identity"
+// 	"github.com/stretchr/testify/require"
+// )
 
-type mockHostCertAuth struct {
-	mockAuth
-}
+// type mockHostCertAuth struct {
+// 	mockAuth
+// }
 
-func (m *mockHostCertAuth) GenerateHostCert(
-	key []byte, hostID, nodeName string, principals []string,
-	clusterName string, role types.SystemRole, ttl time.Duration,
-) ([]byte, error) {
-	// We could generate a cert easily enough here, but the template generates a
-	// random key each run so the resulting cert will change too.
-	// The CA fixture isn't even a cert but we never examine it, so it'll do the
-	// job.
-	return []byte(fixtures.SSHCAPublicKey), nil
-}
+// func (m *mockHostCertAuth) GenerateHostCert(
+// 	key []byte, hostID, nodeName string, principals []string,
+// 	clusterName string, role types.SystemRole, ttl time.Duration,
+// ) ([]byte, error) {
+// 	// We could generate a cert easily enough here, but the template generates a
+// 	// random key each run so the resulting cert will change too.
+// 	// The CA fixture isn't even a cert but we never examine it, so it'll do the
+// 	// job.
+// 	return []byte(fixtures.SSHCAPublicKey), nil
+// }
 
-type mockHostCertBot struct {
-	mockBot
-}
+// type mockHostCertBot struct {
+// 	mockBot
+// }
 
-func (b *mockHostCertBot) AuthenticatedUserClientFromIdentity(
-	ctx context.Context, id *identity.Identity,
-) (auth.ClientI, error) {
-	// For our purposes here, the mock client is sufficient.
-	return b.auth, nil
-}
+// func (b *mockHostCertBot) AuthenticatedUserClientFromIdentity(
+// 	ctx context.Context, id *identity.Identity,
+// ) (auth.ClientI, error) {
+// 	// For our purposes here, the mock client is sufficient.
+// 	return b.auth, nil
+// }
 
-func TestTemplateSSHHostCertRender(t *testing.T) {
-	mockAuth := &mockHostCertAuth{
-		mockAuth: *newMockAuth(t),
-	}
+// func TestTemplateSSHHostCertRender(t *testing.T) {
+// 	mockAuth := &mockHostCertAuth{
+// 		mockAuth: *newMockAuth(t),
+// 	}
 
-	cfg, err := NewDefaultConfig("example.com")
-	require.NoError(t, err)
+// 	cfg, err := NewDefaultConfig("example.com")
+// 	require.NoError(t, err)
 
-	mockBot := &mockHostCertBot{
-		mockBot: *newMockBot(cfg, mockAuth),
-	}
+// 	mockBot := &mockHostCertBot{
+// 		mockBot: *newMockBot(cfg, mockAuth),
+// 	}
 
-	template := TemplateSSHHostCert{
-		Prefix:     "example",
-		Principals: []string{"foo.example.com"},
-	}
-	require.NoError(t, template.CheckAndSetDefaults())
+// 	template := TemplateSSHHostCert{
+// 		Prefix:     "example",
+// 		Principals: []string{"foo.example.com"},
+// 	}
+// 	require.NoError(t, template.CheckAndSetDefaults())
 
-	memory := &DestinationMemory{}
-	dest := &DestinationConfig{
-		DestinationMixin: DestinationMixin{
-			Memory: memory,
-		},
-	}
-	require.NoError(t, dest.CheckAndSetDefaults())
+// 	memory := &DestinationMemory{}
+// 	dest := &DestinationConfig{
+// 		DestinationMixin: DestinationMixin{
+// 			Memory: memory,
+// 		},
+// 	}
+// 	require.NoError(t, dest.CheckAndSetDefaults())
 
-	ident := getTestIdent(t, "bot-test")
-	err = template.Render(context.Background(), mockBot, ident, dest)
-	require.NoError(t, err)
+// 	ident := getTestIdent(t, "bot-test")
+// 	err = template.Render(context.Background(), mockBot, ident, dest)
+// 	require.NoError(t, err)
 
-	certBytes, err := memory.Read(template.Prefix + "-cert.pub")
-	require.NoError(t, err)
+// 	certBytes, err := memory.Read(template.Prefix + "-cert.pub")
+// 	require.NoError(t, err)
 
-	require.Equal(t, fixtures.SSHCAPublicKey, string(certBytes))
-}
+// 	require.Equal(t, fixtures.SSHCAPublicKey, string(certBytes))
+// }

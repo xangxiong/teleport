@@ -16,39 +16,39 @@ limitations under the License.
 
 package identity
 
-// ArtifactKind is a type of identity artifact that can be stored and loaded.
-type ArtifactKind string
+// // ArtifactKind is a type of identity artifact that can be stored and loaded.
+// type ArtifactKind string
 
-const (
-	// KindAlways identifies identity resources that should always be
-	// generated.
-	KindAlways ArtifactKind = "always"
+// const (
+// 	// KindAlways identifies identity resources that should always be
+// 	// generated.
+// 	KindAlways ArtifactKind = "always"
 
-	// KindBotInternal identifies resources that should only be stored in the
-	// bot's internal data directory.
-	KindBotInternal ArtifactKind = "bot-internal"
-)
+// 	// KindBotInternal identifies resources that should only be stored in the
+// 	// bot's internal data directory.
+// 	KindBotInternal ArtifactKind = "bot-internal"
+// )
 
-// ContainsKind determines if a particular artifact kind is included in the
-// list of kinds.
-func ContainsKind(kind ArtifactKind, kinds []ArtifactKind) bool {
-	for _, k := range kinds {
-		if kind == k {
-			return true
-		}
-	}
+// // ContainsKind determines if a particular artifact kind is included in the
+// // list of kinds.
+// func ContainsKind(kind ArtifactKind, kinds []ArtifactKind) bool {
+// 	for _, k := range kinds {
+// 		if kind == k {
+// 			return true
+// 		}
+// 	}
 
-	return false
-}
+// 	return false
+// }
 
-// BotKinds returns a list of all artifact kinds used internally by the bot.
-// End-user destinations may contain a different set of artifacts.
-func BotKinds() []ArtifactKind {
-	return []ArtifactKind{KindAlways, KindBotInternal}
-}
+// // BotKinds returns a list of all artifact kinds used internally by the bot.
+// // End-user destinations may contain a different set of artifacts.
+// func BotKinds() []ArtifactKind {
+// 	return []ArtifactKind{KindAlways, KindBotInternal}
+// }
 
-// DestinationKinds returns a list of all artifact kinds that should be written
-// to end-user destinations.
-func DestinationKinds() []ArtifactKind {
-	return []ArtifactKind{KindAlways}
-}
+// // DestinationKinds returns a list of all artifact kinds that should be written
+// // to end-user destinations.
+// func DestinationKinds() []ArtifactKind {
+// 	return []ArtifactKind{KindAlways}
+// }

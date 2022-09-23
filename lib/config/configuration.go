@@ -16,28 +16,21 @@ limitations under the License.
 
 // Package config provides facilities for configuring Teleport daemons
 // including
-//	- parsing YAML configuration
-//	- parsing CLI flags
+//   - parsing YAML configuration
+//   - parsing CLI flags
 package config
 
 import (
-	"bufio"
-	"crypto/x509"
 	"io"
 	stdlog "log"
 	"net"
-	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
 	"unicode"
 
-	"golang.org/x/crypto/ssh"
-
-	"github.com/go-ldap/ldap/v3"
 	"github.com/gravitational/trace"
 
 	"github.com/gravitational/teleport"
@@ -45,10 +38,7 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib"
-	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/backend/lite"
 	"github.com/gravitational/teleport/lib/backend/memory"
-	"github.com/gravitational/teleport/lib/backend/postgres"
 	"github.com/gravitational/teleport/lib/client"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/limiter"
@@ -61,8 +51,8 @@ import (
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
-// CommandLineFlags stores command line flag values, it's a much simplified subset
-// of Teleport configuration (which is fully expressed via YAML config file)
+// // CommandLineFlags stores command line flag values, it's a much simplified subset
+// // of Teleport configuration (which is fully expressed via YAML config file)
 type CommandLineFlags struct {
 	// --name flag
 	NodeName string
@@ -216,30 +206,30 @@ func ApplyFileConfig(fc *FileConfig, cfg *service.Config) error {
 		return nil
 	}
 	// merge file-based config with defaults in 'cfg'
-	if fc.Auth.Disabled() {
-		cfg.Auth.Enabled = false
-	}
+	// if fc.Auth.Disabled() {
+	// 	cfg.Auth.Enabled = false
+	// }
 	if fc.SSH.Disabled() {
 		cfg.SSH.Enabled = false
 	}
 	if fc.Proxy.Disabled() {
 		cfg.Proxy.Enabled = false
 	}
-	if fc.Kube.Enabled() {
-		cfg.Kube.Enabled = true
-	}
-	if fc.Apps.Disabled() {
-		cfg.Apps.Enabled = false
-	}
-	if fc.Databases.Disabled() {
-		cfg.Databases.Enabled = false
-	}
-	if fc.Metrics.Disabled() {
-		cfg.Metrics.Enabled = false
-	}
-	if fc.WindowsDesktop.Disabled() {
-		cfg.WindowsDesktop.Enabled = false
-	}
+	// if fc.Kube.Enabled() {
+	// 	cfg.Kube.Enabled = true
+	// }
+	// if fc.Apps.Disabled() {
+	// 	cfg.Apps.Enabled = false
+	// }
+	// if fc.Databases.Disabled() {
+	// 	cfg.Databases.Enabled = false
+	// }
+	// if fc.Metrics.Disabled() {
+	// 	cfg.Metrics.Enabled = false
+	// }
+	// if fc.WindowsDesktop.Disabled() {
+	// 	cfg.WindowsDesktop.Enabled = false
+	// }
 	applyString(fc.NodeName, &cfg.Hostname)
 
 	// apply "advertise_ip" setting:
@@ -272,38 +262,38 @@ func ApplyFileConfig(fc *FileConfig, cfg *service.Config) error {
 		return trace.Wrap(err)
 	}
 
-	if fc.Global.DataDir != "" {
-		cfg.DataDir = fc.Global.DataDir
-		cfg.Auth.StorageConfig.Params["path"] = cfg.DataDir
-	}
+	// if fc.Global.DataDir != "" {
+	// 	cfg.DataDir = fc.Global.DataDir
+	// 	cfg.Auth.StorageConfig.Params["path"] = cfg.DataDir
+	// }
 
 	// If a backend is specified, override the defaults.
-	if fc.Storage.Type != "" {
-		// If the alternative name "dir" is given, update it to "lite".
-		if fc.Storage.Type == lite.AlternativeName {
-			fc.Storage.Type = lite.GetName()
-		}
-		// If the alternative name "cockroachdb" is given, update it to "postgres".
-		if fc.Storage.Type == postgres.AlternativeName {
-			fc.Storage.Type = postgres.GetName()
-		}
+	// if fc.Storage.Type != "" {
+	// 	// If the alternative name "dir" is given, update it to "lite".
+	// 	if fc.Storage.Type == lite.AlternativeName {
+	// 		fc.Storage.Type = lite.GetName()
+	// 	}
+	// 	// If the alternative name "cockroachdb" is given, update it to "postgres".
+	// 	if fc.Storage.Type == postgres.AlternativeName {
+	// 		fc.Storage.Type = postgres.GetName()
+	// 	}
 
-		// Fix yamlv2 issue with nested storage sections.
-		fc.Storage.Params.Cleanse()
+	// 	// Fix yamlv2 issue with nested storage sections.
+	// 	fc.Storage.Params.Cleanse()
 
-		cfg.Auth.StorageConfig = fc.Storage
-		// backend is specified, but no path is set, set a reasonable default
-		_, pathSet := cfg.Auth.StorageConfig.Params[defaults.BackendPath]
-		if cfg.Auth.StorageConfig.Type == lite.GetName() && !pathSet {
-			if cfg.Auth.StorageConfig.Params == nil {
-				cfg.Auth.StorageConfig.Params = make(backend.Params)
-			}
-			cfg.Auth.StorageConfig.Params[defaults.BackendPath] = filepath.Join(cfg.DataDir, defaults.BackendDir)
-		}
-	} else {
-		// Set a reasonable default.
-		cfg.Auth.StorageConfig.Params[defaults.BackendPath] = filepath.Join(cfg.DataDir, defaults.BackendDir)
-	}
+	// 	cfg.Auth.StorageConfig = fc.Storage
+	// 	// backend is specified, but no path is set, set a reasonable default
+	// 	_, pathSet := cfg.Auth.StorageConfig.Params[defaults.BackendPath]
+	// 	if cfg.Auth.StorageConfig.Type == lite.GetName() && !pathSet {
+	// 		if cfg.Auth.StorageConfig.Params == nil {
+	// 			cfg.Auth.StorageConfig.Params = make(backend.Params)
+	// 		}
+	// 		cfg.Auth.StorageConfig.Params[defaults.BackendPath] = filepath.Join(cfg.DataDir, defaults.BackendDir)
+	// 	}
+	// } else {
+	// 	// Set a reasonable default.
+	// 	cfg.Auth.StorageConfig.Params[defaults.BackendPath] = filepath.Join(cfg.DataDir, defaults.BackendDir)
+	// }
 
 	// apply logger settings
 	err = applyLogConfig(fc.Logger, cfg)
@@ -356,23 +346,23 @@ func ApplyFileConfig(fc *FileConfig, cfg *service.Config) error {
 	}
 
 	// Set diagnostic address
-	if fc.DiagAddr != "" {
-		// Validate address
-		parsed, err := utils.ParseAddr(fc.DiagAddr)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.DiagnosticAddr = *parsed
-	}
+	// if fc.DiagAddr != "" {
+	// 	// Validate address
+	// 	parsed, err := utils.ParseAddr(fc.DiagAddr)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.DiagnosticAddr = *parsed
+	// }
 
 	// apply connection throttling:
 	limiters := []*limiter.Config{
 		&cfg.SSH.Limiter,
 		&cfg.Auth.Limiter,
 		&cfg.Proxy.Limiter,
-		&cfg.Databases.Limiter,
-		&cfg.Kube.Limiter,
-		&cfg.WindowsDesktop.ConnLimiter,
+		//&cfg.Databases.Limiter,
+		//&cfg.Kube.Limiter,
+		//&cfg.WindowsDesktop.ConnLimiter,
 	}
 	for _, l := range limiters {
 		if fc.Limits.MaxConnections > 0 {
@@ -412,36 +402,36 @@ func ApplyFileConfig(fc *FileConfig, cfg *service.Config) error {
 			return trace.Wrap(err)
 		}
 	}
-	if fc.Kube.Enabled() {
-		if err := applyKubeConfig(fc, cfg); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	if fc.Apps.Enabled() {
-		if err := applyAppsConfig(fc, cfg); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	if fc.Databases.Enabled() {
-		if err := applyDatabasesConfig(fc, cfg); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	if fc.Metrics.Enabled() {
-		if err := applyMetricsConfig(fc, cfg); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	if fc.WindowsDesktop.Enabled() {
-		if err := applyWindowsDesktopConfig(fc, cfg); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	if fc.Tracing.Enabled() {
-		if err := applyTracingConfig(fc, cfg); err != nil {
-			return trace.Wrap(err)
-		}
-	}
+	// if fc.Kube.Enabled() {
+	// 	if err := applyKubeConfig(fc, cfg); err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
+	// if fc.Apps.Enabled() {
+	// 	if err := applyAppsConfig(fc, cfg); err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
+	// if fc.Databases.Enabled() {
+	// 	if err := applyDatabasesConfig(fc, cfg); err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
+	// if fc.Metrics.Enabled() {
+	// 	if err := applyMetricsConfig(fc, cfg); err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
+	// if fc.WindowsDesktop.Enabled() {
+	// 	if err := applyWindowsDesktopConfig(fc, cfg); err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
+	// if fc.Tracing.Enabled() {
+	// 	if err := applyTracingConfig(fc, cfg); err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
 
 	return nil
 }
@@ -529,16 +519,16 @@ func applyAuthConfig(fc *FileConfig, cfg *service.Config) error {
 			"been moved to proxy_service section. This setting is ignored."
 		log.Warning(warningMessage)
 	}
-	cfg.Auth.EnableProxyProtocol, err = utils.ParseOnOff("proxy_protocol", fc.Auth.ProxyProtocol, true)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	// cfg.Auth.EnableProxyProtocol, err = utils.ParseOnOff("proxy_protocol", fc.Auth.ProxyProtocol, true)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
 	if fc.Auth.ListenAddress != "" {
 		addr, err := utils.ParseHostPortAddr(fc.Auth.ListenAddress, int(defaults.AuthListenPort))
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		cfg.Auth.SSHAddr = *addr
+		//cfg.Auth.SSHAddr = *addr
 		cfg.AuthServers = append(cfg.AuthServers, *addr)
 	}
 	for _, t := range fc.Auth.ReverseTunnels {
@@ -548,59 +538,59 @@ func applyAuthConfig(fc *FileConfig, cfg *service.Config) error {
 		}
 		cfg.ReverseTunnels = append(cfg.ReverseTunnels, tun)
 	}
-	if len(fc.Auth.PublicAddr) != 0 {
-		addrs, err := utils.AddrsFromStrings(fc.Auth.PublicAddr, defaults.AuthListenPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Auth.PublicAddrs = addrs
-	}
-	// read in cluster name from file configuration and create services.ClusterName
-	cfg.Auth.ClusterName, err = fc.Auth.ClusterName.Parse()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	// read in static tokens from file configuration and create services.StaticTokens
-	if fc.Auth.StaticTokens != nil {
-		cfg.Auth.StaticTokens, err = fc.Auth.StaticTokens.Parse()
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	// read in and set authentication preferences
-	if fc.Auth.Authentication != nil {
-		cfg.Auth.Preference, err = fc.Auth.Authentication.Parse()
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
+	// if len(fc.Auth.PublicAddr) != 0 {
+	// 	addrs, err := utils.AddrsFromStrings(fc.Auth.PublicAddr, defaults.AuthListenPort)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Auth.PublicAddrs = addrs
+	// }
+	// // read in cluster name from file configuration and create services.ClusterName
+	// cfg.Auth.ClusterName, err = fc.Auth.ClusterName.Parse()
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// // read in static tokens from file configuration and create services.StaticTokens
+	// if fc.Auth.StaticTokens != nil {
+	// 	cfg.Auth.StaticTokens, err = fc.Auth.StaticTokens.Parse()
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
+	// // read in and set authentication preferences
+	// if fc.Auth.Authentication != nil {
+	// 	cfg.Auth.Preference, err = fc.Auth.Authentication.Parse()
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
 
-	if fc.Auth.MessageOfTheDay != "" {
-		cfg.Auth.Preference.SetMessageOfTheDay(fc.Auth.MessageOfTheDay)
-	}
+	// if fc.Auth.MessageOfTheDay != "" {
+	// 	cfg.Auth.Preference.SetMessageOfTheDay(fc.Auth.MessageOfTheDay)
+	// }
 
-	if fc.Auth.DisconnectExpiredCert != nil {
-		cfg.Auth.Preference.SetOrigin(types.OriginConfigFile)
-		cfg.Auth.Preference.SetDisconnectExpiredCert(fc.Auth.DisconnectExpiredCert.Value)
-	}
+	// if fc.Auth.DisconnectExpiredCert != nil {
+	// 	cfg.Auth.Preference.SetOrigin(types.OriginConfigFile)
+	// 	cfg.Auth.Preference.SetDisconnectExpiredCert(fc.Auth.DisconnectExpiredCert.Value)
+	// }
 
-	if !cfg.Auth.Preference.GetAllowLocalAuth() && cfg.Auth.Preference.GetSecondFactor() != constants.SecondFactorOff {
-		warningMessage := "Second factor settings will have no affect because local " +
-			"authentication is disabled. Update file configuration and remove " +
-			"\"second_factor\" field to get rid of this error message."
-		log.Warnf(warningMessage)
-	}
+	// if !cfg.Auth.Preference.GetAllowLocalAuth() && cfg.Auth.Preference.GetSecondFactor() != constants.SecondFactorOff {
+	// 	warningMessage := "Second factor settings will have no affect because local " +
+	// 		"authentication is disabled. Update file configuration and remove " +
+	// 		"\"second_factor\" field to get rid of this error message."
+	// 	log.Warnf(warningMessage)
+	// }
 
-	// Set cluster audit configuration from file configuration.
-	auditConfigSpec, err := services.ClusterAuditConfigSpecFromObject(fc.Storage.Params)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	auditConfigSpec.Type = fc.Storage.Type
-	cfg.Auth.AuditConfig, err = types.NewClusterAuditConfig(*auditConfigSpec)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	// // Set cluster audit configuration from file configuration.
+	// auditConfigSpec, err := services.ClusterAuditConfigSpecFromObject(fc.Storage.Params)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// auditConfigSpec.Type = fc.Storage.Type
+	// cfg.Auth.AuditConfig, err = types.NewClusterAuditConfig(*auditConfigSpec)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
 	// Set cluster networking configuration from file configuration.
 	cfg.Auth.NetworkingConfig, err = types.NewClusterNetworkingConfigFromConfigFile(types.ClusterNetworkingConfigSpecV2{
@@ -809,58 +799,58 @@ func applyProxyConfig(fc *FileConfig, cfg *service.Config) error {
 		})
 	}
 
-	// apply kubernetes proxy config, by default kube proxy is disabled
-	legacyKube := fc.Proxy.Kube.Configured() && fc.Proxy.Kube.Enabled()
-	newKube := fc.Proxy.KubeAddr != "" || len(fc.Proxy.KubePublicAddr) > 0
-	switch {
-	case legacyKube && !newKube:
-		cfg.Proxy.Kube.Enabled = true
-		cfg.Proxy.Kube.LegacyKubeProxy = true
-		if fc.Proxy.Kube.KubeconfigFile != "" {
-			cfg.Proxy.Kube.KubeconfigPath = fc.Proxy.Kube.KubeconfigFile
-		}
-		if fc.Proxy.Kube.ListenAddress != "" {
-			addr, err := utils.ParseHostPortAddr(fc.Proxy.Kube.ListenAddress, int(defaults.KubeListenPort))
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			cfg.Proxy.Kube.ListenAddr = *addr
-		}
-		if len(fc.Proxy.Kube.PublicAddr) != 0 {
-			addrs, err := utils.AddrsFromStrings(fc.Proxy.Kube.PublicAddr, defaults.KubeListenPort)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			cfg.Proxy.Kube.PublicAddrs = addrs
-		}
-	case !legacyKube && newKube:
-		// New kubernetes format (kubernetes_service +
-		// proxy_service.kube_listen_addr) is only relevant in the config file
-		// format. Under the hood, we use the same cfg.Proxy.Kube field to
-		// enable it.
-		if len(fc.Proxy.KubePublicAddr) > 0 && fc.Proxy.KubeAddr == "" {
-			return trace.BadParameter("kube_listen_addr must be set when kube_public_addr is set")
-		}
-		cfg.Proxy.Kube.Enabled = true
-		addr, err := utils.ParseHostPortAddr(fc.Proxy.KubeAddr, int(defaults.KubeListenPort))
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Proxy.Kube.ListenAddr = *addr
+	// // apply kubernetes proxy config, by default kube proxy is disabled
+	// legacyKube := fc.Proxy.Kube.Configured() && fc.Proxy.Kube.Enabled()
+	// newKube := fc.Proxy.KubeAddr != "" || len(fc.Proxy.KubePublicAddr) > 0
+	// switch {
+	// case legacyKube && !newKube:
+	// 	cfg.Proxy.Kube.Enabled = true
+	// 	cfg.Proxy.Kube.LegacyKubeProxy = true
+	// 	if fc.Proxy.Kube.KubeconfigFile != "" {
+	// 		cfg.Proxy.Kube.KubeconfigPath = fc.Proxy.Kube.KubeconfigFile
+	// 	}
+	// 	if fc.Proxy.Kube.ListenAddress != "" {
+	// 		addr, err := utils.ParseHostPortAddr(fc.Proxy.Kube.ListenAddress, int(defaults.KubeListenPort))
+	// 		if err != nil {
+	// 			return trace.Wrap(err)
+	// 		}
+	// 		cfg.Proxy.Kube.ListenAddr = *addr
+	// 	}
+	// 	if len(fc.Proxy.Kube.PublicAddr) != 0 {
+	// 		addrs, err := utils.AddrsFromStrings(fc.Proxy.Kube.PublicAddr, defaults.KubeListenPort)
+	// 		if err != nil {
+	// 			return trace.Wrap(err)
+	// 		}
+	// 		cfg.Proxy.Kube.PublicAddrs = addrs
+	// 	}
+	// case !legacyKube && newKube:
+	// 	// New kubernetes format (kubernetes_service +
+	// 	// proxy_service.kube_listen_addr) is only relevant in the config file
+	// 	// format. Under the hood, we use the same cfg.Proxy.Kube field to
+	// 	// enable it.
+	// 	if len(fc.Proxy.KubePublicAddr) > 0 && fc.Proxy.KubeAddr == "" {
+	// 		return trace.BadParameter("kube_listen_addr must be set when kube_public_addr is set")
+	// 	}
+	// 	cfg.Proxy.Kube.Enabled = true
+	// 	addr, err := utils.ParseHostPortAddr(fc.Proxy.KubeAddr, int(defaults.KubeListenPort))
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Proxy.Kube.ListenAddr = *addr
 
-		publicAddrs, err := utils.AddrsFromStrings(fc.Proxy.KubePublicAddr, defaults.KubeListenPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Proxy.Kube.PublicAddrs = publicAddrs
-	case legacyKube && newKube:
-		return trace.BadParameter("proxy_service should either set kube_listen_addr/kube_public_addr or kubernetes.enabled, not both; keep kubernetes.enabled if you don't enable kubernetes_service, or keep kube_listen_addr otherwise")
-	case !legacyKube && !newKube:
-		if fc.Version == defaults.TeleportConfigVersionV2 {
-			// Always enable kube service if using config V2 (TLS routing is supported)
-			cfg.Proxy.Kube.Enabled = true
-		}
-	}
+	// 	publicAddrs, err := utils.AddrsFromStrings(fc.Proxy.KubePublicAddr, defaults.KubeListenPort)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Proxy.Kube.PublicAddrs = publicAddrs
+	// case legacyKube && newKube:
+	// 	return trace.BadParameter("proxy_service should either set kube_listen_addr/kube_public_addr or kubernetes.enabled, not both; keep kubernetes.enabled if you don't enable kubernetes_service, or keep kube_listen_addr otherwise")
+	// case !legacyKube && !newKube:
+	// 	if fc.Version == defaults.TeleportConfigVersionV2 {
+	// 		// Always enable kube service if using config V2 (TLS routing is supported)
+	// 		cfg.Proxy.Kube.Enabled = true
+	// 	}
+	// }
 	if len(fc.Proxy.PublicAddr) != 0 {
 		addrs, err := utils.AddrsFromStrings(fc.Proxy.PublicAddr, cfg.Proxy.WebAddr.Port(defaults.HTTPListenPort))
 		if err != nil {
@@ -882,37 +872,37 @@ func applyProxyConfig(fc *FileConfig, cfg *service.Config) error {
 		}
 		cfg.Proxy.TunnelPublicAddrs = addrs
 	}
-	if len(fc.Proxy.PostgresPublicAddr) != 0 {
-		defaultPort := getPostgresDefaultPort(cfg)
-		addrs, err := utils.AddrsFromStrings(fc.Proxy.PostgresPublicAddr, defaultPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Proxy.PostgresPublicAddrs = addrs
-	}
+	// if len(fc.Proxy.PostgresPublicAddr) != 0 {
+	// 	defaultPort := getPostgresDefaultPort(cfg)
+	// 	addrs, err := utils.AddrsFromStrings(fc.Proxy.PostgresPublicAddr, defaultPort)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Proxy.PostgresPublicAddrs = addrs
+	// }
 
-	if len(fc.Proxy.MySQLPublicAddr) != 0 {
-		if fc.Proxy.MySQLAddr == "" {
-			return trace.BadParameter("mysql_listen_addr must be set when mysql_public_addr is set")
-		}
-		// MySQL proxy is listening on a separate port.
-		addrs, err := utils.AddrsFromStrings(fc.Proxy.MySQLPublicAddr, defaults.MySQLListenPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Proxy.MySQLPublicAddrs = addrs
-	}
+	// if len(fc.Proxy.MySQLPublicAddr) != 0 {
+	// 	if fc.Proxy.MySQLAddr == "" {
+	// 		return trace.BadParameter("mysql_listen_addr must be set when mysql_public_addr is set")
+	// 	}
+	// 	// MySQL proxy is listening on a separate port.
+	// 	addrs, err := utils.AddrsFromStrings(fc.Proxy.MySQLPublicAddr, defaults.MySQLListenPort)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Proxy.MySQLPublicAddrs = addrs
+	// }
 
-	if len(fc.Proxy.MongoPublicAddr) != 0 {
-		if fc.Proxy.MongoAddr == "" {
-			return trace.BadParameter("mongo_listen_addr must be set when mongo_public_addr is set")
-		}
-		addrs, err := utils.AddrsFromStrings(fc.Proxy.MongoPublicAddr, defaults.MongoListenPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Proxy.MongoPublicAddrs = addrs
-	}
+	// if len(fc.Proxy.MongoPublicAddr) != 0 {
+	// 	if fc.Proxy.MongoAddr == "" {
+	// 		return trace.BadParameter("mongo_listen_addr must be set when mongo_public_addr is set")
+	// 	}
+	// 	addrs, err := utils.AddrsFromStrings(fc.Proxy.MongoPublicAddr, defaults.MongoListenPort)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Proxy.MongoPublicAddrs = addrs
+	// }
 
 	acme, err := fc.Proxy.ACME.Parse()
 	if err != nil {
@@ -925,23 +915,23 @@ func applyProxyConfig(fc *FileConfig, cfg *service.Config) error {
 	return nil
 }
 
-func getPostgresDefaultPort(cfg *service.Config) int {
-	if !cfg.Proxy.PostgresAddr.IsEmpty() {
-		// If the proxy.PostgresAddr flag was provided return port
-		// from PostgresAddr address or default PostgresListenPort.
-		return cfg.Proxy.PostgresAddr.Port(defaults.PostgresListenPort)
-	}
-	// Postgres proxy is multiplexed on the web proxy port. If the proxy is
-	// not specified here explicitly, prefer defaults in the following
-	// order, depending on what's set:
-	//   1. Web proxy public port
-	//   2. Web proxy listen port
-	//   3. Web proxy default listen port
-	if len(cfg.Proxy.PublicAddrs) != 0 {
-		return cfg.Proxy.PublicAddrs[0].Port(defaults.HTTPListenPort)
-	}
-	return cfg.Proxy.WebAddr.Port(defaults.HTTPListenPort)
-}
+// func getPostgresDefaultPort(cfg *service.Config) int {
+// 	if !cfg.Proxy.PostgresAddr.IsEmpty() {
+// 		// If the proxy.PostgresAddr flag was provided return port
+// 		// from PostgresAddr address or default PostgresListenPort.
+// 		return cfg.Proxy.PostgresAddr.Port(defaults.PostgresListenPort)
+// 	}
+// 	// Postgres proxy is multiplexed on the web proxy port. If the proxy is
+// 	// not specified here explicitly, prefer defaults in the following
+// 	// order, depending on what's set:
+// 	//   1. Web proxy public port
+// 	//   2. Web proxy listen port
+// 	//   3. Web proxy default listen port
+// 	if len(cfg.Proxy.PublicAddrs) != 0 {
+// 		return cfg.Proxy.PublicAddrs[0].Port(defaults.HTTPListenPort)
+// 	}
+// 	return cfg.Proxy.WebAddr.Port(defaults.HTTPListenPort)
+// }
 
 func applyDefaultProxyListenerAddresses(cfg *service.Config) {
 	if cfg.Version == defaults.TeleportConfigVersionV2 {
@@ -960,9 +950,9 @@ func applyDefaultProxyListenerAddresses(cfg *service.Config) {
 	if cfg.Proxy.ReverseTunnelListenAddr.IsEmpty() {
 		cfg.Proxy.ReverseTunnelListenAddr = *defaults.ReverseTunnelListenAddr()
 	}
-	if cfg.Proxy.Kube.ListenAddr.IsEmpty() && cfg.Proxy.Kube.Enabled {
-		cfg.Proxy.Kube.ListenAddr = *defaults.KubeProxyListenAddr()
-	}
+	// if cfg.Proxy.Kube.ListenAddr.IsEmpty() && cfg.Proxy.Kube.Enabled {
+	// 	cfg.Proxy.Kube.ListenAddr = *defaults.KubeProxyListenAddr()
+	// }
 }
 
 // applySSHConfig applies file configuration for the "ssh_service" section.
@@ -1053,644 +1043,644 @@ func applySSHConfig(fc *FileConfig, cfg *service.Config) (err error) {
 	return nil
 }
 
-// applyKubeConfig applies file configuration for the "kubernetes_service" section.
-func applyKubeConfig(fc *FileConfig, cfg *service.Config) error {
-	if fc.Kube.ListenAddress != "" {
-		addr, err := utils.ParseHostPortAddr(fc.Kube.ListenAddress, int(defaults.SSHProxyListenPort))
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Kube.ListenAddr = addr
-	}
-	if len(fc.Kube.PublicAddr) != 0 {
-		addrs, err := utils.AddrsFromStrings(fc.Kube.PublicAddr, defaults.KubeListenPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Kube.PublicAddrs = addrs
-	}
-
-	if fc.Kube.KubeconfigFile != "" {
-		cfg.Kube.KubeconfigPath = fc.Kube.KubeconfigFile
-	}
-	if fc.Kube.KubeClusterName != "" {
-		cfg.Kube.KubeClusterName = fc.Kube.KubeClusterName
-	}
-	if fc.Kube.StaticLabels != nil {
-		cfg.Kube.StaticLabels = make(map[string]string)
-		for k, v := range fc.Kube.StaticLabels {
-			cfg.Kube.StaticLabels[k] = v
-		}
-	}
-	if fc.Kube.DynamicLabels != nil {
-		cfg.Kube.DynamicLabels = make(services.CommandLabels)
-		for _, cmdLabel := range fc.Kube.DynamicLabels {
-			cfg.Kube.DynamicLabels[cmdLabel.Name] = &types.CommandLabelV2{
-				Period:  types.NewDuration(cmdLabel.Period),
-				Command: cmdLabel.Command,
-				Result:  "",
-			}
-		}
-	}
-
-	// Sanity check the local proxy config, so that users don't forget to
-	// enable the k8s endpoint there.
-	if fc.Proxy.Enabled() && fc.Proxy.Kube.Disabled() && fc.Proxy.KubeAddr == "" {
-		log.Warning("both kubernetes_service and proxy_service are enabled, but proxy_service doesn't set kube_listen_addr; consider setting kube_listen_addr on proxy_service, to handle incoming Kubernetes requests")
-	}
-	return nil
-}
-
-// applyDatabasesConfig applies file configuration for the "db_service" section.
-func applyDatabasesConfig(fc *FileConfig, cfg *service.Config) error {
-	cfg.Databases.Enabled = true
-	for _, matcher := range fc.Databases.ResourceMatchers {
-		cfg.Databases.ResourceMatchers = append(cfg.Databases.ResourceMatchers,
-			services.ResourceMatcher{
-				Labels: matcher.Labels,
-			})
-	}
-	for _, matcher := range fc.Databases.AWSMatchers {
-		cfg.Databases.AWSMatchers = append(cfg.Databases.AWSMatchers,
-			services.AWSMatcher{
-				Types:   matcher.Types,
-				Regions: matcher.Regions,
-				Tags:    matcher.Tags,
-			})
-	}
-	for _, matcher := range fc.Databases.AzureMatchers {
-		cfg.Databases.AzureMatchers = append(cfg.Databases.AzureMatchers,
-			services.AzureMatcher{
-				Subscriptions:  matcher.Subscriptions,
-				ResourceGroups: matcher.ResourceGroups,
-				Types:          matcher.Types,
-				Regions:        matcher.Regions,
-				ResourceTags:   matcher.ResourceTags,
-			})
-	}
-	for _, database := range fc.Databases.Databases {
-		staticLabels := make(map[string]string)
-		if database.StaticLabels != nil {
-			staticLabels = database.StaticLabels
-		}
-		dynamicLabels := make(services.CommandLabels)
-		if database.DynamicLabels != nil {
-			for _, v := range database.DynamicLabels {
-				dynamicLabels[v.Name] = &types.CommandLabelV2{
-					Period:  types.NewDuration(v.Period),
-					Command: v.Command,
-					Result:  "",
-				}
-			}
-		}
-
-		caBytes, err := readCACert(database)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		db := service.Database{
-			Name:          database.Name,
-			Description:   database.Description,
-			Protocol:      database.Protocol,
-			URI:           database.URI,
-			StaticLabels:  staticLabels,
-			DynamicLabels: dynamicLabels,
-			MySQL: service.MySQLOptions{
-				ServerVersion: database.MySQL.ServerVersion,
-			},
-			TLS: service.DatabaseTLS{
-				CACert:     caBytes,
-				ServerName: database.TLS.ServerName,
-				Mode:       service.TLSMode(database.TLS.Mode),
-			},
-			AWS: service.DatabaseAWS{
-				Region: database.AWS.Region,
-				Redshift: service.DatabaseAWSRedshift{
-					ClusterID: database.AWS.Redshift.ClusterID,
-				},
-				RDS: service.DatabaseAWSRDS{
-					InstanceID: database.AWS.RDS.InstanceID,
-					ClusterID:  database.AWS.RDS.ClusterID,
-				},
-				ElastiCache: service.DatabaseAWSElastiCache{
-					ReplicationGroupID: database.AWS.ElastiCache.ReplicationGroupID,
-				},
-				MemoryDB: service.DatabaseAWSMemoryDB{
-					ClusterName: database.AWS.MemoryDB.ClusterName,
-				},
-				SecretStore: service.DatabaseAWSSecretStore{
-					KeyPrefix: database.AWS.SecretStore.KeyPrefix,
-					KMSKeyID:  database.AWS.SecretStore.KMSKeyID,
-				},
-			},
-			GCP: service.DatabaseGCP{
-				ProjectID:  database.GCP.ProjectID,
-				InstanceID: database.GCP.InstanceID,
-			},
-			AD: service.DatabaseAD{
-				KeytabFile: database.AD.KeytabFile,
-				Krb5File:   database.AD.Krb5File,
-				Domain:     database.AD.Domain,
-				SPN:        database.AD.SPN,
-			},
-		}
-		if err := db.CheckAndSetDefaults(); err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Databases.Databases = append(cfg.Databases.Databases, db)
-	}
-	return nil
-}
-
-// readCACert reads database CA certificate from the config file.
-// First 'tls.ca_cert_file` is being read, then deprecated 'ca_cert_file' if
-// the first one is not set.
-func readCACert(database *Database) ([]byte, error) {
-	var (
-		caBytes []byte
-		err     error
-	)
-	if database.TLS.CACertFile != "" {
-		caBytes, err = os.ReadFile(database.TLS.CACertFile)
-		if err != nil {
-			return nil, trace.ConvertSystemError(err)
-		}
-	}
-
-	// ca_cert_file is deprecated, but we still support it.
-	// Print a warning if the old field is still being used.
-	if database.CACertFile != "" {
-		if database.TLS.CACertFile != "" {
-			// New and old fields are set. Ignore the old field.
-			log.Warnf("Ignoring deprecated ca_cert_file in %s configuration; using tls.ca_cert_file.", database.Name)
-		} else {
-			// Only old field is set, inform about deprecation.
-			log.Warnf("ca_cert_file is deprecated, please use tls.ca_cert_file instead for %s.", database.Name)
-
-			caBytes, err = os.ReadFile(database.CACertFile)
-			if err != nil {
-				return nil, trace.ConvertSystemError(err)
-			}
-		}
-	}
-
-	return caBytes, nil
-}
-
-// applyAppsConfig applies file configuration for the "app_service" section.
-func applyAppsConfig(fc *FileConfig, cfg *service.Config) error {
-	// Apps are enabled.
-	cfg.Apps.Enabled = true
-
-	// Enable debugging application if requested.
-	cfg.Apps.DebugApp = fc.Apps.DebugApp
-
-	// Configure resource watcher selectors if present.
-	for _, matcher := range fc.Apps.ResourceMatchers {
-		cfg.Apps.ResourceMatchers = append(cfg.Apps.ResourceMatchers,
-			services.ResourceMatcher{
-				Labels: matcher.Labels,
-			})
-	}
-
-	// Loop over all apps and load app configuration.
-	for _, application := range fc.Apps.Apps {
-		// Parse the static labels of the application.
-		staticLabels := make(map[string]string)
-		if application.StaticLabels != nil {
-			staticLabels = application.StaticLabels
-		}
-
-		// Parse the dynamic labels of the application.
-		dynamicLabels := make(services.CommandLabels)
-		if application.DynamicLabels != nil {
-			for _, v := range application.DynamicLabels {
-				dynamicLabels[v.Name] = &types.CommandLabelV2{
-					Period:  types.NewDuration(v.Period),
-					Command: v.Command,
-				}
-			}
-		}
-
-		// Add the application to the list of proxied applications.
-		app := service.App{
-			Name:               application.Name,
-			Description:        application.Description,
-			URI:                application.URI,
-			PublicAddr:         application.PublicAddr,
-			StaticLabels:       staticLabels,
-			DynamicLabels:      dynamicLabels,
-			InsecureSkipVerify: application.InsecureSkipVerify,
-		}
-		if application.Rewrite != nil {
-			// Parse http rewrite headers if there are any.
-			headers, err := service.ParseHeaders(application.Rewrite.Headers)
-			if err != nil {
-				return trace.Wrap(err, "failed to parse headers rewrite configuration for app %q",
-					application.Name)
-			}
-			app.Rewrite = &service.Rewrite{
-				Redirect: application.Rewrite.Redirect,
-				Headers:  headers,
-			}
-		}
-		if application.AWS != nil {
-			app.AWS = &service.AppAWS{
-				ExternalID: application.AWS.ExternalID,
-			}
-		}
-		if err := app.CheckAndSetDefaults(); err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Apps.Apps = append(cfg.Apps.Apps, app)
-	}
-
-	return nil
-}
-
-// applyMetricsConfig applies file configuration for the "metrics_service" section.
-func applyMetricsConfig(fc *FileConfig, cfg *service.Config) error {
-	// Metrics is enabled.
-	cfg.Metrics.Enabled = true
-
-	addr, err := utils.ParseHostPortAddr(fc.Metrics.ListenAddress, int(defaults.MetricsListenPort))
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	cfg.Metrics.ListenAddr = addr
-
-	cfg.Metrics.GRPCServerLatency = fc.Metrics.GRPCServerLatency
-	cfg.Metrics.GRPCClientLatency = fc.Metrics.GRPCClientLatency
-
-	if !fc.Metrics.MTLSEnabled() {
-		return nil
-	}
-
-	cfg.Metrics.MTLS = true
-
-	if len(fc.Metrics.KeyPairs) == 0 {
-		return trace.BadParameter("at least one keypair shoud be provided when mtls is enabled in the metrics config")
-	}
-
-	if len(fc.Metrics.CACerts) == 0 {
-		return trace.BadParameter("at least one CA cert shoud be provided when mtls is enabled in the metrics config")
-	}
-
-	for _, p := range fc.Metrics.KeyPairs {
-		// Check that the certificate exists on disk. This exists to provide the
-		// user a sensible error message.
-		if !utils.FileExists(p.PrivateKey) {
-			return trace.NotFound("metrics service private key does not exist: %s", p.PrivateKey)
-		}
-		if !utils.FileExists(p.Certificate) {
-			return trace.NotFound("metrics service cert does not exist: %s", p.Certificate)
-		}
-
-		certificateChainBytes, err := utils.ReadPath(p.Certificate)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		certificateChain, err := utils.ReadCertificateChain(certificateChainBytes)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		if !utils.IsSelfSigned(certificateChain) {
-			if err := utils.VerifyCertificateChain(certificateChain); err != nil {
-				return trace.BadParameter("unable to verify the metrics service certificate chain in %v: %s",
-					p.Certificate, utils.UserMessageFromError(err))
-			}
-		}
-
-		cfg.Metrics.KeyPairs = append(cfg.Metrics.KeyPairs, service.KeyPairPath{
-			PrivateKey:  p.PrivateKey,
-			Certificate: p.Certificate,
-		})
-	}
-
-	for _, caCert := range fc.Metrics.CACerts {
-		// Check that the certificate exists on disk. This exists to provide the
-		// user a sensible error message.
-		if !utils.FileExists(caCert) {
-			return trace.NotFound("metrics service ca cert does not exist: %s", caCert)
-		}
-
-		cfg.Metrics.CACerts = append(cfg.Metrics.CACerts, caCert)
-	}
-
-	return nil
-}
-
-// applyWindowsDesktopConfig applies file configuration for the "windows_desktop_service" section.
-func applyWindowsDesktopConfig(fc *FileConfig, cfg *service.Config) error {
-	cfg.WindowsDesktop.Enabled = true
-
-	if fc.WindowsDesktop.ListenAddress != "" {
-		listenAddr, err := utils.ParseHostPortAddr(fc.WindowsDesktop.ListenAddress, int(defaults.WindowsDesktopListenPort))
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.WindowsDesktop.ListenAddr = *listenAddr
-	}
-
-	for _, filter := range fc.WindowsDesktop.Discovery.Filters {
-		if _, err := ldap.CompileFilter(filter); err != nil {
-			return trace.BadParameter("WindowsDesktopService specifies invalid LDAP filter %q", filter)
-		}
-	}
-
-	for _, attributeName := range fc.WindowsDesktop.Discovery.LabelAttributes {
-		if !types.IsValidLabelKey(attributeName) {
-			return trace.BadParameter("WindowsDesktopService specifies label_attribute %q which is not a valid label key", attributeName)
-		}
-	}
-
-	cfg.WindowsDesktop.Discovery = fc.WindowsDesktop.Discovery
-
-	var err error
-	cfg.WindowsDesktop.PublicAddrs, err = utils.AddrsFromStrings(fc.WindowsDesktop.PublicAddr, defaults.WindowsDesktopListenPort)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	cfg.WindowsDesktop.Hosts, err = utils.AddrsFromStrings(fc.WindowsDesktop.Hosts, defaults.RDPListenPort)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	var cert *x509.Certificate
-	if fc.WindowsDesktop.LDAP.DEREncodedCAFile != "" {
-		rawCert, err := os.ReadFile(fc.WindowsDesktop.LDAP.DEREncodedCAFile)
-		if err != nil {
-			return trace.WrapWithMessage(err, "loading the LDAP CA from file %v", fc.WindowsDesktop.LDAP.DEREncodedCAFile)
-		}
-
-		cert, err = x509.ParseCertificate(rawCert)
-		if err != nil {
-			return trace.WrapWithMessage(err, "parsing the LDAP root CA file %v", fc.WindowsDesktop.LDAP.DEREncodedCAFile)
-		}
-	}
-
-	cfg.WindowsDesktop.LDAP = service.LDAPConfig{
-		Addr:               fc.WindowsDesktop.LDAP.Addr,
-		Username:           fc.WindowsDesktop.LDAP.Username,
-		Domain:             fc.WindowsDesktop.LDAP.Domain,
-		InsecureSkipVerify: fc.WindowsDesktop.LDAP.InsecureSkipVerify,
-		CA:                 cert,
-	}
-
-	for _, rule := range fc.WindowsDesktop.HostLabels {
-		r, err := regexp.Compile(rule.Match)
-		if err != nil {
-			return trace.BadParameter("WindowsDesktopService specifies invalid regexp %q", rule.Match)
-		}
-
-		if len(rule.Labels) == 0 {
-			return trace.BadParameter("WindowsDesktopService host regex %q has no labels", rule.Match)
-		}
-
-		for k := range rule.Labels {
-			if !types.IsValidLabelKey(k) {
-				return trace.BadParameter("WindowsDesktopService specifies invalid label %q", k)
-			}
-		}
-
-		cfg.WindowsDesktop.HostLabels = append(cfg.WindowsDesktop.HostLabels, service.HostLabelRule{
-			Regexp: r,
-			Labels: rule.Labels,
-		})
-	}
-
-	return nil
-}
-
-// applyTracingConfig applies file configuration for the "tracing_service" section.
-func applyTracingConfig(fc *FileConfig, cfg *service.Config) error {
-	// Tracing is enabled.
-	cfg.Tracing.Enabled = true
-
-	if fc.Tracing.ExporterURL == "" {
-		return trace.BadParameter("tracing_service is enabled but no exporter_url is specified")
-	}
-
-	cfg.Tracing.ExporterURL = fc.Tracing.ExporterURL
-	cfg.Tracing.SamplingRate = float64(fc.Tracing.SamplingRatePerMillion) / 1_000_000.0
-
-	for _, p := range fc.Tracing.KeyPairs {
-		// Check that the certificate exists on disk. This exists to provide the
-		// user a sensible error message.
-		if !utils.FileExists(p.PrivateKey) {
-			return trace.NotFound("tracing_service private key does not exist: %s", p.PrivateKey)
-		}
-		if !utils.FileExists(p.Certificate) {
-			return trace.NotFound("tracing_service cert does not exist: %s", p.Certificate)
-		}
-
-		cfg.Tracing.KeyPairs = append(cfg.Tracing.KeyPairs, service.KeyPairPath{
-			PrivateKey:  p.PrivateKey,
-			Certificate: p.Certificate,
-		})
-	}
-
-	for _, caCert := range fc.Tracing.CACerts {
-		// Check that the certificate exists on disk. This exists to provide the
-		// user a sensible error message.
-		if !utils.FileExists(caCert) {
-			return trace.NotFound("tracing_service ca cert does not exist: %s", caCert)
-		}
-
-		cfg.Tracing.CACerts = append(cfg.Tracing.CACerts, caCert)
-	}
-
-	return nil
-}
-
-// parseAuthorizedKeys parses keys in the authorized_keys format and
-// returns a types.CertAuthority.
-func parseAuthorizedKeys(bytes []byte, allowedLogins []string) (types.CertAuthority, types.Role, error) {
-	pubkey, comment, _, _, err := ssh.ParseAuthorizedKey(bytes)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-
-	comments, err := url.ParseQuery(comment)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-	clusterName := comments.Get("clustername")
-	if clusterName == "" {
-		return nil, nil, trace.BadParameter("no clustername provided")
-	}
-
-	// create a new certificate authority
-	ca, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
-		Type:        types.UserCA,
-		ClusterName: clusterName,
-		ActiveKeys: types.CAKeySet{
-			SSH: []*types.SSHKeyPair{{
-				PublicKey: ssh.MarshalAuthorizedKey(pubkey),
-			}},
-		},
-	})
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-
-	// transform old allowed logins into roles
-	role := services.RoleForCertAuthority(ca)
-	role.SetLogins(types.Allow, allowedLogins)
-	ca.AddRole(role.GetName())
-
-	return ca, role, nil
-}
-
-// parseKnownHosts parses keys in known_hosts format and returns a
-// types.CertAuthority.
-func parseKnownHosts(bytes []byte, allowedLogins []string) (types.CertAuthority, types.Role, error) {
-	marker, options, pubKey, comment, _, err := ssh.ParseKnownHosts(bytes)
-	if marker != "cert-authority" {
-		return nil, nil, trace.BadParameter("invalid file format. expected '@cert-authority` marker")
-	}
-	if err != nil {
-		return nil, nil, trace.BadParameter("invalid public key")
-	}
-	teleportOpts, err := url.ParseQuery(comment)
-	if err != nil {
-		return nil, nil, trace.BadParameter("invalid key comment: '%s'", comment)
-	}
-	authType := types.CertAuthType(teleportOpts.Get("type"))
-	if authType != types.HostCA && authType != types.UserCA {
-		return nil, nil, trace.BadParameter("unsupported CA type: '%s'", authType)
-	}
-	if len(options) == 0 {
-		return nil, nil, trace.BadParameter("key without cluster_name")
-	}
-	const prefix = "*."
-	domainName := strings.TrimPrefix(options[0], prefix)
-
-	ca, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
-		Type:        authType,
-		ClusterName: domainName,
-		ActiveKeys: types.CAKeySet{
-			SSH: []*types.SSHKeyPair{{
-				PublicKey: ssh.MarshalAuthorizedKey(pubKey),
-			}},
-		},
-	})
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-
-	// transform old allowed logins into roles
-	role := services.RoleForCertAuthority(ca)
-	role.SetLogins(types.Allow, apiutils.CopyStrings(allowedLogins))
-	ca.AddRole(role.GetName())
-
-	return ca, role, nil
-}
-
-// certificateAuthorityFormat parses bytes and determines if they are in
-// known_hosts format or authorized_keys format.
-func certificateAuthorityFormat(bytes []byte) (string, error) {
-	_, _, _, _, err := ssh.ParseAuthorizedKey(bytes)
-	if err != nil {
-		_, _, _, _, _, err := ssh.ParseKnownHosts(bytes)
-		if err != nil {
-			return "", trace.BadParameter("unknown ca format")
-		}
-		return teleport.KnownHosts, nil
-	}
-	return teleport.AuthorizedKeys, nil
-}
-
-// parseCAKey parses bytes either in known_hosts or authorized_keys format
-// and returns a types.CertAuthority.
-func parseCAKey(bytes []byte, allowedLogins []string) (types.CertAuthority, types.Role, error) {
-	caFormat, err := certificateAuthorityFormat(bytes)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-
-	if caFormat == teleport.AuthorizedKeys {
-		return parseAuthorizedKeys(bytes, allowedLogins)
-	}
-	return parseKnownHosts(bytes, allowedLogins)
-}
-
-// readTrustedClusters parses the content of "trusted_clusters" YAML structure
-// and modifies Teleport 'conf' by adding "authorities" and "reverse tunnels"
-// to it
-func readTrustedClusters(clusters []TrustedCluster, conf *service.Config) error {
-	if len(clusters) == 0 {
-		return nil
-	}
-	// go over all trusted clusters:
-	for i := range clusters {
-		tc := &clusters[i]
-		// parse "allow_logins"
-		var allowedLogins []string
-		for _, login := range strings.Split(tc.AllowedLogins, ",") {
-			login = strings.TrimSpace(login)
-			if login != "" {
-				allowedLogins = append(allowedLogins, login)
-			}
-		}
-		// open the key file for this cluster:
-		log.Debugf("reading trusted cluster key file %s", tc.KeyFile)
-		if tc.KeyFile == "" {
-			return trace.Errorf("key_file is missing for a trusted cluster")
-		}
-		f, err := os.Open(tc.KeyFile)
-		if err != nil {
-			return trace.Errorf("reading trusted cluster keys: %v", err)
-		}
-		defer f.Close()
-		// read the keyfile for this cluster and get trusted CA keys:
-		var authorities []types.CertAuthority
-		var roles []types.Role
-		scanner := bufio.NewScanner(f)
-		for line := 0; scanner.Scan(); {
-			ca, role, err := parseCAKey(scanner.Bytes(), allowedLogins)
-			if err != nil {
-				return trace.BadParameter("%s:L%d. %v", tc.KeyFile, line, err)
-			}
-			if ca.GetType() == types.UserCA && len(allowedLogins) == 0 && len(tc.TunnelAddr) > 0 {
-				return trace.BadParameter("trusted cluster '%s' needs allow_logins parameter",
-					ca.GetClusterName())
-			}
-			authorities = append(authorities, ca)
-			if role != nil {
-				roles = append(roles, role)
-			}
-		}
-		conf.Auth.Authorities = append(conf.Auth.Authorities, authorities...)
-		conf.Auth.Roles = append(conf.Auth.Roles, roles...)
-		clusterName := authorities[0].GetClusterName()
-		// parse "tunnel_addr"
-		var tunnelAddresses []string
-		for _, ta := range strings.Split(tc.TunnelAddr, ",") {
-			ta := strings.TrimSpace(ta)
-			if ta == "" {
-				continue
-			}
-			addr, err := utils.ParseHostPortAddr(ta, defaults.SSHProxyTunnelListenPort)
-			if err != nil {
-				return trace.Wrap(err,
-					"Invalid tunnel address '%s' for cluster '%s'. Expect host:port format",
-					ta, clusterName)
-			}
-			tunnelAddresses = append(tunnelAddresses, addr.FullAddress())
-		}
-		if len(tunnelAddresses) > 0 {
-			rt, err := types.NewReverseTunnel(clusterName, tunnelAddresses)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			conf.ReverseTunnels = append(conf.ReverseTunnels, rt)
-		}
-	}
-	return nil
-}
+// // applyKubeConfig applies file configuration for the "kubernetes_service" section.
+// func applyKubeConfig(fc *FileConfig, cfg *service.Config) error {
+// 	if fc.Kube.ListenAddress != "" {
+// 		addr, err := utils.ParseHostPortAddr(fc.Kube.ListenAddress, int(defaults.SSHProxyListenPort))
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		cfg.Kube.ListenAddr = addr
+// 	}
+// 	if len(fc.Kube.PublicAddr) != 0 {
+// 		addrs, err := utils.AddrsFromStrings(fc.Kube.PublicAddr, defaults.KubeListenPort)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		cfg.Kube.PublicAddrs = addrs
+// 	}
+
+// 	if fc.Kube.KubeconfigFile != "" {
+// 		cfg.Kube.KubeconfigPath = fc.Kube.KubeconfigFile
+// 	}
+// 	if fc.Kube.KubeClusterName != "" {
+// 		cfg.Kube.KubeClusterName = fc.Kube.KubeClusterName
+// 	}
+// 	if fc.Kube.StaticLabels != nil {
+// 		cfg.Kube.StaticLabels = make(map[string]string)
+// 		for k, v := range fc.Kube.StaticLabels {
+// 			cfg.Kube.StaticLabels[k] = v
+// 		}
+// 	}
+// 	if fc.Kube.DynamicLabels != nil {
+// 		cfg.Kube.DynamicLabels = make(services.CommandLabels)
+// 		for _, cmdLabel := range fc.Kube.DynamicLabels {
+// 			cfg.Kube.DynamicLabels[cmdLabel.Name] = &types.CommandLabelV2{
+// 				Period:  types.NewDuration(cmdLabel.Period),
+// 				Command: cmdLabel.Command,
+// 				Result:  "",
+// 			}
+// 		}
+// 	}
+
+// 	// Sanity check the local proxy config, so that users don't forget to
+// 	// enable the k8s endpoint there.
+// 	if fc.Proxy.Enabled() && fc.Proxy.Kube.Disabled() && fc.Proxy.KubeAddr == "" {
+// 		log.Warning("both kubernetes_service and proxy_service are enabled, but proxy_service doesn't set kube_listen_addr; consider setting kube_listen_addr on proxy_service, to handle incoming Kubernetes requests")
+// 	}
+// 	return nil
+// }
+
+// // applyDatabasesConfig applies file configuration for the "db_service" section.
+// func applyDatabasesConfig(fc *FileConfig, cfg *service.Config) error {
+// 	cfg.Databases.Enabled = true
+// 	for _, matcher := range fc.Databases.ResourceMatchers {
+// 		cfg.Databases.ResourceMatchers = append(cfg.Databases.ResourceMatchers,
+// 			services.ResourceMatcher{
+// 				Labels: matcher.Labels,
+// 			})
+// 	}
+// 	for _, matcher := range fc.Databases.AWSMatchers {
+// 		cfg.Databases.AWSMatchers = append(cfg.Databases.AWSMatchers,
+// 			services.AWSMatcher{
+// 				Types:   matcher.Types,
+// 				Regions: matcher.Regions,
+// 				Tags:    matcher.Tags,
+// 			})
+// 	}
+// 	for _, matcher := range fc.Databases.AzureMatchers {
+// 		cfg.Databases.AzureMatchers = append(cfg.Databases.AzureMatchers,
+// 			services.AzureMatcher{
+// 				Subscriptions:  matcher.Subscriptions,
+// 				ResourceGroups: matcher.ResourceGroups,
+// 				Types:          matcher.Types,
+// 				Regions:        matcher.Regions,
+// 				ResourceTags:   matcher.ResourceTags,
+// 			})
+// 	}
+// 	for _, database := range fc.Databases.Databases {
+// 		staticLabels := make(map[string]string)
+// 		if database.StaticLabels != nil {
+// 			staticLabels = database.StaticLabels
+// 		}
+// 		dynamicLabels := make(services.CommandLabels)
+// 		if database.DynamicLabels != nil {
+// 			for _, v := range database.DynamicLabels {
+// 				dynamicLabels[v.Name] = &types.CommandLabelV2{
+// 					Period:  types.NewDuration(v.Period),
+// 					Command: v.Command,
+// 					Result:  "",
+// 				}
+// 			}
+// 		}
+
+// 		caBytes, err := readCACert(database)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+
+// 		db := service.Database{
+// 			Name:          database.Name,
+// 			Description:   database.Description,
+// 			Protocol:      database.Protocol,
+// 			URI:           database.URI,
+// 			StaticLabels:  staticLabels,
+// 			DynamicLabels: dynamicLabels,
+// 			MySQL: service.MySQLOptions{
+// 				ServerVersion: database.MySQL.ServerVersion,
+// 			},
+// 			TLS: service.DatabaseTLS{
+// 				CACert:     caBytes,
+// 				ServerName: database.TLS.ServerName,
+// 				Mode:       service.TLSMode(database.TLS.Mode),
+// 			},
+// 			AWS: service.DatabaseAWS{
+// 				Region: database.AWS.Region,
+// 				Redshift: service.DatabaseAWSRedshift{
+// 					ClusterID: database.AWS.Redshift.ClusterID,
+// 				},
+// 				RDS: service.DatabaseAWSRDS{
+// 					InstanceID: database.AWS.RDS.InstanceID,
+// 					ClusterID:  database.AWS.RDS.ClusterID,
+// 				},
+// 				ElastiCache: service.DatabaseAWSElastiCache{
+// 					ReplicationGroupID: database.AWS.ElastiCache.ReplicationGroupID,
+// 				},
+// 				MemoryDB: service.DatabaseAWSMemoryDB{
+// 					ClusterName: database.AWS.MemoryDB.ClusterName,
+// 				},
+// 				SecretStore: service.DatabaseAWSSecretStore{
+// 					KeyPrefix: database.AWS.SecretStore.KeyPrefix,
+// 					KMSKeyID:  database.AWS.SecretStore.KMSKeyID,
+// 				},
+// 			},
+// 			GCP: service.DatabaseGCP{
+// 				ProjectID:  database.GCP.ProjectID,
+// 				InstanceID: database.GCP.InstanceID,
+// 			},
+// 			AD: service.DatabaseAD{
+// 				KeytabFile: database.AD.KeytabFile,
+// 				Krb5File:   database.AD.Krb5File,
+// 				Domain:     database.AD.Domain,
+// 				SPN:        database.AD.SPN,
+// 			},
+// 		}
+// 		if err := db.CheckAndSetDefaults(); err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		cfg.Databases.Databases = append(cfg.Databases.Databases, db)
+// 	}
+// 	return nil
+// }
+
+// // readCACert reads database CA certificate from the config file.
+// // First 'tls.ca_cert_file` is being read, then deprecated 'ca_cert_file' if
+// // the first one is not set.
+// func readCACert(database *Database) ([]byte, error) {
+// 	var (
+// 		caBytes []byte
+// 		err     error
+// 	)
+// 	if database.TLS.CACertFile != "" {
+// 		caBytes, err = os.ReadFile(database.TLS.CACertFile)
+// 		if err != nil {
+// 			return nil, trace.ConvertSystemError(err)
+// 		}
+// 	}
+
+// 	// ca_cert_file is deprecated, but we still support it.
+// 	// Print a warning if the old field is still being used.
+// 	if database.CACertFile != "" {
+// 		if database.TLS.CACertFile != "" {
+// 			// New and old fields are set. Ignore the old field.
+// 			log.Warnf("Ignoring deprecated ca_cert_file in %s configuration; using tls.ca_cert_file.", database.Name)
+// 		} else {
+// 			// Only old field is set, inform about deprecation.
+// 			log.Warnf("ca_cert_file is deprecated, please use tls.ca_cert_file instead for %s.", database.Name)
+
+// 			caBytes, err = os.ReadFile(database.CACertFile)
+// 			if err != nil {
+// 				return nil, trace.ConvertSystemError(err)
+// 			}
+// 		}
+// 	}
+
+// 	return caBytes, nil
+// }
+
+// // applyAppsConfig applies file configuration for the "app_service" section.
+// func applyAppsConfig(fc *FileConfig, cfg *service.Config) error {
+// 	// Apps are enabled.
+// 	cfg.Apps.Enabled = true
+
+// 	// Enable debugging application if requested.
+// 	cfg.Apps.DebugApp = fc.Apps.DebugApp
+
+// 	// Configure resource watcher selectors if present.
+// 	for _, matcher := range fc.Apps.ResourceMatchers {
+// 		cfg.Apps.ResourceMatchers = append(cfg.Apps.ResourceMatchers,
+// 			services.ResourceMatcher{
+// 				Labels: matcher.Labels,
+// 			})
+// 	}
+
+// 	// Loop over all apps and load app configuration.
+// 	for _, application := range fc.Apps.Apps {
+// 		// Parse the static labels of the application.
+// 		staticLabels := make(map[string]string)
+// 		if application.StaticLabels != nil {
+// 			staticLabels = application.StaticLabels
+// 		}
+
+// 		// Parse the dynamic labels of the application.
+// 		dynamicLabels := make(services.CommandLabels)
+// 		if application.DynamicLabels != nil {
+// 			for _, v := range application.DynamicLabels {
+// 				dynamicLabels[v.Name] = &types.CommandLabelV2{
+// 					Period:  types.NewDuration(v.Period),
+// 					Command: v.Command,
+// 				}
+// 			}
+// 		}
+
+// 		// Add the application to the list of proxied applications.
+// 		app := service.App{
+// 			Name:               application.Name,
+// 			Description:        application.Description,
+// 			URI:                application.URI,
+// 			PublicAddr:         application.PublicAddr,
+// 			StaticLabels:       staticLabels,
+// 			DynamicLabels:      dynamicLabels,
+// 			InsecureSkipVerify: application.InsecureSkipVerify,
+// 		}
+// 		if application.Rewrite != nil {
+// 			// Parse http rewrite headers if there are any.
+// 			headers, err := service.ParseHeaders(application.Rewrite.Headers)
+// 			if err != nil {
+// 				return trace.Wrap(err, "failed to parse headers rewrite configuration for app %q",
+// 					application.Name)
+// 			}
+// 			app.Rewrite = &service.Rewrite{
+// 				Redirect: application.Rewrite.Redirect,
+// 				Headers:  headers,
+// 			}
+// 		}
+// 		if application.AWS != nil {
+// 			app.AWS = &service.AppAWS{
+// 				ExternalID: application.AWS.ExternalID,
+// 			}
+// 		}
+// 		if err := app.CheckAndSetDefaults(); err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		cfg.Apps.Apps = append(cfg.Apps.Apps, app)
+// 	}
+
+// 	return nil
+// }
+
+// // applyMetricsConfig applies file configuration for the "metrics_service" section.
+// func applyMetricsConfig(fc *FileConfig, cfg *service.Config) error {
+// 	// Metrics is enabled.
+// 	cfg.Metrics.Enabled = true
+
+// 	addr, err := utils.ParseHostPortAddr(fc.Metrics.ListenAddress, int(defaults.MetricsListenPort))
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	cfg.Metrics.ListenAddr = addr
+
+// 	cfg.Metrics.GRPCServerLatency = fc.Metrics.GRPCServerLatency
+// 	cfg.Metrics.GRPCClientLatency = fc.Metrics.GRPCClientLatency
+
+// 	if !fc.Metrics.MTLSEnabled() {
+// 		return nil
+// 	}
+
+// 	cfg.Metrics.MTLS = true
+
+// 	if len(fc.Metrics.KeyPairs) == 0 {
+// 		return trace.BadParameter("at least one keypair shoud be provided when mtls is enabled in the metrics config")
+// 	}
+
+// 	if len(fc.Metrics.CACerts) == 0 {
+// 		return trace.BadParameter("at least one CA cert shoud be provided when mtls is enabled in the metrics config")
+// 	}
+
+// 	for _, p := range fc.Metrics.KeyPairs {
+// 		// Check that the certificate exists on disk. This exists to provide the
+// 		// user a sensible error message.
+// 		if !utils.FileExists(p.PrivateKey) {
+// 			return trace.NotFound("metrics service private key does not exist: %s", p.PrivateKey)
+// 		}
+// 		if !utils.FileExists(p.Certificate) {
+// 			return trace.NotFound("metrics service cert does not exist: %s", p.Certificate)
+// 		}
+
+// 		certificateChainBytes, err := utils.ReadPath(p.Certificate)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		certificateChain, err := utils.ReadCertificateChain(certificateChainBytes)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+
+// 		if !utils.IsSelfSigned(certificateChain) {
+// 			if err := utils.VerifyCertificateChain(certificateChain); err != nil {
+// 				return trace.BadParameter("unable to verify the metrics service certificate chain in %v: %s",
+// 					p.Certificate, utils.UserMessageFromError(err))
+// 			}
+// 		}
+
+// 		cfg.Metrics.KeyPairs = append(cfg.Metrics.KeyPairs, service.KeyPairPath{
+// 			PrivateKey:  p.PrivateKey,
+// 			Certificate: p.Certificate,
+// 		})
+// 	}
+
+// 	for _, caCert := range fc.Metrics.CACerts {
+// 		// Check that the certificate exists on disk. This exists to provide the
+// 		// user a sensible error message.
+// 		if !utils.FileExists(caCert) {
+// 			return trace.NotFound("metrics service ca cert does not exist: %s", caCert)
+// 		}
+
+// 		cfg.Metrics.CACerts = append(cfg.Metrics.CACerts, caCert)
+// 	}
+
+// 	return nil
+// }
+
+// // applyWindowsDesktopConfig applies file configuration for the "windows_desktop_service" section.
+// func applyWindowsDesktopConfig(fc *FileConfig, cfg *service.Config) error {
+// 	cfg.WindowsDesktop.Enabled = true
+
+// 	if fc.WindowsDesktop.ListenAddress != "" {
+// 		listenAddr, err := utils.ParseHostPortAddr(fc.WindowsDesktop.ListenAddress, int(defaults.WindowsDesktopListenPort))
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		cfg.WindowsDesktop.ListenAddr = *listenAddr
+// 	}
+
+// 	for _, filter := range fc.WindowsDesktop.Discovery.Filters {
+// 		if _, err := ldap.CompileFilter(filter); err != nil {
+// 			return trace.BadParameter("WindowsDesktopService specifies invalid LDAP filter %q", filter)
+// 		}
+// 	}
+
+// 	for _, attributeName := range fc.WindowsDesktop.Discovery.LabelAttributes {
+// 		if !types.IsValidLabelKey(attributeName) {
+// 			return trace.BadParameter("WindowsDesktopService specifies label_attribute %q which is not a valid label key", attributeName)
+// 		}
+// 	}
+
+// 	cfg.WindowsDesktop.Discovery = fc.WindowsDesktop.Discovery
+
+// 	var err error
+// 	cfg.WindowsDesktop.PublicAddrs, err = utils.AddrsFromStrings(fc.WindowsDesktop.PublicAddr, defaults.WindowsDesktopListenPort)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	cfg.WindowsDesktop.Hosts, err = utils.AddrsFromStrings(fc.WindowsDesktop.Hosts, defaults.RDPListenPort)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+
+// 	var cert *x509.Certificate
+// 	if fc.WindowsDesktop.LDAP.DEREncodedCAFile != "" {
+// 		rawCert, err := os.ReadFile(fc.WindowsDesktop.LDAP.DEREncodedCAFile)
+// 		if err != nil {
+// 			return trace.WrapWithMessage(err, "loading the LDAP CA from file %v", fc.WindowsDesktop.LDAP.DEREncodedCAFile)
+// 		}
+
+// 		cert, err = x509.ParseCertificate(rawCert)
+// 		if err != nil {
+// 			return trace.WrapWithMessage(err, "parsing the LDAP root CA file %v", fc.WindowsDesktop.LDAP.DEREncodedCAFile)
+// 		}
+// 	}
+
+// 	cfg.WindowsDesktop.LDAP = service.LDAPConfig{
+// 		Addr:               fc.WindowsDesktop.LDAP.Addr,
+// 		Username:           fc.WindowsDesktop.LDAP.Username,
+// 		Domain:             fc.WindowsDesktop.LDAP.Domain,
+// 		InsecureSkipVerify: fc.WindowsDesktop.LDAP.InsecureSkipVerify,
+// 		CA:                 cert,
+// 	}
+
+// 	for _, rule := range fc.WindowsDesktop.HostLabels {
+// 		r, err := regexp.Compile(rule.Match)
+// 		if err != nil {
+// 			return trace.BadParameter("WindowsDesktopService specifies invalid regexp %q", rule.Match)
+// 		}
+
+// 		if len(rule.Labels) == 0 {
+// 			return trace.BadParameter("WindowsDesktopService host regex %q has no labels", rule.Match)
+// 		}
+
+// 		for k := range rule.Labels {
+// 			if !types.IsValidLabelKey(k) {
+// 				return trace.BadParameter("WindowsDesktopService specifies invalid label %q", k)
+// 			}
+// 		}
+
+// 		cfg.WindowsDesktop.HostLabels = append(cfg.WindowsDesktop.HostLabels, service.HostLabelRule{
+// 			Regexp: r,
+// 			Labels: rule.Labels,
+// 		})
+// 	}
+
+// 	return nil
+// }
+
+// // applyTracingConfig applies file configuration for the "tracing_service" section.
+// func applyTracingConfig(fc *FileConfig, cfg *service.Config) error {
+// 	// Tracing is enabled.
+// 	cfg.Tracing.Enabled = true
+
+// 	if fc.Tracing.ExporterURL == "" {
+// 		return trace.BadParameter("tracing_service is enabled but no exporter_url is specified")
+// 	}
+
+// 	cfg.Tracing.ExporterURL = fc.Tracing.ExporterURL
+// 	cfg.Tracing.SamplingRate = float64(fc.Tracing.SamplingRatePerMillion) / 1_000_000.0
+
+// 	for _, p := range fc.Tracing.KeyPairs {
+// 		// Check that the certificate exists on disk. This exists to provide the
+// 		// user a sensible error message.
+// 		if !utils.FileExists(p.PrivateKey) {
+// 			return trace.NotFound("tracing_service private key does not exist: %s", p.PrivateKey)
+// 		}
+// 		if !utils.FileExists(p.Certificate) {
+// 			return trace.NotFound("tracing_service cert does not exist: %s", p.Certificate)
+// 		}
+
+// 		cfg.Tracing.KeyPairs = append(cfg.Tracing.KeyPairs, service.KeyPairPath{
+// 			PrivateKey:  p.PrivateKey,
+// 			Certificate: p.Certificate,
+// 		})
+// 	}
+
+// 	for _, caCert := range fc.Tracing.CACerts {
+// 		// Check that the certificate exists on disk. This exists to provide the
+// 		// user a sensible error message.
+// 		if !utils.FileExists(caCert) {
+// 			return trace.NotFound("tracing_service ca cert does not exist: %s", caCert)
+// 		}
+
+// 		cfg.Tracing.CACerts = append(cfg.Tracing.CACerts, caCert)
+// 	}
+
+// 	return nil
+// }
+
+// // parseAuthorizedKeys parses keys in the authorized_keys format and
+// // returns a types.CertAuthority.
+// func parseAuthorizedKeys(bytes []byte, allowedLogins []string) (types.CertAuthority, types.Role, error) {
+// 	pubkey, comment, _, _, err := ssh.ParseAuthorizedKey(bytes)
+// 	if err != nil {
+// 		return nil, nil, trace.Wrap(err)
+// 	}
+
+// 	comments, err := url.ParseQuery(comment)
+// 	if err != nil {
+// 		return nil, nil, trace.Wrap(err)
+// 	}
+// 	clusterName := comments.Get("clustername")
+// 	if clusterName == "" {
+// 		return nil, nil, trace.BadParameter("no clustername provided")
+// 	}
+
+// 	// create a new certificate authority
+// 	ca, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
+// 		Type:        types.UserCA,
+// 		ClusterName: clusterName,
+// 		ActiveKeys: types.CAKeySet{
+// 			SSH: []*types.SSHKeyPair{{
+// 				PublicKey: ssh.MarshalAuthorizedKey(pubkey),
+// 			}},
+// 		},
+// 	})
+// 	if err != nil {
+// 		return nil, nil, trace.Wrap(err)
+// 	}
+
+// 	// transform old allowed logins into roles
+// 	role := services.RoleForCertAuthority(ca)
+// 	role.SetLogins(types.Allow, allowedLogins)
+// 	ca.AddRole(role.GetName())
+
+// 	return ca, role, nil
+// }
+
+// // parseKnownHosts parses keys in known_hosts format and returns a
+// // types.CertAuthority.
+// func parseKnownHosts(bytes []byte, allowedLogins []string) (types.CertAuthority, types.Role, error) {
+// 	marker, options, pubKey, comment, _, err := ssh.ParseKnownHosts(bytes)
+// 	if marker != "cert-authority" {
+// 		return nil, nil, trace.BadParameter("invalid file format. expected '@cert-authority` marker")
+// 	}
+// 	if err != nil {
+// 		return nil, nil, trace.BadParameter("invalid public key")
+// 	}
+// 	teleportOpts, err := url.ParseQuery(comment)
+// 	if err != nil {
+// 		return nil, nil, trace.BadParameter("invalid key comment: '%s'", comment)
+// 	}
+// 	authType := types.CertAuthType(teleportOpts.Get("type"))
+// 	if authType != types.HostCA && authType != types.UserCA {
+// 		return nil, nil, trace.BadParameter("unsupported CA type: '%s'", authType)
+// 	}
+// 	if len(options) == 0 {
+// 		return nil, nil, trace.BadParameter("key without cluster_name")
+// 	}
+// 	const prefix = "*."
+// 	domainName := strings.TrimPrefix(options[0], prefix)
+
+// 	ca, err := types.NewCertAuthority(types.CertAuthoritySpecV2{
+// 		Type:        authType,
+// 		ClusterName: domainName,
+// 		ActiveKeys: types.CAKeySet{
+// 			SSH: []*types.SSHKeyPair{{
+// 				PublicKey: ssh.MarshalAuthorizedKey(pubKey),
+// 			}},
+// 		},
+// 	})
+// 	if err != nil {
+// 		return nil, nil, trace.Wrap(err)
+// 	}
+
+// 	// transform old allowed logins into roles
+// 	role := services.RoleForCertAuthority(ca)
+// 	role.SetLogins(types.Allow, apiutils.CopyStrings(allowedLogins))
+// 	ca.AddRole(role.GetName())
+
+// 	return ca, role, nil
+// }
+
+// // certificateAuthorityFormat parses bytes and determines if they are in
+// // known_hosts format or authorized_keys format.
+// func certificateAuthorityFormat(bytes []byte) (string, error) {
+// 	_, _, _, _, err := ssh.ParseAuthorizedKey(bytes)
+// 	if err != nil {
+// 		_, _, _, _, _, err := ssh.ParseKnownHosts(bytes)
+// 		if err != nil {
+// 			return "", trace.BadParameter("unknown ca format")
+// 		}
+// 		return teleport.KnownHosts, nil
+// 	}
+// 	return teleport.AuthorizedKeys, nil
+// }
+
+// // parseCAKey parses bytes either in known_hosts or authorized_keys format
+// // and returns a types.CertAuthority.
+// func parseCAKey(bytes []byte, allowedLogins []string) (types.CertAuthority, types.Role, error) {
+// 	caFormat, err := certificateAuthorityFormat(bytes)
+// 	if err != nil {
+// 		return nil, nil, trace.Wrap(err)
+// 	}
+
+// 	if caFormat == teleport.AuthorizedKeys {
+// 		return parseAuthorizedKeys(bytes, allowedLogins)
+// 	}
+// 	return parseKnownHosts(bytes, allowedLogins)
+// }
+
+// // readTrustedClusters parses the content of "trusted_clusters" YAML structure
+// // and modifies Teleport 'conf' by adding "authorities" and "reverse tunnels"
+// // to it
+// func readTrustedClusters(clusters []TrustedCluster, conf *service.Config) error {
+// 	if len(clusters) == 0 {
+// 		return nil
+// 	}
+// 	// go over all trusted clusters:
+// 	for i := range clusters {
+// 		tc := &clusters[i]
+// 		// parse "allow_logins"
+// 		var allowedLogins []string
+// 		for _, login := range strings.Split(tc.AllowedLogins, ",") {
+// 			login = strings.TrimSpace(login)
+// 			if login != "" {
+// 				allowedLogins = append(allowedLogins, login)
+// 			}
+// 		}
+// 		// open the key file for this cluster:
+// 		log.Debugf("reading trusted cluster key file %s", tc.KeyFile)
+// 		if tc.KeyFile == "" {
+// 			return trace.Errorf("key_file is missing for a trusted cluster")
+// 		}
+// 		f, err := os.Open(tc.KeyFile)
+// 		if err != nil {
+// 			return trace.Errorf("reading trusted cluster keys: %v", err)
+// 		}
+// 		defer f.Close()
+// 		// read the keyfile for this cluster and get trusted CA keys:
+// 		var authorities []types.CertAuthority
+// 		var roles []types.Role
+// 		scanner := bufio.NewScanner(f)
+// 		for line := 0; scanner.Scan(); {
+// 			ca, role, err := parseCAKey(scanner.Bytes(), allowedLogins)
+// 			if err != nil {
+// 				return trace.BadParameter("%s:L%d. %v", tc.KeyFile, line, err)
+// 			}
+// 			if ca.GetType() == types.UserCA && len(allowedLogins) == 0 && len(tc.TunnelAddr) > 0 {
+// 				return trace.BadParameter("trusted cluster '%s' needs allow_logins parameter",
+// 					ca.GetClusterName())
+// 			}
+// 			authorities = append(authorities, ca)
+// 			if role != nil {
+// 				roles = append(roles, role)
+// 			}
+// 		}
+// 		conf.Auth.Authorities = append(conf.Auth.Authorities, authorities...)
+// 		conf.Auth.Roles = append(conf.Auth.Roles, roles...)
+// 		clusterName := authorities[0].GetClusterName()
+// 		// parse "tunnel_addr"
+// 		var tunnelAddresses []string
+// 		for _, ta := range strings.Split(tc.TunnelAddr, ",") {
+// 			ta := strings.TrimSpace(ta)
+// 			if ta == "" {
+// 				continue
+// 			}
+// 			addr, err := utils.ParseHostPortAddr(ta, defaults.SSHProxyTunnelListenPort)
+// 			if err != nil {
+// 				return trace.Wrap(err,
+// 					"Invalid tunnel address '%s' for cluster '%s'. Expect host:port format",
+// 					ta, clusterName)
+// 			}
+// 			tunnelAddresses = append(tunnelAddresses, addr.FullAddress())
+// 		}
+// 		if len(tunnelAddresses) > 0 {
+// 			rt, err := types.NewReverseTunnel(clusterName, tunnelAddresses)
+// 			if err != nil {
+// 				return trace.Wrap(err)
+// 			}
+// 			conf.ReverseTunnels = append(conf.ReverseTunnels, rt)
+// 		}
+// 	}
+// 	return nil
+// }
 
 // applyString takes 'src' and overwrites target with it, unless 'src' is empty
 // returns 'True' if 'src' was not empty
@@ -1711,8 +1701,8 @@ func applyConfigVersion(fc *FileConfig, cfg *service.Config) {
 	}
 }
 
-// Configure merges command line arguments with what's in a configuration file
-// with CLI commands taking precedence
+// // Configure merges command line arguments with what's in a configuration file
+// // with CLI commands taking precedence
 func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 	// pass the value of --insecure flag to the runtime
 	lib.SetInsecureDevMode(clf.InsecureMode)
@@ -1762,84 +1752,84 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 		return trace.BadParameter("application name (--app-name) and URI (--app-uri) flags are both required to join application proxy to the cluster")
 	}
 
-	// If application name was specified on command line, add to file
-	// configuration where it will be validated.
-	if clf.AppName != "" {
-		cfg.Apps.Enabled = true
+	// // If application name was specified on command line, add to file
+	// // configuration where it will be validated.
+	// if clf.AppName != "" {
+	// 	cfg.Apps.Enabled = true
 
-		// Parse static and dynamic labels.
-		static, dynamic, err := parseLabels(clf.Labels)
-		if err != nil {
-			return trace.BadParameter("labels invalid: %v", err)
-		}
+	// 	// Parse static and dynamic labels.
+	// 	static, dynamic, err := parseLabels(clf.Labels)
+	// 	if err != nil {
+	// 		return trace.BadParameter("labels invalid: %v", err)
+	// 	}
 
-		// Create and validate application. If valid, add to list of applications.
-		app := service.App{
-			Name:          clf.AppName,
-			URI:           clf.AppURI,
-			PublicAddr:    clf.AppPublicAddr,
-			StaticLabels:  static,
-			DynamicLabels: dynamic,
-		}
-		if err := app.CheckAndSetDefaults(); err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Apps.Apps = append(cfg.Apps.Apps, app)
-	}
+	// 	// Create and validate application. If valid, add to list of applications.
+	// 	app := service.App{
+	// 		Name:          clf.AppName,
+	// 		URI:           clf.AppURI,
+	// 		PublicAddr:    clf.AppPublicAddr,
+	// 		StaticLabels:  static,
+	// 		DynamicLabels: dynamic,
+	// 	}
+	// 	if err := app.CheckAndSetDefaults(); err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Apps.Apps = append(cfg.Apps.Apps, app)
+	// }
 
-	// If database name was specified on the command line, add to configuration.
-	if clf.DatabaseName != "" {
-		cfg.Databases.Enabled = true
-		staticLabels, dynamicLabels, err := parseLabels(clf.Labels)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		var caBytes []byte
-		if clf.DatabaseCACertFile != "" {
-			caBytes, err = os.ReadFile(clf.DatabaseCACertFile)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		db := service.Database{
-			Name:         clf.DatabaseName,
-			Description:  clf.DatabaseDescription,
-			Protocol:     clf.DatabaseProtocol,
-			URI:          clf.DatabaseURI,
-			StaticLabels: staticLabels,
-			MySQL: service.MySQLOptions{
-				ServerVersion: clf.DatabaseMySQLServerVersion,
-			},
-			DynamicLabels: dynamicLabels,
-			TLS: service.DatabaseTLS{
-				CACert: caBytes,
-			},
-			AWS: service.DatabaseAWS{
-				Region: clf.DatabaseAWSRegion,
-				Redshift: service.DatabaseAWSRedshift{
-					ClusterID: clf.DatabaseAWSRedshiftClusterID,
-				},
-				RDS: service.DatabaseAWSRDS{
-					InstanceID: clf.DatabaseAWSRDSInstanceID,
-					ClusterID:  clf.DatabaseAWSRDSClusterID,
-				},
-			},
-			GCP: service.DatabaseGCP{
-				ProjectID:  clf.DatabaseGCPProjectID,
-				InstanceID: clf.DatabaseGCPInstanceID,
-			},
-			AD: service.DatabaseAD{
-				KeytabFile: clf.DatabaseADKeytabFile,
-				Krb5File:   clf.DatabaseADKrb5File,
-				Domain:     clf.DatabaseADDomain,
-				SPN:        clf.DatabaseADSPN,
-			},
-		}
-		if err := db.CheckAndSetDefaults(); err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Databases.Databases = append(cfg.Databases.Databases, db)
-	}
+	// // If database name was specified on the command line, add to configuration.
+	// if clf.DatabaseName != "" {
+	// 	cfg.Databases.Enabled = true
+	// 	staticLabels, dynamicLabels, err := parseLabels(clf.Labels)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	var caBytes []byte
+	// 	if clf.DatabaseCACertFile != "" {
+	// 		caBytes, err = os.ReadFile(clf.DatabaseCACertFile)
+	// 		if err != nil {
+	// 			return trace.Wrap(err)
+	// 		}
+	// 	}
+	// 	db := service.Database{
+	// 		Name:         clf.DatabaseName,
+	// 		Description:  clf.DatabaseDescription,
+	// 		Protocol:     clf.DatabaseProtocol,
+	// 		URI:          clf.DatabaseURI,
+	// 		StaticLabels: staticLabels,
+	// 		MySQL: service.MySQLOptions{
+	// 			ServerVersion: clf.DatabaseMySQLServerVersion,
+	// 		},
+	// 		DynamicLabels: dynamicLabels,
+	// 		TLS: service.DatabaseTLS{
+	// 			CACert: caBytes,
+	// 		},
+	// 		AWS: service.DatabaseAWS{
+	// 			Region: clf.DatabaseAWSRegion,
+	// 			Redshift: service.DatabaseAWSRedshift{
+	// 				ClusterID: clf.DatabaseAWSRedshiftClusterID,
+	// 			},
+	// 			RDS: service.DatabaseAWSRDS{
+	// 				InstanceID: clf.DatabaseAWSRDSInstanceID,
+	// 				ClusterID:  clf.DatabaseAWSRDSClusterID,
+	// 			},
+	// 		},
+	// 		GCP: service.DatabaseGCP{
+	// 			ProjectID:  clf.DatabaseGCPProjectID,
+	// 			InstanceID: clf.DatabaseGCPInstanceID,
+	// 		},
+	// 		AD: service.DatabaseAD{
+	// 			KeytabFile: clf.DatabaseADKeytabFile,
+	// 			Krb5File:   clf.DatabaseADKrb5File,
+	// 			Domain:     clf.DatabaseADDomain,
+	// 			SPN:        clf.DatabaseADSPN,
+	// 		},
+	// 	}
+	// 	if err := db.CheckAndSetDefaults(); err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Databases.Databases = append(cfg.Databases.Databases, db)
+	// }
 
 	if err = ApplyFileConfig(fileConf, cfg); err != nil {
 		return trace.Wrap(err)
@@ -1867,22 +1857,22 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 		}
 
 		// Make sure cluster settings are also FedRAMP/FIPS 140-2 compliant.
-		if cfg.Auth.Enabled {
-			// Only SSO based authentication is supported. The SSO provider is where
-			// any FedRAMP/FIPS 140-2 compliance (like password complexity) should be
-			// enforced.
-			if cfg.Auth.Preference.GetAllowLocalAuth() {
-				return trace.BadParameter("non-FIPS compliant authentication setting: \"local_auth\" must be false")
-			}
+		// if cfg.Auth.Enabled {
+		// 	// Only SSO based authentication is supported. The SSO provider is where
+		// 	// any FedRAMP/FIPS 140-2 compliance (like password complexity) should be
+		// 	// enforced.
+		// 	if cfg.Auth.Preference.GetAllowLocalAuth() {
+		// 		return trace.BadParameter("non-FIPS compliant authentication setting: \"local_auth\" must be false")
+		// 	}
 
-			// If sessions are being recorded at the proxy host key checking must be
-			// enabled. This make sure the host certificate key algorithm is FIPS
-			// compliant.
-			if services.IsRecordAtProxy(cfg.Auth.SessionRecordingConfig.GetMode()) &&
-				!cfg.Auth.SessionRecordingConfig.GetProxyChecksHostKeys() {
-				return trace.BadParameter("non-FIPS compliant proxy settings: \"proxy_checks_host_keys\" must be true")
-			}
-		}
+		// 	// If sessions are being recorded at the proxy host key checking must be
+		// 	// enabled. This make sure the host certificate key algorithm is FIPS
+		// 	// compliant.
+		// 	if services.IsRecordAtProxy(cfg.Auth.SessionRecordingConfig.GetMode()) &&
+		// 		!cfg.Auth.SessionRecordingConfig.GetProxyChecksHostKeys() {
+		// 		return trace.BadParameter("non-FIPS compliant proxy settings: \"proxy_checks_host_keys\" must be true")
+		// 	}
+		// }
 	}
 
 	// apply --skip-version-check flag.
@@ -1918,8 +1908,8 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 		cfg.SSH.Enabled = strings.Contains(clf.Roles, defaults.RoleNode)
 		cfg.Auth.Enabled = strings.Contains(clf.Roles, defaults.RoleAuthService)
 		cfg.Proxy.Enabled = strings.Contains(clf.Roles, defaults.RoleProxy)
-		cfg.Apps.Enabled = strings.Contains(clf.Roles, defaults.RoleApp)
-		cfg.Databases.Enabled = strings.Contains(clf.Roles, defaults.RoleDatabase)
+		// cfg.Apps.Enabled = strings.Contains(clf.Roles, defaults.RoleApp)
+		// cfg.Databases.Enabled = strings.Contains(clf.Roles, defaults.RoleDatabase)
 	}
 
 	// apply --auth-server flag:
@@ -1982,15 +1972,15 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 	}
 
 	// auth_servers not configured, but the 'auth' is enabled (auth is on localhost)?
-	if len(cfg.AuthServers) == 0 && cfg.Auth.Enabled {
-		cfg.AuthServers = append(cfg.AuthServers, cfg.Auth.SSHAddr)
-	}
+	// if len(cfg.AuthServers) == 0 && cfg.Auth.Enabled {
+	// 	cfg.AuthServers = append(cfg.AuthServers, cfg.Auth.SSHAddr)
+	// }
 
 	// add data_dir to the backend config:
-	if cfg.Auth.StorageConfig.Params == nil {
-		cfg.Auth.StorageConfig.Params = backend.Params{}
-	}
-	cfg.Auth.StorageConfig.Params["data_dir"] = cfg.DataDir
+	// if cfg.Auth.StorageConfig.Params == nil {
+	// 	cfg.Auth.StorageConfig.Params = backend.Params{}
+	// }
+	// cfg.Auth.StorageConfig.Params["data_dir"] = cfg.DataDir
 	// command line flag takes precedence over file config
 	if clf.PermitUserEnvironment {
 		cfg.SSH.PermitUserEnvironment = true
@@ -2090,8 +2080,8 @@ func isCmdLabelSpec(spec string) (types.CommandLabel, error) {
 // a given IP
 func applyListenIP(ip net.IP, cfg *service.Config) {
 	listeningAddresses := []*utils.NetAddr{
-		&cfg.Auth.SSHAddr,
-		&cfg.Auth.SSHAddr,
+		//&cfg.Auth.SSHAddr,
+		//&cfg.Auth.SSHAddr,
 		&cfg.Proxy.SSHAddr,
 		&cfg.Proxy.WebAddr,
 		&cfg.SSH.Addr,

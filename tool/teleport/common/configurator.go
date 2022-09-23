@@ -15,16 +15,10 @@
 package common
 
 import (
-	"context"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
-	"github.com/gravitational/teleport/lib/config"
-	dbconfigurators "github.com/gravitational/teleport/lib/configurators/databases"
-	"github.com/gravitational/teleport/lib/utils/prompt"
 
 	"github.com/gravitational/trace"
 )
@@ -104,56 +98,56 @@ var awsDatabaseTypes = []string{
 // }
 
 // configureDatabaseBootstrapFlags database configure bootstrap flags.
-type configureDatabaseBootstrapFlags struct {
-	config  dbconfigurators.BootstrapFlags
-	confirm bool
-}
+// type configureDatabaseBootstrapFlags struct {
+// 	config  dbconfigurators.BootstrapFlags
+// 	confirm bool
+// }
 
 // onConfigureDatabaseBootstrap subcommand that bootstraps configuration for
 // database agents.
-func onConfigureDatabaseBootstrap(flags configureDatabaseBootstrapFlags) error {
-	ctx := context.TODO()
-	configurators, err := dbconfigurators.BuildConfigurators(flags.config)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// func onConfigureDatabaseBootstrap(flags configureDatabaseBootstrapFlags) error {
+// 	ctx := context.TODO()
+// 	configurators, err := dbconfigurators.BuildConfigurators(flags.config)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	fmt.Printf("Reading configuration at %q...\n\n", flags.config.ConfigPath)
-	if len(configurators) == 0 {
-		fmt.Println("The agent doesn't require any extra configuration.")
-		return nil
-	}
+// 	fmt.Printf("Reading configuration at %q...\n\n", flags.config.ConfigPath)
+// 	if len(configurators) == 0 {
+// 		fmt.Println("The agent doesn't require any extra configuration.")
+// 		return nil
+// 	}
 
-	for _, configurator := range configurators {
-		fmt.Println(configurator.Name())
-		printDBConfiguratorActions(configurator.Actions())
-	}
+// 	for _, configurator := range configurators {
+// 		fmt.Println(configurator.Name())
+// 		printDBConfiguratorActions(configurator.Actions())
+// 	}
 
-	if flags.config.Manual {
-		return nil
-	}
+// 	if flags.config.Manual {
+// 		return nil
+// 	}
 
-	fmt.Print("\n")
-	if !flags.confirm {
-		confirmed, err := prompt.Confirmation(ctx, os.Stdout, prompt.Stdin(), "Confirm?")
-		if err != nil {
-			return trace.Wrap(err)
-		}
+// 	fmt.Print("\n")
+// 	if !flags.confirm {
+// 		confirmed, err := prompt.Confirmation(ctx, os.Stdout, prompt.Stdin(), "Confirm?")
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
 
-		if !confirmed {
-			return nil
-		}
-	}
+// 		if !confirmed {
+// 			return nil
+// 		}
+// 	}
 
-	for _, configurator := range configurators {
-		err = executeDBConfiguratorActions(ctx, configurator.Name(), configurator.Actions())
-		if err != nil {
-			return trace.Errorf("bootstrap failed to execute, check logs above to see the cause")
-		}
-	}
+// 	for _, configurator := range configurators {
+// 		err = executeDBConfiguratorActions(ctx, configurator.Name(), configurator.Actions())
+// 		if err != nil {
+// 			return trace.Errorf("bootstrap failed to execute, check logs above to see the cause")
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // configureDatabaseAWSFlags common flags provided to aws DB configurators.
 type configureDatabaseAWSFlags struct {
@@ -197,74 +191,74 @@ type configureDatabaseAWSPrintFlags struct {
 
 // buildAWSConfigurator builds the database configurator used on AWS-specific
 // commands.
-func buildAWSConfigurator(manual bool, flags configureDatabaseAWSFlags) (dbconfigurators.Configurator, error) {
-	err := flags.CheckAndSetDefaults()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// func buildAWSConfigurator(manual bool, flags configureDatabaseAWSFlags) (dbconfigurators.Configurator, error) {
+// 	err := flags.CheckAndSetDefaults()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	fileConfig := &config.FileConfig{}
-	configuratorFlags := dbconfigurators.BootstrapFlags{
-		Manual:       manual,
-		PolicyName:   flags.policyName,
-		AttachToUser: flags.user,
-		AttachToRole: flags.role,
-	}
+// 	fileConfig := &config.FileConfig{}
+// 	configuratorFlags := dbconfigurators.BootstrapFlags{
+// 		Manual:       manual,
+// 		PolicyName:   flags.policyName,
+// 		AttachToUser: flags.user,
+// 		AttachToRole: flags.role,
+// 	}
 
-	for _, dbType := range flags.typesList {
-		switch dbType {
-		case types.DatabaseTypeRDS:
-			configuratorFlags.ForceRDSPermissions = true
-		case types.DatabaseTypeRedshift:
-			configuratorFlags.ForceRedshiftPermissions = true
-		case types.DatabaseTypeElastiCache:
-			configuratorFlags.ForceElastiCachePermissions = true
-		case types.DatabaseTypeMemoryDB:
-			configuratorFlags.ForceMemoryDBPermissions = true
-		}
-	}
+// 	for _, dbType := range flags.typesList {
+// 		switch dbType {
+// 		case types.DatabaseTypeRDS:
+// 			configuratorFlags.ForceRDSPermissions = true
+// 		case types.DatabaseTypeRedshift:
+// 			configuratorFlags.ForceRedshiftPermissions = true
+// 		case types.DatabaseTypeElastiCache:
+// 			configuratorFlags.ForceElastiCachePermissions = true
+// 		case types.DatabaseTypeMemoryDB:
+// 			configuratorFlags.ForceMemoryDBPermissions = true
+// 		}
+// 	}
 
-	configurator, err := dbconfigurators.NewAWSConfigurator(dbconfigurators.AWSConfiguratorConfig{
-		Flags:      configuratorFlags,
-		FileConfig: fileConfig,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	configurator, err := dbconfigurators.NewAWSConfigurator(dbconfigurators.AWSConfiguratorConfig{
+// 		Flags:      configuratorFlags,
+// 		FileConfig: fileConfig,
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return configurator, nil
-}
+// 	return configurator, nil
+// }
 
 // onConfigureDatabasesAWSPrint is a subcommand used to print AWS IAM access
 // Teleport requires to run databases discovery on AWS.
-func onConfigureDatabasesAWSPrint(flags configureDatabaseAWSPrintFlags) error {
-	configurator, err := buildAWSConfigurator(true, flags.configureDatabaseAWSFlags)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// func onConfigureDatabasesAWSPrint(flags configureDatabaseAWSPrintFlags) error {
+// 	configurator, err := buildAWSConfigurator(true, flags.configureDatabaseAWSFlags)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	// Check if configurator actions is empty.
-	if configurator.IsEmpty() {
-		fmt.Println("The agent doesn't require any extra configuration.")
-		return nil
-	}
+// 	// Check if configurator actions is empty.
+// 	if configurator.IsEmpty() {
+// 		fmt.Println("The agent doesn't require any extra configuration.")
+// 		return nil
+// 	}
 
-	actions := configurator.Actions()
-	if flags.policyOnly {
-		// Policy is present at the details of the first action.
-		fmt.Println(actions[0].Details())
-		return nil
-	}
+// 	actions := configurator.Actions()
+// 	if flags.policyOnly {
+// 		// Policy is present at the details of the first action.
+// 		fmt.Println(actions[0].Details())
+// 		return nil
+// 	}
 
-	if flags.boundaryOnly {
-		// Policy boundary is present at the details of the second instruction.
-		fmt.Println(actions[1].Details())
-		return nil
-	}
+// 	if flags.boundaryOnly {
+// 		// Policy boundary is present at the details of the second instruction.
+// 		fmt.Println(actions[1].Details())
+// 		return nil
+// 	}
 
-	printDBConfiguratorActions(actions)
-	return nil
-}
+// 	printDBConfiguratorActions(actions)
+// 	return nil
+// }
 
 // configureDatabaseAWSPrintFlags flags of the "db configure aws create-iam"
 // subcommand.
@@ -276,81 +270,81 @@ type configureDatabaseAWSCreateFlags struct {
 
 // onConfigureDatabasesAWSCreates is a subcommand used to create AWS IAM access
 // for Teleport to run databases discovery on AWS.
-func onConfigureDatabasesAWSCreate(flags configureDatabaseAWSCreateFlags) error {
-	ctx := context.TODO()
-	configurator, err := buildAWSConfigurator(false, flags.configureDatabaseAWSFlags)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// func onConfigureDatabasesAWSCreate(flags configureDatabaseAWSCreateFlags) error {
+// 	ctx := context.TODO()
+// 	configurator, err := buildAWSConfigurator(false, flags.configureDatabaseAWSFlags)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	actions := configurator.Actions()
-	printDBConfiguratorActions(actions)
-	fmt.Print("\n")
+// 	actions := configurator.Actions()
+// 	printDBConfiguratorActions(actions)
+// 	fmt.Print("\n")
 
-	if !flags.confirm {
-		confirmed, err := prompt.Confirmation(ctx, os.Stdout, prompt.Stdin(), "Confirm?")
-		if err != nil {
-			return trace.Wrap(err)
-		}
+// 	if !flags.confirm {
+// 		confirmed, err := prompt.Confirmation(ctx, os.Stdout, prompt.Stdin(), "Confirm?")
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
 
-		if !confirmed {
-			return nil
-		}
-	}
+// 		if !confirmed {
+// 			return nil
+// 		}
+// 	}
 
-	// Check if configurator actions is empty.
-	if configurator.IsEmpty() {
-		fmt.Println("The agent doesn't require any extra configuration.")
-		return nil
-	}
+// 	// Check if configurator actions is empty.
+// 	if configurator.IsEmpty() {
+// 		fmt.Println("The agent doesn't require any extra configuration.")
+// 		return nil
+// 	}
 
-	err = executeDBConfiguratorActions(ctx, configurator.Name(), actions)
-	if err != nil {
-		return trace.Errorf("bootstrap failed to execute, check logs above to see the cause")
-	}
+// 	err = executeDBConfiguratorActions(ctx, configurator.Name(), actions)
+// 	if err != nil {
+// 		return trace.Errorf("bootstrap failed to execute, check logs above to see the cause")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // printDBConfiguratorActions prints the database configurator actions.
-func printDBConfiguratorActions(actions []dbconfigurators.ConfiguratorAction) {
-	for i, action := range actions {
-		fmt.Printf("%d. %s", i+1, action.Description())
-		if len(action.Details()) > 0 {
-			fmt.Printf(":\n%s\n\n", action.Details())
-		} else {
-			fmt.Println(".")
-		}
-	}
-}
+// func printDBConfiguratorActions(actions []dbconfigurators.ConfiguratorAction) {
+// 	for i, action := range actions {
+// 		fmt.Printf("%d. %s", i+1, action.Description())
+// 		if len(action.Details()) > 0 {
+// 			fmt.Printf(":\n%s\n\n", action.Details())
+// 		} else {
+// 			fmt.Println(".")
+// 		}
+// 	}
+// }
 
 // executeDBConfiguratorActions iterate over all actions, executing and printing
 // their results.
-func executeDBConfiguratorActions(ctx context.Context, configuratorName string, actions []dbconfigurators.ConfiguratorAction) error {
-	actionContext := &dbconfigurators.ConfiguratorActionContext{}
-	for _, action := range actions {
-		err := action.Execute(ctx, actionContext)
-		printDBBootstrapActionResult(configuratorName, action, err)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
+// func executeDBConfiguratorActions(ctx context.Context, configuratorName string, actions []dbconfigurators.ConfiguratorAction) error {
+// 	actionContext := &dbconfigurators.ConfiguratorActionContext{}
+// 	for _, action := range actions {
+// 		err := action.Execute(ctx, actionContext)
+// 		printDBBootstrapActionResult(configuratorName, action, err)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // printDBBootstrapActionResult human-readable print of the action result (error
 // or success).
-func printDBBootstrapActionResult(configuratorName string, action dbconfigurators.ConfiguratorAction, err error) {
-	leadSymbol := "✅"
-	endText := "done"
-	if err != nil {
-		leadSymbol = "❌"
-		endText = "failed"
-	}
+// func printDBBootstrapActionResult(configuratorName string, action dbconfigurators.ConfiguratorAction, err error) {
+// 	leadSymbol := "✅"
+// 	endText := "done"
+// 	if err != nil {
+// 		leadSymbol = "❌"
+// 		endText = "failed"
+// 	}
 
-	fmt.Printf("%s[%s] %s... %s.\n", leadSymbol, configuratorName, action.Description(), endText)
-	if err != nil {
-		fmt.Printf("Failure reason: %s\n", err)
-	}
-}
+// 	fmt.Printf("%s[%s] %s... %s.\n", leadSymbol, configuratorName, action.Description(), endText)
+// 	if err != nil {
+// 		fmt.Printf("Failure reason: %s\n", err)
+// 	}
+// }

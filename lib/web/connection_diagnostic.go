@@ -16,80 +16,80 @@ limitations under the License.
 
 package web
 
-import (
-	"net/http"
+// import (
+// 	"net/http"
 
-	"github.com/gravitational/teleport/lib/client/conntest"
-	"github.com/gravitational/teleport/lib/httplib"
-	"github.com/gravitational/teleport/lib/reversetunnel"
-	"github.com/gravitational/teleport/lib/web/ui"
-	"github.com/gravitational/trace"
-	"github.com/julienschmidt/httprouter"
-)
+// 	"github.com/gravitational/teleport/lib/client/conntest"
+// 	"github.com/gravitational/teleport/lib/httplib"
+// 	"github.com/gravitational/teleport/lib/reversetunnel"
+// 	"github.com/gravitational/teleport/lib/web/ui"
+// 	"github.com/gravitational/trace"
+// 	"github.com/julienschmidt/httprouter"
+// )
 
-// getConnectionDiagnostic returns a connection diagnostic connection diagnostics.
-func (h *Handler) getConnectionDiagnostic(w http.ResponseWriter, r *http.Request, p httprouter.Params, ctx *SessionContext, site reversetunnel.RemoteSite) (interface{}, error) {
-	clt, err := ctx.GetUserClient(site)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // getConnectionDiagnostic returns a connection diagnostic connection diagnostics.
+// func (h *Handler) getConnectionDiagnostic(w http.ResponseWriter, r *http.Request, p httprouter.Params, ctx *SessionContext, site reversetunnel.RemoteSite) (interface{}, error) {
+// 	clt, err := ctx.GetUserClient(site)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	connectionID := p.ByName("connectionid")
-	connectionDiagnostic, err := clt.GetConnectionDiagnostic(r.Context(), connectionID)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	connectionID := p.ByName("connectionid")
+// 	connectionDiagnostic, err := clt.GetConnectionDiagnostic(r.Context(), connectionID)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return ui.ConnectionDiagnostic{
-		ID:      connectionDiagnostic.GetName(),
-		Success: connectionDiagnostic.IsSuccess(),
-		Message: connectionDiagnostic.GetMessage(),
-		Traces:  ui.ConnectionDiagnosticTraceUIFromTypes(connectionDiagnostic.GetTraces()),
-	}, nil
-}
+// 	return ui.ConnectionDiagnostic{
+// 		ID:      connectionDiagnostic.GetName(),
+// 		Success: connectionDiagnostic.IsSuccess(),
+// 		Message: connectionDiagnostic.GetMessage(),
+// 		Traces:  ui.ConnectionDiagnosticTraceUIFromTypes(connectionDiagnostic.GetTraces()),
+// 	}, nil
+// }
 
-// diagnoseConnection executes and returns a connection diagnostic.
-func (h *Handler) diagnoseConnection(w http.ResponseWriter, r *http.Request, p httprouter.Params, ctx *SessionContext, site reversetunnel.RemoteSite) (interface{}, error) {
-	req := conntest.TestConnectionRequest{}
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // diagnoseConnection executes and returns a connection diagnostic.
+// func (h *Handler) diagnoseConnection(w http.ResponseWriter, r *http.Request, p httprouter.Params, ctx *SessionContext, site reversetunnel.RemoteSite) (interface{}, error) {
+// 	req := conntest.TestConnectionRequest{}
+// 	if err := httplib.ReadJSON(r, &req); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	if err := req.CheckAndSetDefaults(); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	userClt, err := ctx.GetUserClient(site)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	userClt, err := ctx.GetUserClient(site)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	proxySettings, err := h.cfg.ProxySettings.GetProxySettings(r.Context())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	proxySettings, err := h.cfg.ProxySettings.GetProxySettings(r.Context())
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	connectionTesterConfig := conntest.ConnectionTesterConfig{
-		ResourceKind:      req.ResourceKind,
-		UserClient:        userClt,
-		ProxyHostPort:     h.ProxyHostPort(),
-		TLSRoutingEnabled: proxySettings.TLSRoutingEnabled,
-	}
+// 	connectionTesterConfig := conntest.ConnectionTesterConfig{
+// 		ResourceKind:      req.ResourceKind,
+// 		UserClient:        userClt,
+// 		ProxyHostPort:     h.ProxyHostPort(),
+// 		TLSRoutingEnabled: proxySettings.TLSRoutingEnabled,
+// 	}
 
-	tester, err := conntest.ConnectionTesterForKind(connectionTesterConfig)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	tester, err := conntest.ConnectionTesterForKind(connectionTesterConfig)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	connectionDiagnostic, err := tester.TestConnection(r.Context(), req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	connectionDiagnostic, err := tester.TestConnection(r.Context(), req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return ui.ConnectionDiagnostic{
-		ID:      connectionDiagnostic.GetName(),
-		Success: connectionDiagnostic.IsSuccess(),
-		Message: connectionDiagnostic.GetMessage(),
-		Traces:  ui.ConnectionDiagnosticTraceUIFromTypes(connectionDiagnostic.GetTraces()),
-	}, nil
-}
+// 	return ui.ConnectionDiagnostic{
+// 		ID:      connectionDiagnostic.GetName(),
+// 		Success: connectionDiagnostic.IsSuccess(),
+// 		Message: connectionDiagnostic.GetMessage(),
+// 		Traces:  ui.ConnectionDiagnosticTraceUIFromTypes(connectionDiagnostic.GetTraces()),
+// 	}, nil
+// }

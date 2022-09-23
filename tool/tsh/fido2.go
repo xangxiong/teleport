@@ -14,27 +14,27 @@
 
 package main
 
-import (
-	"fmt"
-	"os"
+// import (
+// 	"fmt"
+// 	"os"
 
-	wancli "github.com/gravitational/teleport/lib/auth/webauthncli"
-	"github.com/gravitational/trace"
-)
+// 	wancli "github.com/gravitational/teleport/lib/auth/webauthncli"
+// 	"github.com/gravitational/trace"
+// )
 
-func onFIDO2Diag(cf *CLIConf) error {
-	diag, err := wancli.FIDO2Diag(cf.Context, os.Stdout)
-	// Abort if we got a nil diagnostic, otherwise print as much as we can.
-	if diag == nil {
-		return trace.Wrap(err)
-	}
+// func onFIDO2Diag(cf *CLIConf) error {
+// 	diag, err := wancli.FIDO2Diag(cf.Context, os.Stdout)
+// 	// Abort if we got a nil diagnostic, otherwise print as much as we can.
+// 	if diag == nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	fmt.Printf("\nFIDO2 available: %v\n", diag.Available)
-	fmt.Printf("Register successful? %v\n", diag.RegisterSuccessful)
-	fmt.Printf("Login successful? %v\n", diag.LoginSuccessful)
-	if err != nil {
-		fmt.Println()
-	}
+// 	fmt.Printf("\nFIDO2 available: %v\n", diag.Available)
+// 	fmt.Printf("Register successful? %v\n", diag.RegisterSuccessful)
+// 	fmt.Printf("Login successful? %v\n", diag.LoginSuccessful)
+// 	if err != nil {
+// 		fmt.Println()
+// 	}
 
-	return trace.Wrap(err)
-}
+// 	return trace.Wrap(err)
+// }

@@ -57,7 +57,6 @@ import (
 	"github.com/gravitational/teleport/lib/client/terminal"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	kubeutils "github.com/gravitational/teleport/lib/kube/utils"
 	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/services"
@@ -1231,7 +1230,8 @@ func ParseProxyHost(proxyHost string) (*ParsedProxyHost, error) {
 // ParseProxyHost parses the proxyHost string and updates the config.
 //
 // Format of proxyHost string:
-//   proxy_web_addr:<proxy_web_port>,<proxy_ssh_port>
+//
+//	proxy_web_addr:<proxy_web_port>,<proxy_ssh_port>
 func (c *Config) ParseProxyHost(proxyHost string) error {
 	parsedAddrs, err := ParseProxyHost(proxyHost)
 	if err != nil {
@@ -2723,31 +2723,31 @@ func (tc *TeleportClient) ListAllNodes(ctx context.Context) ([]types.Server, err
 }
 
 // ListKubeClustersWithFiltersAllClusters returns a map of all kube clusters in all clusters connected to a proxy.
-func (tc *TeleportClient) ListKubeClustersWithFiltersAllClusters(ctx context.Context, req proto.ListResourcesRequest) (map[string][]*types.KubernetesCluster, error) {
-	pc, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	clusters, err := pc.GetSites(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	kubeClusters := make(map[string][]*types.KubernetesCluster, 0)
-	for _, cluster := range clusters {
-		ac, err := pc.ConnectToCluster(ctx, cluster.Name)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
+// func (tc *TeleportClient) ListKubeClustersWithFiltersAllClusters(ctx context.Context, req proto.ListResourcesRequest) (map[string][]*types.KubernetesCluster, error) {
+// 	pc, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	clusters, err := pc.GetSites(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	kubeClusters := make(map[string][]*types.KubernetesCluster, 0)
+// 	for _, cluster := range clusters {
+// 		ac, err := pc.ConnectToCluster(ctx, cluster.Name)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
 
-		kc, err := kubeutils.ListKubeClustersWithFilters(ctx, ac, req)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		kubeClusters[cluster.Name] = kc
-	}
+// 		kc, err := kubeutils.ListKubeClustersWithFilters(ctx, ac, req)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		kubeClusters[cluster.Name] = kc
+// 	}
 
-	return kubeClusters, nil
-}
+// 	return kubeClusters, nil
+// }
 
 // runCommandOnNodes executes a given bash command on a bunch of remote nodes.
 func (tc *TeleportClient) runCommandOnNodes(
@@ -3059,11 +3059,11 @@ func (tc *TeleportClient) connectToProxy(ctx context.Context) (*ProxyClient, err
 }
 
 // makeProxySSHClient creates an SSH client by following steps:
-// 1) If the current proxy supports TLS Routing and JumpHost address was not provided use TLSWrapper.
-// 2) Check JumpHost raw SSH port or Teleport proxy address.
-//    In case of proxy web address check if the proxy supports TLS Routing and connect to the proxy with TLSWrapper
-// 3) Dial sshProxyAddr with raw SSH Dialer where sshProxyAddress is proxy ssh address or JumpHost address if
-//    JumpHost address was provided.
+//  1. If the current proxy supports TLS Routing and JumpHost address was not provided use TLSWrapper.
+//  2. Check JumpHost raw SSH port or Teleport proxy address.
+//     In case of proxy web address check if the proxy supports TLS Routing and connect to the proxy with TLSWrapper
+//  3. Dial sshProxyAddr with raw SSH Dialer where sshProxyAddress is proxy ssh address or JumpHost address if
+//     JumpHost address was provided.
 func makeProxySSHClient(ctx context.Context, tc *TeleportClient, sshConfig *ssh.ClientConfig) (*tracessh.Client, error) {
 	// Use TLS Routing dialer only if proxy support TLS Routing and JumpHost was not set.
 	if tc.Config.TLSRoutingEnabled && len(tc.JumpHosts) == 0 {

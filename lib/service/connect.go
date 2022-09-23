@@ -26,8 +26,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gravitational/roundtrip"
 	"github.com/gravitational/trace"
-	om "github.com/grpc-ecosystem/go-grpc-middleware/providers/openmetrics/v2"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc"
@@ -1132,16 +1130,16 @@ func (process *TeleportProcess) newClientDirect(authServers []utils.NetAddr, tls
 	}
 
 	var dialOpts []grpc.DialOption
-	if role == types.RoleProxy {
-		grpcMetrics := utils.CreateGRPCClientMetrics(process.Config.Metrics.GRPCClientLatency, prometheus.Labels{teleport.TagClient: "teleport-proxy"})
-		if err := utils.RegisterPrometheusCollectors(grpcMetrics); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		dialOpts = append(dialOpts, []grpc.DialOption{
-			grpc.WithUnaryInterceptor(om.UnaryClientInterceptor(grpcMetrics)),
-			grpc.WithStreamInterceptor(om.StreamClientInterceptor(grpcMetrics)),
-		}...)
-	}
+	// if role == types.RoleProxy {
+	// 	grpcMetrics := utils.CreateGRPCClientMetrics(process.Config.Metrics.GRPCClientLatency, prometheus.Labels{teleport.TagClient: "teleport-proxy"})
+	// 	if err := utils.RegisterPrometheusCollectors(grpcMetrics); err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	dialOpts = append(dialOpts, []grpc.DialOption{
+	// 		grpc.WithUnaryInterceptor(om.UnaryClientInterceptor(grpcMetrics)),
+	// 		grpc.WithStreamInterceptor(om.StreamClientInterceptor(grpcMetrics)),
+	// 	}...)
+	// }
 
 	clt, err := auth.NewClient(apiclient.Config{
 		Context: process.ExitContext(),

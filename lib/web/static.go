@@ -19,13 +19,13 @@ limitations under the License.
 
 package web
 
-import (
-	"net/http"
+// import (
+// 	"net/http"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-// NewStaticFileSystem is a no-op in this build mode.
-func NewStaticFileSystem() (http.FileSystem, error) { //nolint:staticcheck
-	return nil, trace.NotFound(webAssetsMissingError)
-}
+// // NewStaticFileSystem is a no-op in this build mode.
+// func NewStaticFileSystem() (http.FileSystem, error) { //nolint:staticcheck
+// 	return nil, trace.NotFound(webAssetsMissingError)
+// }

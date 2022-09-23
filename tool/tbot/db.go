@@ -16,67 +16,67 @@ limitations under the License.
 
 package main
 
-import (
-	"path/filepath"
+// import (
+// 	"path/filepath"
 
-	"github.com/gravitational/teleport/lib/tbot/config"
-	"github.com/gravitational/teleport/lib/tbot/tshwrap"
-	"github.com/gravitational/teleport/lib/utils"
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/teleport/lib/tbot/config"
+// 	"github.com/gravitational/teleport/lib/tbot/tshwrap"
+// 	"github.com/gravitational/teleport/lib/utils"
+// 	"github.com/gravitational/trace"
+// )
 
-func onDBCommand(botConfig *config.BotConfig, cf *config.CLIConf) error {
-	wrapper, err := tshwrap.New()
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// func onDBCommand(botConfig *config.BotConfig, cf *config.CLIConf) error {
+// 	wrapper, err := tshwrap.New()
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	if err := tshwrap.CheckTSHSupported(wrapper); err != nil {
-		return trace.Wrap(err)
-	}
+// 	if err := tshwrap.CheckTSHSupported(wrapper); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	destination, err := tshwrap.GetDestination(botConfig, cf)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	destination, err := tshwrap.GetDestination(botConfig, cf)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	destinationPath, err := tshwrap.GetDestinationPath(destination)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	destinationPath, err := tshwrap.GetDestinationPath(destination)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	identityTemplate, err := tshwrap.GetIdentityTemplate(destination)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	identityTemplate, err := tshwrap.GetIdentityTemplate(destination)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	env, err := tshwrap.GetEnvForTSH(destination)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	env, err := tshwrap.GetEnvForTSH(destination)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	identityPath := filepath.Join(destinationPath, identityTemplate.FileName)
-	identity, err := tshwrap.LoadIdentity(identityPath)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	identityPath := filepath.Join(destinationPath, identityTemplate.FileName)
+// 	identity, err := tshwrap.LoadIdentity(identityPath)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	args := []string{"-i", identityPath, "db", "--proxy=" + cf.Proxy}
-	if cf.Cluster != "" {
-		// If we caught --cluster in our args, pass it through.
-		args = append(args, "--cluster="+cf.Cluster)
-	} else if !utils.HasPrefixAny("--cluster", cf.RemainingArgs) {
-		// If no `--cluster` was provided after a `--`, pass along the cluster
-		// name in the identity.
-		args = append(args, "--cluster="+identity.RouteToCluster)
-	}
-	args = append(args, cf.RemainingArgs...)
+// 	args := []string{"-i", identityPath, "db", "--proxy=" + cf.Proxy}
+// 	if cf.Cluster != "" {
+// 		// If we caught --cluster in our args, pass it through.
+// 		args = append(args, "--cluster="+cf.Cluster)
+// 	} else if !utils.HasPrefixAny("--cluster", cf.RemainingArgs) {
+// 		// If no `--cluster` was provided after a `--`, pass along the cluster
+// 		// name in the identity.
+// 		args = append(args, "--cluster="+identity.RouteToCluster)
+// 	}
+// 	args = append(args, cf.RemainingArgs...)
 
-	// Pass through the debug flag, and prepend to satisfy argument ordering
-	// needs (`-d` must precede `db`).
-	if botConfig.Debug {
-		args = append([]string{"-d"}, args...)
-	}
+// 	// Pass through the debug flag, and prepend to satisfy argument ordering
+// 	// needs (`-d` must precede `db`).
+// 	if botConfig.Debug {
+// 		args = append([]string{"-d"}, args...)
+// 	}
 
-	return trace.Wrap(wrapper.Exec(env, args...), "executing `tsh db`")
-}
+// 	return trace.Wrap(wrapper.Exec(env, args...), "executing `tsh db`")
+// }

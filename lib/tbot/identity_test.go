@@ -19,26 +19,26 @@ limitations under the License.
 
 package tbot
 
-import (
-	"testing"
+// import (
+// 	"testing"
 
-	"github.com/gravitational/teleport/lib/tbot/config"
-	"github.com/gravitational/teleport/lib/tbot/identity"
-	"github.com/gravitational/trace"
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/gravitational/teleport/lib/tbot/config"
+// 	"github.com/gravitational/teleport/lib/tbot/identity"
+// 	"github.com/gravitational/trace"
+// 	"github.com/stretchr/testify/require"
+// )
 
-func TestLoadEmptyIdentity(t *testing.T) {
-	t.Parallel()
+// func TestLoadEmptyIdentity(t *testing.T) {
+// 	t.Parallel()
 
-	dir := t.TempDir()
-	dest := config.DestinationDirectory{
-		Path: dir,
-	}
-	require.NoError(t, dest.CheckAndSetDefaults())
+// 	dir := t.TempDir()
+// 	dest := config.DestinationDirectory{
+// 		Path: dir,
+// 	}
+// 	require.NoError(t, dest.CheckAndSetDefaults())
 
-	_, err := identity.LoadIdentity(&dest, identity.BotKinds()...)
-	require.Error(t, err)
+// 	_, err := identity.LoadIdentity(&dest, identity.BotKinds()...)
+// 	require.Error(t, err)
 
-	require.True(t, trace.IsNotFound(err))
-}
+// 	require.True(t, trace.IsNotFound(err))
+// }

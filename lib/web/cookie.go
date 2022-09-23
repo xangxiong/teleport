@@ -17,65 +17,65 @@ limitations under the License.
 
 package web
 
-import (
-	"encoding/hex"
-	"encoding/json"
-	"net/http"
-)
+// import (
+// 	"encoding/hex"
+// 	"encoding/json"
+// 	"net/http"
+// )
 
-// SessionCookie stores information about active user and session
-type SessionCookie struct {
-	User string `json:"user"`
-	SID  string `json:"sid"`
-}
+// // SessionCookie stores information about active user and session
+// type SessionCookie struct {
+// 	User string `json:"user"`
+// 	SID  string `json:"sid"`
+// }
 
-func EncodeCookie(user, sid string) (string, error) {
-	bytes, err := json.Marshal(SessionCookie{User: user, SID: sid})
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
-}
+// func EncodeCookie(user, sid string) (string, error) {
+// 	bytes, err := json.Marshal(SessionCookie{User: user, SID: sid})
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return hex.EncodeToString(bytes), nil
+// }
 
-func DecodeCookie(b string) (*SessionCookie, error) {
-	bytes, err := hex.DecodeString(b)
-	if err != nil {
-		return nil, err
-	}
-	var c *SessionCookie
-	if err := json.Unmarshal(bytes, &c); err != nil {
-		return nil, err
-	}
-	return c, nil
-}
+// func DecodeCookie(b string) (*SessionCookie, error) {
+// 	bytes, err := hex.DecodeString(b)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	var c *SessionCookie
+// 	if err := json.Unmarshal(bytes, &c); err != nil {
+// 		return nil, err
+// 	}
+// 	return c, nil
+// }
 
-func SetSessionCookie(w http.ResponseWriter, user, sid string) error {
-	d, err := EncodeCookie(user, sid)
-	if err != nil {
-		return err
-	}
-	c := &http.Cookie{
-		Name:     CookieName,
-		Value:    d,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-	}
-	http.SetCookie(w, c)
-	return nil
-}
+// func SetSessionCookie(w http.ResponseWriter, user, sid string) error {
+// 	d, err := EncodeCookie(user, sid)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	c := &http.Cookie{
+// 		Name:     CookieName,
+// 		Value:    d,
+// 		Path:     "/",
+// 		HttpOnly: true,
+// 		Secure:   true,
+// 	}
+// 	http.SetCookie(w, c)
+// 	return nil
+// }
 
-func ClearSession(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     CookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-	})
-}
+// func ClearSession(w http.ResponseWriter) {
+// 	http.SetCookie(w, &http.Cookie{
+// 		Name:     CookieName,
+// 		Value:    "",
+// 		Path:     "/",
+// 		HttpOnly: true,
+// 		Secure:   true,
+// 	})
+// }
 
-const (
-	// CookieName is the name of the session cookie.
-	CookieName = "__Host-session"
-)
+// const (
+// 	// CookieName is the name of the session cookie.
+// 	CookieName = "__Host-session"
+// )

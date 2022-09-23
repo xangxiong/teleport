@@ -445,25 +445,25 @@ func onStatus() error {
 	return nil
 }
 
-type dumpFlags struct {
-	config.SampleFlags
-	output         string
-	testConfigFile string
-}
+// type dumpFlags struct {
+// 	config.SampleFlags
+// 	output         string
+// 	testConfigFile string
+// }
 
-func (flags *dumpFlags) CheckAndSetDefaults() error {
-	if flags.testConfigFile != "" && flags.output != teleport.SchemeStdout {
-		return trace.BadParameter("only --output or --test can be set, not both")
-	}
+// func (flags *dumpFlags) CheckAndSetDefaults() error {
+// 	if flags.testConfigFile != "" && flags.output != teleport.SchemeStdout {
+// 		return trace.BadParameter("only --output or --test can be set, not both")
+// 	}
 
-	err := checkConfigurationFileVersion(flags.Version)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	err := checkConfigurationFileVersion(flags.Version)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	flags.output = normalizeOutput(flags.output)
-	return nil
-}
+// 	flags.output = normalizeOutput(flags.output)
+// 	return nil
+// }
 
 func normalizeOutput(output string) string {
 	switch output {

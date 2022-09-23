@@ -16,37 +16,37 @@ limitations under the License.
 
 package mfajson
 
-import (
-	"encoding/json"
+// import (
+// 	"encoding/json"
 
-	"github.com/gravitational/trace"
+// 	"github.com/gravitational/trace"
 
-	authproto "github.com/gravitational/teleport/api/client/proto"
-	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
-	"github.com/gravitational/teleport/lib/defaults"
-)
+// 	authproto "github.com/gravitational/teleport/api/client/proto"
+// 	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
+// 	"github.com/gravitational/teleport/lib/defaults"
+// )
 
-// Decode parses a JSON-encoded MFA authentication response.
-// Only webauthn (type="n") is currently supported.
-func Decode(b []byte, typ string) (*authproto.MFAAuthenticateResponse, error) {
-	var resp *authproto.MFAAuthenticateResponse
+// // Decode parses a JSON-encoded MFA authentication response.
+// // Only webauthn (type="n") is currently supported.
+// func Decode(b []byte, typ string) (*authproto.MFAAuthenticateResponse, error) {
+// 	var resp *authproto.MFAAuthenticateResponse
 
-	switch typ {
-	case defaults.WebsocketWebauthnChallenge:
-		var webauthnResponse wanlib.CredentialAssertionResponse
-		if err := json.Unmarshal(b, &webauthnResponse); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resp = &authproto.MFAAuthenticateResponse{
-			Response: &authproto.MFAAuthenticateResponse_Webauthn{
-				Webauthn: wanlib.CredentialAssertionResponseToProto(&webauthnResponse),
-			},
-		}
+// 	switch typ {
+// 	case defaults.WebsocketWebauthnChallenge:
+// 		var webauthnResponse wanlib.CredentialAssertionResponse
+// 		if err := json.Unmarshal(b, &webauthnResponse); err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		resp = &authproto.MFAAuthenticateResponse{
+// 			Response: &authproto.MFAAuthenticateResponse_Webauthn{
+// 				Webauthn: wanlib.CredentialAssertionResponseToProto(&webauthnResponse),
+// 			},
+// 		}
 
-	default:
-		return nil, trace.BadParameter(
-			"received type %v, expected %v (WebAuthn)", typ, defaults.WebsocketWebauthnChallenge)
-	}
+// 	default:
+// 		return nil, trace.BadParameter(
+// 			"received type %v, expected %v (WebAuthn)", typ, defaults.WebsocketWebauthnChallenge)
+// 	}
 
-	return resp, nil
-}
+// 	return resp, nil
+// }

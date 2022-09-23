@@ -14,51 +14,51 @@
 
 package tester
 
-import (
-	"encoding/json"
-	"fmt"
+// import (
+// 	"encoding/json"
+// 	"fmt"
 
-	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/api/types"
 
-	"github.com/ghodss/yaml"
-)
+// 	"github.com/ghodss/yaml"
+// )
 
-func FormatString(description string, msg string) string {
-	return fmt.Sprintf("%v:\n%v\n", description, msg)
-}
+// func FormatString(description string, msg string) string {
+// 	return fmt.Sprintf("%v:\n%v\n", description, msg)
+// }
 
-func FormatYAML(description string, object interface{}) string {
-	output, err := yaml.Marshal(object)
-	if err != nil {
-		return formatError(description, err)
-	}
-	return fmt.Sprintf("%v:\n%v", description, string(output))
-}
+// func FormatYAML(description string, object interface{}) string {
+// 	output, err := yaml.Marshal(object)
+// 	if err != nil {
+// 		return formatError(description, err)
+// 	}
+// 	return fmt.Sprintf("%v:\n%v", description, string(output))
+// }
 
-func FormatJSON(description string, object interface{}) string {
-	output, err := json.MarshalIndent(object, "", "    ")
-	if err != nil {
-		return formatError(description, err)
-	}
-	return fmt.Sprintf("%v:\n%v\n", description, string(output))
-}
+// func FormatJSON(description string, object interface{}) string {
+// 	output, err := json.MarshalIndent(object, "", "    ")
+// 	if err != nil {
+// 		return formatError(description, err)
+// 	}
+// 	return fmt.Sprintf("%v:\n%v\n", description, string(output))
+// }
 
-func formatUserDetails(description string, info *types.CreateUserParams) string {
-	if info == nil {
-		return ""
-	}
+// func formatUserDetails(description string, info *types.CreateUserParams) string {
+// 	if info == nil {
+// 		return ""
+// 	}
 
-	// Skip fields: connector_name, session_ttl
-	info.ConnectorName = ""
-	info.SessionTTL = 0
+// 	// Skip fields: connector_name, session_ttl
+// 	info.ConnectorName = ""
+// 	info.SessionTTL = 0
 
-	output, err := yaml.Marshal(info)
-	if err != nil {
-		return formatError(description, err)
-	}
-	return fmt.Sprintf("%v:\n%v", description, Indent(string(output), 3))
-}
+// 	output, err := yaml.Marshal(info)
+// 	if err != nil {
+// 		return formatError(description, err)
+// 	}
+// 	return fmt.Sprintf("%v:\n%v", description, Indent(string(output), 3))
+// }
 
-func formatError(fieldDesc string, err error) string {
-	return fmt.Sprintf("%v: error rendering field: %v\n", fieldDesc, err)
-}
+// func formatError(fieldDesc string, err error) string {
+// 	return fmt.Sprintf("%v: error rendering field: %v\n", fieldDesc, err)
+// }

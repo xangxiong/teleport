@@ -16,35 +16,35 @@ limitations under the License.
 
 package config
 
-import (
-	"path/filepath"
+// import (
+// 	"path/filepath"
 
-	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/teleport/lib/defaults"
+// 	"github.com/gravitational/trace"
+// )
 
-var defaultStoragePath = filepath.Join(defaults.DataDir, "bot")
+// var defaultStoragePath = filepath.Join(defaults.DataDir, "bot")
 
-// StorageConfig contains config parameters for the bot's internal certificate
-// storage.
-type StorageConfig struct {
-	DestinationMixin `yaml:",inline"`
-}
+// // StorageConfig contains config parameters for the bot's internal certificate
+// // storage.
+// type StorageConfig struct {
+// 	DestinationMixin `yaml:",inline"`
+// }
 
-// storageDefaults applies default destinations for the bot's internal storage
-// section.
-func storageDefaults(dm *DestinationMixin) error {
-	dm.Directory = &DestinationDirectory{
-		Path: defaultStoragePath,
-	}
+// // storageDefaults applies default destinations for the bot's internal storage
+// // section.
+// func storageDefaults(dm *DestinationMixin) error {
+// 	dm.Directory = &DestinationDirectory{
+// 		Path: defaultStoragePath,
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (sc *StorageConfig) CheckAndSetDefaults() error {
-	if err := sc.DestinationMixin.CheckAndSetDefaults(storageDefaults); err != nil {
-		return trace.Wrap(err)
-	}
+// func (sc *StorageConfig) CheckAndSetDefaults() error {
+// 	if err := sc.DestinationMixin.CheckAndSetDefaults(storageDefaults); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

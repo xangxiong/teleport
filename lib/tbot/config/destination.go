@@ -16,81 +16,81 @@ limitations under the License.
 
 package config
 
-import (
-	"github.com/gravitational/teleport/lib/tbot/bot"
-	"github.com/gravitational/trace"
-)
+// import (
+// 	"github.com/gravitational/teleport/lib/tbot/bot"
+// 	"github.com/gravitational/trace"
+// )
 
-// DestinationMixin is a reusable struct for all config elements that accept a
-// destination. Note that if embedded, DestinationMixin.CheckAndSetDefaults()
-// must be called.
-type DestinationMixin struct {
-	Directory *DestinationDirectory `yaml:"directory,omitempty"`
-	Memory    *DestinationMemory    `yaml:"memory,omitempty"`
-}
+// // DestinationMixin is a reusable struct for all config elements that accept a
+// // destination. Note that if embedded, DestinationMixin.CheckAndSetDefaults()
+// // must be called.
+// type DestinationMixin struct {
+// 	Directory *DestinationDirectory `yaml:"directory,omitempty"`
+// 	Memory    *DestinationMemory    `yaml:"memory,omitempty"`
+// }
 
-type DestinationDefaults = func(*DestinationMixin) error
+// type DestinationDefaults = func(*DestinationMixin) error
 
-// checkAndSetDefaultsInner performs member initialization that won't recurse
-func (dm *DestinationMixin) checkAndSetDefaultsInner() (int, error) {
-	notNilCount := 0
-	if dm.Directory != nil {
-		if err := dm.Directory.CheckAndSetDefaults(); err != nil {
-			return 0, trace.Wrap(err)
-		}
+// // checkAndSetDefaultsInner performs member initialization that won't recurse
+// func (dm *DestinationMixin) checkAndSetDefaultsInner() (int, error) {
+// 	notNilCount := 0
+// 	if dm.Directory != nil {
+// 		if err := dm.Directory.CheckAndSetDefaults(); err != nil {
+// 			return 0, trace.Wrap(err)
+// 		}
 
-		notNilCount++
-	}
+// 		notNilCount++
+// 	}
 
-	if dm.Memory != nil {
-		if err := dm.Memory.CheckAndSetDefaults(); err != nil {
-			return 0, trace.Wrap(err)
-		}
+// 	if dm.Memory != nil {
+// 		if err := dm.Memory.CheckAndSetDefaults(); err != nil {
+// 			return 0, trace.Wrap(err)
+// 		}
 
-		notNilCount++
-	}
-	return notNilCount, nil
-}
+// 		notNilCount++
+// 	}
+// 	return notNilCount, nil
+// }
 
-func (dm *DestinationMixin) CheckAndSetDefaults(applyDefaults DestinationDefaults) error {
-	notNilCount, err := dm.checkAndSetDefaultsInner()
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// func (dm *DestinationMixin) CheckAndSetDefaults(applyDefaults DestinationDefaults) error {
+// 	notNilCount, err := dm.checkAndSetDefaultsInner()
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	if notNilCount == 0 {
-		// use defaults
-		if err := applyDefaults(dm); err != nil {
-			return trace.Wrap(err)
-		}
+// 	if notNilCount == 0 {
+// 		// use defaults
+// 		if err := applyDefaults(dm); err != nil {
+// 			return trace.Wrap(err)
+// 		}
 
-		// CheckAndSetDefaults() again
-		notNilCount, err := dm.checkAndSetDefaultsInner()
-		if err != nil {
-			return trace.Wrap(err)
-		}
+// 		// CheckAndSetDefaults() again
+// 		notNilCount, err := dm.checkAndSetDefaultsInner()
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
 
-		if notNilCount == 0 {
-			return trace.BadParameter("a destination is required")
-		}
-	} else if notNilCount > 1 {
-		return trace.BadParameter("only one destination backend may be specified at a time")
-	}
+// 		if notNilCount == 0 {
+// 			return trace.BadParameter("a destination is required")
+// 		}
+// 	} else if notNilCount > 1 {
+// 		return trace.BadParameter("only one destination backend may be specified at a time")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-// GetDestination returns the first non-nil Destination set. Note that
-// CheckAndSetDefaults() does attempt to ensure that only a single
-// destination is set, though this may change at runtime.
-func (dm *DestinationMixin) GetDestination() (bot.Destination, error) {
-	if dm.Directory != nil {
-		return dm.Directory, nil
-	}
+// // GetDestination returns the first non-nil Destination set. Note that
+// // CheckAndSetDefaults() does attempt to ensure that only a single
+// // destination is set, though this may change at runtime.
+// func (dm *DestinationMixin) GetDestination() (bot.Destination, error) {
+// 	if dm.Directory != nil {
+// 		return dm.Directory, nil
+// 	}
 
-	if dm.Memory != nil {
-		return dm.Memory, nil
-	}
+// 	if dm.Memory != nil {
+// 		return dm.Memory, nil
+// 	}
 
-	return nil, trace.BadParameter("no valid destination exists")
-}
+// 	return nil, trace.BadParameter("no valid destination exists")
+// }

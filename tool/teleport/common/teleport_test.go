@@ -16,132 +16,132 @@ limitations under the License.
 
 package common
 
-import (
-	"os"
-	"path/filepath"
-	"testing"
+// import (
+// 	"os"
+// 	"path/filepath"
+// 	"testing"
 
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/utils"
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/defaults"
+// 	"github.com/gravitational/teleport/lib/utils"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/require"
-)
+// 	log "github.com/sirupsen/logrus"
+// 	"github.com/stretchr/testify/require"
+// )
 
-func TestMain(m *testing.M) {
-	utils.InitLoggerForTests()
-	os.Exit(m.Run())
-}
+// func TestMain(m *testing.M) {
+// 	utils.InitLoggerForTests()
+// 	os.Exit(m.Run())
+// }
 
 // bootstrap check
-func TestTeleportMain(t *testing.T) {
-	// get the hostname
-	hostname, err := os.Hostname()
-	require.NoError(t, err)
+// func TestTeleportMain(t *testing.T) {
+// 	// get the hostname
+// 	hostname, err := os.Hostname()
+// 	require.NoError(t, err)
 
-	fixtureDir := t.TempDir()
-	// generate the fixture config file
-	configFile := filepath.Join(fixtureDir, "teleport.yaml")
-	require.NoError(t, os.WriteFile(configFile, []byte(configData), 0660))
+// 	fixtureDir := t.TempDir()
+// 	// generate the fixture config file
+// 	configFile := filepath.Join(fixtureDir, "teleport.yaml")
+// 	require.NoError(t, os.WriteFile(configFile, []byte(configData), 0660))
 
-	// generate the fixture bootstrap file
-	bootstrapEntries := []struct{ fileName, kind, name string }{
-		{"role.yaml", types.KindRole, "role_name"},
-		{"github.yaml", types.KindGithubConnector, "github"},
-		{"user.yaml", types.KindRole, "user"},
-	}
-	var bootstrapData []byte
-	for _, entry := range bootstrapEntries {
-		data, err := os.ReadFile(filepath.Join("..", "..", "..", "examples", "resources", entry.fileName))
-		require.NoError(t, err)
-		bootstrapData = append(bootstrapData, data...)
-		bootstrapData = append(bootstrapData, "\n---\n"...)
-	}
-	bootstrapFile := filepath.Join(fixtureDir, "bootstrap.yaml")
-	require.NoError(t, os.WriteFile(bootstrapFile, bootstrapData, 0660))
+// 	// generate the fixture bootstrap file
+// 	bootstrapEntries := []struct{ fileName, kind, name string }{
+// 		{"role.yaml", types.KindRole, "role_name"},
+// 		{"github.yaml", types.KindGithubConnector, "github"},
+// 		{"user.yaml", types.KindRole, "user"},
+// 	}
+// 	var bootstrapData []byte
+// 	for _, entry := range bootstrapEntries {
+// 		data, err := os.ReadFile(filepath.Join("..", "..", "..", "examples", "resources", entry.fileName))
+// 		require.NoError(t, err)
+// 		bootstrapData = append(bootstrapData, data...)
+// 		bootstrapData = append(bootstrapData, "\n---\n"...)
+// 	}
+// 	bootstrapFile := filepath.Join(fixtureDir, "bootstrap.yaml")
+// 	require.NoError(t, os.WriteFile(bootstrapFile, bootstrapData, 0660))
 
-	// set defaults to test-mode (non-existing files&locations)
-	defaults.ConfigFilePath = "/tmp/teleport/etc/teleport.yaml"
-	defaults.DataDir = "/tmp/teleport/var/lib/teleport"
+// 	// set defaults to test-mode (non-existing files&locations)
+// 	defaults.ConfigFilePath = "/tmp/teleport/etc/teleport.yaml"
+// 	defaults.DataDir = "/tmp/teleport/var/lib/teleport"
 
-	t.Run("Default", func(t *testing.T) {
-		_, cmd, conf := Run(Options{
-			Args:     []string{"start"},
-			InitOnly: true,
-		})
-		require.Equal(t, "start", cmd)
-		require.Equal(t, hostname, conf.Hostname)
-		require.Equal(t, "/tmp/teleport/var/lib/teleport", conf.DataDir)
-		require.True(t, conf.Auth.Enabled)
-		require.True(t, conf.SSH.Enabled)
-		require.True(t, conf.Proxy.Enabled)
-		require.Equal(t, os.Stdout, conf.Console)
-		require.Equal(t, log.ErrorLevel, log.GetLevel())
-	})
+// 	t.Run("Default", func(t *testing.T) {
+// 		_, cmd, conf := Run(Options{
+// 			Args:     []string{"start"},
+// 			InitOnly: true,
+// 		})
+// 		require.Equal(t, "start", cmd)
+// 		require.Equal(t, hostname, conf.Hostname)
+// 		require.Equal(t, "/tmp/teleport/var/lib/teleport", conf.DataDir)
+// 		require.True(t, conf.Auth.Enabled)
+// 		require.True(t, conf.SSH.Enabled)
+// 		require.True(t, conf.Proxy.Enabled)
+// 		require.Equal(t, os.Stdout, conf.Console)
+// 		require.Equal(t, log.ErrorLevel, log.GetLevel())
+// 	})
 
-	t.Run("RolesFlag", func(t *testing.T) {
-		_, cmd, conf := Run(Options{
-			Args:     []string{"start", "--roles=node"},
-			InitOnly: true,
-		})
-		require.True(t, conf.SSH.Enabled)
-		require.False(t, conf.Auth.Enabled)
-		require.False(t, conf.Proxy.Enabled)
-		require.Equal(t, "start", cmd)
+// 	t.Run("RolesFlag", func(t *testing.T) {
+// 		_, cmd, conf := Run(Options{
+// 			Args:     []string{"start", "--roles=node"},
+// 			InitOnly: true,
+// 		})
+// 		require.True(t, conf.SSH.Enabled)
+// 		require.False(t, conf.Auth.Enabled)
+// 		require.False(t, conf.Proxy.Enabled)
+// 		require.Equal(t, "start", cmd)
 
-		_, cmd, conf = Run(Options{
-			Args:     []string{"start", "--roles=proxy"},
-			InitOnly: true,
-		})
-		require.False(t, conf.SSH.Enabled)
-		require.False(t, conf.Auth.Enabled)
-		require.True(t, conf.Proxy.Enabled)
-		require.Equal(t, "start", cmd)
+// 		_, cmd, conf = Run(Options{
+// 			Args:     []string{"start", "--roles=proxy"},
+// 			InitOnly: true,
+// 		})
+// 		require.False(t, conf.SSH.Enabled)
+// 		require.False(t, conf.Auth.Enabled)
+// 		require.True(t, conf.Proxy.Enabled)
+// 		require.Equal(t, "start", cmd)
 
-		_, cmd, conf = Run(Options{
-			Args:     []string{"start", "--roles=auth"},
-			InitOnly: true,
-		})
-		require.False(t, conf.SSH.Enabled)
-		require.True(t, conf.Auth.Enabled)
-		require.False(t, conf.Proxy.Enabled)
-		require.Equal(t, "start", cmd)
-	})
+// 		_, cmd, conf = Run(Options{
+// 			Args:     []string{"start", "--roles=auth"},
+// 			InitOnly: true,
+// 		})
+// 		require.False(t, conf.SSH.Enabled)
+// 		require.True(t, conf.Auth.Enabled)
+// 		require.False(t, conf.Proxy.Enabled)
+// 		require.Equal(t, "start", cmd)
+// 	})
 
-	t.Run("ConfigFile", func(t *testing.T) {
-		_, cmd, conf := Run(Options{
-			Args:     []string{"start", "--roles=node", "--labels=a=a1,b=b1", "--config=" + configFile},
-			InitOnly: true,
-		})
-		require.Equal(t, "start", cmd)
-		require.True(t, conf.SSH.Enabled)
-		require.False(t, conf.Auth.Enabled)
-		require.False(t, conf.Proxy.Enabled)
-		require.Equal(t, log.DebugLevel, conf.Log.GetLevel())
-		require.Equal(t, "hvostongo.example.org", conf.Hostname)
+// 	t.Run("ConfigFile", func(t *testing.T) {
+// 		_, cmd, conf := Run(Options{
+// 			Args:     []string{"start", "--roles=node", "--labels=a=a1,b=b1", "--config=" + configFile},
+// 			InitOnly: true,
+// 		})
+// 		require.Equal(t, "start", cmd)
+// 		require.True(t, conf.SSH.Enabled)
+// 		require.False(t, conf.Auth.Enabled)
+// 		require.False(t, conf.Proxy.Enabled)
+// 		require.Equal(t, log.DebugLevel, conf.Log.GetLevel())
+// 		require.Equal(t, "hvostongo.example.org", conf.Hostname)
 
-		token, err := conf.Token()
-		require.NoError(t, err)
-		require.Equal(t, "xxxyyy", token)
-		require.Equal(t, "10.5.5.5", conf.AdvertiseIP)
-		require.Equal(t, map[string]string{"a": "a1", "b": "b1"}, conf.SSH.Labels)
-	})
+// 		token, err := conf.Token()
+// 		require.NoError(t, err)
+// 		require.Equal(t, "xxxyyy", token)
+// 		require.Equal(t, "10.5.5.5", conf.AdvertiseIP)
+// 		require.Equal(t, map[string]string{"a": "a1", "b": "b1"}, conf.SSH.Labels)
+// 	})
 
-	t.Run("Bootstrap", func(t *testing.T) {
-		_, cmd, conf := Run(Options{
-			Args:     []string{"start", "--bootstrap", bootstrapFile},
-			InitOnly: true,
-		})
-		require.Equal(t, "start", cmd)
-		require.Equal(t, len(bootstrapEntries), len(conf.Auth.Resources))
-		for i, entry := range bootstrapEntries {
-			require.Equal(t, entry.kind, conf.Auth.Resources[i].GetKind(), entry.fileName)
-			require.Equal(t, entry.name, conf.Auth.Resources[i].GetName(), entry.fileName)
-			require.NoError(t, conf.Auth.Resources[i].CheckAndSetDefaults(), entry.fileName)
-		}
-	})
-}
+// 	t.Run("Bootstrap", func(t *testing.T) {
+// 		_, cmd, conf := Run(Options{
+// 			Args:     []string{"start", "--bootstrap", bootstrapFile},
+// 			InitOnly: true,
+// 		})
+// 		require.Equal(t, "start", cmd)
+// 		require.Equal(t, len(bootstrapEntries), len(conf.Auth.Resources))
+// 		for i, entry := range bootstrapEntries {
+// 			require.Equal(t, entry.kind, conf.Auth.Resources[i].GetKind(), entry.fileName)
+// 			require.Equal(t, entry.name, conf.Auth.Resources[i].GetName(), entry.fileName)
+// 			require.NoError(t, conf.Auth.Resources[i].CheckAndSetDefaults(), entry.fileName)
+// 		}
+// 	})
+// }
 
 // func TestConfigure(t *testing.T) {
 // 	t.Run("Dump", func(t *testing.T) {

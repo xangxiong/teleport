@@ -23,31 +23,31 @@ limitations under the License.
 
 package rdpclient
 
-import (
-	"context"
-	"errors"
-	"time"
-)
+// import (
+// 	"context"
+// 	"errors"
+// 	"time"
+// )
 
-// Client is the dummy RDP client.
-type Client struct {
-}
+// // Client is the dummy RDP client.
+// type Client struct {
+// }
 
-// New creates and connects a new Client based on opts.
-func New(cfg Config) (*Client, error) {
-	return &Client{}, errors.New("the real rdpclient.Client implementation was not included in this build")
-}
+// // New creates and connects a new Client based on opts.
+// func New(cfg Config) (*Client, error) {
+// 	return &Client{}, errors.New("the real rdpclient.Client implementation was not included in this build")
+// }
 
-// Run starts the rdp client and blocks until the client disconnects,
-// then runs the cleanup.
-func (c *Client) Run(ctx context.Context) error {
-	return errors.New("the real rdpclient.Client implementation was not included in this build")
-}
+// // Run starts the rdp client and blocks until the client disconnects,
+// // then runs the cleanup.
+// func (c *Client) Run(ctx context.Context) error {
+// 	return errors.New("the real rdpclient.Client implementation was not included in this build")
+// }
 
-// GetClientLastActive returns the time of the last recorded activity.
-func (c *Client) GetClientLastActive() time.Time {
-	return time.Now().UTC()
-}
+// // GetClientLastActive returns the time of the last recorded activity.
+// func (c *Client) GetClientLastActive() time.Time {
+// 	return time.Now().UTC()
+// }
 
-// UpdateClientActivity updates the client activity timestamp.
-func (c *Client) UpdateClientActivity() {}
+// // UpdateClientActivity updates the client activity timestamp.
+// func (c *Client) UpdateClientActivity() {}

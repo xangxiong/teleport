@@ -16,84 +16,84 @@ limitations under the License.
 
 package ui
 
-import (
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/trace"
-)
+// import (
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/trace"
+// )
 
-type UserListEntry struct {
-	// Name is the user name.
-	Name string `json:"name"`
-	// Roles is the list of roles user belongs to.
-	Roles []string `json:"roles"`
-	// AuthType is the type of auth service
-	// that the user was authenticated through.
-	AuthType string `json:"authType"`
-}
+// type UserListEntry struct {
+// 	// Name is the user name.
+// 	Name string `json:"name"`
+// 	// Roles is the list of roles user belongs to.
+// 	Roles []string `json:"roles"`
+// 	// AuthType is the type of auth service
+// 	// that the user was authenticated through.
+// 	AuthType string `json:"authType"`
+// }
 
-type userTraits struct {
-	// Logins is the list of logins that a user is
-	// allowed to start SSH sessions with.
-	Logins []string `json:"logins,omitempty"`
-	// DatabaseUsers is the list of db usernames that a
-	// user is allowed to open db connections as.
-	DatabaseUsers []string `json:"databaseUsers,omitempty"`
-	// DatabaseNames is the list of db names that a user can connect to.
-	DatabaseNames []string `json:"databaseNames,omitempty"`
-	// KubeUsers is the list of allowed kube logins.
-	KubeUsers []string `json:"kubeUsers,omitempty"`
-	// KubeGroups is the list of KubeGroups Trait for the user.
-	KubeGroups []string `json:"kubeGroups,omitempty"`
-	// WindowsLogins is the list of logins that this user
-	// is allowed to start desktop sessions.
-	WindowsLogins []string `json:"windowsLogins,omitempty"`
-	// AWSRoleARNs is a list of aws roles this user is allowed to assume.
-	AWSRoleARNs []string `json:"awsRoleArns,omitempty"`
-}
+// type userTraits struct {
+// 	// Logins is the list of logins that a user is
+// 	// allowed to start SSH sessions with.
+// 	Logins []string `json:"logins,omitempty"`
+// 	// DatabaseUsers is the list of db usernames that a
+// 	// user is allowed to open db connections as.
+// 	DatabaseUsers []string `json:"databaseUsers,omitempty"`
+// 	// DatabaseNames is the list of db names that a user can connect to.
+// 	DatabaseNames []string `json:"databaseNames,omitempty"`
+// 	// KubeUsers is the list of allowed kube logins.
+// 	KubeUsers []string `json:"kubeUsers,omitempty"`
+// 	// KubeGroups is the list of KubeGroups Trait for the user.
+// 	KubeGroups []string `json:"kubeGroups,omitempty"`
+// 	// WindowsLogins is the list of logins that this user
+// 	// is allowed to start desktop sessions.
+// 	WindowsLogins []string `json:"windowsLogins,omitempty"`
+// 	// AWSRoleARNs is a list of aws roles this user is allowed to assume.
+// 	AWSRoleARNs []string `json:"awsRoleArns,omitempty"`
+// }
 
-// User contains data needed by the web UI to display locally saved users.
-type User struct {
-	UserListEntry
-	// Traits contain fields that define traits for local accounts.
-	Traits userTraits `json:"traits"`
-}
+// // User contains data needed by the web UI to display locally saved users.
+// type User struct {
+// 	UserListEntry
+// 	// Traits contain fields that define traits for local accounts.
+// 	Traits userTraits `json:"traits"`
+// }
 
-func NewUserListEntry(teleUser types.User) (*UserListEntry, error) {
-	if teleUser == nil {
-		return nil, trace.BadParameter("missing teleUser")
-	}
+// func NewUserListEntry(teleUser types.User) (*UserListEntry, error) {
+// 	if teleUser == nil {
+// 		return nil, trace.BadParameter("missing teleUser")
+// 	}
 
-	authType := "local"
-	if teleUser.GetCreatedBy().Connector != nil {
-		authType = teleUser.GetCreatedBy().Connector.Type
-	}
+// 	authType := "local"
+// 	if teleUser.GetCreatedBy().Connector != nil {
+// 		authType = teleUser.GetCreatedBy().Connector.Type
+// 	}
 
-	return &UserListEntry{
-		Name:     teleUser.GetName(),
-		Roles:    teleUser.GetRoles(),
-		AuthType: authType,
-	}, nil
-}
+// 	return &UserListEntry{
+// 		Name:     teleUser.GetName(),
+// 		Roles:    teleUser.GetRoles(),
+// 		AuthType: authType,
+// 	}, nil
+// }
 
-// NewUser creates UI user object
-func NewUser(teleUser types.User) (*User, error) {
-	// NewUserListEntry checks for a nil teleUser, no need to check for it here
+// // NewUser creates UI user object
+// func NewUser(teleUser types.User) (*User, error) {
+// 	// NewUserListEntry checks for a nil teleUser, no need to check for it here
 
-	userListEntry, err := NewUserListEntry(teleUser)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	userListEntry, err := NewUserListEntry(teleUser)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return &User{
-		UserListEntry: *userListEntry,
-		Traits: userTraits{
-			Logins:        teleUser.GetLogins(),
-			DatabaseUsers: teleUser.GetDatabaseUsers(),
-			DatabaseNames: teleUser.GetDatabaseNames(),
-			KubeUsers:     teleUser.GetKubeUsers(),
-			KubeGroups:    teleUser.GetKubeGroups(),
-			WindowsLogins: teleUser.GetWindowsLogins(),
-			AWSRoleARNs:   teleUser.GetAWSRoleARNs(),
-		},
-	}, nil
-}
+// 	return &User{
+// 		UserListEntry: *userListEntry,
+// 		Traits: userTraits{
+// 			Logins:        teleUser.GetLogins(),
+// 			DatabaseUsers: teleUser.GetDatabaseUsers(),
+// 			DatabaseNames: teleUser.GetDatabaseNames(),
+// 			KubeUsers:     teleUser.GetKubeUsers(),
+// 			KubeGroups:    teleUser.GetKubeGroups(),
+// 			WindowsLogins: teleUser.GetWindowsLogins(),
+// 			AWSRoleARNs:   teleUser.GetAWSRoleARNs(),
+// 		},
+// 	}, nil
+// }

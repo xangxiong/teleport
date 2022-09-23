@@ -19,30 +19,24 @@ package service
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/breaker"
 	"github.com/gravitational/teleport/api/types"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/auth/keystore"
 	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/backend/lite"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/kube/proxy"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/pam"
@@ -50,17 +44,12 @@ import (
 	restricted "github.com/gravitational/teleport/lib/restrictedsession"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/srv/app/common"
-	"github.com/gravitational/teleport/lib/srv/db/redis"
 	"github.com/gravitational/teleport/lib/sshca"
 	"github.com/gravitational/teleport/lib/sshutils/x11"
-	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/http/httpguts"
@@ -118,16 +107,16 @@ type Config struct {
 	SSH SSHConfig
 
 	// App service configuration. Manages applications running within the cluster.
-	Apps AppsConfig
+	// Apps AppsConfig
 
 	// Databases defines database proxy service configuration.
-	Databases DatabasesConfig
+	// Databases DatabasesConfig
 
 	// Metrics defines the metrics service configuration.
-	Metrics MetricsConfig
+	// Metrics MetricsConfig
 
 	// WindowsDesktop defines the Windows desktop service configuration.
-	WindowsDesktop WindowsDesktopConfig
+	// WindowsDesktop WindowsDesktopConfig
 
 	// Tracing defines the tracing service configuration.
 	Tracing TracingConfig
@@ -235,7 +224,7 @@ type Config struct {
 	BPFConfig *bpf.Config
 
 	// Kube is a Kubernetes API gateway using Teleport client identities.
-	Kube KubeConfig
+	// Kube KubeConfig
 
 	// Log optionally specifies the logger
 	Log utils.Logger
@@ -332,24 +321,24 @@ func (cfg *Config) RoleConfig() RoleConfig {
 		HostUUID:    cfg.HostUUID,
 		HostName:    cfg.Hostname,
 		AuthServers: cfg.AuthServers,
-		Auth:        cfg.Auth,
-		Console:     cfg.Console,
+		// Auth:        cfg.Auth,
+		Console: cfg.Console,
 	}
 }
 
 // DebugDumpToYAML is useful for debugging: it dumps the Config structure into
 // a string
-func (cfg *Config) DebugDumpToYAML() string {
-	shallow := *cfg
-	// do not copy sensitive data to stdout
-	shallow.Identities = nil
-	shallow.Auth.Authorities = nil
-	out, err := yaml.Marshal(shallow)
-	if err != nil {
-		return err.Error()
-	}
-	return string(out)
-}
+// func (cfg *Config) DebugDumpToYAML() string {
+// 	shallow := *cfg
+// 	// do not copy sensitive data to stdout
+// 	shallow.Identities = nil
+// 	shallow.Auth.Authorities = nil
+// 	out, err := yaml.Marshal(shallow)
+// 	if err != nil {
+// 		return err.Error()
+// 	}
+// 	return string(out)
+// }
 
 // CachePolicy sets caching policy for proxies and nodes
 type CachePolicy struct {
@@ -444,7 +433,7 @@ type ProxyConfig struct {
 	MongoPublicAddrs []utils.NetAddr
 
 	// Kube specifies kubernetes proxy configuration
-	Kube KubeProxyConfig
+	// Kube KubeProxyConfig
 
 	// KeyPairs are the key and certificate pairs that the proxy will load.
 	KeyPairs []KeyPairPath
@@ -476,48 +465,48 @@ type KeyPairPath struct {
 
 // KubeAddr returns the address for the Kubernetes endpoint on this proxy that
 // can be reached by clients.
-func (c ProxyConfig) KubeAddr() (string, error) {
-	if !c.Kube.Enabled {
-		return "", trace.NotFound("kubernetes support not enabled on this proxy")
-	}
-	if len(c.Kube.PublicAddrs) > 0 {
-		return fmt.Sprintf("https://%s", c.Kube.PublicAddrs[0].Addr), nil
-	}
-	host := "<proxyhost>"
-	// Try to guess the hostname from the HTTP public_addr.
-	if len(c.PublicAddrs) > 0 {
-		host = c.PublicAddrs[0].Host()
-	}
-	u := url.URL{
-		Scheme: "https",
-		Host:   net.JoinHostPort(host, strconv.Itoa(c.Kube.ListenAddr.Port(defaults.KubeListenPort))),
-	}
-	return u.String(), nil
-}
+// func (c ProxyConfig) KubeAddr() (string, error) {
+// 	if !c.Kube.Enabled {
+// 		return "", trace.NotFound("kubernetes support not enabled on this proxy")
+// 	}
+// 	if len(c.Kube.PublicAddrs) > 0 {
+// 		return fmt.Sprintf("https://%s", c.Kube.PublicAddrs[0].Addr), nil
+// 	}
+// 	host := "<proxyhost>"
+// 	// Try to guess the hostname from the HTTP public_addr.
+// 	if len(c.PublicAddrs) > 0 {
+// 		host = c.PublicAddrs[0].Host()
+// 	}
+// 	u := url.URL{
+// 		Scheme: "https",
+// 		Host:   net.JoinHostPort(host, strconv.Itoa(c.Kube.ListenAddr.Port(defaults.KubeListenPort))),
+// 	}
+// 	return u.String(), nil
+// }
 
 // KubeProxyConfig specifies configuration for proxy service
-type KubeProxyConfig struct {
-	// Enabled turns kubernetes proxy role on or off for this process
-	Enabled bool
+// type KubeProxyConfig struct {
+// 	// Enabled turns kubernetes proxy role on or off for this process
+// 	Enabled bool
 
-	// ListenAddr is the address to listen on for incoming kubernetes requests.
-	ListenAddr utils.NetAddr
+// 	// ListenAddr is the address to listen on for incoming kubernetes requests.
+// 	ListenAddr utils.NetAddr
 
-	// ClusterOverride causes all traffic to go to a specific remote
-	// cluster, used only in tests
-	ClusterOverride string
+// 	// ClusterOverride causes all traffic to go to a specific remote
+// 	// cluster, used only in tests
+// 	ClusterOverride string
 
-	// PublicAddrs is a list of the public addresses the Teleport Kube proxy can be accessed by,
-	// it also affects the host principals and routing logic
-	PublicAddrs []utils.NetAddr
+// 	// PublicAddrs is a list of the public addresses the Teleport Kube proxy can be accessed by,
+// 	// it also affects the host principals and routing logic
+// 	PublicAddrs []utils.NetAddr
 
-	// KubeconfigPath is a path to kubeconfig
-	KubeconfigPath string
+// 	// KubeconfigPath is a path to kubeconfig
+// 	KubeconfigPath string
 
-	// LegacyKubeProxy specifies that this proxy was configured using the
-	// legacy kubernetes section.
-	LegacyKubeProxy bool
-}
+// 	// LegacyKubeProxy specifies that this proxy was configured using the
+// 	// legacy kubernetes section.
+// 	LegacyKubeProxy bool
+// }
 
 // AuthConfig is a configuration of the auth server
 type AuthConfig struct {
@@ -626,78 +615,78 @@ type SSHConfig struct {
 }
 
 // KubeConfig specifies configuration for kubernetes service
-type KubeConfig struct {
-	// Enabled turns kubernetes service role on or off for this process
-	Enabled bool
+// type KubeConfig struct {
+// 	// Enabled turns kubernetes service role on or off for this process
+// 	Enabled bool
 
-	// ListenAddr is the address to listen on for incoming kubernetes requests.
-	// Optional.
-	ListenAddr *utils.NetAddr
+// 	// ListenAddr is the address to listen on for incoming kubernetes requests.
+// 	// Optional.
+// 	ListenAddr *utils.NetAddr
 
-	// PublicAddrs is a list of the public addresses the Teleport kubernetes
-	// service can be reached by the proxy service.
-	PublicAddrs []utils.NetAddr
+// 	// PublicAddrs is a list of the public addresses the Teleport kubernetes
+// 	// service can be reached by the proxy service.
+// 	PublicAddrs []utils.NetAddr
 
-	// KubeClusterName is the name of a kubernetes cluster this proxy is running
-	// in. If empty, defaults to the Teleport cluster name.
-	KubeClusterName string
+// 	// KubeClusterName is the name of a kubernetes cluster this proxy is running
+// 	// in. If empty, defaults to the Teleport cluster name.
+// 	KubeClusterName string
 
-	// KubeconfigPath is a path to kubeconfig
-	KubeconfigPath string
+// 	// KubeconfigPath is a path to kubeconfig
+// 	KubeconfigPath string
 
-	// Labels are used for RBAC on clusters.
-	StaticLabels  map[string]string
-	DynamicLabels services.CommandLabels
+// 	// Labels are used for RBAC on clusters.
+// 	StaticLabels  map[string]string
+// 	DynamicLabels services.CommandLabels
 
-	// Limiter limits the connection and request rates.
-	Limiter limiter.Config
+// 	// Limiter limits the connection and request rates.
+// 	Limiter limiter.Config
 
-	// CheckImpersonationPermissions is an optional override to the default
-	// impersonation permissions check, for use in testing.
-	CheckImpersonationPermissions proxy.ImpersonationPermissionsChecker
-}
+// 	// CheckImpersonationPermissions is an optional override to the default
+// 	// impersonation permissions check, for use in testing.
+// 	CheckImpersonationPermissions proxy.ImpersonationPermissionsChecker
+// }
 
 // DatabasesConfig configures the database proxy service.
-type DatabasesConfig struct {
-	// Enabled enables the database proxy service.
-	Enabled bool
-	// Databases is a list of databases proxied by this service.
-	Databases []Database
-	// ResourceMatchers match cluster database resources.
-	ResourceMatchers []services.ResourceMatcher
-	// AWSMatchers match AWS hosted databases.
-	AWSMatchers []services.AWSMatcher
-	// AzureMatchers match Azure hosted databases.
-	AzureMatchers []services.AzureMatcher
-	// Limiter limits the connection and request rates.
-	Limiter limiter.Config
-}
+// type DatabasesConfig struct {
+// 	// Enabled enables the database proxy service.
+// 	Enabled bool
+// 	// Databases is a list of databases proxied by this service.
+// 	Databases []Database
+// 	// ResourceMatchers match cluster database resources.
+// 	ResourceMatchers []services.ResourceMatcher
+// 	// AWSMatchers match AWS hosted databases.
+// 	AWSMatchers []services.AWSMatcher
+// 	// AzureMatchers match Azure hosted databases.
+// 	AzureMatchers []services.AzureMatcher
+// 	// Limiter limits the connection and request rates.
+// 	Limiter limiter.Config
+// }
 
 // Database represents a single database that's being proxied.
-type Database struct {
-	// Name is the database name, used to refer to in CLI.
-	Name string
-	// Description is a free-form database description.
-	Description string
-	// Protocol is the database type, e.g. postgres or mysql.
-	Protocol string
-	// URI is the database endpoint to connect to.
-	URI string
-	// StaticLabels is a map of database static labels.
-	StaticLabels map[string]string
-	// MySQL are additional MySQL database options.
-	MySQL MySQLOptions
-	// DynamicLabels is a list of database dynamic labels.
-	DynamicLabels services.CommandLabels
-	// TLS keeps database connection TLS configuration.
-	TLS DatabaseTLS
-	// AWS contains AWS specific settings for RDS/Aurora/Redshift databases.
-	AWS DatabaseAWS
-	// GCP contains GCP specific settings for Cloud SQL databases.
-	GCP DatabaseGCP
-	// AD contains Active Directory configuration for database.
-	AD DatabaseAD
-}
+// type Database struct {
+// 	// Name is the database name, used to refer to in CLI.
+// 	Name string
+// 	// Description is a free-form database description.
+// 	Description string
+// 	// Protocol is the database type, e.g. postgres or mysql.
+// 	Protocol string
+// 	// URI is the database endpoint to connect to.
+// 	URI string
+// 	// StaticLabels is a map of database static labels.
+// 	StaticLabels map[string]string
+// 	// MySQL are additional MySQL database options.
+// 	MySQL MySQLOptions
+// 	// DynamicLabels is a list of database dynamic labels.
+// 	DynamicLabels services.CommandLabels
+// 	// TLS keeps database connection TLS configuration.
+// 	TLS DatabaseTLS
+// 	// AWS contains AWS specific settings for RDS/Aurora/Redshift databases.
+// 	AWS DatabaseAWS
+// 	// GCP contains GCP specific settings for Cloud SQL databases.
+// 	GCP DatabaseGCP
+// 	// AD contains Active Directory configuration for database.
+// 	AD DatabaseAD
+// }
 
 // TLSMode defines all possible database verification modes.
 type TLSMode string
@@ -846,97 +835,97 @@ func (d *DatabaseAD) CheckAndSetDefaults(name string) error {
 }
 
 // CheckAndSetDefaults validates the database proxy configuration.
-func (d *Database) CheckAndSetDefaults() error {
-	if d.Name == "" {
-		return trace.BadParameter("empty database name")
-	}
-	// Unlike application access proxy, database proxy name doesn't necessarily
-	// need to be a valid subdomain but use the same validation logic for the
-	// simplicity and consistency.
-	if errs := validation.IsDNS1035Label(d.Name); len(errs) > 0 {
-		return trace.BadParameter("invalid database %q name: %v", d.Name, errs)
-	}
-	if !apiutils.SliceContainsStr(defaults.DatabaseProtocols, d.Protocol) {
-		return trace.BadParameter("unsupported database %q protocol %q, supported are: %v",
-			d.Name, d.Protocol, defaults.DatabaseProtocols)
-	}
-	// Mark the database as coming from the static configuration.
-	if d.StaticLabels == nil {
-		d.StaticLabels = make(map[string]string)
-	}
-	d.StaticLabels[types.OriginLabel] = types.OriginConfigFile
-	// For MongoDB we support specifying either server address or connection
-	// string in the URI which is useful when connecting to a replica set.
-	if d.Protocol == defaults.ProtocolMongoDB &&
-		(strings.HasPrefix(d.URI, connstring.SchemeMongoDB+"://") ||
-			strings.HasPrefix(d.URI, connstring.SchemeMongoDBSRV+"://")) {
-		connString, err := connstring.ParseAndValidate(d.URI)
-		if err != nil {
-			return trace.BadParameter("invalid MongoDB database %q connection string %q: %v",
-				d.Name, d.URI, err)
-		}
-		// Validate read preference to catch typos early.
-		if connString.ReadPreference != "" {
-			if _, err := readpref.ModeFromString(connString.ReadPreference); err != nil {
-				return trace.BadParameter("invalid MongoDB database %q read preference %q",
-					d.Name, connString.ReadPreference)
-			}
-		}
-	} else if d.Protocol == defaults.ProtocolRedis {
-		_, err := redis.ParseRedisAddress(d.URI)
-		if err != nil {
-			return trace.BadParameter("invalid Redis database %q address: %q, error: %v", d.Name, d.URI, err)
-		}
-	} else if d.Protocol == defaults.ProtocolSnowflake {
-		if !strings.Contains(d.URI, defaults.SnowflakeURL) {
-			return trace.BadParameter("Snowflake address should contain " + defaults.SnowflakeURL)
-		}
-	} else if _, _, err := net.SplitHostPort(d.URI); err != nil {
-		return trace.BadParameter("invalid database %q address %q: %v",
-			d.Name, d.URI, err)
-	}
-	if len(d.TLS.CACert) != 0 {
-		if _, err := tlsca.ParseCertificatePEM(d.TLS.CACert); err != nil {
-			return trace.BadParameter("provided database %q CA doesn't appear to be a valid x509 certificate: %v",
-				d.Name, err)
-		}
-	}
-	if err := d.TLS.Mode.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
+// func (d *Database) CheckAndSetDefaults() error {
+// 	if d.Name == "" {
+// 		return trace.BadParameter("empty database name")
+// 	}
+// 	// Unlike application access proxy, database proxy name doesn't necessarily
+// 	// need to be a valid subdomain but use the same validation logic for the
+// 	// simplicity and consistency.
+// 	if errs := validation.IsDNS1035Label(d.Name); len(errs) > 0 {
+// 		return trace.BadParameter("invalid database %q name: %v", d.Name, errs)
+// 	}
+// 	if !apiutils.SliceContainsStr(defaults.DatabaseProtocols, d.Protocol) {
+// 		return trace.BadParameter("unsupported database %q protocol %q, supported are: %v",
+// 			d.Name, d.Protocol, defaults.DatabaseProtocols)
+// 	}
+// 	// Mark the database as coming from the static configuration.
+// 	if d.StaticLabels == nil {
+// 		d.StaticLabels = make(map[string]string)
+// 	}
+// 	d.StaticLabels[types.OriginLabel] = types.OriginConfigFile
+// 	// For MongoDB we support specifying either server address or connection
+// 	// string in the URI which is useful when connecting to a replica set.
+// 	if d.Protocol == defaults.ProtocolMongoDB &&
+// 		(strings.HasPrefix(d.URI, connstring.SchemeMongoDB+"://") ||
+// 			strings.HasPrefix(d.URI, connstring.SchemeMongoDBSRV+"://")) {
+// 		connString, err := connstring.ParseAndValidate(d.URI)
+// 		if err != nil {
+// 			return trace.BadParameter("invalid MongoDB database %q connection string %q: %v",
+// 				d.Name, d.URI, err)
+// 		}
+// 		// Validate read preference to catch typos early.
+// 		if connString.ReadPreference != "" {
+// 			if _, err := readpref.ModeFromString(connString.ReadPreference); err != nil {
+// 				return trace.BadParameter("invalid MongoDB database %q read preference %q",
+// 					d.Name, connString.ReadPreference)
+// 			}
+// 		}
+// 	} else if d.Protocol == defaults.ProtocolRedis {
+// 		_, err := redis.ParseRedisAddress(d.URI)
+// 		if err != nil {
+// 			return trace.BadParameter("invalid Redis database %q address: %q, error: %v", d.Name, d.URI, err)
+// 		}
+// 	} else if d.Protocol == defaults.ProtocolSnowflake {
+// 		if !strings.Contains(d.URI, defaults.SnowflakeURL) {
+// 			return trace.BadParameter("Snowflake address should contain " + defaults.SnowflakeURL)
+// 		}
+// 	} else if _, _, err := net.SplitHostPort(d.URI); err != nil {
+// 		return trace.BadParameter("invalid database %q address %q: %v",
+// 			d.Name, d.URI, err)
+// 	}
+// 	if len(d.TLS.CACert) != 0 {
+// 		if _, err := tlsca.ParseCertificatePEM(d.TLS.CACert); err != nil {
+// 			return trace.BadParameter("provided database %q CA doesn't appear to be a valid x509 certificate: %v",
+// 				d.Name, err)
+// 		}
+// 	}
+// 	if err := d.TLS.Mode.CheckAndSetDefaults(); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	// Validate Cloud SQL specific configuration.
-	switch {
-	case d.GCP.ProjectID != "" && d.GCP.InstanceID == "":
-		return trace.BadParameter("missing Cloud SQL instance ID for database %q", d.Name)
-	case d.GCP.ProjectID == "" && d.GCP.InstanceID != "":
-		return trace.BadParameter("missing Cloud SQL project ID for database %q", d.Name)
-	}
+// 	// Validate Cloud SQL specific configuration.
+// 	switch {
+// 	case d.GCP.ProjectID != "" && d.GCP.InstanceID == "":
+// 		return trace.BadParameter("missing Cloud SQL instance ID for database %q", d.Name)
+// 	case d.GCP.ProjectID == "" && d.GCP.InstanceID != "":
+// 		return trace.BadParameter("missing Cloud SQL project ID for database %q", d.Name)
+// 	}
 
-	// For SQL Server we only support Kerberos auth with Active Directory at the moment.
-	if d.Protocol == defaults.ProtocolSQLServer {
-		if err := d.AD.CheckAndSetDefaults(d.Name); err != nil {
-			return trace.Wrap(err)
-		}
-	}
+// 	// For SQL Server we only support Kerberos auth with Active Directory at the moment.
+// 	if d.Protocol == defaults.ProtocolSQLServer {
+// 		if err := d.AD.CheckAndSetDefaults(d.Name); err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // AppsConfig configures application proxy service.
-type AppsConfig struct {
-	// Enabled enables application proxying service.
-	Enabled bool
+// type AppsConfig struct {
+// 	// Enabled enables application proxying service.
+// 	Enabled bool
 
-	// DebugApp enabled a header dumping debugging application.
-	DebugApp bool
+// 	// DebugApp enabled a header dumping debugging application.
+// 	DebugApp bool
 
-	// Apps is the list of applications that are being proxied.
-	Apps []App
+// 	// Apps is the list of applications that are being proxied.
+// 	Apps []App
 
-	// ResourceMatchers match cluster database resources.
-	ResourceMatchers []services.ResourceMatcher
-}
+// 	// ResourceMatchers match cluster database resources.
+// 	ResourceMatchers []services.ResourceMatcher
+// }
 
 // App is the specific application that will be proxied by the application
 // service. This needs to exist because if the "config" package tries to
@@ -1291,24 +1280,24 @@ func ApplyDefaults(cfg *Config) {
 	cfg.MACAlgorithms = macs
 
 	// Auth service defaults.
-	cfg.Auth.Enabled = true
-	cfg.Auth.SSHAddr = *defaults.AuthListenAddr()
-	cfg.Auth.StorageConfig.Type = lite.GetName()
-	cfg.Auth.StorageConfig.Params = backend.Params{defaults.BackendPath: filepath.Join(cfg.DataDir, defaults.BackendDir)}
-	cfg.Auth.StaticTokens = types.DefaultStaticTokens()
-	cfg.Auth.AuditConfig = types.DefaultClusterAuditConfig()
-	cfg.Auth.NetworkingConfig = types.DefaultClusterNetworkingConfig()
-	cfg.Auth.SessionRecordingConfig = types.DefaultSessionRecordingConfig()
-	cfg.Auth.Preference = types.DefaultAuthPreference()
-	defaults.ConfigureLimiter(&cfg.Auth.Limiter)
-	cfg.Auth.LicenseFile = filepath.Join(cfg.DataDir, defaults.LicenseFile)
+	// cfg.Auth.Enabled = true
+	// cfg.Auth.SSHAddr = *defaults.AuthListenAddr()
+	// cfg.Auth.StorageConfig.Type = lite.GetName()
+	// cfg.Auth.StorageConfig.Params = backend.Params{defaults.BackendPath: filepath.Join(cfg.DataDir, defaults.BackendDir)}
+	// cfg.Auth.StaticTokens = types.DefaultStaticTokens()
+	// cfg.Auth.AuditConfig = types.DefaultClusterAuditConfig()
+	// cfg.Auth.NetworkingConfig = types.DefaultClusterNetworkingConfig()
+	// cfg.Auth.SessionRecordingConfig = types.DefaultSessionRecordingConfig()
+	// cfg.Auth.Preference = types.DefaultAuthPreference()
+	// defaults.ConfigureLimiter(&cfg.Auth.Limiter)
+	// cfg.Auth.LicenseFile = filepath.Join(cfg.DataDir, defaults.LicenseFile)
 
-	cfg.Proxy.WebAddr = *defaults.ProxyWebListenAddr()
+	// cfg.Proxy.WebAddr = *defaults.ProxyWebListenAddr()
 	// Proxy service defaults.
-	cfg.Proxy.Enabled = true
-	cfg.Proxy.Kube.Enabled = false
+	// cfg.Proxy.Enabled = true
+	// cfg.Proxy.Kube.Enabled = false
 
-	defaults.ConfigureLimiter(&cfg.Proxy.Limiter)
+	// defaults.ConfigureLimiter(&cfg.Proxy.Limiter)
 
 	// SSH service defaults.
 	cfg.SSH.Enabled = true
@@ -1321,22 +1310,22 @@ func ApplyDefaults(cfg *Config) {
 	cfg.SSH.AllowFileCopying = true
 
 	// Kubernetes service defaults.
-	cfg.Kube.Enabled = false
-	defaults.ConfigureLimiter(&cfg.Kube.Limiter)
+	// cfg.Kube.Enabled = false
+	// defaults.ConfigureLimiter(&cfg.Kube.Limiter)
 
 	// Apps service defaults. It's disabled by default.
-	cfg.Apps.Enabled = false
+	// cfg.Apps.Enabled = false
 
 	// Databases proxy service is disabled by default.
-	cfg.Databases.Enabled = false
-	defaults.ConfigureLimiter(&cfg.Databases.Limiter)
+	// cfg.Databases.Enabled = false
+	// defaults.ConfigureLimiter(&cfg.Databases.Limiter)
 
 	// Metrics service defaults.
-	cfg.Metrics.Enabled = false
+	// cfg.Metrics.Enabled = false
 
 	// Windows desktop service is disabled by default.
-	cfg.WindowsDesktop.Enabled = false
-	defaults.ConfigureLimiter(&cfg.WindowsDesktop.ConnLimiter)
+	// cfg.WindowsDesktop.Enabled = false
+	// defaults.ConfigureLimiter(&cfg.WindowsDesktop.ConnLimiter)
 
 	cfg.RotationConnectionInterval = defaults.HighResPollingPeriod
 	cfg.RestartThreshold = Rate{
@@ -1362,9 +1351,9 @@ func ApplyFIPSDefaults(cfg *Config) {
 	// Only SSO based authentication is supported in FIPS mode. The SSO
 	// provider is where any FedRAMP/FIPS 140-2 compliance (like password
 	// complexity) should be enforced.
-	cfg.Auth.Preference.SetAllowLocalAuth(false)
+	// cfg.Auth.Preference.SetAllowLocalAuth(false)
 
 	// Update cluster configuration to record sessions at node, this way the
 	// entire cluster is FedRAMP/FIPS 140-2 compliant.
-	cfg.Auth.SessionRecordingConfig.SetMode(types.RecordAtNode)
+	// cfg.Auth.SessionRecordingConfig.SetMode(types.RecordAtNode)
 }

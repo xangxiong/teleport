@@ -19,7 +19,6 @@ package clusters
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sort"
 
 	"github.com/gravitational/teleport/api/client/webclient"
@@ -28,7 +27,6 @@ import (
 	wancli "github.com/gravitational/teleport/lib/auth/webauthncli"
 	"github.com/gravitational/teleport/lib/client"
 	dbprofile "github.com/gravitational/teleport/lib/client/db"
-	"github.com/gravitational/teleport/lib/kube/kubeconfig"
 	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
 
 	"github.com/gravitational/trace"
@@ -65,15 +63,15 @@ func (c *Cluster) Logout(ctx context.Context) error {
 
 	// Get the address of the active Kubernetes proxy to find AuthInfos,
 	// Clusters, and Contexts in kubeconfig.
-	clusterName, _ := c.clusterClient.KubeProxyHostPort()
-	if c.clusterClient.SiteName != "" {
-		clusterName = fmt.Sprintf("%v.%v", c.clusterClient.SiteName, clusterName)
-	}
+	// clusterName, _ := c.clusterClient.KubeProxyHostPort()
+	// if c.clusterClient.SiteName != "" {
+	// 	clusterName = fmt.Sprintf("%v.%v", c.clusterClient.SiteName, clusterName)
+	// }
 
 	// Remove cluster entries from kubeconfig
-	if err := kubeconfig.Remove("", clusterName); err != nil {
-		return trace.Wrap(err)
-	}
+	// if err := kubeconfig.Remove("", clusterName); err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
 	// Remove keys for this user from disk and running agent.
 	if err := c.clusterClient.Logout(); !trace.IsNotFound(err) {

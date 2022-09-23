@@ -16,43 +16,43 @@ limitations under the License.
 
 package web
 
-import (
-	"github.com/gorilla/websocket"
-	"github.com/gravitational/trace"
-)
+// import (
+// 	"github.com/gorilla/websocket"
+// 	"github.com/gravitational/trace"
+// )
 
-type WebsocketIO struct {
-	Conn      *websocket.Conn
-	remaining []byte
-}
+// type WebsocketIO struct {
+// 	Conn      *websocket.Conn
+// 	remaining []byte
+// }
 
-func (ws *WebsocketIO) Write(p []byte) (int, error) {
-	err := ws.Conn.WriteMessage(websocket.BinaryMessage, p)
-	if err != nil {
-		return 0, trace.Wrap(err)
-	}
+// func (ws *WebsocketIO) Write(p []byte) (int, error) {
+// 	err := ws.Conn.WriteMessage(websocket.BinaryMessage, p)
+// 	if err != nil {
+// 		return 0, trace.Wrap(err)
+// 	}
 
-	return len(p), nil
-}
+// 	return len(p), nil
+// }
 
-func (ws *WebsocketIO) Read(p []byte) (int, error) {
-	if len(ws.remaining) == 0 {
-		ty, data, err := ws.Conn.ReadMessage()
-		if err != nil {
-			return 0, trace.Wrap(err)
-		}
-		if ty != websocket.BinaryMessage {
-			return 0, trace.BadParameter("expected websocket message of type BinaryMessage, got %T", ty)
-		}
+// func (ws *WebsocketIO) Read(p []byte) (int, error) {
+// 	if len(ws.remaining) == 0 {
+// 		ty, data, err := ws.Conn.ReadMessage()
+// 		if err != nil {
+// 			return 0, trace.Wrap(err)
+// 		}
+// 		if ty != websocket.BinaryMessage {
+// 			return 0, trace.BadParameter("expected websocket message of type BinaryMessage, got %T", ty)
+// 		}
 
-		ws.remaining = data
-	}
+// 		ws.remaining = data
+// 	}
 
-	copied := copy(p, ws.remaining)
-	ws.remaining = ws.remaining[copied:]
-	return copied, nil
-}
+// 	copied := copy(p, ws.remaining)
+// 	ws.remaining = ws.remaining[copied:]
+// 	return copied, nil
+// }
 
-func (ws *WebsocketIO) Close() error {
-	return trace.Wrap(ws.Conn.Close())
-}
+// func (ws *WebsocketIO) Close() error {
+// 	return trace.Wrap(ws.Conn.Close())
+// }

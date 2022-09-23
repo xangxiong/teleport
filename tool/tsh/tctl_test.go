@@ -16,161 +16,161 @@ limitations under the License.
 
 package main
 
-import (
-	"context"
-	"path/filepath"
-	"testing"
+// import (
+// 	"context"
+// 	"path/filepath"
+// 	"testing"
 
-	"github.com/gravitational/trace"
-	"github.com/stretchr/testify/require"
+// 	"github.com/gravitational/trace"
+// 	"github.com/stretchr/testify/require"
 
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/service"
-	"github.com/gravitational/teleport/lib/utils"
-	"github.com/gravitational/teleport/tool/tctl/common"
-)
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/service"
+// 	"github.com/gravitational/teleport/lib/utils"
+// 	"github.com/gravitational/teleport/tool/tctl/common"
+// )
 
-func TestLoadConfigFromProfile(t *testing.T) {
-	tmpHomePath := t.TempDir()
-	connector := mockConnector(t)
+// func TestLoadConfigFromProfile(t *testing.T) {
+// 	tmpHomePath := t.TempDir()
+// 	connector := mockConnector(t)
 
-	alice, err := types.NewUser("alice@example.com")
-	require.NoError(t, err)
-	alice.SetRoles([]string{"access"})
+// 	alice, err := types.NewUser("alice@example.com")
+// 	require.NoError(t, err)
+// 	alice.SetRoles([]string{"access"})
 
-	authProcess, proxyProcess := makeTestServers(t, withBootstrap(connector, alice))
+// 	authProcess, proxyProcess := makeTestServers(t, withBootstrap(connector, alice))
 
-	authServer := authProcess.GetAuthServer()
-	require.NotNil(t, authServer)
+// 	authServer := authProcess.GetAuthServer()
+// 	require.NotNil(t, authServer)
 
-	proxyAddr, err := proxyProcess.ProxyWebAddr()
-	require.NoError(t, err)
+// 	proxyAddr, err := proxyProcess.ProxyWebAddr()
+// 	require.NoError(t, err)
 
-	err = Run(context.Background(), []string{
-		"login",
-		"--insecure",
-		"--debug",
-		"--auth", connector.GetName(),
-		"--proxy", proxyAddr.String(),
-	}, setHomePath(tmpHomePath), cliOption(func(cf *CLIConf) error {
-		cf.mockSSOLogin = mockSSOLogin(t, authServer, alice)
-		return nil
-	}))
-	require.NoError(t, err)
+// 	err = Run(context.Background(), []string{
+// 		"login",
+// 		"--insecure",
+// 		"--debug",
+// 		"--auth", connector.GetName(),
+// 		"--proxy", proxyAddr.String(),
+// 	}, setHomePath(tmpHomePath), cliOption(func(cf *CLIConf) error {
+// 		cf.mockSSOLogin = mockSSOLogin(t, authServer, alice)
+// 		return nil
+// 	}))
+// 	require.NoError(t, err)
 
-	tests := []struct {
-		name string
-		ccf  *common.GlobalCLIFlags
-		cfg  *service.Config
-		want error
-	}{
-		{
-			name: "teleportHome is valid dir",
-			ccf:  &common.GlobalCLIFlags{},
-			cfg: &service.Config{
-				TeleportHome: tmpHomePath,
-			},
-			want: nil,
-		}, {
-			name: "teleportHome is nonexistent dir",
-			ccf:  &common.GlobalCLIFlags{},
-			cfg: &service.Config{
-				TeleportHome: "some/dir/that/does/not/exist",
-			},
-			want: trace.NotFound("profile is not found"),
-		}, {
-			name: "teleportHome is not specified",
-			ccf:  &common.GlobalCLIFlags{},
-			cfg:  &service.Config{},
-			want: trace.NotFound("profile is not found"),
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := common.LoadConfigFromProfile(tc.ccf, tc.cfg)
-			if tc.want != nil {
-				require.Error(t, err, tc.want)
-				return
-			}
-			require.NoError(t, err)
-		})
-	}
-}
+// 	tests := []struct {
+// 		name string
+// 		ccf  *common.GlobalCLIFlags
+// 		cfg  *service.Config
+// 		want error
+// 	}{
+// 		{
+// 			name: "teleportHome is valid dir",
+// 			ccf:  &common.GlobalCLIFlags{},
+// 			cfg: &service.Config{
+// 				TeleportHome: tmpHomePath,
+// 			},
+// 			want: nil,
+// 		}, {
+// 			name: "teleportHome is nonexistent dir",
+// 			ccf:  &common.GlobalCLIFlags{},
+// 			cfg: &service.Config{
+// 				TeleportHome: "some/dir/that/does/not/exist",
+// 			},
+// 			want: trace.NotFound("profile is not found"),
+// 		}, {
+// 			name: "teleportHome is not specified",
+// 			ccf:  &common.GlobalCLIFlags{},
+// 			cfg:  &service.Config{},
+// 			want: trace.NotFound("profile is not found"),
+// 		},
+// 	}
+// 	for _, tc := range tests {
+// 		t.Run(tc.name, func(t *testing.T) {
+// 			_, err := common.LoadConfigFromProfile(tc.ccf, tc.cfg)
+// 			if tc.want != nil {
+// 				require.Error(t, err, tc.want)
+// 				return
+// 			}
+// 			require.NoError(t, err)
+// 		})
+// 	}
+// }
 
-func TestSetAuthServerFlagWhileLoggedIn(t *testing.T) {
-	tmpHomePath := filepath.Clean(t.TempDir())
-	connector := mockConnector(t)
+// func TestSetAuthServerFlagWhileLoggedIn(t *testing.T) {
+// 	tmpHomePath := filepath.Clean(t.TempDir())
+// 	connector := mockConnector(t)
 
-	alice, err := types.NewUser("alice@example.com")
-	require.NoError(t, err)
-	alice.SetRoles([]string{"access"})
+// 	alice, err := types.NewUser("alice@example.com")
+// 	require.NoError(t, err)
+// 	alice.SetRoles([]string{"access"})
 
-	authProcess, proxyProcess := makeTestServers(t, withBootstrap(connector, alice))
+// 	authProcess, proxyProcess := makeTestServers(t, withBootstrap(connector, alice))
 
-	authServer := authProcess.GetAuthServer()
-	require.NotNil(t, authServer)
+// 	authServer := authProcess.GetAuthServer()
+// 	require.NotNil(t, authServer)
 
-	authAddr, err := authProcess.AuthSSHAddr()
-	require.NoError(t, err)
+// 	authAddr, err := authProcess.AuthSSHAddr()
+// 	require.NoError(t, err)
 
-	proxyAddr, err := proxyProcess.ProxyWebAddr()
-	require.NoError(t, err)
+// 	proxyAddr, err := proxyProcess.ProxyWebAddr()
+// 	require.NoError(t, err)
 
-	err = Run(context.Background(), []string{
-		"login",
-		"--insecure",
-		"--debug",
-		"--auth", connector.GetName(),
-		"--proxy", proxyAddr.String(),
-	}, setHomePath(tmpHomePath), cliOption(func(cf *CLIConf) error {
-		cf.mockSSOLogin = mockSSOLogin(t, authServer, alice)
-		return nil
-	}))
-	require.NoError(t, err)
-	// we're now logged in with a profile in tmpHomePath.
+// 	err = Run(context.Background(), []string{
+// 		"login",
+// 		"--insecure",
+// 		"--debug",
+// 		"--auth", connector.GetName(),
+// 		"--proxy", proxyAddr.String(),
+// 	}, setHomePath(tmpHomePath), cliOption(func(cf *CLIConf) error {
+// 		cf.mockSSOLogin = mockSSOLogin(t, authServer, alice)
+// 		return nil
+// 	}))
+// 	require.NoError(t, err)
+// 	// we're now logged in with a profile in tmpHomePath.
 
-	tests := []struct {
-		desc           string
-		authServerFlag []string
-		want           []utils.NetAddr
-	}{
-		{
-			desc: "sets default web proxy addr without auth server flag",
-			want: []utils.NetAddr{*proxyAddr},
-		},
-		{
-			desc:           "sets auth addr from auth server flag ignoring profile setting",
-			authServerFlag: []string{authAddr.String()},
-			want:           []utils.NetAddr{*authAddr},
-		},
-		{
-			desc:           "sets auth addr from auth server flag when profile is not found",
-			authServerFlag: []string{"site.not.in.profile.com:3080"},
-			want: []utils.NetAddr{
-				{
-					Addr:        "site.not.in.profile.com:3080",
-					AddrNetwork: "tcp",
-					Path:        "",
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			ccf := &common.GlobalCLIFlags{}
-			ccf.AuthServerAddr = tt.authServerFlag
+// 	tests := []struct {
+// 		desc           string
+// 		authServerFlag []string
+// 		want           []utils.NetAddr
+// 	}{
+// 		{
+// 			desc: "sets default web proxy addr without auth server flag",
+// 			want: []utils.NetAddr{*proxyAddr},
+// 		},
+// 		{
+// 			desc:           "sets auth addr from auth server flag ignoring profile setting",
+// 			authServerFlag: []string{authAddr.String()},
+// 			want:           []utils.NetAddr{*authAddr},
+// 		},
+// 		{
+// 			desc:           "sets auth addr from auth server flag when profile is not found",
+// 			authServerFlag: []string{"site.not.in.profile.com:3080"},
+// 			want: []utils.NetAddr{
+// 				{
+// 					Addr:        "site.not.in.profile.com:3080",
+// 					AddrNetwork: "tcp",
+// 					Path:        "",
+// 				},
+// 			},
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.desc, func(t *testing.T) {
+// 			ccf := &common.GlobalCLIFlags{}
+// 			ccf.AuthServerAddr = tt.authServerFlag
 
-			cfg := &service.Config{}
-			cfg.TeleportHome = tmpHomePath
-			// this is needed for the case where the --auth-server=host is not found in profile.
-			// ApplyConfig will try to read local auth server identity if the profile is not found.
-			cfg.DataDir = authProcess.Config.DataDir
+// 			cfg := &service.Config{}
+// 			cfg.TeleportHome = tmpHomePath
+// 			// this is needed for the case where the --auth-server=host is not found in profile.
+// 			// ApplyConfig will try to read local auth server identity if the profile is not found.
+// 			cfg.DataDir = authProcess.Config.DataDir
 
-			_, err = common.ApplyConfig(ccf, cfg)
-			require.NoError(t, err)
-			require.NotEmpty(t, cfg.AuthServers, "auth servers should be set to a non-empty default if not specified")
+// 			_, err = common.ApplyConfig(ccf, cfg)
+// 			require.NoError(t, err)
+// 			require.NotEmpty(t, cfg.AuthServers, "auth servers should be set to a non-empty default if not specified")
 
-			require.ElementsMatch(t, tt.want, cfg.AuthServers)
-		})
-	}
-}
+// 			require.ElementsMatch(t, tt.want, cfg.AuthServers)
+// 		})
+// 	}
+// }

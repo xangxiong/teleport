@@ -64,26 +64,30 @@ type FileConfig struct {
 	Auth    Auth  `yaml:"auth_service,omitempty"`
 	SSH     SSH   `yaml:"ssh_service,omitempty"`
 	Proxy   Proxy `yaml:"proxy_service,omitempty"`
-	Kube    Kube  `yaml:"kubernetes_service,omitempty"`
+	// Kube    Kube  `yaml:"kubernetes_service,omitempty"`
 
 	// Apps is the "app_service" section in Teleport file configuration which
 	// defines application access configuration.
-	Apps Apps `yaml:"app_service,omitempty"`
+	// Apps Apps `yaml:"app_service,omitempty"`
 
 	// Databases is the "db_service" section in Teleport configuration file
 	// that defines database access configuration.
-	Databases Databases `yaml:"db_service,omitempty"`
+	// Databases Databases `yaml:"db_service,omitempty"`
 
 	// Metrics is the "metrics_service" section in Teleport configuration file
 	// that defines the metrics service configuration
-	Metrics Metrics `yaml:"metrics_service,omitempty"`
+	// Metrics Metrics `yaml:"metrics_service,omitempty"`
 
 	// WindowsDesktop is the "windows_desktop_service" that defines the
 	// configuration for Windows Desktop Access.
-	WindowsDesktop WindowsDesktopService `yaml:"windows_desktop_service,omitempty"`
+	// WindowsDesktop WindowsDesktopService `yaml:"windows_desktop_service,omitempty"`
 
 	// Tracing is the "tracing_service" section in Teleport configuration file
-	Tracing TracingService `yaml:"tracing_service,omitempty"`
+	// Tracing TracingService `yaml:"tracing_service,omitempty"`
+
+	// Discovery is the "discovery_service" section in the Teleport
+	// configuration file
+	// Discovery Discovery `yaml:"discovery_service,omitempty"`
 }
 
 // ReadFromFile reads Teleport configuration from a file. Currently only YAML
@@ -230,36 +234,36 @@ func MakeSampleFileConfig(flags SampleFlags) (fc *FileConfig, err error) {
 	}
 
 	// Apps config:
-	apps, err := makeSampleAppsConfig(conf, flags, roles[defaults.RoleApp])
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// apps, err := makeSampleAppsConfig(conf, flags, roles[defaults.RoleApp])
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	// DB config:
-	var dbs Databases
-	if roles[defaults.RoleDatabase] {
-		// keep it disable since `teleport configure` don't have all the necessary flags
-		// for this kind of resource
-		dbs.EnabledFlag = "no"
-	}
+	// var dbs Databases
+	// if roles[defaults.RoleDatabase] {
+	// 	// keep it disable since `teleport configure` don't have all the necessary flags
+	// 	// for this kind of resource
+	// 	dbs.EnabledFlag = "no"
+	// }
 
 	// WindowsDesktop config:
-	var d WindowsDesktopService
-	if roles[defaults.RoleWindowsDesktop] {
-		// keep it disable since `teleport configure` don't have all the necessary flags
-		// for this kind of resource
-		d.EnabledFlag = "no"
-	}
+	// var d WindowsDesktopService
+	// if roles[defaults.RoleWindowsDesktop] {
+	// 	// keep it disable since `teleport configure` don't have all the necessary flags
+	// 	// for this kind of resource
+	// 	d.EnabledFlag = "no"
+	// }
 
 	fc = &FileConfig{
-		Version:        flags.Version,
-		Global:         g,
-		Proxy:          p,
-		SSH:            s,
-		Auth:           a,
-		Apps:           apps,
-		Databases:      dbs,
-		WindowsDesktop: d,
+		Version: flags.Version,
+		Global:  g,
+		Proxy:   p,
+		SSH:     s,
+		Auth:    a,
+		//Apps:    apps,
+		//Databases:      dbs,
+		//WindowsDesktop: d,
 	}
 	return fc, nil
 }
@@ -406,7 +410,7 @@ func (conf *FileConfig) CheckAndSetDefaults() error {
 	conf.Auth.defaultEnabled = true
 	conf.Proxy.defaultEnabled = true
 	conf.SSH.defaultEnabled = true
-	conf.Kube.defaultEnabled = false
+	// conf.Kube.defaultEnabled = false
 	if conf.Version == "" {
 		conf.Version = defaults.TeleportConfigVersionV1
 	}

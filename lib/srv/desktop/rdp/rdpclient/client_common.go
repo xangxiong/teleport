@@ -17,69 +17,69 @@ limitations under the License.
 // Package rdpclient implements an RDP client.
 package rdpclient
 
-import (
-	"context"
-	"image/png"
-	"time"
+// import (
+// 	"context"
+// 	"image/png"
+// 	"time"
 
-	"github.com/gravitational/teleport/lib/srv/desktop/tdp"
-	"github.com/gravitational/trace"
-	"github.com/sirupsen/logrus"
-)
+// 	"github.com/gravitational/teleport/lib/srv/desktop/tdp"
+// 	"github.com/gravitational/trace"
+// 	"github.com/sirupsen/logrus"
+// )
 
-// Config for creating a new Client.
-type Config struct {
-	// Addr is the network address of the RDP server, in the form host:port.
-	Addr string
-	// UserCertGenerator generates user certificates for RDP authentication.
-	GenerateUserCert GenerateUserCertFn
-	CertTTL          time.Duration
+// // Config for creating a new Client.
+// type Config struct {
+// 	// Addr is the network address of the RDP server, in the form host:port.
+// 	Addr string
+// 	// UserCertGenerator generates user certificates for RDP authentication.
+// 	GenerateUserCert GenerateUserCertFn
+// 	CertTTL          time.Duration
 
-	// AuthorizeFn is called to authorize a user connecting to a Windows desktop.
-	AuthorizeFn func(login string) error
+// 	// AuthorizeFn is called to authorize a user connecting to a Windows desktop.
+// 	AuthorizeFn func(login string) error
 
-	// Conn handles TDP messages between Windows Desktop Service
-	// and a Teleport Proxy.
-	Conn *tdp.Conn
+// 	// Conn handles TDP messages between Windows Desktop Service
+// 	// and a Teleport Proxy.
+// 	Conn *tdp.Conn
 
-	// Encoder is an optional override for PNG encoding.
-	Encoder *png.Encoder
+// 	// Encoder is an optional override for PNG encoding.
+// 	Encoder *png.Encoder
 
-	// AllowClipboard indicates whether the RDP connection should enable
-	// clipboard sharing.
-	AllowClipboard bool
+// 	// AllowClipboard indicates whether the RDP connection should enable
+// 	// clipboard sharing.
+// 	AllowClipboard bool
 
-	// AllowDirectorySharing indicates whether the RDP connection should enable
-	// directory sharing.
-	AllowDirectorySharing bool
+// 	// AllowDirectorySharing indicates whether the RDP connection should enable
+// 	// directory sharing.
+// 	AllowDirectorySharing bool
 
-	// Log is the logger for status messages.
-	Log logrus.FieldLogger
-}
+// 	// Log is the logger for status messages.
+// 	Log logrus.FieldLogger
+// }
 
-// GenerateUserCertFn generates user certificates for RDP authentication.
-type GenerateUserCertFn func(ctx context.Context, username string, ttl time.Duration) (certDER, keyDER []byte, err error)
+// // GenerateUserCertFn generates user certificates for RDP authentication.
+// type GenerateUserCertFn func(ctx context.Context, username string, ttl time.Duration) (certDER, keyDER []byte, err error)
 
-//nolint:unused
-func (c *Config) checkAndSetDefaults() error {
-	if c.Addr == "" {
-		return trace.BadParameter("missing Addr in rdpclient.Config")
-	}
-	if c.GenerateUserCert == nil {
-		return trace.BadParameter("missing GenerateUserCert in rdpclient.Config")
-	}
-	if c.Conn == nil {
-		return trace.BadParameter("missing Conn in rdpclient.Config")
-	}
-	if c.AuthorizeFn == nil {
-		return trace.BadParameter("missing AuthorizeFn in rdpclient.Config")
-	}
-	if c.Encoder == nil {
-		c.Encoder = tdp.PNGEncoder()
-	}
-	if c.Log == nil {
-		c.Log = logrus.New()
-	}
-	c.Log = c.Log.WithField("rdp-addr", c.Addr)
-	return nil
-}
+// //nolint:unused
+// func (c *Config) checkAndSetDefaults() error {
+// 	if c.Addr == "" {
+// 		return trace.BadParameter("missing Addr in rdpclient.Config")
+// 	}
+// 	if c.GenerateUserCert == nil {
+// 		return trace.BadParameter("missing GenerateUserCert in rdpclient.Config")
+// 	}
+// 	if c.Conn == nil {
+// 		return trace.BadParameter("missing Conn in rdpclient.Config")
+// 	}
+// 	if c.AuthorizeFn == nil {
+// 		return trace.BadParameter("missing AuthorizeFn in rdpclient.Config")
+// 	}
+// 	if c.Encoder == nil {
+// 		c.Encoder = tdp.PNGEncoder()
+// 	}
+// 	if c.Log == nil {
+// 		c.Log = logrus.New()
+// 	}
+// 	c.Log = c.Log.WithField("rdp-addr", c.Addr)
+// 	return nil
+// }

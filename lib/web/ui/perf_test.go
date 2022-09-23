@@ -16,180 +16,180 @@ limitations under the License.
 
 package ui
 
-import (
-	"context"
-	"fmt"
-	"testing"
-	"time"
+// import (
+// 	"context"
+// 	"fmt"
+// 	"testing"
+// 	"time"
 
-	"github.com/gravitational/teleport"
-	apidefaults "github.com/gravitational/teleport/api/defaults"
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/auth"
-	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/backend/lite"
-	"github.com/gravitational/teleport/lib/backend/memory"
-	"github.com/gravitational/teleport/lib/reversetunnel"
-	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/services/local"
+// 	"github.com/gravitational/teleport"
+// 	apidefaults "github.com/gravitational/teleport/api/defaults"
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/auth"
+// 	"github.com/gravitational/teleport/lib/backend"
+// 	"github.com/gravitational/teleport/lib/backend/lite"
+// 	"github.com/gravitational/teleport/lib/backend/memory"
+// 	"github.com/gravitational/teleport/lib/reversetunnel"
+// 	"github.com/gravitational/teleport/lib/services"
+// 	"github.com/gravitational/teleport/lib/services/local"
 
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/google/uuid"
+// 	"github.com/stretchr/testify/require"
+// )
 
-const clusterName = "bench.example.com"
+// const clusterName = "bench.example.com"
 
-func BenchmarkGetClusterDetails(b *testing.B) {
-	ctx := context.Background()
+// func BenchmarkGetClusterDetails(b *testing.B) {
+// 	ctx := context.Background()
 
-	const authCount = 6
-	const proxyCount = 6
+// 	const authCount = 6
+// 	const proxyCount = 6
 
-	type testCase struct {
-		memory bool
-		nodes  int
-	}
+// 	type testCase struct {
+// 		memory bool
+// 		nodes  int
+// 	}
 
-	var tts []testCase
+// 	var tts []testCase
 
-	for _, memory := range []bool{true, false} {
-		for _, nodes := range []int{100, 1000, 10000} {
-			tts = append(tts, testCase{
-				memory: memory,
-				nodes:  nodes,
-			})
-		}
-	}
+// 	for _, memory := range []bool{true, false} {
+// 		for _, nodes := range []int{100, 1000, 10000} {
+// 			tts = append(tts, testCase{
+// 				memory: memory,
+// 				nodes:  nodes,
+// 			})
+// 		}
+// 	}
 
-	for _, tt := range tts {
-		// create a descriptive name for the sub-benchmark.
-		name := fmt.Sprintf("tt(memory=%v,nodes=%d)", tt.memory, tt.nodes)
+// 	for _, tt := range tts {
+// 		// create a descriptive name for the sub-benchmark.
+// 		name := fmt.Sprintf("tt(memory=%v,nodes=%d)", tt.memory, tt.nodes)
 
-		// run the sub benchmark
-		b.Run(name, func(sb *testing.B) {
+// 		// run the sub benchmark
+// 		b.Run(name, func(sb *testing.B) {
 
-			sb.StopTimer() // stop timer while running setup
+// 			sb.StopTimer() // stop timer while running setup
 
-			// configure the backend instance
-			var bk backend.Backend
-			var err error
-			if tt.memory {
-				bk, err = memory.New(memory.Config{})
-				require.NoError(b, err)
-			} else {
-				bk, err = lite.NewWithConfig(context.TODO(), lite.Config{
-					Path: b.TempDir(),
-				})
-				require.NoError(b, err)
-			}
-			defer bk.Close()
+// 			// configure the backend instance
+// 			var bk backend.Backend
+// 			var err error
+// 			if tt.memory {
+// 				bk, err = memory.New(memory.Config{})
+// 				require.NoError(b, err)
+// 			} else {
+// 				bk, err = lite.NewWithConfig(context.TODO(), lite.Config{
+// 					Path: b.TempDir(),
+// 				})
+// 				require.NoError(b, err)
+// 			}
+// 			defer bk.Close()
 
-			svc := local.NewPresenceService(bk)
+// 			svc := local.NewPresenceService(bk)
 
-			// seed the test nodes
-			insertServers(ctx, b, svc, types.KindNode, tt.nodes)
-			insertServers(ctx, b, svc, types.KindProxy, proxyCount)
-			insertServers(ctx, b, svc, types.KindAuthServer, authCount)
+// 			// seed the test nodes
+// 			insertServers(ctx, b, svc, types.KindNode, tt.nodes)
+// 			insertServers(ctx, b, svc, types.KindProxy, proxyCount)
+// 			insertServers(ctx, b, svc, types.KindAuthServer, authCount)
 
-			site := &mockRemoteSite{
-				accessPoint: &mockAccessPoint{
-					presence: svc,
-				},
-			}
+// 			site := &mockRemoteSite{
+// 				accessPoint: &mockAccessPoint{
+// 					presence: svc,
+// 				},
+// 			}
 
-			sb.StartTimer() // restart timer for benchmark operations
+// 			sb.StartTimer() // restart timer for benchmark operations
 
-			benchmarkGetClusterDetails(ctx, sb, site, tt.nodes)
+// 			benchmarkGetClusterDetails(ctx, sb, site, tt.nodes)
 
-			sb.StopTimer() // stop timer to exclude deferred cleanup
-		})
-	}
-}
+// 			sb.StopTimer() // stop timer to exclude deferred cleanup
+// 		})
+// 	}
+// }
 
-// insertServers inserts a collection of servers into a backend.
-func insertServers(ctx context.Context, b *testing.B, svc services.Presence, kind string, count int) {
-	const labelCount = 10
-	labels := make(map[string]string, labelCount)
-	for i := 0; i < labelCount; i++ {
-		labels[fmt.Sprintf("label-key-%d", i)] = fmt.Sprintf("label-val-%d", i)
-	}
-	for i := 0; i < count; i++ {
-		name := uuid.New().String()
-		addr := fmt.Sprintf("%s.%s", name, clusterName)
-		server := &types.ServerV2{
-			Kind:    kind,
-			Version: types.V2,
-			Metadata: types.Metadata{
-				Name:      name,
-				Namespace: apidefaults.Namespace,
-				Labels:    labels,
-			},
-			Spec: types.ServerSpecV2{
-				Addr:       addr,
-				PublicAddr: addr,
-				Version:    teleport.Version,
-			},
-		}
-		var err error
-		switch kind {
-		case types.KindNode:
-			_, err = svc.UpsertNode(ctx, server)
-		case types.KindProxy:
-			err = svc.UpsertProxy(server)
-		case types.KindAuthServer:
-			err = svc.UpsertAuthServer(server)
-		default:
-			b.Errorf("Unexpected server kind: %s", kind)
-		}
-		require.NoError(b, err)
-	}
-}
+// // insertServers inserts a collection of servers into a backend.
+// func insertServers(ctx context.Context, b *testing.B, svc services.Presence, kind string, count int) {
+// 	const labelCount = 10
+// 	labels := make(map[string]string, labelCount)
+// 	for i := 0; i < labelCount; i++ {
+// 		labels[fmt.Sprintf("label-key-%d", i)] = fmt.Sprintf("label-val-%d", i)
+// 	}
+// 	for i := 0; i < count; i++ {
+// 		name := uuid.New().String()
+// 		addr := fmt.Sprintf("%s.%s", name, clusterName)
+// 		server := &types.ServerV2{
+// 			Kind:    kind,
+// 			Version: types.V2,
+// 			Metadata: types.Metadata{
+// 				Name:      name,
+// 				Namespace: apidefaults.Namespace,
+// 				Labels:    labels,
+// 			},
+// 			Spec: types.ServerSpecV2{
+// 				Addr:       addr,
+// 				PublicAddr: addr,
+// 				Version:    teleport.Version,
+// 			},
+// 		}
+// 		var err error
+// 		switch kind {
+// 		case types.KindNode:
+// 			_, err = svc.UpsertNode(ctx, server)
+// 		case types.KindProxy:
+// 			err = svc.UpsertProxy(server)
+// 		case types.KindAuthServer:
+// 			err = svc.UpsertAuthServer(server)
+// 		default:
+// 			b.Errorf("Unexpected server kind: %s", kind)
+// 		}
+// 		require.NoError(b, err)
+// 	}
+// }
 
-func benchmarkGetClusterDetails(ctx context.Context, b *testing.B, site reversetunnel.RemoteSite, nodes int, opts ...services.MarshalOption) {
-	var cluster *Cluster
-	var err error
-	for i := 0; i < b.N; i++ {
-		cluster, err = GetClusterDetails(ctx, site, opts...)
-		require.NoError(b, err)
-	}
-	require.NotNil(b, cluster)
-	require.Equal(b, nodes, cluster.NodeCount)
-}
+// func benchmarkGetClusterDetails(ctx context.Context, b *testing.B, site reversetunnel.RemoteSite, nodes int, opts ...services.MarshalOption) {
+// 	var cluster *Cluster
+// 	var err error
+// 	for i := 0; i < b.N; i++ {
+// 		cluster, err = GetClusterDetails(ctx, site, opts...)
+// 		require.NoError(b, err)
+// 	}
+// 	require.NotNil(b, cluster)
+// 	require.Equal(b, nodes, cluster.NodeCount)
+// }
 
-type mockRemoteSite struct {
-	reversetunnel.RemoteSite
-	accessPoint auth.ProxyAccessPoint
-}
+// type mockRemoteSite struct {
+// 	reversetunnel.RemoteSite
+// 	accessPoint auth.ProxyAccessPoint
+// }
 
-func (m *mockRemoteSite) CachingAccessPoint() (auth.RemoteProxyAccessPoint, error) {
-	return m.accessPoint, nil
-}
+// func (m *mockRemoteSite) CachingAccessPoint() (auth.RemoteProxyAccessPoint, error) {
+// 	return m.accessPoint, nil
+// }
 
-func (m *mockRemoteSite) GetName() string {
-	return clusterName
-}
+// func (m *mockRemoteSite) GetName() string {
+// 	return clusterName
+// }
 
-func (m *mockRemoteSite) GetLastConnected() time.Time {
-	return time.Now()
-}
+// func (m *mockRemoteSite) GetLastConnected() time.Time {
+// 	return time.Now()
+// }
 
-func (m *mockRemoteSite) GetStatus() string {
-	return teleport.RemoteClusterStatusOnline
-}
+// func (m *mockRemoteSite) GetStatus() string {
+// 	return teleport.RemoteClusterStatusOnline
+// }
 
-type mockAccessPoint struct {
-	auth.ProxyAccessPoint
-	presence *local.PresenceService
-}
+// type mockAccessPoint struct {
+// 	auth.ProxyAccessPoint
+// 	presence *local.PresenceService
+// }
 
-func (m *mockAccessPoint) GetNodes(ctx context.Context, namespace string) ([]types.Server, error) {
-	return m.presence.GetNodes(ctx, namespace)
-}
+// func (m *mockAccessPoint) GetNodes(ctx context.Context, namespace string) ([]types.Server, error) {
+// 	return m.presence.GetNodes(ctx, namespace)
+// }
 
-func (m *mockAccessPoint) GetProxies() ([]types.Server, error) {
-	return m.presence.GetProxies()
-}
+// func (m *mockAccessPoint) GetProxies() ([]types.Server, error) {
+// 	return m.presence.GetProxies()
+// }
 
-func (m *mockAccessPoint) GetAuthServers() ([]types.Server, error) {
-	return m.presence.GetAuthServers()
-}
+// func (m *mockAccessPoint) GetAuthServers() ([]types.Server, error) {
+// 	return m.presence.GetAuthServers()
+// }

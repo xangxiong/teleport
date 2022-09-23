@@ -19,23 +19,23 @@ limitations under the License.
 
 package web
 
-import (
-	"embed"
-	"io/fs"
-	"net/http"
+// import (
+// 	"embed"
+// 	"io/fs"
+// 	"net/http"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-//go:embed build/webassets
-var webassetFS embed.FS
+// //go:embed build/webassets
+// var webassetFS embed.FS
 
-// NewStaticFileSystem returns the initialized implementation of http.FileSystem
-// interface which can be used to serve Teleport Proxy Web UI
-func NewStaticFileSystem() (http.FileSystem, error) {
-	wfs, err := fs.Sub(webassetFS, "build/webassets")
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return http.FS(wfs), nil
-}
+// // NewStaticFileSystem returns the initialized implementation of http.FileSystem
+// // interface which can be used to serve Teleport Proxy Web UI
+// func NewStaticFileSystem() (http.FileSystem, error) {
+// 	wfs, err := fs.Sub(webassetFS, "build/webassets")
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return http.FS(wfs), nil
+// }
