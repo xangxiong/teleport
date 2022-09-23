@@ -21,116 +21,86 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
-	"log"
 	"syscall"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/google/uuid"
+	"github.com/gravitational/teleport/api/client/proto"
 	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
 	"github.com/gravitational/teleport/lib/auth/winwebauthn"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/windows"
 )
 
-// TODO(tobiaszheller): add some flags when to run.
-func TestFullFlow(t *testing.T) {
-	const llamaUser = "llama"
+// TestIntegrationWithWindowsWebautn is self automated integration test that
+// verifies if integration with Windows Webauthn API is working correctly.
+// Note that it requires human interactions and following devices:
+// - windows machine capable of windows hello
+// - FIDO2 security key capable of passwordless login.
+func TestIntegrationWithWindowsWebautn(t *testing.T) {
+	// TODO(tobiaszheller): add some flags when to run.
 
+	const origin = "https://goteleport.com"
+	const llamaUserName = "llama"
 	web, err := webauthn.New(&webauthn.Config{
 		RPDisplayName: "Teleport",
 		RPID:          uuid.NewString(),
-		RPOrigin:      "https://goteleport.com",
+		RPOrigin:      origin,
 	})
 	require.NoError(t, err)
 
-	tests := []struct {
-		name            string
-		webUser         *fakeUser
-		origin, user    string
-		modifyAssertion func(a *wanlib.CredentialAssertion)
-		wantUser        string
-	}{
-		{
-			name:    "standard flow",
-			webUser: &fakeUser{id: []byte(uuid.NewString()), name: llamaUser},
-			origin:  web.Config.RPOrigin,
-			// modifyAssertion: func(a *wanlib.CredentialAssertion) {
-			// 	a.Response.AllowedCredentials = nil // aka passwordless
-			// },
-			wantUser: llamaUser,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	t.Run("full flow using windows hello", func(t *testing.T) {
+		// TODO(tobiaszheller): add sesertion for tpm etc.
+		// Given llamaUser and device with windows hello
+		llamaUser := &fakeUser{id: []byte(uuid.NewString()), name: llamaUserName}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 
-			webUser := test.webUser
-			origin := test.origin
+		// When user register device
+		dialogOkCancel(t, "Please use windows hello fingerprint/pin to register")
+		cc, sessionData, err := web.BeginRegistration(llamaUser)
+		require.NoError(t, err)
+		reg, err := winwebauthn.Register(ctx, origin, (*wanlib.CredentialCreation)(cc))
+		require.NoError(t, err, "Register failed")
+		cred, err := web.CreateCredential(llamaUser, *sessionData, registerResponseToParsedCCR(t, reg))
+		require.NoError(t, err, "CreateCredential failed")
+		// Save credential for Login test below.
+		llamaUser.credentials = append(llamaUser.credentials, *cred)
 
-			// Registration section.
-			cc, sessionData, err := web.BeginRegistration(webUser)
-			require.NoError(t, err)
+		// Then user is able to login.
+		a, sessionData, err := web.BeginLogin(llamaUser)
+		require.NoError(t, err, "BeginLogin failed")
+		assertionResp, _, err := winwebauthn.Login(ctx, origin, (*wanlib.CredentialAssertion)(a), nil)
+		require.NoError(t, err, "Login failed")
+		_, err = web.ValidateLogin(llamaUser, *sessionData, authResponseToParsedCredentialAssertionData(t, assertionResp))
+		require.NoError(t, err, "ValidatLogin failed")
+	})
 
-			dialogOkCancel(t, "Please use windows hello device to register")
+}
 
-			ctx := context.Background()
-			reg, err := winwebauthn.Register(ctx, origin, (*wanlib.CredentialCreation)(cc))
-			require.NoError(t, err, "Register failed")
-			// TODO(tobiaszheller): run proper assertion
-			// assert.Equal(t, 1, fake.userPrompts, "unexpected number of Registation prompts")
+func registerResponseToParsedCCR(t *testing.T, reg *proto.MFARegisterResponse) *protocol.ParsedCredentialCreationData {
+	// We have to marshal and parse ccr due to an unavoidable quirk of the
+	// webauthn API.
+	body, err := json.Marshal(wanlib.CredentialCreationResponseFromProto(reg.GetWebauthn()))
+	require.NoError(t, err)
 
-			// We have to marshal and parse ccr due to an unavoidable quirk of the
-			// webauthn API.
-			body, err := json.Marshal(wanlib.CredentialCreationResponseFromProto(reg.GetWebauthn()))
-			require.NoError(t, err)
+	parsedCCR, err := protocol.ParseCredentialCreationResponseBody(bytes.NewReader(body))
+	require.NoError(t, err, "ParseCredentialCreationResponseBody failed")
+	return parsedCCR
+}
 
-			var ccr protocol.CredentialCreationResponse
-			err = json.Unmarshal(body, &ccr)
-			require.NoError(t, err, "Json failed")
-			t.Log(ccr.AttestationResponse)
-			_, err = ccr.AttestationResponse.Parse()
-			if err != nil {
-				var pError *protocol.Error
-				if errors.As(err, &pError) {
-					log.Fatalf("Failed to AttestationResponse: %v, details %s, info %s", err, pError.Details, pError.DevInfo)
-				}
-				t.Fatal(333, err)
-			}
-
-			parsedCCR, err := protocol.ParseCredentialCreationResponseBody(bytes.NewReader(body))
-			require.NoError(t, err, "ParseCredentialCreationResponseBody failed")
-
-			cred, err := web.CreateCredential(webUser, *sessionData, parsedCCR)
-			require.NoError(t, err, "CreateCredential failed")
-			// Save credential for Login test below.
-			webUser.credentials = append(webUser.credentials, *cred)
-
-			// Login section.
-			a, sessionData, err := web.BeginLogin(webUser)
-			require.NoError(t, err, "BeginLogin failed")
-			assertion := (*wanlib.CredentialAssertion)(a)
-			// test.modifyAssertion(assertion)
-
-			assertionResp, _, err := winwebauthn.Login(ctx, origin, assertion, nil)
-			require.NoError(t, err, "Login failed")
-			// TODO(tobiaszheller): proper assertings
-			// assert.Equal(t, test.wantUser, actualUser, "actualUser mismatch")
-			// assert.Equal(t, 2, fake.userPrompts, "unexpected number of Login prompts")
-
-			// Same as above: easiest way to validate the assertion is to marshal
-			// and then parse the body.
-			body, err = json.Marshal(wanlib.CredentialAssertionResponseFromProto(assertionResp.GetWebauthn()))
-			require.NoError(t, err)
-			parsedAssertion, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(body))
-			require.NoError(t, err, "ParseCredentialRequestResponseBody failed")
-
-			_, err = web.ValidateLogin(webUser, *sessionData, parsedAssertion)
-			require.NoError(t, err, "ValidatLogin failed")
-		})
-	}
+func authResponseToParsedCredentialAssertionData(t *testing.T, assertionResp *proto.MFAAuthenticateResponse) *protocol.ParsedCredentialAssertionData {
+	// We have to marshal and parse ccr due to an unavoidable quirk of the
+	// webauthn API.
+	body, err := json.Marshal(wanlib.CredentialAssertionResponseFromProto(assertionResp.GetWebauthn()))
+	require.NoError(t, err)
+	parsedAssertion, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(body))
+	require.NoError(t, err, "ParseCredentialRequestResponseBody failed")
+	return parsedAssertion
 }
 
 type fakeUser struct {
