@@ -15,7 +15,6 @@
 package common
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -38,71 +37,71 @@ var awsDatabaseTypes = []string{
 	types.DatabaseTypeMemoryDB,
 }
 
-type installSystemdFlags struct {
-	config.SystemdFlags
-	// output is the destination to write the systemd unit file to.
-	output string
-}
+// type installSystemdFlags struct {
+// 	config.SystemdFlags
+// 	// output is the destination to write the systemd unit file to.
+// 	output string
+// }
 
-type createDatabaseConfigFlags struct {
-	config.DatabaseSampleFlags
-	// output is the destination to write the configuration to.
-	output string
-}
+// type createDatabaseConfigFlags struct {
+// 	config.DatabaseSampleFlags
+// 	// output is the destination to write the configuration to.
+// 	output string
+// }
 
 // CheckAndSetDefaults checks and sets the defaults
-func (flags *installSystemdFlags) CheckAndSetDefaults() error {
-	flags.output = normalizeOutput(flags.output)
-	return nil
-}
+// func (flags *installSystemdFlags) CheckAndSetDefaults() error {
+// 	flags.output = normalizeOutput(flags.output)
+// 	return nil
+// }
 
 // onDumpSystemdUnitFile is the handler of the "install systemd" CLI command.
-func onDumpSystemdUnitFile(flags installSystemdFlags) error {
-	if err := flags.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
+// func onDumpSystemdUnitFile(flags installSystemdFlags) error {
+// 	if err := flags.CheckAndSetDefaults(); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	buf := new(bytes.Buffer)
-	err := config.WriteSystemdUnitFile(flags.SystemdFlags, buf)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	buf := new(bytes.Buffer)
+// 	err := config.WriteSystemdUnitFile(flags.SystemdFlags, buf)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	_, err = dumpConfigFile(flags.output, buf.String(), "")
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	_, err = dumpConfigFile(flags.output, buf.String(), "")
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // CheckAndSetDefaults checks and sets the defaults
-func (flags *createDatabaseConfigFlags) CheckAndSetDefaults() error {
-	flags.output = normalizeOutput(flags.output)
-	return nil
-}
+// func (flags *createDatabaseConfigFlags) CheckAndSetDefaults() error {
+// 	flags.output = normalizeOutput(flags.output)
+// 	return nil
+// }
 
 // onDumpDatabaseConfig is the handler of "db configure create" CLI command.
-func onDumpDatabaseConfig(flags createDatabaseConfigFlags) error {
-	if err := flags.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
+// func onDumpDatabaseConfig(flags createDatabaseConfigFlags) error {
+// 	if err := flags.CheckAndSetDefaults(); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	sfc, err := config.MakeDatabaseAgentConfigString(flags.DatabaseSampleFlags)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	sfc, err := config.MakeDatabaseAgentConfigString(flags.DatabaseSampleFlags)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	configPath, err := dumpConfigFile(flags.output, sfc, "")
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	configPath, err := dumpConfigFile(flags.output, sfc, "")
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	if configPath != "" {
-		fmt.Printf("Wrote config to file %q. Now you can start the server. Happy Teleporting!\n", configPath)
-	}
-	return nil
-}
+// 	if configPath != "" {
+// 		fmt.Printf("Wrote config to file %q. Now you can start the server. Happy Teleporting!\n", configPath)
+// 	}
+// 	return nil
+// }
 
 // configureDatabaseBootstrapFlags database configure bootstrap flags.
 type configureDatabaseBootstrapFlags struct {

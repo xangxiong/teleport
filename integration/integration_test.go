@@ -6437,11 +6437,11 @@ func testListResourcesAcrossClusters(t *testing.T, suite *integrationTestSuite) 
 
 			expectedEvents := []string{
 				service.NodeSSHReady,
-				service.AppsReady,
-				service.DatabasesIdentityEvent,
-				service.DatabasesReady,
-				service.KubeIdentityEvent,
-				service.KubernetesReady,
+				// service.AppsReady,
+				// service.DatabasesIdentityEvent,
+				// service.DatabasesReady,
+				// service.KubeIdentityEvent,
+				// service.KubernetesReady,
 				service.TeleportReadyEvent,
 			}
 

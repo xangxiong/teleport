@@ -108,20 +108,20 @@ func testProxyTunnelStrategyAgentMesh(t *testing.T) {
 				p.dialNode(t)
 			},
 		},
-		{
-			name: "DatabaseAccess",
-			testResource: func(t *testing.T, p *proxyTunnelStrategy) {
-				p.makeDatabase(t)
+		// {
+		// 	name: "DatabaseAccess",
+		// 	testResource: func(t *testing.T, p *proxyTunnelStrategy) {
+		// 		p.makeDatabase(t)
 
-				// wait for the node to be connected to both proxies
-				waitForActiveTunnelConnections(t, p.proxies[0].Tunnel, p.cluster, 1)
-				waitForActiveTunnelConnections(t, p.proxies[1].Tunnel, p.cluster, 1)
+		// 		// wait for the node to be connected to both proxies
+		// 		waitForActiveTunnelConnections(t, p.proxies[0].Tunnel, p.cluster, 1)
+		// 		waitForActiveTunnelConnections(t, p.proxies[1].Tunnel, p.cluster, 1)
 
-				// make sure we can connect to the database going through any proxy.
-				p.waitForDatabaseToBeReachable(t)
-				p.dialDatabase(t)
-			},
-		},
+		// 		// make sure we can connect to the database going through any proxy.
+		// 		p.waitForDatabaseToBeReachable(t)
+		// 		p.dialDatabase(t)
+		// 	},
+		// },
 	}
 
 	for _, tc := range tests {
@@ -181,7 +181,7 @@ func testProxyTunnelStrategyProxyPeering(t *testing.T) {
 	p.makeNode(t)
 
 	// bootstrap a db instance.
-	p.makeDatabase(t)
+	// p.makeDatabase(t)
 
 	// wait for the node and db to open reverse tunnels to the first proxy.
 	waitForActiveTunnelConnections(t, p.proxies[0].Tunnel, p.cluster, 2)
@@ -389,83 +389,83 @@ func (p *proxyTunnelStrategy) makeNode(t *testing.T) {
 
 // makeDatabase bootstraps a new teleport db instance.
 // It connects to a proxy via a reverse tunnel going through a load balancer.
-func (p *proxyTunnelStrategy) makeDatabase(t *testing.T) {
-	if p.db != nil {
-		require.Fail(t, "database already initialized")
-	}
+// func (p *proxyTunnelStrategy) makeDatabase(t *testing.T) {
+// 	if p.db != nil {
+// 		require.Fail(t, "database already initialized")
+// 	}
 
-	dbAddr := net.JoinHostPort(Host, strconv.Itoa(ports.PopInt()))
+// 	dbAddr := net.JoinHostPort(Host, strconv.Itoa(ports.PopInt()))
 
-	// setup database service
-	db := NewInstance(InstanceConfig{
-		ClusterName: p.cluster,
-		HostID:      uuid.New().String(),
-		NodeName:    Loopback,
-		Log:         utils.NewLoggerForTests(),
-	})
+// 	// setup database service
+// 	db := NewInstance(InstanceConfig{
+// 		ClusterName: p.cluster,
+// 		HostID:      uuid.New().String(),
+// 		NodeName:    Loopback,
+// 		Log:         utils.NewLoggerForTests(),
+// 	})
 
-	conf := service.MakeDefaultConfig()
-	conf.AuthServers = append(conf.AuthServers, utils.FromAddr(p.lb.Addr()))
-	conf.SetToken("token")
-	conf.DataDir = t.TempDir()
+// 	conf := service.MakeDefaultConfig()
+// 	conf.AuthServers = append(conf.AuthServers, utils.FromAddr(p.lb.Addr()))
+// 	conf.SetToken("token")
+// 	conf.DataDir = t.TempDir()
 
-	conf.Auth.Enabled = false
-	conf.Proxy.Enabled = false
-	conf.SSH.Enabled = false
-	conf.Databases.Enabled = true
-	conf.Databases.Databases = []service.Database{
-		{
-			Name:     p.cluster + "-postgres",
-			Protocol: defaults.ProtocolPostgres,
-			URI:      dbAddr,
-		},
-	}
+// 	conf.Auth.Enabled = false
+// 	conf.Proxy.Enabled = false
+// 	conf.SSH.Enabled = false
+// 	conf.Databases.Enabled = true
+// 	conf.Databases.Databases = []service.Database{
+// 		{
+// 			Name:     p.cluster + "-postgres",
+// 			Protocol: defaults.ProtocolPostgres,
+// 			URI:      dbAddr,
+// 		},
+// 	}
 
-	_, role, err := auth.CreateUserAndRole(p.auth.Process.GetAuthServer(), p.username, []string{p.username})
-	require.NoError(t, err)
+// 	_, role, err := auth.CreateUserAndRole(p.auth.Process.GetAuthServer(), p.username, []string{p.username})
+// 	require.NoError(t, err)
 
-	role.SetDatabaseUsers(types.Allow, []string{types.Wildcard})
-	role.SetDatabaseNames(types.Allow, []string{types.Wildcard})
-	err = p.auth.Process.GetAuthServer().UpsertRole(context.Background(), role)
-	require.NoError(t, err)
+// 	role.SetDatabaseUsers(types.Allow, []string{types.Wildcard})
+// 	role.SetDatabaseNames(types.Allow, []string{types.Wildcard})
+// 	err = p.auth.Process.GetAuthServer().UpsertRole(context.Background(), role)
+// 	require.NoError(t, err)
 
-	// start the process and block until specified events are received.
-	process, err := service.NewTeleport(conf)
-	require.NoError(t, err)
-	db.Config = conf
-	db.Process = process
+// 	// start the process and block until specified events are received.
+// 	process, err := service.NewTeleport(conf)
+// 	require.NoError(t, err)
+// 	db.Config = conf
+// 	db.Process = process
 
-	receivedEvents, err := startAndWait(db.Process, []string{
-		service.DatabasesIdentityEvent,
-		service.DatabasesReady,
-		service.TeleportReadyEvent,
-	})
-	require.NoError(t, err)
+// 	receivedEvents, err := startAndWait(db.Process, []string{
+// 		service.DatabasesIdentityEvent,
+// 		service.DatabasesReady,
+// 		service.TeleportReadyEvent,
+// 	})
+// 	require.NoError(t, err)
 
-	var client *auth.Client
-	for _, event := range receivedEvents {
-		if event.Name == service.DatabasesIdentityEvent {
-			conn, ok := (event.Payload).(*service.Connector)
-			require.True(t, ok)
-			client = conn.Client
-			break
-		}
-	}
-	require.NotNil(t, client)
+// 	var client *auth.Client
+// 	for _, event := range receivedEvents {
+// 		if event.Name == service.DatabasesIdentityEvent {
+// 			conn, ok := (event.Payload).(*service.Connector)
+// 			require.True(t, ok)
+// 			client = conn.Client
+// 			break
+// 		}
+// 	}
+// 	require.NotNil(t, client)
 
-	// setup a test postgres database
-	postgresDB, err := postgres.NewTestServer(common.TestServerConfig{
-		AuthClient: client,
-		Name:       p.cluster + "-postgres",
-		Address:    dbAddr,
-	})
-	require.NoError(t, err)
-	go postgresDB.Serve()
+// 	// setup a test postgres database
+// 	postgresDB, err := postgres.NewTestServer(common.TestServerConfig{
+// 		AuthClient: client,
+// 		Name:       p.cluster + "-postgres",
+// 		Address:    dbAddr,
+// 	})
+// 	require.NoError(t, err)
+// 	go postgresDB.Serve()
 
-	p.db = db
-	p.dbAuthClient = client
-	p.postgresDB = postgresDB
-}
+// 	p.db = db
+// 	p.dbAuthClient = client
+// 	p.postgresDB = postgresDB
+// }
 
 // waitForNodeToBeReachable waits for the node to be reachable from all
 // proxies by making sure the proxy peer connectivity info (if any) got

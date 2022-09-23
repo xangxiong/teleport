@@ -24,14 +24,11 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/gravitational/teleport/api/breaker"
 	"github.com/gravitational/teleport/api/client"
@@ -39,14 +36,7 @@ import (
 	"github.com/gravitational/teleport/integration/helpers"
 	"github.com/gravitational/teleport/lib"
 	"github.com/gravitational/teleport/lib/auth/testauthority"
-	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/service"
-	alpncommon "github.com/gravitational/teleport/lib/srv/alpnproxy/common"
-	"github.com/gravitational/teleport/lib/srv/db/common"
-	"github.com/gravitational/teleport/lib/srv/db/mongodb"
-	"github.com/gravitational/teleport/lib/srv/db/mysql"
-	"github.com/gravitational/teleport/lib/srv/db/postgres"
-	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/trace"
 )
@@ -281,341 +271,341 @@ func TestMultiPortHTTPSProxy(t *testing.T) {
 }
 
 // TestAlpnSniProxyKube tests Kubernetes access with custom Kube API mock where traffic is forwarded via
-//SNI ALPN proxy service to Kubernetes service based on TLS SNI value.
-func TestALPNSNIProxyKube(t *testing.T) {
-	const (
-		localK8SNI = "kube.teleport.cluster.local"
-		k8User     = "alice@example.com"
-		k8RoleName = "kubemaster"
-	)
+// SNI ALPN proxy service to Kubernetes service based on TLS SNI value.
+// func TestALPNSNIProxyKube(t *testing.T) {
+// 	const (
+// 		localK8SNI = "kube.teleport.cluster.local"
+// 		k8User     = "alice@example.com"
+// 		k8RoleName = "kubemaster"
+// 	)
 
-	kubeAPIMockSvr := startKubeAPIMock(t)
-	kubeConfigPath := mustCreateKubeConfigFile(t, k8ClientConfig(kubeAPIMockSvr.URL, localK8SNI))
+// 	kubeAPIMockSvr := startKubeAPIMock(t)
+// 	kubeConfigPath := mustCreateKubeConfigFile(t, k8ClientConfig(kubeAPIMockSvr.URL, localK8SNI))
 
-	username := mustGetCurrentUser(t).Username
-	kubeRoleSpec := types.RoleSpecV5{
-		Allow: types.RoleConditions{
-			Logins:     []string{username},
-			KubeGroups: []string{testImpersonationGroup},
-			KubeUsers:  []string{k8User},
-		},
-	}
-	kubeRole, err := types.NewRoleV3(k8RoleName, kubeRoleSpec)
-	require.NoError(t, err)
+// 	username := mustGetCurrentUser(t).Username
+// 	kubeRoleSpec := types.RoleSpecV5{
+// 		Allow: types.RoleConditions{
+// 			Logins:     []string{username},
+// 			KubeGroups: []string{testImpersonationGroup},
+// 			KubeUsers:  []string{k8User},
+// 		},
+// 	}
+// 	kubeRole, err := types.NewRoleV3(k8RoleName, kubeRoleSpec)
+// 	require.NoError(t, err)
 
-	suite := newProxySuite(t,
-		withRootClusterConfig(rootClusterStandardConfig(t), func(config *service.Config) {
-			config.Proxy.Kube.Enabled = true
-			config.Proxy.Kube.KubeconfigPath = kubeConfigPath
-			config.Proxy.Kube.LegacyKubeProxy = true
-		}),
-		withLeafClusterConfig(leafClusterStandardConfig(t)),
-		withRootAndLeafClusterRoles(kubeRole),
-		withStandardRoleMapping(),
-	)
+// 	suite := newProxySuite(t,
+// 		withRootClusterConfig(rootClusterStandardConfig(t), func(config *service.Config) {
+// 			config.Proxy.Kube.Enabled = true
+// 			config.Proxy.Kube.KubeconfigPath = kubeConfigPath
+// 			config.Proxy.Kube.LegacyKubeProxy = true
+// 		}),
+// 		withLeafClusterConfig(leafClusterStandardConfig(t)),
+// 		withRootAndLeafClusterRoles(kubeRole),
+// 		withStandardRoleMapping(),
+// 	)
 
-	k8Client, _, err := kubeProxyClient(kubeProxyConfig{
-		t:                   suite.root,
-		username:            kubeRoleSpec.Allow.Logins[0],
-		kubeUsers:           kubeRoleSpec.Allow.KubeGroups,
-		kubeGroups:          kubeRoleSpec.Allow.KubeUsers,
-		customTLSServerName: localK8SNI,
-		targetAddress:       suite.root.Config.Proxy.WebAddr,
-	})
-	require.NoError(t, err)
+// 	k8Client, _, err := kubeProxyClient(kubeProxyConfig{
+// 		t:                   suite.root,
+// 		username:            kubeRoleSpec.Allow.Logins[0],
+// 		kubeUsers:           kubeRoleSpec.Allow.KubeGroups,
+// 		kubeGroups:          kubeRoleSpec.Allow.KubeUsers,
+// 		customTLSServerName: localK8SNI,
+// 		targetAddress:       suite.root.Config.Proxy.WebAddr,
+// 	})
+// 	require.NoError(t, err)
 
-	resp, err := k8Client.CoreV1().Pods("default").List(context.Background(), metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resp.Items), "pods item length mismatch")
-}
+// 	resp, err := k8Client.CoreV1().Pods("default").List(context.Background(), metav1.ListOptions{})
+// 	require.NoError(t, err)
+// 	require.Equal(t, 1, len(resp.Items), "pods item length mismatch")
+// }
 
 // TestALPNSNIProxyKubeV2Leaf tests remove cluster kubernetes configuration where root and leaf proxies
 // are using V2 configuration with Multiplex proxy listener.
-func TestALPNSNIProxyKubeV2Leaf(t *testing.T) {
-	lib.SetInsecureDevMode(true)
-	defer lib.SetInsecureDevMode(false)
+// func TestALPNSNIProxyKubeV2Leaf(t *testing.T) {
+// 	lib.SetInsecureDevMode(true)
+// 	defer lib.SetInsecureDevMode(false)
 
-	const (
-		localK8SNI = "kube.teleport.cluster.local"
-		k8User     = "alice@example.com"
-		k8RoleName = "kubemaster"
-	)
+// 	const (
+// 		localK8SNI = "kube.teleport.cluster.local"
+// 		k8User     = "alice@example.com"
+// 		k8RoleName = "kubemaster"
+// 	)
 
-	kubeAPIMockSvr := startKubeAPIMock(t)
-	kubeConfigPath := mustCreateKubeConfigFile(t, k8ClientConfig(kubeAPIMockSvr.URL, localK8SNI))
+// 	kubeAPIMockSvr := startKubeAPIMock(t)
+// 	kubeConfigPath := mustCreateKubeConfigFile(t, k8ClientConfig(kubeAPIMockSvr.URL, localK8SNI))
 
-	username := mustGetCurrentUser(t).Username
-	kubeRoleSpec := types.RoleSpecV5{
-		Allow: types.RoleConditions{
-			Logins:     []string{username},
-			KubeGroups: []string{testImpersonationGroup},
-			KubeUsers:  []string{k8User},
-		},
-	}
-	kubeRole, err := types.NewRoleV3(k8RoleName, kubeRoleSpec)
-	require.NoError(t, err)
+// 	username := mustGetCurrentUser(t).Username
+// 	kubeRoleSpec := types.RoleSpecV5{
+// 		Allow: types.RoleConditions{
+// 			Logins:     []string{username},
+// 			KubeGroups: []string{testImpersonationGroup},
+// 			KubeUsers:  []string{k8User},
+// 		},
+// 	}
+// 	kubeRole, err := types.NewRoleV3(k8RoleName, kubeRoleSpec)
+// 	require.NoError(t, err)
 
-	suite := newProxySuite(t,
-		withRootClusterConfig(rootClusterStandardConfig(t), func(config *service.Config) {
-			config.Proxy.Kube.Enabled = true
-			config.Version = defaults.TeleportConfigVersionV2
-		}),
-		withLeafClusterConfig(leafClusterStandardConfig(t), func(config *service.Config) {
-			config.Version = defaults.TeleportConfigVersionV2
-			config.Proxy.Kube.Enabled = true
+// 	suite := newProxySuite(t,
+// 		withRootClusterConfig(rootClusterStandardConfig(t), func(config *service.Config) {
+// 			config.Proxy.Kube.Enabled = true
+// 			config.Version = defaults.TeleportConfigVersionV2
+// 		}),
+// 		withLeafClusterConfig(leafClusterStandardConfig(t), func(config *service.Config) {
+// 			config.Version = defaults.TeleportConfigVersionV2
+// 			config.Proxy.Kube.Enabled = true
 
-			config.Kube.Enabled = true
-			config.Kube.KubeconfigPath = kubeConfigPath
-			config.Kube.ListenAddr = utils.MustParseAddr(net.JoinHostPort(Loopback, strconv.Itoa(ports.PopInt())))
-		}),
-		withRootClusterRoles(kubeRole),
-		withLeafClusterRoles(kubeRole),
-		withRootAndLeafTrustedClusterReset(),
-		withTrustedCluster(),
-	)
+// 			config.Kube.Enabled = true
+// 			config.Kube.KubeconfigPath = kubeConfigPath
+// 			config.Kube.ListenAddr = utils.MustParseAddr(net.JoinHostPort(Loopback, strconv.Itoa(ports.PopInt())))
+// 		}),
+// 		withRootClusterRoles(kubeRole),
+// 		withLeafClusterRoles(kubeRole),
+// 		withRootAndLeafTrustedClusterReset(),
+// 		withTrustedCluster(),
+// 	)
 
-	k8Client, _, err := kubeProxyClient(kubeProxyConfig{
-		t:                   suite.root,
-		username:            kubeRoleSpec.Allow.Logins[0],
-		kubeUsers:           kubeRoleSpec.Allow.KubeGroups,
-		kubeGroups:          kubeRoleSpec.Allow.KubeUsers,
-		customTLSServerName: localK8SNI,
-		targetAddress:       suite.root.Config.Proxy.WebAddr,
-		routeToCluster:      suite.leaf.Secrets.SiteName,
-	})
-	require.NoError(t, err)
+// 	k8Client, _, err := kubeProxyClient(kubeProxyConfig{
+// 		t:                   suite.root,
+// 		username:            kubeRoleSpec.Allow.Logins[0],
+// 		kubeUsers:           kubeRoleSpec.Allow.KubeGroups,
+// 		kubeGroups:          kubeRoleSpec.Allow.KubeUsers,
+// 		customTLSServerName: localK8SNI,
+// 		targetAddress:       suite.root.Config.Proxy.WebAddr,
+// 		routeToCluster:      suite.leaf.Secrets.SiteName,
+// 	})
+// 	require.NoError(t, err)
 
-	resp, err := k8Client.CoreV1().Pods("default").List(context.Background(), metav1.ListOptions{})
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resp.Items), "pods item length mismatch")
-}
+// 	resp, err := k8Client.CoreV1().Pods("default").List(context.Background(), metav1.ListOptions{})
+// 	require.NoError(t, err)
+// 	require.Equal(t, 1, len(resp.Items), "pods item length mismatch")
+// }
 
 // TestALPNSNIProxyDatabaseAccess test DB connection forwarded through local SNI ALPN proxy where
 // DB protocol is wrapped into TLS and forwarded to proxy ALPN SNI service and routed to appropriate db service.
-func TestALPNSNIProxyDatabaseAccess(t *testing.T) {
-	pack := setupDatabaseTest(t,
-		withPortSetupDatabaseTest(singleProxyPortSetup),
-		withLeafConfig(func(config *service.Config) {
-			config.Auth.NetworkingConfig.SetProxyListenerMode(types.ProxyListenerMode_Multiplex)
-		}),
-		withRootConfig(func(config *service.Config) {
-			config.Auth.NetworkingConfig.SetProxyListenerMode(types.ProxyListenerMode_Multiplex)
-		}),
-	)
-	pack.waitForLeaf(t)
+// func TestALPNSNIProxyDatabaseAccess(t *testing.T) {
+// 	pack := setupDatabaseTest(t,
+// 		withPortSetupDatabaseTest(singleProxyPortSetup),
+// 		withLeafConfig(func(config *service.Config) {
+// 			config.Auth.NetworkingConfig.SetProxyListenerMode(types.ProxyListenerMode_Multiplex)
+// 		}),
+// 		withRootConfig(func(config *service.Config) {
+// 			config.Auth.NetworkingConfig.SetProxyListenerMode(types.ProxyListenerMode_Multiplex)
+// 		}),
+// 	)
+// 	pack.waitForLeaf(t)
 
-	t.Run("mysql", func(t *testing.T) {
-		lp := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolMySQL)
-		t.Run("connect to main cluster via proxy", func(t *testing.T) {
-			client, err := mysql.MakeTestClient(common.TestClientConfig{
-				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
-				AuthServer: pack.root.cluster.Process.GetAuthServer(),
-				Address:    lp.GetAddr(),
-				Cluster:    pack.root.cluster.Secrets.SiteName,
-				Username:   pack.root.user.GetName(),
-				RouteToDatabase: tlsca.RouteToDatabase{
-					ServiceName: pack.root.mysqlService.Name,
-					Protocol:    pack.root.mysqlService.Protocol,
-					Username:    "root",
-				},
-			})
-			require.NoError(t, err)
+// 	t.Run("mysql", func(t *testing.T) {
+// 		lp := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolMySQL)
+// 		t.Run("connect to main cluster via proxy", func(t *testing.T) {
+// 			client, err := mysql.MakeTestClient(common.TestClientConfig{
+// 				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
+// 				AuthServer: pack.root.cluster.Process.GetAuthServer(),
+// 				Address:    lp.GetAddr(),
+// 				Cluster:    pack.root.cluster.Secrets.SiteName,
+// 				Username:   pack.root.user.GetName(),
+// 				RouteToDatabase: tlsca.RouteToDatabase{
+// 					ServiceName: pack.root.mysqlService.Name,
+// 					Protocol:    pack.root.mysqlService.Protocol,
+// 					Username:    "root",
+// 				},
+// 			})
+// 			require.NoError(t, err)
 
-			// Execute a query.
-			result, err := client.Execute("select 1")
-			require.NoError(t, err)
-			require.Equal(t, mysql.TestQueryResponse, result)
+// 			// Execute a query.
+// 			result, err := client.Execute("select 1")
+// 			require.NoError(t, err)
+// 			require.Equal(t, mysql.TestQueryResponse, result)
 
-			// Disconnect.
-			err = client.Close()
-			require.NoError(t, err)
+// 			// Disconnect.
+// 			err = client.Close()
+// 			require.NoError(t, err)
 
-		})
-		t.Run("connect to leaf cluster via proxy", func(t *testing.T) {
-			client, err := mysql.MakeTestClient(common.TestClientConfig{
-				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
-				AuthServer: pack.root.cluster.Process.GetAuthServer(),
-				Address:    lp.GetAddr(),
-				Cluster:    pack.leaf.cluster.Secrets.SiteName,
-				Username:   pack.root.user.GetName(),
-				RouteToDatabase: tlsca.RouteToDatabase{
-					ServiceName: pack.leaf.mysqlService.Name,
-					Protocol:    pack.leaf.mysqlService.Protocol,
-					Username:    "root",
-				},
-			})
-			require.NoError(t, err)
+// 		})
+// 		t.Run("connect to leaf cluster via proxy", func(t *testing.T) {
+// 			client, err := mysql.MakeTestClient(common.TestClientConfig{
+// 				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
+// 				AuthServer: pack.root.cluster.Process.GetAuthServer(),
+// 				Address:    lp.GetAddr(),
+// 				Cluster:    pack.leaf.cluster.Secrets.SiteName,
+// 				Username:   pack.root.user.GetName(),
+// 				RouteToDatabase: tlsca.RouteToDatabase{
+// 					ServiceName: pack.leaf.mysqlService.Name,
+// 					Protocol:    pack.leaf.mysqlService.Protocol,
+// 					Username:    "root",
+// 				},
+// 			})
+// 			require.NoError(t, err)
 
-			// Execute a query.
-			result, err := client.Execute("select 1")
-			require.NoError(t, err)
-			require.Equal(t, mysql.TestQueryResponse, result)
+// 			// Execute a query.
+// 			result, err := client.Execute("select 1")
+// 			require.NoError(t, err)
+// 			require.Equal(t, mysql.TestQueryResponse, result)
 
-			// Disconnect.
-			err = client.Close()
-			require.NoError(t, err)
-		})
-		t.Run("connect to main cluster via proxy using ping protocol", func(t *testing.T) {
-			pingProxy := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolWithPing(alpncommon.ProtocolMySQL))
-			client, err := mysql.MakeTestClient(common.TestClientConfig{
-				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
-				AuthServer: pack.root.cluster.Process.GetAuthServer(),
-				Address:    pingProxy.GetAddr(),
-				Cluster:    pack.root.cluster.Secrets.SiteName,
-				Username:   pack.root.user.GetName(),
-				RouteToDatabase: tlsca.RouteToDatabase{
-					ServiceName: pack.root.mysqlService.Name,
-					Protocol:    pack.root.mysqlService.Protocol,
-					Username:    "root",
-				},
-			})
-			require.NoError(t, err)
+// 			// Disconnect.
+// 			err = client.Close()
+// 			require.NoError(t, err)
+// 		})
+// 		t.Run("connect to main cluster via proxy using ping protocol", func(t *testing.T) {
+// 			pingProxy := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolWithPing(alpncommon.ProtocolMySQL))
+// 			client, err := mysql.MakeTestClient(common.TestClientConfig{
+// 				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
+// 				AuthServer: pack.root.cluster.Process.GetAuthServer(),
+// 				Address:    pingProxy.GetAddr(),
+// 				Cluster:    pack.root.cluster.Secrets.SiteName,
+// 				Username:   pack.root.user.GetName(),
+// 				RouteToDatabase: tlsca.RouteToDatabase{
+// 					ServiceName: pack.root.mysqlService.Name,
+// 					Protocol:    pack.root.mysqlService.Protocol,
+// 					Username:    "root",
+// 				},
+// 			})
+// 			require.NoError(t, err)
 
-			// Execute a query.
-			result, err := client.Execute("select 1")
-			require.NoError(t, err)
-			require.Equal(t, mysql.TestQueryResponse, result)
+// 			// Execute a query.
+// 			result, err := client.Execute("select 1")
+// 			require.NoError(t, err)
+// 			require.Equal(t, mysql.TestQueryResponse, result)
 
-			// Disconnect.
-			err = client.Close()
-			require.NoError(t, err)
+// 			// Disconnect.
+// 			err = client.Close()
+// 			require.NoError(t, err)
 
-		})
-	})
+// 		})
+// 	})
 
-	t.Run("postgres", func(t *testing.T) {
-		lp := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolPostgres)
-		t.Run("connect to main cluster via proxy", func(t *testing.T) {
-			client, err := postgres.MakeTestClient(context.Background(), common.TestClientConfig{
-				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
-				AuthServer: pack.root.cluster.Process.GetAuthServer(),
-				Address:    lp.GetAddr(),
-				Cluster:    pack.root.cluster.Secrets.SiteName,
-				Username:   pack.root.user.GetName(),
-				RouteToDatabase: tlsca.RouteToDatabase{
-					ServiceName: pack.root.postgresService.Name,
-					Protocol:    pack.root.postgresService.Protocol,
-					Username:    "postgres",
-					Database:    "test",
-				},
-			})
-			require.NoError(t, err)
-			mustRunPostgresQuery(t, client)
-			mustClosePostgresClient(t, client)
-		})
-		t.Run("connect to leaf cluster via proxy", func(t *testing.T) {
-			client, err := postgres.MakeTestClient(context.Background(), common.TestClientConfig{
-				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
-				AuthServer: pack.root.cluster.Process.GetAuthServer(),
-				Address:    lp.GetAddr(),
-				Cluster:    pack.leaf.cluster.Secrets.SiteName,
-				Username:   pack.root.user.GetName(),
-				RouteToDatabase: tlsca.RouteToDatabase{
-					ServiceName: pack.leaf.postgresService.Name,
-					Protocol:    pack.leaf.postgresService.Protocol,
-					Username:    "postgres",
-					Database:    "test",
-				},
-			})
-			require.NoError(t, err)
-			mustRunPostgresQuery(t, client)
-			mustClosePostgresClient(t, client)
-		})
-		t.Run("connect to main cluster via proxy with ping protocol", func(t *testing.T) {
-			pingProxy := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolWithPing(alpncommon.ProtocolPostgres))
-			client, err := postgres.MakeTestClient(context.Background(), common.TestClientConfig{
-				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
-				AuthServer: pack.root.cluster.Process.GetAuthServer(),
-				Address:    pingProxy.GetAddr(),
-				Cluster:    pack.root.cluster.Secrets.SiteName,
-				Username:   pack.root.user.GetName(),
-				RouteToDatabase: tlsca.RouteToDatabase{
-					ServiceName: pack.root.postgresService.Name,
-					Protocol:    pack.root.postgresService.Protocol,
-					Username:    "postgres",
-					Database:    "test",
-				},
-			})
-			require.NoError(t, err)
-			mustRunPostgresQuery(t, client)
-			mustClosePostgresClient(t, client)
-		})
-	})
+// 	t.Run("postgres", func(t *testing.T) {
+// 		lp := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolPostgres)
+// 		t.Run("connect to main cluster via proxy", func(t *testing.T) {
+// 			client, err := postgres.MakeTestClient(context.Background(), common.TestClientConfig{
+// 				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
+// 				AuthServer: pack.root.cluster.Process.GetAuthServer(),
+// 				Address:    lp.GetAddr(),
+// 				Cluster:    pack.root.cluster.Secrets.SiteName,
+// 				Username:   pack.root.user.GetName(),
+// 				RouteToDatabase: tlsca.RouteToDatabase{
+// 					ServiceName: pack.root.postgresService.Name,
+// 					Protocol:    pack.root.postgresService.Protocol,
+// 					Username:    "postgres",
+// 					Database:    "test",
+// 				},
+// 			})
+// 			require.NoError(t, err)
+// 			mustRunPostgresQuery(t, client)
+// 			mustClosePostgresClient(t, client)
+// 		})
+// 		t.Run("connect to leaf cluster via proxy", func(t *testing.T) {
+// 			client, err := postgres.MakeTestClient(context.Background(), common.TestClientConfig{
+// 				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
+// 				AuthServer: pack.root.cluster.Process.GetAuthServer(),
+// 				Address:    lp.GetAddr(),
+// 				Cluster:    pack.leaf.cluster.Secrets.SiteName,
+// 				Username:   pack.root.user.GetName(),
+// 				RouteToDatabase: tlsca.RouteToDatabase{
+// 					ServiceName: pack.leaf.postgresService.Name,
+// 					Protocol:    pack.leaf.postgresService.Protocol,
+// 					Username:    "postgres",
+// 					Database:    "test",
+// 				},
+// 			})
+// 			require.NoError(t, err)
+// 			mustRunPostgresQuery(t, client)
+// 			mustClosePostgresClient(t, client)
+// 		})
+// 		t.Run("connect to main cluster via proxy with ping protocol", func(t *testing.T) {
+// 			pingProxy := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolWithPing(alpncommon.ProtocolPostgres))
+// 			client, err := postgres.MakeTestClient(context.Background(), common.TestClientConfig{
+// 				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
+// 				AuthServer: pack.root.cluster.Process.GetAuthServer(),
+// 				Address:    pingProxy.GetAddr(),
+// 				Cluster:    pack.root.cluster.Secrets.SiteName,
+// 				Username:   pack.root.user.GetName(),
+// 				RouteToDatabase: tlsca.RouteToDatabase{
+// 					ServiceName: pack.root.postgresService.Name,
+// 					Protocol:    pack.root.postgresService.Protocol,
+// 					Username:    "postgres",
+// 					Database:    "test",
+// 				},
+// 			})
+// 			require.NoError(t, err)
+// 			mustRunPostgresQuery(t, client)
+// 			mustClosePostgresClient(t, client)
+// 		})
+// 	})
 
-	t.Run("mongo", func(t *testing.T) {
-		lp := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolMongoDB)
-		t.Run("connect to main cluster via proxy", func(t *testing.T) {
-			client, err := mongodb.MakeTestClient(context.Background(), common.TestClientConfig{
-				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
-				AuthServer: pack.root.cluster.Process.GetAuthServer(),
-				Address:    lp.GetAddr(),
-				Cluster:    pack.root.cluster.Secrets.SiteName,
-				Username:   pack.root.user.GetName(),
-				RouteToDatabase: tlsca.RouteToDatabase{
-					ServiceName: pack.root.mongoService.Name,
-					Protocol:    pack.root.mongoService.Protocol,
-					Username:    "admin",
-				},
-			})
-			require.NoError(t, err)
+// 	t.Run("mongo", func(t *testing.T) {
+// 		lp := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolMongoDB)
+// 		t.Run("connect to main cluster via proxy", func(t *testing.T) {
+// 			client, err := mongodb.MakeTestClient(context.Background(), common.TestClientConfig{
+// 				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
+// 				AuthServer: pack.root.cluster.Process.GetAuthServer(),
+// 				Address:    lp.GetAddr(),
+// 				Cluster:    pack.root.cluster.Secrets.SiteName,
+// 				Username:   pack.root.user.GetName(),
+// 				RouteToDatabase: tlsca.RouteToDatabase{
+// 					ServiceName: pack.root.mongoService.Name,
+// 					Protocol:    pack.root.mongoService.Protocol,
+// 					Username:    "admin",
+// 				},
+// 			})
+// 			require.NoError(t, err)
 
-			// Execute a query.
-			_, err = client.Database("test").Collection("test").Find(context.Background(), bson.M{})
-			require.NoError(t, err)
+// 			// Execute a query.
+// 			_, err = client.Database("test").Collection("test").Find(context.Background(), bson.M{})
+// 			require.NoError(t, err)
 
-			// Disconnect.
-			err = client.Disconnect(context.Background())
-			require.NoError(t, err)
-		})
-		t.Run("connect to leaf cluster via proxy", func(t *testing.T) {
-			client, err := mongodb.MakeTestClient(context.Background(), common.TestClientConfig{
-				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
-				AuthServer: pack.root.cluster.Process.GetAuthServer(),
-				Address:    lp.GetAddr(),
-				Cluster:    pack.leaf.cluster.Secrets.SiteName,
-				Username:   pack.root.user.GetName(),
-				RouteToDatabase: tlsca.RouteToDatabase{
-					ServiceName: pack.leaf.mongoService.Name,
-					Protocol:    pack.leaf.mongoService.Protocol,
-					Username:    "admin",
-				},
-			})
-			require.NoError(t, err)
+// 			// Disconnect.
+// 			err = client.Disconnect(context.Background())
+// 			require.NoError(t, err)
+// 		})
+// 		t.Run("connect to leaf cluster via proxy", func(t *testing.T) {
+// 			client, err := mongodb.MakeTestClient(context.Background(), common.TestClientConfig{
+// 				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
+// 				AuthServer: pack.root.cluster.Process.GetAuthServer(),
+// 				Address:    lp.GetAddr(),
+// 				Cluster:    pack.leaf.cluster.Secrets.SiteName,
+// 				Username:   pack.root.user.GetName(),
+// 				RouteToDatabase: tlsca.RouteToDatabase{
+// 					ServiceName: pack.leaf.mongoService.Name,
+// 					Protocol:    pack.leaf.mongoService.Protocol,
+// 					Username:    "admin",
+// 				},
+// 			})
+// 			require.NoError(t, err)
 
-			// Execute a query.
-			_, err = client.Database("test").Collection("test").Find(context.Background(), bson.M{})
-			require.NoError(t, err)
+// 			// Execute a query.
+// 			_, err = client.Database("test").Collection("test").Find(context.Background(), bson.M{})
+// 			require.NoError(t, err)
 
-			// Disconnect.
-			err = client.Disconnect(context.Background())
-			require.NoError(t, err)
-		})
-		t.Run("connect to main cluster via proxy with ping protocol", func(t *testing.T) {
-			pingProxy := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolWithPing(alpncommon.ProtocolMongoDB))
-			client, err := mongodb.MakeTestClient(context.Background(), common.TestClientConfig{
-				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
-				AuthServer: pack.root.cluster.Process.GetAuthServer(),
-				Address:    pingProxy.GetAddr(),
-				Cluster:    pack.root.cluster.Secrets.SiteName,
-				Username:   pack.root.user.GetName(),
-				RouteToDatabase: tlsca.RouteToDatabase{
-					ServiceName: pack.root.mongoService.Name,
-					Protocol:    pack.root.mongoService.Protocol,
-					Username:    "admin",
-				},
-			})
-			require.NoError(t, err)
+// 			// Disconnect.
+// 			err = client.Disconnect(context.Background())
+// 			require.NoError(t, err)
+// 		})
+// 		t.Run("connect to main cluster via proxy with ping protocol", func(t *testing.T) {
+// 			pingProxy := mustStartALPNLocalProxy(t, pack.root.cluster.GetProxyAddr(), alpncommon.ProtocolWithPing(alpncommon.ProtocolMongoDB))
+// 			client, err := mongodb.MakeTestClient(context.Background(), common.TestClientConfig{
+// 				AuthClient: pack.root.cluster.GetSiteAPI(pack.root.cluster.Secrets.SiteName),
+// 				AuthServer: pack.root.cluster.Process.GetAuthServer(),
+// 				Address:    pingProxy.GetAddr(),
+// 				Cluster:    pack.root.cluster.Secrets.SiteName,
+// 				Username:   pack.root.user.GetName(),
+// 				RouteToDatabase: tlsca.RouteToDatabase{
+// 					ServiceName: pack.root.mongoService.Name,
+// 					Protocol:    pack.root.mongoService.Protocol,
+// 					Username:    "admin",
+// 				},
+// 			})
+// 			require.NoError(t, err)
 
-			// Execute a query.
-			_, err = client.Database("test").Collection("test").Find(context.Background(), bson.M{})
-			require.NoError(t, err)
+// 			// Execute a query.
+// 			_, err = client.Database("test").Collection("test").Find(context.Background(), bson.M{})
+// 			require.NoError(t, err)
 
-			// Disconnect.
-			err = client.Disconnect(context.Background())
-			require.NoError(t, err)
-		})
-	})
-}
+// 			// Disconnect.
+// 			err = client.Disconnect(context.Background())
+// 			require.NoError(t, err)
+// 		})
+// 	})
+// }
 
 // TestALPNSNIProxyAppAccess tests application access via ALPN SNI proxy service.
 func TestALPNSNIProxyAppAccess(t *testing.T) {

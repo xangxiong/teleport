@@ -243,14 +243,14 @@ func runTeleport(t *testing.T, cfg *service.Config) *service.TeleportProcess {
 		service.ProxyWebServerReady,
 		service.NodeSSHReady,
 	}
-	if cfg.Databases.Enabled {
-		serviceReadyEvents = append(serviceReadyEvents, service.DatabasesReady)
-	}
+	// if cfg.Databases.Enabled {
+	// 	serviceReadyEvents = append(serviceReadyEvents, service.DatabasesReady)
+	// }
 	waitForEvents(t, process, serviceReadyEvents...)
 
-	if cfg.Databases.Enabled {
-		waitForDatabases(t, process, cfg.Databases.Databases)
-	}
+	// if cfg.Databases.Enabled {
+	// 	waitForDatabases(t, process, cfg.Databases.Databases)
+	// }
 	return process
 }
 

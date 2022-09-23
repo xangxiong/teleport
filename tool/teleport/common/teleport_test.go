@@ -17,20 +17,16 @@ limitations under the License.
 package common
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/config"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/utils"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
-
-	"github.com/gravitational/trace"
 )
 
 func TestMain(m *testing.M) {
@@ -147,63 +143,63 @@ func TestTeleportMain(t *testing.T) {
 	})
 }
 
-func TestConfigure(t *testing.T) {
-	t.Run("Dump", func(t *testing.T) {
-		err := onConfigDump(dumpFlags{
-			// typo
-			output: "sddout",
-		})
-		require.IsType(t, trace.BadParameter(""), err)
+// func TestConfigure(t *testing.T) {
+// 	t.Run("Dump", func(t *testing.T) {
+// 		err := onConfigDump(dumpFlags{
+// 			// typo
+// 			output: "sddout",
+// 		})
+// 		require.IsType(t, trace.BadParameter(""), err)
 
-		err = onConfigDump(dumpFlags{
-			output: "file://" + filepath.Join(t.TempDir(), "test"),
-			SampleFlags: config.SampleFlags{
-				ClusterName: "example.com",
-			},
-		})
-		require.NoError(t, err)
+// 		err = onConfigDump(dumpFlags{
+// 			output: "file://" + filepath.Join(t.TempDir(), "test"),
+// 			SampleFlags: config.SampleFlags{
+// 				ClusterName: "example.com",
+// 			},
+// 		})
+// 		require.NoError(t, err)
 
-		// stdout
-		err = onConfigDump(dumpFlags{
-			output: "stdout",
-		})
-		require.NoError(t, err)
-	})
+// 		// stdout
+// 		err = onConfigDump(dumpFlags{
+// 			output: "stdout",
+// 		})
+// 		require.NoError(t, err)
+// 	})
 
-	t.Run("Defaults", func(t *testing.T) {
-		flags := dumpFlags{}
-		err := flags.CheckAndSetDefaults()
-		require.NoError(t, err)
-	})
-}
+// 	t.Run("Defaults", func(t *testing.T) {
+// 		flags := dumpFlags{}
+// 		err := flags.CheckAndSetDefaults()
+// 		require.NoError(t, err)
+// 	})
+// }
 
-func TestDumpConfigFile(t *testing.T) {
-	tt := []struct {
-		name      string
-		outputURI string
-		contents  string
-		comment   string
-		assert    require.ErrorAssertionFunc
-	}{
-		{
-			name:      "errors on relative path",
-			assert:    require.Error,
-			outputURI: "../",
-		},
-		{
-			name:      "doesn't error on unexisting config path",
-			assert:    require.NoError,
-			outputURI: fmt.Sprintf("%s/unexisting/dir/%s", t.TempDir(), "config.yaml"),
-		},
-	}
+// func TestDumpConfigFile(t *testing.T) {
+// 	tt := []struct {
+// 		name      string
+// 		outputURI string
+// 		contents  string
+// 		comment   string
+// 		assert    require.ErrorAssertionFunc
+// 	}{
+// 		{
+// 			name:      "errors on relative path",
+// 			assert:    require.Error,
+// 			outputURI: "../",
+// 		},
+// 		{
+// 			name:      "doesn't error on unexisting config path",
+// 			assert:    require.NoError,
+// 			outputURI: fmt.Sprintf("%s/unexisting/dir/%s", t.TempDir(), "config.yaml"),
+// 		},
+// 	}
 
-	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := dumpConfigFile(tc.outputURI, tc.contents, tc.comment)
-			tc.assert(t, err)
-		})
-	}
-}
+// 	for _, tc := range tt {
+// 		t.Run(tc.name, func(t *testing.T) {
+// 			_, err := dumpConfigFile(tc.outputURI, tc.contents, tc.comment)
+// 			tc.assert(t, err)
+// 		})
+// 	}
+// }
 
 const configData = `
 teleport:

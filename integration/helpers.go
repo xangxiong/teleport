@@ -817,7 +817,7 @@ func (i *TeleInstance) StartApp(conf *service.Config) (*service.TeleportProcess,
 	// Build a list of expected events to wait for before unblocking based off
 	// the configuration passed in.
 	expectedEvents := []string{
-		service.AppsReady,
+		//service.AppsReady,
 	}
 
 	// Start the process and block until the expected events have arrived.
@@ -868,7 +868,7 @@ func (i *TeleInstance) StartApps(configs []*service.Config) ([]*service.Teleport
 			// Build a list of expected events to wait for before unblocking based off
 			// the configuration passed in.
 			expectedEvents := []string{
-				service.AppsReady,
+				//service.AppsReady,
 			}
 
 			// Start the process and block until the expected events have arrived.
@@ -903,117 +903,117 @@ func (i *TeleInstance) StartApps(configs []*service.Config) ([]*service.Teleport
 }
 
 // StartDatabase starts the database access service with the provided config.
-func (i *TeleInstance) StartDatabase(conf *service.Config) (*service.TeleportProcess, *auth.Client, error) {
-	dataDir, err := os.MkdirTemp("", "cluster-"+i.Secrets.SiteName)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-	i.tempDirs = append(i.tempDirs, dataDir)
+// func (i *TeleInstance) StartDatabase(conf *service.Config) (*service.TeleportProcess, *auth.Client, error) {
+// 	dataDir, err := os.MkdirTemp("", "cluster-"+i.Secrets.SiteName)
+// 	if err != nil {
+// 		return nil, nil, trace.Wrap(err)
+// 	}
+// 	i.tempDirs = append(i.tempDirs, dataDir)
 
-	conf.DataDir = dataDir
-	conf.AuthServers = []utils.NetAddr{
-		{
-			AddrNetwork: "tcp",
-			Addr:        net.JoinHostPort(Loopback, i.GetPortWeb()),
-		},
-	}
-	conf.SetToken("token")
-	conf.UploadEventsC = i.UploadEventsC
-	conf.Auth.Enabled = false
-	conf.Proxy.Enabled = false
-	conf.Apps.Enabled = false
-	conf.SSH.Enabled = false
+// 	conf.DataDir = dataDir
+// 	conf.AuthServers = []utils.NetAddr{
+// 		{
+// 			AddrNetwork: "tcp",
+// 			Addr:        net.JoinHostPort(Loopback, i.GetPortWeb()),
+// 		},
+// 	}
+// 	conf.SetToken("token")
+// 	conf.UploadEventsC = i.UploadEventsC
+// 	conf.Auth.Enabled = false
+// 	conf.Proxy.Enabled = false
+// 	conf.Apps.Enabled = false
+// 	conf.SSH.Enabled = false
 
-	// Create a new Teleport process and add it to the list of nodes that
-	// compose this "cluster".
-	process, err := service.NewTeleport(conf, service.WithIMDSClient(&disabledIMDSClient{}))
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-	i.Nodes = append(i.Nodes, process)
+// 	// Create a new Teleport process and add it to the list of nodes that
+// 	// compose this "cluster".
+// 	process, err := service.NewTeleport(conf, service.WithIMDSClient(&disabledIMDSClient{}))
+// 	if err != nil {
+// 		return nil, nil, trace.Wrap(err)
+// 	}
+// 	i.Nodes = append(i.Nodes, process)
 
-	// Build a list of expected events to wait for before unblocking based off
-	// the configuration passed in.
-	expectedEvents := []string{
-		service.DatabasesIdentityEvent,
-		service.DatabasesReady,
-		service.TeleportReadyEvent,
-	}
+// 	// Build a list of expected events to wait for before unblocking based off
+// 	// the configuration passed in.
+// 	expectedEvents := []string{
+// 		service.DatabasesIdentityEvent,
+// 		service.DatabasesReady,
+// 		service.TeleportReadyEvent,
+// 	}
 
-	// Start the process and block until the expected events have arrived.
-	receivedEvents, err := startAndWait(process, expectedEvents)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
+// 	// Start the process and block until the expected events have arrived.
+// 	receivedEvents, err := startAndWait(process, expectedEvents)
+// 	if err != nil {
+// 		return nil, nil, trace.Wrap(err)
+// 	}
 
-	// Retrieve auth server connector.
-	var client *auth.Client
-	for _, event := range receivedEvents {
-		if event.Name == service.DatabasesIdentityEvent {
-			conn, ok := (event.Payload).(*service.Connector)
-			if !ok {
-				return nil, nil, trace.BadParameter("unsupported event payload type %q", event.Payload)
-			}
-			client = conn.Client
-		}
-	}
-	if client == nil {
-		return nil, nil, trace.BadParameter("failed to retrieve auth client")
-	}
+// 	// Retrieve auth server connector.
+// 	var client *auth.Client
+// 	for _, event := range receivedEvents {
+// 		if event.Name == service.DatabasesIdentityEvent {
+// 			conn, ok := (event.Payload).(*service.Connector)
+// 			if !ok {
+// 				return nil, nil, trace.BadParameter("unsupported event payload type %q", event.Payload)
+// 			}
+// 			client = conn.Client
+// 		}
+// 	}
+// 	if client == nil {
+// 		return nil, nil, trace.BadParameter("failed to retrieve auth client")
+// 	}
 
-	log.Debugf("Teleport Database Server (in instance %v) started: %v/%v events received.",
-		i.Secrets.SiteName, len(expectedEvents), len(receivedEvents))
-	return process, client, nil
-}
+// 	log.Debugf("Teleport Database Server (in instance %v) started: %v/%v events received.",
+// 		i.Secrets.SiteName, len(expectedEvents), len(receivedEvents))
+// 	return process, client, nil
+// }
 
-func (i *TeleInstance) StartKube(conf *service.Config, clusterName string) (*service.TeleportProcess, error) {
-	dataDir, err := os.MkdirTemp("", "cluster-"+i.Secrets.SiteName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	i.tempDirs = append(i.tempDirs, dataDir)
+// func (i *TeleInstance) StartKube(conf *service.Config, clusterName string) (*service.TeleportProcess, error) {
+// 	dataDir, err := os.MkdirTemp("", "cluster-"+i.Secrets.SiteName)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	i.tempDirs = append(i.tempDirs, dataDir)
 
-	conf.DataDir = dataDir
-	conf.AuthServers = []utils.NetAddr{
-		{
-			AddrNetwork: "tcp",
-			Addr:        net.JoinHostPort(Loopback, i.GetPortWeb()),
-		},
-	}
-	conf.SetToken("token")
-	conf.UploadEventsC = i.UploadEventsC
-	conf.Auth.Enabled = false
-	conf.Proxy.Enabled = false
-	conf.Apps.Enabled = false
-	conf.SSH.Enabled = false
-	conf.Databases.Enabled = false
+// 	conf.DataDir = dataDir
+// 	conf.AuthServers = []utils.NetAddr{
+// 		{
+// 			AddrNetwork: "tcp",
+// 			Addr:        net.JoinHostPort(Loopback, i.GetPortWeb()),
+// 		},
+// 	}
+// 	conf.SetToken("token")
+// 	conf.UploadEventsC = i.UploadEventsC
+// 	conf.Auth.Enabled = false
+// 	conf.Proxy.Enabled = false
+// 	conf.Apps.Enabled = false
+// 	conf.SSH.Enabled = false
+// 	conf.Databases.Enabled = false
 
-	conf.Kube.KubeconfigPath = filepath.Join(dataDir, "kube_config")
-	if err := enableKube(conf, clusterName); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	conf.Kube.ListenAddr = nil
+// 	conf.Kube.KubeconfigPath = filepath.Join(dataDir, "kube_config")
+// 	if err := enableKube(conf, clusterName); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	conf.Kube.ListenAddr = nil
 
-	process, err := service.NewTeleport(conf)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	i.Nodes = append(i.Nodes, process)
+// 	process, err := service.NewTeleport(conf)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	i.Nodes = append(i.Nodes, process)
 
-	expectedEvents := []string{
-		service.KubeIdentityEvent,
-		service.KubernetesReady,
-		service.TeleportReadyEvent,
-	}
+// 	expectedEvents := []string{
+// 		service.KubeIdentityEvent,
+// 		service.KubernetesReady,
+// 		service.TeleportReadyEvent,
+// 	}
 
-	receivedEvents, err := startAndWait(process, expectedEvents)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	log.Debugf("Teleport Kube Server (in instance %v) started: %v/%v events received.",
-		i.Secrets.SiteName, len(expectedEvents), len(receivedEvents))
-	return process, nil
-}
+// 	receivedEvents, err := startAndWait(process, expectedEvents)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	log.Debugf("Teleport Kube Server (in instance %v) started: %v/%v events received.",
+// 		i.Secrets.SiteName, len(expectedEvents), len(receivedEvents))
+// 	return process, nil
+// }
 
 // StartNodeAndProxy starts a SSH node and a Proxy Server and connects it to
 // the cluster.
@@ -1252,15 +1252,15 @@ func (i *TeleInstance) Start() error {
 	if i.Config.SSH.Enabled {
 		expectedEvents = append(expectedEvents, service.NodeSSHReady)
 	}
-	if i.Config.Apps.Enabled {
-		expectedEvents = append(expectedEvents, service.AppsReady)
-	}
-	if i.Config.Databases.Enabled {
-		expectedEvents = append(expectedEvents, service.DatabasesReady)
-	}
-	if i.Config.Kube.Enabled {
-		expectedEvents = append(expectedEvents, service.KubernetesReady)
-	}
+	// if i.Config.Apps.Enabled {
+	// 	expectedEvents = append(expectedEvents, service.AppsReady)
+	// }
+	// if i.Config.Databases.Enabled {
+	// 	expectedEvents = append(expectedEvents, service.DatabasesReady)
+	// }
+	// if i.Config.Kube.Enabled {
+	// 	expectedEvents = append(expectedEvents, service.KubernetesReady)
+	// }
 
 	// Start the process and block until the expected events have arrived.
 	receivedEvents, err := startAndWait(i.Process, expectedEvents)
