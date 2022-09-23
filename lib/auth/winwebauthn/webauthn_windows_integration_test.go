@@ -54,20 +54,54 @@ func TestIntegrationWithWindowsWebautn(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("full flow using windows hello", func(t *testing.T) {
-		// TODO(tobiaszheller): add sesertion for tpm etc.
 		// Given llamaUser and device with windows hello
 		llamaUser := &fakeUser{id: []byte(uuid.NewString()), name: llamaUserName}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		// When user register device
-		dialogOkCancel(t, "Please use windows hello fingerprint/pin to register")
-		cc, sessionData, err := web.BeginRegistration(llamaUser)
+		dialogOkCancel(t, "Please use windows hello fingerprint/pin to register and login")
+		cc, sessionData, err := web.BeginRegistration(llamaUser,
+			// Let's use direct attestion to verify if user really selected
+			// windows hello device.
+			webauthn.WithConveyancePreference(protocol.PreferDirectAttestation))
 		require.NoError(t, err)
 		reg, err := winwebauthn.Register(ctx, origin, (*wanlib.CredentialCreation)(cc))
 		require.NoError(t, err, "Register failed")
 		cred, err := web.CreateCredential(llamaUser, *sessionData, registerResponseToParsedCCR(t, reg))
 		require.NoError(t, err, "CreateCredential failed")
+		require.Equal(t, "tpm", cred.AttestationType, "AttestationType")
+		// Save credential for Login test below.
+		llamaUser.credentials = append(llamaUser.credentials, *cred)
+
+		// Then user is able to login.
+		a, sessionData, err := web.BeginLogin(llamaUser)
+		require.NoError(t, err, "BeginLogin failed")
+		assertionResp, _, err := winwebauthn.Login(ctx, origin, (*wanlib.CredentialAssertion)(a), nil)
+		require.NoError(t, err, "Login failed")
+		_, err = web.ValidateLogin(llamaUser, *sessionData, authResponseToParsedCredentialAssertionData(t, assertionResp))
+		require.NoError(t, err, "ValidatLogin failed")
+	})
+
+	t.Run("full flow using FIDO device", func(t *testing.T) {
+		// Given llamaUser and device with FIDO device
+		llamaUser := &fakeUser{id: []byte(uuid.NewString()), name: llamaUserName}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		// When user register device
+		dialogOkCancel(t, "Please use security device to register and login "+
+			"(press security button on UI twice)")
+		cc, sessionData, err := web.BeginRegistration(llamaUser,
+			// Let's use direct attestion to verify if user really selected
+			// security device.
+			webauthn.WithConveyancePreference(protocol.PreferDirectAttestation))
+		require.NoError(t, err)
+		reg, err := winwebauthn.Register(ctx, origin, (*wanlib.CredentialCreation)(cc))
+		require.NoError(t, err, "Register failed")
+		cred, err := web.CreateCredential(llamaUser, *sessionData, registerResponseToParsedCCR(t, reg))
+		require.NoError(t, err, "CreateCredential failed")
+		require.Equal(t, "packed", cred.AttestationType, "AttestationType")
 		// Save credential for Login test below.
 		llamaUser.credentials = append(llamaUser.credentials, *cred)
 
