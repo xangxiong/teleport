@@ -16,38 +16,38 @@ limitations under the License.
 
 package clusters
 
-import (
-	"github.com/gravitational/trace"
+// import (
+// 	"github.com/gravitational/trace"
 
-	"github.com/jonboulle/clockwork"
-	"github.com/sirupsen/logrus"
-)
+// 	"github.com/jonboulle/clockwork"
+// 	"github.com/sirupsen/logrus"
+// )
 
-// Config is the cluster service config
-type Config struct {
-	// Dir is the directory to store cluster profiles
-	Dir string
-	// Clock is a clock for time-related operations
-	Clock clockwork.Clock
-	// InsecureSkipVerify is an option to skip TLS cert check
-	InsecureSkipVerify bool
-	// Log is a component logger
-	Log *logrus.Entry
-}
+// // Config is the cluster service config
+// type Config struct {
+// 	// Dir is the directory to store cluster profiles
+// 	Dir string
+// 	// Clock is a clock for time-related operations
+// 	Clock clockwork.Clock
+// 	// InsecureSkipVerify is an option to skip TLS cert check
+// 	InsecureSkipVerify bool
+// 	// Log is a component logger
+// 	Log *logrus.Entry
+// }
 
-// CheckAndSetDefaults checks the configuration for its validity and sets default values if needed
-func (c *Config) CheckAndSetDefaults() error {
-	if c.Dir == "" {
-		return trace.BadParameter("missing working directory")
-	}
+// // CheckAndSetDefaults checks the configuration for its validity and sets default values if needed
+// func (c *Config) CheckAndSetDefaults() error {
+// 	if c.Dir == "" {
+// 		return trace.BadParameter("missing working directory")
+// 	}
 
-	if c.Clock == nil {
-		c.Clock = clockwork.NewRealClock()
-	}
+// 	if c.Clock == nil {
+// 		c.Clock = clockwork.NewRealClock()
+// 	}
 
-	if c.Log == nil {
-		c.Log = logrus.WithField(trace.Component, "conn:storage")
-	}
+// 	if c.Log == nil {
+// 		c.Log = logrus.WithField(trace.Component, "conn:storage")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

@@ -16,98 +16,98 @@ limitations under the License.
 
 package versioncontrol
 
-import (
-	"testing"
+// import (
+// 	"testing"
 
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/stretchr/testify/require"
+// )
 
-func TestVisitor(t *testing.T) {
-	tts := []struct {
-		versions         []string
-		latest           string
-		oldest           string
-		permitPrerelease bool
-		desc             string
-	}{
-		{
-			versions: []string{
-				"v1.2.3",
-				"v2.3.4-alpha.1",
-			},
-			latest: "v1.2.3",
-			oldest: "v1.2.3",
-			desc:   "one stable release",
-		},
-		{
-			versions: []string{
-				"v1.2.3",
-				"v2.3.4",
-				"v2.2.2",
-				"v3.5.7",
-				"invalid",
-				"v0.0.1-alpha.2",
-			},
-			latest: "v3.5.7",
-			oldest: "v1.2.3",
-			desc:   "mixed releases",
-		},
-		{
-			versions: []string{
-				"invalid",
-				"12356",
-				"127.0.0.1:8080",
-			},
-			desc: "all invalid",
-		},
-		{
-			versions: []string{
-				"v3.4.5-alpha.1",
-				"v3.4.4",
-				"v0.1.2-alpha.2",
-				"v0.1.11",
-			},
-			latest:           "v3.4.5-alpha.1",
-			oldest:           "v0.1.2-alpha.2",
-			permitPrerelease: true,
-			desc:             "prerelease on",
-		},
-		{
-			versions: []string{
-				"v3.4.5-alpha.1",
-				"v3.4.4",
-				"v0.1.2-alpha.2",
-				"v0.1.11",
-			},
-			latest:           "v3.4.4",
-			oldest:           "v0.1.11",
-			permitPrerelease: false,
-			desc:             "prerelease off",
-		},
-		{
-			versions: []string{
-				"v3.4.5-alpha.1",
-				"v3.4.4",
-				"v0.1.12-alpha.2",
-				"v0.1.2",
-			},
-			latest:           "v3.4.5-alpha.1",
-			oldest:           "v0.1.2",
-			permitPrerelease: true,
-			desc:             "prerelease on (mixed)",
-		},
-	}
+// func TestVisitor(t *testing.T) {
+// 	tts := []struct {
+// 		versions         []string
+// 		latest           string
+// 		oldest           string
+// 		permitPrerelease bool
+// 		desc             string
+// 	}{
+// 		{
+// 			versions: []string{
+// 				"v1.2.3",
+// 				"v2.3.4-alpha.1",
+// 			},
+// 			latest: "v1.2.3",
+// 			oldest: "v1.2.3",
+// 			desc:   "one stable release",
+// 		},
+// 		{
+// 			versions: []string{
+// 				"v1.2.3",
+// 				"v2.3.4",
+// 				"v2.2.2",
+// 				"v3.5.7",
+// 				"invalid",
+// 				"v0.0.1-alpha.2",
+// 			},
+// 			latest: "v3.5.7",
+// 			oldest: "v1.2.3",
+// 			desc:   "mixed releases",
+// 		},
+// 		{
+// 			versions: []string{
+// 				"invalid",
+// 				"12356",
+// 				"127.0.0.1:8080",
+// 			},
+// 			desc: "all invalid",
+// 		},
+// 		{
+// 			versions: []string{
+// 				"v3.4.5-alpha.1",
+// 				"v3.4.4",
+// 				"v0.1.2-alpha.2",
+// 				"v0.1.11",
+// 			},
+// 			latest:           "v3.4.5-alpha.1",
+// 			oldest:           "v0.1.2-alpha.2",
+// 			permitPrerelease: true,
+// 			desc:             "prerelease on",
+// 		},
+// 		{
+// 			versions: []string{
+// 				"v3.4.5-alpha.1",
+// 				"v3.4.4",
+// 				"v0.1.2-alpha.2",
+// 				"v0.1.11",
+// 			},
+// 			latest:           "v3.4.4",
+// 			oldest:           "v0.1.11",
+// 			permitPrerelease: false,
+// 			desc:             "prerelease off",
+// 		},
+// 		{
+// 			versions: []string{
+// 				"v3.4.5-alpha.1",
+// 				"v3.4.4",
+// 				"v0.1.12-alpha.2",
+// 				"v0.1.2",
+// 			},
+// 			latest:           "v3.4.5-alpha.1",
+// 			oldest:           "v0.1.2",
+// 			permitPrerelease: true,
+// 			desc:             "prerelease on (mixed)",
+// 		},
+// 	}
 
-	for _, tt := range tts {
-		visitor := Visitor{
-			PermitPrerelease: tt.permitPrerelease,
-		}
+// 	for _, tt := range tts {
+// 		visitor := Visitor{
+// 			PermitPrerelease: tt.permitPrerelease,
+// 		}
 
-		for _, v := range tt.versions {
-			visitor.Visit(v)
-		}
+// 		for _, v := range tt.versions {
+// 			visitor.Visit(v)
+// 		}
 
-		require.Equal(t, tt.latest, visitor.Latest(), tt.desc)
-		require.Equal(t, tt.oldest, visitor.Oldest(), tt.desc)
-	}
-}
+// 		require.Equal(t, tt.latest, visitor.Latest(), tt.desc)
+// 		require.Equal(t, tt.oldest, visitor.Oldest(), tt.desc)
+// 	}
+// }

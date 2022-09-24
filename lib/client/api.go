@@ -48,13 +48,11 @@ import (
 	tracessh "github.com/gravitational/teleport/api/observability/tracing/ssh"
 	"github.com/gravitational/teleport/api/profile"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/api/types/wrappers"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/api/utils/keypaths"
 	"github.com/gravitational/teleport/lib/auth"
 	wancli "github.com/gravitational/teleport/lib/auth/webauthncli"
-	"github.com/gravitational/teleport/lib/client/terminal"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/modules"
@@ -2081,58 +2079,58 @@ func (tc *TeleportClient) Join(ctx context.Context, mode types.SessionParticipan
 	return trace.Wrap(err)
 }
 
-// Play replays the recorded session
-func (tc *TeleportClient) Play(ctx context.Context, namespace, sessionID string) (err error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/Play",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("session", sessionID),
-		),
-	)
-	defer span.End()
+// // Play replays the recorded session
+// func (tc *TeleportClient) Play(ctx context.Context, namespace, sessionID string) (err error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/Play",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("session", sessionID),
+// 		),
+// 	)
+// 	defer span.End()
 
-	var sessionEvents []events.EventFields
-	var stream []byte
-	if namespace == "" {
-		return trace.BadParameter(auth.MissingNamespaceError)
-	}
-	sid, err := session.ParseID(sessionID)
-	if err != nil {
-		return fmt.Errorf("'%v' is not a valid session ID (must be GUID)", sid)
-	}
-	// connect to the auth server (site) who made the recording
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// 	var sessionEvents []events.EventFields
+// 	var stream []byte
+// 	if namespace == "" {
+// 		return trace.BadParameter(auth.MissingNamespaceError)
+// 	}
+// 	sid, err := session.ParseID(sessionID)
+// 	if err != nil {
+// 		return fmt.Errorf("'%v' is not a valid session ID (must be GUID)", sid)
+// 	}
+// 	// connect to the auth server (site) who made the recording
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	site, err := proxyClient.ConnectToCurrentCluster(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	// request events for that session (to get timing data)
-	sessionEvents, err = site.GetSessionEvents(namespace, *sid, 0, true)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	site, err := proxyClient.ConnectToCurrentCluster(ctx)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	// request events for that session (to get timing data)
+// 	sessionEvents, err = site.GetSessionEvents(namespace, *sid, 0, true)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	// read the stream into a buffer:
-	for {
-		tmp, err := site.GetSessionChunk(namespace, *sid, len(stream), events.MaxChunkBytes)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if len(tmp) == 0 {
-			break
-		}
-		stream = append(stream, tmp...)
-	}
+// 	// read the stream into a buffer:
+// 	for {
+// 		tmp, err := site.GetSessionChunk(namespace, *sid, len(stream), events.MaxChunkBytes)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		if len(tmp) == 0 {
+// 			break
+// 		}
+// 		stream = append(stream, tmp...)
+// 	}
 
-	return playSession(sessionEvents, stream)
-}
+// 	return playSession(sessionEvents, stream)
+// }
 
 func (tc *TeleportClient) GetSessionEvents(ctx context.Context, namespace, sessionID string) ([]events.EventFields, error) {
 	ctx, span := tc.Tracer.Start(
@@ -2170,31 +2168,31 @@ func (tc *TeleportClient) GetSessionEvents(ctx context.Context, namespace, sessi
 	return events, nil
 }
 
-// PlayFile plays the recorded session from a tar file
-func PlayFile(ctx context.Context, tarFile io.Reader, sid string) error {
-	var sessionEvents []events.EventFields
-	var stream []byte
-	protoReader := events.NewProtoReader(tarFile)
-	playbackDir, err := os.MkdirTemp("", "playback")
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	defer os.RemoveAll(playbackDir)
-	w, err := events.WriteForSSHPlayback(ctx, session.ID(sid), protoReader, playbackDir)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	sessionEvents, err = w.SessionEvents()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	stream, err = w.SessionChunks()
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// // PlayFile plays the recorded session from a tar file
+// func PlayFile(ctx context.Context, tarFile io.Reader, sid string) error {
+// 	var sessionEvents []events.EventFields
+// 	var stream []byte
+// 	protoReader := events.NewProtoReader(tarFile)
+// 	playbackDir, err := os.MkdirTemp("", "playback")
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	defer os.RemoveAll(playbackDir)
+// 	w, err := events.WriteForSSHPlayback(ctx, session.ID(sid), protoReader, playbackDir)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	sessionEvents, err = w.SessionEvents()
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	stream, err = w.SessionChunks()
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	return playSession(sessionEvents, stream)
-}
+// 	return playSession(sessionEvents, stream)
+// }
 
 // ExecuteSCP executes SCP command. It executes scp.Command using
 // lower-level API integrations that mimic SCP CLI command behavior
@@ -2417,310 +2415,310 @@ func isRemoteDest(name string) bool {
 	return strings.ContainsRune(name, ':')
 }
 
-// ListNodesWithFilters returns a list of nodes connected to a proxy
-func (tc *TeleportClient) ListNodesWithFilters(ctx context.Context) ([]types.Server, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/ListNodesWithFilters",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // ListNodesWithFilters returns a list of nodes connected to a proxy
+// func (tc *TeleportClient) ListNodesWithFilters(ctx context.Context) ([]types.Server, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/ListNodesWithFilters",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	// connect to the proxy and ask it to return a full list of servers
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// 	// connect to the proxy and ask it to return a full list of servers
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	servers, err := proxyClient.FindNodesByFilters(ctx, *tc.DefaultResourceFilter())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	servers, err := proxyClient.FindNodesByFilters(ctx, *tc.DefaultResourceFilter())
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return servers, nil
-}
+// 	return servers, nil
+// }
 
-// GetClusterAlerts returns a list of matching alerts from the current cluster.
-func (tc *TeleportClient) GetClusterAlerts(ctx context.Context, req types.GetClusterAlertsRequest) ([]types.ClusterAlert, error) {
-	ctx, span := tc.Tracer.Start(ctx,
-		"teleportClient/GetClusterAlerts",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // GetClusterAlerts returns a list of matching alerts from the current cluster.
+// func (tc *TeleportClient) GetClusterAlerts(ctx context.Context, req types.GetClusterAlertsRequest) ([]types.ClusterAlert, error) {
+// 	ctx, span := tc.Tracer.Start(ctx,
+// 		"teleportClient/GetClusterAlerts",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	alerts, err := proxyClient.GetClusterAlerts(ctx, req)
-	return alerts, trace.Wrap(err)
-}
+// 	alerts, err := proxyClient.GetClusterAlerts(ctx, req)
+// 	return alerts, trace.Wrap(err)
+// }
 
-// ListNodesWithFiltersAllClusters returns a map of all nodes in all clusters connected to this proxy.
-func (tc *TeleportClient) ListNodesWithFiltersAllClusters(ctx context.Context) (map[string][]types.Server, error) {
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// // ListNodesWithFiltersAllClusters returns a map of all nodes in all clusters connected to this proxy.
+// func (tc *TeleportClient) ListNodesWithFiltersAllClusters(ctx context.Context) (map[string][]types.Server, error) {
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	clusters, err := proxyClient.GetSites(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers := make(map[string][]types.Server, len(clusters))
-	for _, cluster := range clusters {
-		s, err := proxyClient.FindNodesByFiltersForCluster(ctx, *tc.DefaultResourceFilter(), cluster.Name)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		servers[cluster.Name] = s
-	}
-	return servers, nil
-}
+// 	clusters, err := proxyClient.GetSites(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	servers := make(map[string][]types.Server, len(clusters))
+// 	for _, cluster := range clusters {
+// 		s, err := proxyClient.FindNodesByFiltersForCluster(ctx, *tc.DefaultResourceFilter(), cluster.Name)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		servers[cluster.Name] = s
+// 	}
+// 	return servers, nil
+// }
 
-// ListAppServersWithFilters returns a list of application servers.
-func (tc *TeleportClient) ListAppServersWithFilters(ctx context.Context, customFilter *proto.ListResourcesRequest) ([]types.AppServer, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/ListAppServersWithFilters",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // ListAppServersWithFilters returns a list of application servers.
+// func (tc *TeleportClient) ListAppServersWithFilters(ctx context.Context, customFilter *proto.ListResourcesRequest) ([]types.AppServer, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/ListAppServersWithFilters",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	filter := customFilter
-	if filter == nil {
-		filter = tc.DefaultResourceFilter()
-	}
+// 	filter := customFilter
+// 	if filter == nil {
+// 		filter = tc.DefaultResourceFilter()
+// 	}
 
-	servers, err := proxyClient.FindAppServersByFilters(ctx, *filter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	servers, err := proxyClient.FindAppServersByFilters(ctx, *filter)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return servers, nil
-}
+// 	return servers, nil
+// }
 
-// listAppServersWithFiltersAllClusters returns a map of all app servers in all clusters connected to this proxy.
-func (tc *TeleportClient) listAppServersWithFiltersAllClusters(ctx context.Context, customFilter *proto.ListResourcesRequest) (map[string][]types.AppServer, error) {
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// // listAppServersWithFiltersAllClusters returns a map of all app servers in all clusters connected to this proxy.
+// func (tc *TeleportClient) listAppServersWithFiltersAllClusters(ctx context.Context, customFilter *proto.ListResourcesRequest) (map[string][]types.AppServer, error) {
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	filter := customFilter
-	if customFilter == nil {
-		filter = tc.DefaultResourceFilter()
-	}
+// 	filter := customFilter
+// 	if customFilter == nil {
+// 		filter = tc.DefaultResourceFilter()
+// 	}
 
-	clusters, err := proxyClient.GetSites(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers := make(map[string][]types.AppServer, len(clusters))
-	for _, cluster := range clusters {
-		s, err := proxyClient.FindAppServersByFiltersForCluster(ctx, *filter, cluster.Name)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		servers[cluster.Name] = s
-	}
-	return servers, nil
-}
+// 	clusters, err := proxyClient.GetSites(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	servers := make(map[string][]types.AppServer, len(clusters))
+// 	for _, cluster := range clusters {
+// 		s, err := proxyClient.FindAppServersByFiltersForCluster(ctx, *filter, cluster.Name)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		servers[cluster.Name] = s
+// 	}
+// 	return servers, nil
+// }
 
-// ListApps returns all registered applications.
-func (tc *TeleportClient) ListApps(ctx context.Context, customFilter *proto.ListResourcesRequest) ([]types.Application, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/ListApps",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // ListApps returns all registered applications.
+// func (tc *TeleportClient) ListApps(ctx context.Context, customFilter *proto.ListResourcesRequest) ([]types.Application, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/ListApps",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	servers, err := tc.ListAppServersWithFilters(ctx, customFilter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var apps []types.Application
-	for _, server := range servers {
-		apps = append(apps, server.GetApp())
-	}
-	return types.DeduplicateApps(apps), nil
-}
+// 	servers, err := tc.ListAppServersWithFilters(ctx, customFilter)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	var apps []types.Application
+// 	for _, server := range servers {
+// 		apps = append(apps, server.GetApp())
+// 	}
+// 	return types.DeduplicateApps(apps), nil
+// }
 
-// ListAppsAllClusters returns all registered applications across all clusters.
-func (tc *TeleportClient) ListAppsAllClusters(ctx context.Context, customFilter *proto.ListResourcesRequest) (map[string][]types.Application, error) {
-	serversByCluster, err := tc.listAppServersWithFiltersAllClusters(ctx, customFilter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	clusters := make(map[string][]types.Application, len(serversByCluster))
-	for cluster, servers := range serversByCluster {
-		var apps []types.Application
-		for _, server := range servers {
-			apps = append(apps, server.GetApp())
-		}
-		clusters[cluster] = types.DeduplicateApps(apps)
-	}
-	return clusters, nil
-}
+// // ListAppsAllClusters returns all registered applications across all clusters.
+// func (tc *TeleportClient) ListAppsAllClusters(ctx context.Context, customFilter *proto.ListResourcesRequest) (map[string][]types.Application, error) {
+// 	serversByCluster, err := tc.listAppServersWithFiltersAllClusters(ctx, customFilter)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	clusters := make(map[string][]types.Application, len(serversByCluster))
+// 	for cluster, servers := range serversByCluster {
+// 		var apps []types.Application
+// 		for _, server := range servers {
+// 			apps = append(apps, server.GetApp())
+// 		}
+// 		clusters[cluster] = types.DeduplicateApps(apps)
+// 	}
+// 	return clusters, nil
+// }
 
-// CreateAppSession creates a new application access session.
-func (tc *TeleportClient) CreateAppSession(ctx context.Context, req types.CreateAppSessionRequest) (types.WebSession, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/CreateAppSession",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // CreateAppSession creates a new application access session.
+// func (tc *TeleportClient) CreateAppSession(ctx context.Context, req types.CreateAppSessionRequest) (types.WebSession, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/CreateAppSession",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
-	return proxyClient.CreateAppSession(ctx, req)
-}
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
+// 	return proxyClient.CreateAppSession(ctx, req)
+// }
 
-// DeleteAppSession removes the specified application access session.
-func (tc *TeleportClient) DeleteAppSession(ctx context.Context, sessionID string) error {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/DeleteAppSession",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // DeleteAppSession removes the specified application access session.
+// func (tc *TeleportClient) DeleteAppSession(ctx context.Context, sessionID string) error {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/DeleteAppSession",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	defer proxyClient.Close()
-	return proxyClient.DeleteAppSession(ctx, sessionID)
-}
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
+// 	return proxyClient.DeleteAppSession(ctx, sessionID)
+// }
 
-// ListDatabaseServersWithFilters returns all registered database proxy servers.
-func (tc *TeleportClient) ListDatabaseServersWithFilters(ctx context.Context, customFilter *proto.ListResourcesRequest) ([]types.DatabaseServer, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/ListDatabaseServersWithFilters",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // ListDatabaseServersWithFilters returns all registered database proxy servers.
+// func (tc *TeleportClient) ListDatabaseServersWithFilters(ctx context.Context, customFilter *proto.ListResourcesRequest) ([]types.DatabaseServer, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/ListDatabaseServersWithFilters",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	filter := customFilter
-	if filter == nil {
-		filter = tc.DefaultResourceFilter()
-	}
+// 	filter := customFilter
+// 	if filter == nil {
+// 		filter = tc.DefaultResourceFilter()
+// 	}
 
-	servers, err := proxyClient.FindDatabaseServersByFilters(ctx, *filter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	servers, err := proxyClient.FindDatabaseServersByFilters(ctx, *filter)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return servers, nil
-}
+// 	return servers, nil
+// }
 
-// listDatabaseServersWithFilters returns all registered database proxy servers across all clusters.
-func (tc *TeleportClient) listDatabaseServersWithFiltersAllClusters(ctx context.Context, customFilter *proto.ListResourcesRequest) (map[string][]types.DatabaseServer, error) {
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// // listDatabaseServersWithFilters returns all registered database proxy servers across all clusters.
+// func (tc *TeleportClient) listDatabaseServersWithFiltersAllClusters(ctx context.Context, customFilter *proto.ListResourcesRequest) (map[string][]types.DatabaseServer, error) {
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	filter := customFilter
-	if customFilter == nil {
-		filter = tc.DefaultResourceFilter()
-	}
+// 	filter := customFilter
+// 	if customFilter == nil {
+// 		filter = tc.DefaultResourceFilter()
+// 	}
 
-	clusters, err := proxyClient.GetSites(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers := make(map[string][]types.DatabaseServer, len(clusters))
-	for _, cluster := range clusters {
-		s, err := proxyClient.FindDatabaseServersByFiltersForCluster(ctx, *filter, cluster.Name)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		servers[cluster.Name] = s
-	}
-	return servers, nil
-}
+// 	clusters, err := proxyClient.GetSites(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	servers := make(map[string][]types.DatabaseServer, len(clusters))
+// 	for _, cluster := range clusters {
+// 		s, err := proxyClient.FindDatabaseServersByFiltersForCluster(ctx, *filter, cluster.Name)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		servers[cluster.Name] = s
+// 	}
+// 	return servers, nil
+// }
 
-// ListDatabases returns all registered databases.
-func (tc *TeleportClient) ListDatabases(ctx context.Context, customFilter *proto.ListResourcesRequest) ([]types.Database, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/ListDatabases",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // ListDatabases returns all registered databases.
+// func (tc *TeleportClient) ListDatabases(ctx context.Context, customFilter *proto.ListResourcesRequest) ([]types.Database, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/ListDatabases",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	servers, err := tc.ListDatabaseServersWithFilters(ctx, customFilter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var databases []types.Database
-	for _, server := range servers {
-		databases = append(databases, server.GetDatabase())
-	}
-	return types.DeduplicateDatabases(databases), nil
-}
+// 	servers, err := tc.ListDatabaseServersWithFilters(ctx, customFilter)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	var databases []types.Database
+// 	for _, server := range servers {
+// 		databases = append(databases, server.GetDatabase())
+// 	}
+// 	return types.DeduplicateDatabases(databases), nil
+// }
 
-// ListDatabasesAllClusters returns all registered databases across all clusters.
-func (tc *TeleportClient) ListDatabasesAllClusters(ctx context.Context, customFilter *proto.ListResourcesRequest) (map[string][]types.Database, error) {
-	serversByCluster, err := tc.listDatabaseServersWithFiltersAllClusters(ctx, customFilter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	clusters := make(map[string][]types.Database, len(serversByCluster))
-	for cluster, servers := range serversByCluster {
-		var databases []types.Database
-		for _, server := range servers {
-			databases = append(databases, server.GetDatabase())
-		}
-		clusters[cluster] = types.DeduplicateDatabases(databases)
-	}
-	return clusters, nil
-}
+// // ListDatabasesAllClusters returns all registered databases across all clusters.
+// func (tc *TeleportClient) ListDatabasesAllClusters(ctx context.Context, customFilter *proto.ListResourcesRequest) (map[string][]types.Database, error) {
+// 	serversByCluster, err := tc.listDatabaseServersWithFiltersAllClusters(ctx, customFilter)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	clusters := make(map[string][]types.Database, len(serversByCluster))
+// 	for cluster, servers := range serversByCluster {
+// 		var databases []types.Database
+// 		for _, server := range servers {
+// 			databases = append(databases, server.GetDatabase())
+// 		}
+// 		clusters[cluster] = types.DeduplicateDatabases(databases)
+// 	}
+// 	return clusters, nil
+// }
 
-// ListAllNodes is the same as ListNodes except that it ignores labels.
-func (tc *TeleportClient) ListAllNodes(ctx context.Context) ([]types.Server, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/ListAllNodes",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // ListAllNodes is the same as ListNodes except that it ignores labels.
+// func (tc *TeleportClient) ListAllNodes(ctx context.Context) ([]types.Server, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/ListAllNodes",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	return proxyClient.FindNodesByFilters(ctx, proto.ListResourcesRequest{
-		Namespace: tc.Namespace,
-	})
-}
+// 	return proxyClient.FindNodesByFilters(ctx, proto.ListResourcesRequest{
+// 		Namespace: tc.Namespace,
+// 	})
+// }
 
 // ListKubeClustersWithFiltersAllClusters returns a map of all kube clusters in all clusters connected to a proxy.
 // func (tc *TeleportClient) ListKubeClustersWithFiltersAllClusters(ctx context.Context, req proto.ListResourcesRequest) (map[string][]*types.KubernetesCluster, error) {
@@ -3198,33 +3196,33 @@ func (tc *TeleportClient) Logout() error {
 	return tc.localAgent.DeleteKey()
 }
 
-// LogoutDatabase removes certificate for a particular database.
-func (tc *TeleportClient) LogoutDatabase(dbName string) error {
-	if tc.localAgent == nil {
-		return nil
-	}
-	if tc.SiteName == "" {
-		return trace.BadParameter("cluster name must be set for database logout")
-	}
-	if dbName == "" {
-		return trace.BadParameter("please specify database name to log out of")
-	}
-	return tc.localAgent.DeleteUserCerts(tc.SiteName, WithDBCerts{dbName})
-}
+// // LogoutDatabase removes certificate for a particular database.
+// func (tc *TeleportClient) LogoutDatabase(dbName string) error {
+// 	if tc.localAgent == nil {
+// 		return nil
+// 	}
+// 	if tc.SiteName == "" {
+// 		return trace.BadParameter("cluster name must be set for database logout")
+// 	}
+// 	if dbName == "" {
+// 		return trace.BadParameter("please specify database name to log out of")
+// 	}
+// 	return tc.localAgent.DeleteUserCerts(tc.SiteName, WithDBCerts{dbName})
+// }
 
-// LogoutApp removes certificate for the specified app.
-func (tc *TeleportClient) LogoutApp(appName string) error {
-	if tc.localAgent == nil {
-		return nil
-	}
-	if tc.SiteName == "" {
-		return trace.BadParameter("cluster name must be set for app logout")
-	}
-	if appName == "" {
-		return trace.BadParameter("please specify app name to log out of")
-	}
-	return tc.localAgent.DeleteUserCerts(tc.SiteName, WithAppCerts{appName})
-}
+// // LogoutApp removes certificate for the specified app.
+// func (tc *TeleportClient) LogoutApp(appName string) error {
+// 	if tc.localAgent == nil {
+// 		return nil
+// 	}
+// 	if tc.SiteName == "" {
+// 		return trace.BadParameter("cluster name must be set for app logout")
+// 	}
+// 	if appName == "" {
+// 		return trace.BadParameter("please specify app name to log out of")
+// 	}
+// 	return tc.localAgent.DeleteUserCerts(tc.SiteName, WithAppCerts{appName})
+// }
 
 // LogoutAll removes all certificates for all users from the filesystem
 // and agent.
@@ -3316,29 +3314,29 @@ func (tc *TeleportClient) Login(ctx context.Context) (*Key, error) {
 			return nil, trace.Wrap(err)
 		}
 		username = response.Username
-	case authType == constants.Local:
-		response, err = tc.localLogin(ctx, pr.Auth.SecondFactor, key.MarshalSSHPublicKey())
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	case authType == constants.OIDC:
-		response, err = tc.ssoLogin(ctx, pr.Auth.OIDC.Name, key.MarshalSSHPublicKey(), constants.OIDC)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		username = response.Username
-	case authType == constants.SAML:
-		response, err = tc.ssoLogin(ctx, pr.Auth.SAML.Name, key.MarshalSSHPublicKey(), constants.SAML)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		username = response.Username
-	case authType == constants.Github:
-		response, err = tc.ssoLogin(ctx, pr.Auth.Github.Name, key.MarshalSSHPublicKey(), constants.Github)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		username = response.Username
+	// case authType == constants.Local:
+	// 	response, err = tc.localLogin(ctx, pr.Auth.SecondFactor, key.MarshalSSHPublicKey())
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// case authType == constants.OIDC:
+	// 	response, err = tc.ssoLogin(ctx, pr.Auth.OIDC.Name, key.MarshalSSHPublicKey(), constants.OIDC)
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	username = response.Username
+	// case authType == constants.SAML:
+	// 	response, err = tc.ssoLogin(ctx, pr.Auth.SAML.Name, key.MarshalSSHPublicKey(), constants.SAML)
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	username = response.Username
+	// case authType == constants.Github:
+	// 	response, err = tc.ssoLogin(ctx, pr.Auth.Github.Name, key.MarshalSSHPublicKey(), constants.Github)
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	username = response.Username
 	default:
 		return nil, trace.BadParameter("unsupported authentication type: %q", pr.Auth.Type)
 	}
@@ -3404,30 +3402,30 @@ func (tc *TeleportClient) pwdlessLogin(ctx context.Context, pubKey []byte) (*aut
 	return response, trace.Wrap(err)
 }
 
-func (tc *TeleportClient) localLogin(ctx context.Context, secondFactor constants.SecondFactorType, pub []byte) (*auth.SSHLoginResponse, error) {
-	var err error
-	var response *auth.SSHLoginResponse
+// func (tc *TeleportClient) localLogin(ctx context.Context, secondFactor constants.SecondFactorType, pub []byte) (*auth.SSHLoginResponse, error) {
+// 	var err error
+// 	var response *auth.SSHLoginResponse
 
-	// TODO(awly): mfa: ideally, clients should always go through mfaLocalLogin
-	// (with a nop MFA challenge if no 2nd factor is required). That way we can
-	// deprecate the direct login endpoint.
-	switch secondFactor {
-	case constants.SecondFactorOff, constants.SecondFactorOTP:
-		response, err = tc.directLogin(ctx, secondFactor, pub)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	case constants.SecondFactorU2F, constants.SecondFactorWebauthn, constants.SecondFactorOn, constants.SecondFactorOptional:
-		response, err = tc.mfaLocalLogin(ctx, pub)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	default:
-		return nil, trace.BadParameter("unsupported second factor type: %q", secondFactor)
-	}
+// 	// TODO(awly): mfa: ideally, clients should always go through mfaLocalLogin
+// 	// (with a nop MFA challenge if no 2nd factor is required). That way we can
+// 	// deprecate the direct login endpoint.
+// 	switch secondFactor {
+// 	case constants.SecondFactorOff, constants.SecondFactorOTP:
+// 		response, err = tc.directLogin(ctx, secondFactor, pub)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 	case constants.SecondFactorU2F, constants.SecondFactorWebauthn, constants.SecondFactorOn, constants.SecondFactorOptional:
+// 		response, err = tc.mfaLocalLogin(ctx, pub)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 	default:
+// 		return nil, trace.BadParameter("unsupported second factor type: %q", secondFactor)
+// 	}
 
-	return response, nil
-}
+// 	return response, nil
+// }
 
 // directLogin asks for a password + HOTP token, makes a request to CA via proxy
 func (tc *TeleportClient) directLogin(ctx context.Context, secondFactorType constants.SecondFactorType, pub []byte) (*auth.SSHLoginResponse, error) {
@@ -3436,14 +3434,14 @@ func (tc *TeleportClient) directLogin(ctx context.Context, secondFactorType cons
 		return nil, trace.Wrap(err)
 	}
 
-	// Only ask for a second factor if it's enabled.
-	var otpToken string
-	if secondFactorType == constants.SecondFactorOTP {
-		otpToken, err = tc.AskOTP(ctx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
+	// // Only ask for a second factor if it's enabled.
+	// var otpToken string
+	// if secondFactorType == constants.SecondFactorOTP {
+	// 	otpToken, err = tc.AskOTP(ctx)
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// }
 
 	// Ask the CA (via proxy) to sign our public key:
 	response, err := SSHAgentLogin(ctx, SSHLoginDirect{
@@ -3459,39 +3457,39 @@ func (tc *TeleportClient) directLogin(ctx context.Context, secondFactorType cons
 		},
 		User:     tc.Username,
 		Password: password,
-		OTPToken: otpToken,
+		// OTPToken: otpToken,
 	})
 
 	return response, trace.Wrap(err)
 }
 
-// mfaLocalLogin asks for a password and performs the challenge-response authentication
-func (tc *TeleportClient) mfaLocalLogin(ctx context.Context, pub []byte) (*auth.SSHLoginResponse, error) {
-	password, err := tc.AskPassword(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // mfaLocalLogin asks for a password and performs the challenge-response authentication
+// func (tc *TeleportClient) mfaLocalLogin(ctx context.Context, pub []byte) (*auth.SSHLoginResponse, error) {
+// 	password, err := tc.AskPassword(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	response, err := SSHAgentMFALogin(ctx, SSHLoginMFA{
-		SSHLogin: SSHLogin{
-			ProxyAddr:         tc.WebProxyAddr,
-			PubKey:            pub,
-			TTL:               tc.KeyTTL,
-			Insecure:          tc.InsecureSkipVerify,
-			Pool:              loopbackPool(tc.WebProxyAddr),
-			Compatibility:     tc.CertificateFormat,
-			RouteToCluster:    tc.SiteName,
-			KubernetesCluster: tc.KubernetesCluster,
-		},
-		User:                    tc.Username,
-		Password:                password,
-		AuthenticatorAttachment: tc.AuthenticatorAttachment,
-		PreferOTP:               tc.PreferOTP,
-		AllowStdinHijack:        tc.AllowStdinHijack,
-	})
+// 	response, err := SSHAgentMFALogin(ctx, SSHLoginMFA{
+// 		SSHLogin: SSHLogin{
+// 			ProxyAddr:         tc.WebProxyAddr,
+// 			PubKey:            pub,
+// 			TTL:               tc.KeyTTL,
+// 			Insecure:          tc.InsecureSkipVerify,
+// 			Pool:              loopbackPool(tc.WebProxyAddr),
+// 			Compatibility:     tc.CertificateFormat,
+// 			RouteToCluster:    tc.SiteName,
+// 			KubernetesCluster: tc.KubernetesCluster,
+// 		},
+// 		User:                    tc.Username,
+// 		Password:                password,
+// 		AuthenticatorAttachment: tc.AuthenticatorAttachment,
+// 		PreferOTP:               tc.PreferOTP,
+// 		AllowStdinHijack:        tc.AllowStdinHijack,
+// 	})
 
-	return response, trace.Wrap(err)
-}
+// 	return response, trace.Wrap(err)
+// }
 
 // SSOLoginFunc is a function used in tests to mock SSO logins.
 type SSOLoginFunc func(ctx context.Context, connectorID string, pub []byte, protocol string) (*auth.SSHLoginResponse, error)
@@ -4040,10 +4038,10 @@ func Username() (string, error) {
 	return username, nil
 }
 
-// AskOTP prompts the user to enter the OTP token.
-func (tc *TeleportClient) AskOTP(ctx context.Context) (token string, err error) {
-	return prompt.Password(ctx, tc.Stderr, prompt.Stdin(), "Enter your OTP token")
-}
+// // AskOTP prompts the user to enter the OTP token.
+// func (tc *TeleportClient) AskOTP(ctx context.Context) (token string, err error) {
+// 	return prompt.Password(ctx, tc.Stderr, prompt.Stdin(), "Enter your OTP token")
+// }
 
 // AskPassword prompts the user to enter the password
 func (tc *TeleportClient) AskPassword(ctx context.Context) (pwd string, err error) {
@@ -4124,43 +4122,43 @@ func ParseLabelSpec(spec string) (map[string]string, error) {
 	return labels, nil
 }
 
-// ParseSearchKeywords parses a string ie: foo,bar,"quoted value"` into a slice of
-// strings: ["foo", "bar", "quoted value"].
-// Almost a replica to ParseLabelSpec, but with few modifications such as
-// allowing a custom delimiter. Defaults to comma delimiter if not defined.
-func ParseSearchKeywords(spec string, customDelimiter rune) []string {
-	delimiter := customDelimiter
-	if delimiter == 0 {
-		delimiter = rune(',')
-	}
+// // ParseSearchKeywords parses a string ie: foo,bar,"quoted value"` into a slice of
+// // strings: ["foo", "bar", "quoted value"].
+// // Almost a replica to ParseLabelSpec, but with few modifications such as
+// // allowing a custom delimiter. Defaults to comma delimiter if not defined.
+// func ParseSearchKeywords(spec string, customDelimiter rune) []string {
+// 	delimiter := customDelimiter
+// 	if delimiter == 0 {
+// 		delimiter = rune(',')
+// 	}
 
-	var tokens []string
-	openQuotes := false
-	var tokenStart int
-	specLen := len(spec)
-	// tokenize the label search:
-	for i, ch := range spec {
-		endOfToken := false
-		if i+utf8.RuneLen(ch) == specLen {
-			i += utf8.RuneLen(ch)
-			endOfToken = true
-		}
-		switch ch {
-		case '"':
-			openQuotes = !openQuotes
-		case delimiter:
-			if !openQuotes {
-				endOfToken = true
-			}
-		}
-		if endOfToken && i > tokenStart {
-			tokens = append(tokens, strings.TrimSpace(strings.Trim(spec[tokenStart:i], `"`)))
-			tokenStart = i + 1
-		}
-	}
+// 	var tokens []string
+// 	openQuotes := false
+// 	var tokenStart int
+// 	specLen := len(spec)
+// 	// tokenize the label search:
+// 	for i, ch := range spec {
+// 		endOfToken := false
+// 		if i+utf8.RuneLen(ch) == specLen {
+// 			i += utf8.RuneLen(ch)
+// 			endOfToken = true
+// 		}
+// 		switch ch {
+// 		case '"':
+// 			openQuotes = !openQuotes
+// 		case delimiter:
+// 			if !openQuotes {
+// 				endOfToken = true
+// 			}
+// 		}
+// 		if endOfToken && i > tokenStart {
+// 			tokens = append(tokens, strings.TrimSpace(strings.Trim(spec[tokenStart:i], `"`)))
+// 			tokenStart = i + 1
+// 		}
+// 	}
 
-	return tokens
-}
+// 	return tokens
+// }
 
 // Executes the given command on the client machine (localhost). If no command is given,
 // executes shell
@@ -4281,72 +4279,72 @@ func isFIPS() bool {
 	return modules.GetModules().IsBoringBinary()
 }
 
-// playSession plays session in the terminal
-func playSession(sessionEvents []events.EventFields, stream []byte) error {
-	term, err := terminal.New(nil, nil, nil)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// // playSession plays session in the terminal
+// func playSession(sessionEvents []events.EventFields, stream []byte) error {
+// 	term, err := terminal.New(nil, nil, nil)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	defer term.Close()
+// 	defer term.Close()
 
-	// configure terminal for direct unbuffered echo-less input:
-	if term.IsAttached() {
-		err := term.InitRaw(true)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
+// 	// configure terminal for direct unbuffered echo-less input:
+// 	if term.IsAttached() {
+// 		err := term.InitRaw(true)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 	}
 
-	player := newSessionPlayer(sessionEvents, stream, term)
-	errorCh := make(chan error)
-	// keys:
-	const (
-		keyCtrlC = 3
-		keyCtrlD = 4
-		keySpace = 32
-		keyLeft  = 68
-		keyRight = 67
-		keyUp    = 65
-		keyDown  = 66
-	)
-	// playback control goroutine
-	go func() {
-		defer player.EndPlayback()
-		var key [1]byte
-		for {
-			_, err := term.Stdin().Read(key[:])
-			if err != nil {
-				errorCh <- err
-				return
-			}
-			switch key[0] {
-			// Ctrl+C or Ctrl+D
-			case keyCtrlC, keyCtrlD:
-				return
-			// Space key
-			case keySpace:
-				player.TogglePause()
-			// <- arrow
-			case keyLeft, keyDown:
-				player.Rewind()
-			// -> arrow
-			case keyRight, keyUp:
-				player.Forward()
-			}
-		}
-	}()
-	// player starts playing in its own goroutine
-	player.Play()
-	// wait for keypresses loop to end
-	select {
-	case <-player.stopC:
-		fmt.Println("\n\nend of session playback")
-		return nil
-	case err := <-errorCh:
-		return trace.Wrap(err)
-	}
-}
+// 	player := newSessionPlayer(sessionEvents, stream, term)
+// 	errorCh := make(chan error)
+// 	// keys:
+// 	const (
+// 		keyCtrlC = 3
+// 		keyCtrlD = 4
+// 		keySpace = 32
+// 		keyLeft  = 68
+// 		keyRight = 67
+// 		keyUp    = 65
+// 		keyDown  = 66
+// 	)
+// 	// playback control goroutine
+// 	go func() {
+// 		defer player.EndPlayback()
+// 		var key [1]byte
+// 		for {
+// 			_, err := term.Stdin().Read(key[:])
+// 			if err != nil {
+// 				errorCh <- err
+// 				return
+// 			}
+// 			switch key[0] {
+// 			// Ctrl+C or Ctrl+D
+// 			case keyCtrlC, keyCtrlD:
+// 				return
+// 			// Space key
+// 			case keySpace:
+// 				player.TogglePause()
+// 			// <- arrow
+// 			case keyLeft, keyDown:
+// 				player.Rewind()
+// 			// -> arrow
+// 			case keyRight, keyUp:
+// 				player.Forward()
+// 			}
+// 		}
+// 	}()
+// 	// player starts playing in its own goroutine
+// 	player.Play()
+// 	// wait for keypresses loop to end
+// 	select {
+// 	case <-player.stopC:
+// 		fmt.Println("\n\nend of session playback")
+// 		return nil
+// 	case err := <-errorCh:
+// 		return trace.Wrap(err)
+// 	}
+// }
 
 func findActiveDatabases(key *Key) ([]tlsca.RouteToDatabase, error) {
 	dbCerts, err := key.DBTLSCertificates()
@@ -4371,33 +4369,33 @@ func findActiveDatabases(key *Key) ([]tlsca.RouteToDatabase, error) {
 	return databases, nil
 }
 
-// SearchSessionEvents allows searching for session events with a full pagination support.
-func (tc *TeleportClient) SearchSessionEvents(ctx context.Context, fromUTC, toUTC time.Time, pageSize int, order types.EventOrder, max int) ([]apievents.AuditEvent, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/SearchSessionEvents",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.Int("page_size", pageSize),
-			attribute.String("from", fromUTC.Format(time.RFC3339)),
-			attribute.String("to", toUTC.Format(time.RFC3339)),
-		),
-	)
-	defer span.End()
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
-	authClient, err := proxyClient.CurrentClusterAccessPoint(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer authClient.Close()
-	sessions, err := GetPaginatedSessions(ctx, fromUTC, toUTC,
-		pageSize, order, max, authClient)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return sessions, nil
-}
+// // SearchSessionEvents allows searching for session events with a full pagination support.
+// func (tc *TeleportClient) SearchSessionEvents(ctx context.Context, fromUTC, toUTC time.Time, pageSize int, order types.EventOrder, max int) ([]apievents.AuditEvent, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/SearchSessionEvents",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.Int("page_size", pageSize),
+// 			attribute.String("from", fromUTC.Format(time.RFC3339)),
+// 			attribute.String("to", toUTC.Format(time.RFC3339)),
+// 		),
+// 	)
+// 	defer span.End()
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
+// 	authClient, err := proxyClient.CurrentClusterAccessPoint(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer authClient.Close()
+// 	sessions, err := GetPaginatedSessions(ctx, fromUTC, toUTC,
+// 		pageSize, order, max, authClient)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return sessions, nil
+// }

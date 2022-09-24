@@ -21,13 +21,13 @@
 // and checking system configuration.
 package auditd
 
-// SendEvent is a stub function that is called on macOS. Auditd is implemented in Linux kernel and doesn't
-// work on system different from Linux.
-func SendEvent(_ EventType, _ ResultType, _ Message) error {
-	return nil
-}
+// // SendEvent is a stub function that is called on macOS. Auditd is implemented in Linux kernel and doesn't
+// // work on system different from Linux.
+// func SendEvent(_ EventType, _ ResultType, _ Message) error {
+// 	return nil
+// }
 
-// IsLoginUIDSet returns always false on non Linux systems.
-func IsLoginUIDSet() bool {
-	return false
-}
+// // IsLoginUIDSet returns always false on non Linux systems.
+// func IsLoginUIDSet() bool {
+// 	return false
+// }

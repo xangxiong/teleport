@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -35,7 +34,6 @@ import (
 	"github.com/gravitational/trace"
 
 	"github.com/gravitational/teleport"
-	"github.com/gravitational/teleport/lib/auditd"
 	"github.com/gravitational/teleport/lib/pam"
 	"github.com/gravitational/teleport/lib/shell"
 	"github.com/gravitational/teleport/lib/srv/uacc"
@@ -202,31 +200,31 @@ func RunCommand() (errw io.Writer, code int, err error) {
 		return errorWriter, teleport.RemoteCommandFailure, trace.Wrap(err)
 	}
 
-	auditdMsg := auditd.Message{
-		SystemUser:   c.Login,
-		TeleportUser: c.Username,
-		ConnAddress:  c.ClientAddress,
-		TTYName:      c.TerminalName,
-	}
+	// auditdMsg := auditd.Message{
+	// 	SystemUser:   c.Login,
+	// 	TeleportUser: c.Username,
+	// 	ConnAddress:  c.ClientAddress,
+	// 	TTYName:      c.TerminalName,
+	// }
 
-	if err := auditd.SendEvent(auditd.AuditUserLogin, auditd.Success, auditdMsg); err != nil {
-		log.WithError(err).Errorf("failed to send user start event to auditd: %v", err)
-	}
+	// if err := auditd.SendEvent(auditd.AuditUserLogin, auditd.Success, auditdMsg); err != nil {
+	// 	log.WithError(err).Errorf("failed to send user start event to auditd: %v", err)
+	// }
 
-	defer func() {
-		if err != nil {
-			if errors.Is(err, user.UnknownUserError(c.Login)) {
-				if err := auditd.SendEvent(auditd.AuditUserErr, auditd.Failed, auditdMsg); err != nil {
-					log.WithError(err).Errorf("failed to send UserErr event to auditd: %v", err)
-				}
-				return
-			}
-		}
+	// defer func() {
+	// 	if err != nil {
+	// 		if errors.Is(err, user.UnknownUserError(c.Login)) {
+	// 			if err := auditd.SendEvent(auditd.AuditUserErr, auditd.Failed, auditdMsg); err != nil {
+	// 				log.WithError(err).Errorf("failed to send UserErr event to auditd: %v", err)
+	// 			}
+	// 			return
+	// 		}
+	// 	}
 
-		if err := auditd.SendEvent(auditd.AuditUserEnd, auditd.Success, auditdMsg); err != nil {
-			log.WithError(err).Errorf("failed to send UserEnd event to auditd: %v", err)
-		}
-	}()
+	// 	if err := auditd.SendEvent(auditd.AuditUserEnd, auditd.Success, auditdMsg); err != nil {
+	// 		log.WithError(err).Errorf("failed to send UserEnd event to auditd: %v", err)
+	// 	}
+	// }()
 
 	var tty *os.File
 	var pty *os.File
