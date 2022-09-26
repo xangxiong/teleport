@@ -40,11 +40,9 @@ import (
 	"github.com/gravitational/teleport/lib/reversetunnel"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/srv"
-	appaws "github.com/gravitational/teleport/lib/srv/app/aws"
 	"github.com/gravitational/teleport/lib/srv/app/common"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
-	"github.com/gravitational/teleport/lib/utils/aws"
 
 	"github.com/gravitational/trace"
 
@@ -191,7 +189,7 @@ type Server struct {
 
 	cache *sessionChunkCache
 
-	awsSigner *appaws.SigningService
+	// awsSigner *appaws.SigningService
 
 	// watcher monitors changes to application resources.
 	watcher *services.AppWatcher
@@ -233,10 +231,10 @@ func New(ctx context.Context, c *Config) (*Server, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	awsSigner, err := appaws.NewSigningService(appaws.SigningServiceConfig{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// awsSigner, err := appaws.NewSigningService(appaws.SigningServiceConfig{})
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	s := &Server{
 		c: c,
@@ -246,7 +244,7 @@ func New(ctx context.Context, c *Config) (*Server, error) {
 		heartbeats:    make(map[string]*srv.Heartbeat),
 		dynamicLabels: make(map[string]*labels.Dynamic),
 		apps:          make(map[string]types.Application),
-		awsSigner:     awsSigner,
+		// awsSigner:     awsSigner,
 		monitoredApps: monitoredApps{
 			static: c.Apps,
 		},
@@ -660,18 +658,18 @@ func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	switch {
-	case app.IsAWSConsole():
-		//  Requests from AWS applications are singed by AWS Signature Version
-		//  4 algorithm. AWS CLI and AWS SDKs automatically use SigV4 for all
-		//  services that support it (All services expect Amazon SimpleDB but
-		//  this AWS service has been deprecated)
-		if aws.IsSignedByAWSSigV4(r) {
-			return s.serveSession(w, r, identity, app, s.withAWSForwarder)
-		}
+	// case app.IsAWSConsole():
+	// 	//  Requests from AWS applications are singed by AWS Signature Version
+	// 	//  4 algorithm. AWS CLI and AWS SDKs automatically use SigV4 for all
+	// 	//  services that support it (All services expect Amazon SimpleDB but
+	// 	//  this AWS service has been deprecated)
+	// 	if aws.IsSignedByAWSSigV4(r) {
+	// 		return s.serveSession(w, r, identity, app, s.withAWSForwarder)
+	// 	}
 
-		// Request for AWS console access originated from Teleport Proxy WebUI
-		// is not signed by SigV4.
-		return s.serveAWSWebConsole(w, r, identity, app)
+	// 	// Request for AWS console access originated from Teleport Proxy WebUI
+	// 	// is not signed by SigV4.
+	// 	return s.serveAWSWebConsole(w, r, identity, app)
 
 	default:
 		return s.serveSession(w, r, identity, app, s.withJWTTokenForwarder)

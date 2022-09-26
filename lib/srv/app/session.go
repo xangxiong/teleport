@@ -187,7 +187,7 @@ func (s *Server) withJWTTokenForwarder(ctx context.Context, sess *sessionChunk, 
 // withAWSForwarder is a sessionOpt that uses forwarder of the AWS signning
 // service.
 func (s *Server) withAWSForwarder(ctx context.Context, sess *sessionChunk, identity *tlsca.Identity, app types.Application) error {
-	sess.fwd = s.awsSigner.Forwarder
+	// sess.fwd = s.awsSigner.Forwarder
 	return nil
 }
 

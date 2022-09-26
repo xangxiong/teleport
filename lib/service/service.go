@@ -71,7 +71,6 @@ import (
 	"github.com/gravitational/teleport/lib/events/s3sessions"
 	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/labels"
-	"github.com/gravitational/teleport/lib/labels/ec2"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/multiplexer"
@@ -825,11 +824,11 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 						"Please try restarting Teleport again.")
 				}
 				cfg.HostUUID = rawID.String()
-			case types.JoinMethodEC2:
-				cfg.HostUUID, err = utils.GetEC2NodeID()
-				if err != nil {
-					return nil, trace.Wrap(err)
-				}
+			// case types.JoinMethodEC2:
+			// 	cfg.HostUUID, err = utils.GetEC2NodeID()
+			// 	if err != nil {
+			// 		return nil, trace.Wrap(err)
+			// 	}
 			default:
 				return nil, trace.BadParameter("unknown join method %q", cfg.JoinMethod)
 			}
@@ -865,43 +864,43 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 	var cloudLabels labels.Importer
 
 	// Check if we're on an EC2 instance, and if we should override the node's hostname.
-	imClient := newTeleportConf.imdsClient
-	if imClient == nil {
-		imClient, err = utils.NewInstanceMetadataClient(supervisor.ExitContext())
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
+	// imClient := newTeleportConf.imdsClient
+	// if imClient == nil {
+	// 	imClient, err = utils.NewInstanceMetadataClient(supervisor.ExitContext())
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// }
 
-	if imClient.IsAvailable(supervisor.ExitContext()) {
-		ec2Hostname, err := imClient.GetTagValue(supervisor.ExitContext(), types.EC2HostnameTag)
-		if err == nil {
-			ec2Hostname = strings.ReplaceAll(ec2Hostname, " ", "_")
-			if utils.IsValidHostname(ec2Hostname) {
-				cfg.Log.Infof("Found %q tag in EC2 instance. Using %q as hostname.", types.EC2HostnameTag, ec2Hostname)
-				cfg.Hostname = ec2Hostname
+	// if imClient.IsAvailable(supervisor.ExitContext()) {
+	// 	ec2Hostname, err := imClient.GetTagValue(supervisor.ExitContext(), types.EC2HostnameTag)
+	// 	if err == nil {
+	// 		ec2Hostname = strings.ReplaceAll(ec2Hostname, " ", "_")
+	// 		if utils.IsValidHostname(ec2Hostname) {
+	// 			cfg.Log.Infof("Found %q tag in EC2 instance. Using %q as hostname.", types.EC2HostnameTag, ec2Hostname)
+	// 			cfg.Hostname = ec2Hostname
 
-				// ec2Hostname exists but is not a valid hostname.
-			} else if ec2Hostname != "" {
-				cfg.Log.Infof("Found %q tag in EC2 instance, but %q is not a valid hostname.", types.EC2HostnameTag, ec2Hostname)
-			}
-		} else if !trace.IsNotFound(err) {
-			cfg.Log.Errorf("Unexpected error while looking for EC2 hostname: %v", err)
-		}
+	// 			// ec2Hostname exists but is not a valid hostname.
+	// 		} else if ec2Hostname != "" {
+	// 			cfg.Log.Infof("Found %q tag in EC2 instance, but %q is not a valid hostname.", types.EC2HostnameTag, ec2Hostname)
+	// 		}
+	// 	} else if !trace.IsNotFound(err) {
+	// 		cfg.Log.Errorf("Unexpected error while looking for EC2 hostname: %v", err)
+	// 	}
 
-		ec2Labels, err := ec2.New(supervisor.ExitContext(), &ec2.Config{
-			Client: imClient,
-			Clock:  cfg.Clock,
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		cloudLabels = ec2Labels
-	}
+	// 	ec2Labels, err := ec2.New(supervisor.ExitContext(), &ec2.Config{
+	// 		Client: imClient,
+	// 		Clock:  cfg.Clock,
+	// 	})
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	cloudLabels = ec2Labels
+	// }
 
-	if cloudLabels != nil {
-		cloudLabels.Start(supervisor.ExitContext())
-	}
+	// if cloudLabels != nil {
+	// 	cloudLabels.Start(supervisor.ExitContext())
+	// }
 
 	// if user did not provide auth domain name, use this host's name
 	// if cfg.Auth.Enabled && cfg.Auth.ClusterName == nil {

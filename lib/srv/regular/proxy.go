@@ -42,7 +42,6 @@ import (
 	"github.com/gravitational/teleport/lib/sshutils"
 	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/google/uuid"
 	"github.com/gravitational/trace"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -90,10 +89,11 @@ type proxySubsys struct {
 // proxy subsystem
 //
 // proxy subsystem name can take the following forms:
-//  "proxy:host:22"          - standard SSH request to connect to  host:22 on the 1st cluster
-//  "proxy:@clustername"        - Teleport request to connect to an auth server for cluster with name 'clustername'
-//  "proxy:host:22@clustername" - Teleport request to connect to host:22 on cluster 'clustername'
-//  "proxy:host:22@namespace@clustername"
+//
+//	"proxy:host:22"          - standard SSH request to connect to  host:22 on the 1st cluster
+//	"proxy:@clustername"        - Teleport request to connect to an auth server for cluster with name 'clustername'
+//	"proxy:host:22@clustername" - Teleport request to connect to host:22 on cluster 'clustername'
+//	"proxy:host:22@namespace@clustername"
 func parseProxySubsysRequest(request string) (proxySubsysRequest, error) {
 	log.Debugf("parse_proxy_subsys(%q)", request)
 	var (
@@ -478,10 +478,10 @@ func (t *proxySubsys) getMatchingServer(watcher NodesGetter, strategy types.Rout
 		return nil, trace.NotFound("unable to retrieve nodes matching host %s", t.host)
 	}
 
-	// check if hostname is a valid uuid or EC2 node ID.  If it is, we will
-	// preferentially match by node ID over node hostname.
-	_, err := uuid.Parse(t.host)
-	hostIsUniqueID := err == nil || utils.IsEC2NodeID(t.host)
+	// // check if hostname is a valid uuid or EC2 node ID.  If it is, we will
+	// // preferentially match by node ID over node hostname.
+	// _, err := uuid.Parse(t.host)
+	// hostIsUniqueID := err == nil || utils.IsEC2NodeID(t.host)
 
 	ips, _ := net.LookupHost(t.host)
 
@@ -492,12 +492,12 @@ func (t *proxySubsys) getMatchingServer(watcher NodesGetter, strategy types.Rout
 			return false
 		}
 
-		// If the host parameter is a UUID or EC2 node ID, and it matches the
-		// Node ID, treat this as an unambiguous match.
-		if hostIsUniqueID && server.GetName() == t.host {
-			unambiguousIDMatch = true
-			return true
-		}
+		// // If the host parameter is a UUID or EC2 node ID, and it matches the
+		// // Node ID, treat this as an unambiguous match.
+		// if hostIsUniqueID && server.GetName() == t.host {
+		// 	unambiguousIDMatch = true
+		// 	return true
+		// }
 		// If the server has connected over a reverse tunnel, match only on hostname.
 		if server.GetUseTunnel() {
 			return t.host == server.GetHostname()
@@ -532,21 +532,21 @@ func (t *proxySubsys) getMatchingServer(watcher NodesGetter, strategy types.Rout
 		server = matches[0]
 	}
 
-	// If we matched zero nodes but hostname is a UUID (or EC2 node ID) then it
-	// isn't sane to fallback to dns based resolution.  This has the unfortunate
-	// consequence of preventing users from calling OpenSSH nodes which happen
-	// to use hostnames which are also valid UUIDs.  This restriction is
-	// necessary in order to protect users attempting to connect to a node by
-	// UUID from being re-routed to an unintended target if the node is offline.
-	// This restriction can be lifted if we decide to move to explicit UUID
-	// based resolution in the future.
-	if hostIsUniqueID && server == nil {
-		idType := "UUID"
-		if utils.IsEC2NodeID(t.host) {
-			idType = "EC2"
-		}
-		return nil, trace.NotFound("unable to locate node matching %s-like target %s", idType, t.host)
-	}
+	// // If we matched zero nodes but hostname is a UUID (or EC2 node ID) then it
+	// // isn't sane to fallback to dns based resolution.  This has the unfortunate
+	// // consequence of preventing users from calling OpenSSH nodes which happen
+	// // to use hostnames which are also valid UUIDs.  This restriction is
+	// // necessary in order to protect users attempting to connect to a node by
+	// // UUID from being re-routed to an unintended target if the node is offline.
+	// // This restriction can be lifted if we decide to move to explicit UUID
+	// // based resolution in the future.
+	// if hostIsUniqueID && server == nil {
+	// 	idType := "UUID"
+	// 	if utils.IsEC2NodeID(t.host) {
+	// 		idType = "EC2"
+	// 	}
+	// 	return nil, trace.NotFound("unable to locate node matching %s-like target %s", idType, t.host)
+	// }
 
 	return server, nil
 }

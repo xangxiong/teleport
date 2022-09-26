@@ -34,13 +34,8 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
-	"github.com/gravitational/teleport/lib/utils"
-	"github.com/gravitational/teleport/lib/utils/aws"
 
-	awssdk "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/gravitational/trace"
 )
 
@@ -124,24 +119,24 @@ func validateSTSIdentityRequest(req *http.Request, challenge string) (err error)
 		return trace.AccessDenied("sts identity request does not include challenge header or it does not match")
 	}
 
-	authHeader := req.Header.Get(aws.AuthorizationHeader)
+	// authHeader := req.Header.Get(aws.AuthorizationHeader)
 
-	sigV4, err := aws.ParseSigV4(authHeader)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if !apiutils.SliceContainsStr(sigV4.SignedHeaders, challengeHeaderKey) {
-		return trace.AccessDenied("sts identity request auth header %q does not include "+
-			challengeHeaderKey+" as a signed header", authHeader)
-	}
+	// sigV4, err := aws.ParseSigV4(authHeader)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// if !apiutils.SliceContainsStr(sigV4.SignedHeaders, challengeHeaderKey) {
+	// 	return trace.AccessDenied("sts identity request auth header %q does not include "+
+	// 		challengeHeaderKey+" as a signed header", authHeader)
+	// }
 
-	body, err := aws.GetAndReplaceReqBody(req)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if !bytes.Equal([]byte(expectedSTSIdentityRequestBody), body) {
-		return trace.BadParameter("sts request body %q does not equal expected %q", string(body), expectedSTSIdentityRequestBody)
-	}
+	// body, err := aws.GetAndReplaceReqBody(req)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// if !bytes.Equal([]byte(expectedSTSIdentityRequestBody), body) {
+	// 	return trace.BadParameter("sts request body %q does not equal expected %q", string(body), expectedSTSIdentityRequestBody)
+	// }
 
 	return nil
 }
@@ -395,96 +390,96 @@ func withFIPSEndpoint(useFIPS bool) stsIdentityRequestOption {
 	}
 }
 
-// createSignedSTSIdentityRequest is called on the client side and returns an
-// sts:GetCallerIdentity request signed with the local AWS credentials
-func createSignedSTSIdentityRequest(ctx context.Context, challenge string, opts ...stsIdentityRequestOption) ([]byte, error) {
-	cfg := &stsIdentityRequestConfig{}
-	for _, opt := range opts {
-		opt(cfg)
-	}
+// // createSignedSTSIdentityRequest is called on the client side and returns an
+// // sts:GetCallerIdentity request signed with the local AWS credentials
+// func createSignedSTSIdentityRequest(ctx context.Context, challenge string, opts ...stsIdentityRequestOption) ([]byte, error) {
+// 	cfg := &stsIdentityRequestConfig{}
+// 	for _, opt := range opts {
+// 		opt(cfg)
+// 	}
 
-	stsClient, err := newSTSClient(ctx, cfg)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	stsClient, err := newSTSClient(ctx, cfg)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	req, _ := stsClient.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{})
-	// set challenge header
-	req.HTTPRequest.Header.Set(challengeHeaderKey, challenge)
-	// request json for simpler parsing
-	req.HTTPRequest.Header.Set("Accept", "application/json")
-	// sign the request, including headers
-	if err := req.Sign(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// write the signed HTTP request to a buffer
-	var signedRequest bytes.Buffer
-	if err := req.HTTPRequest.Write(&signedRequest); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return signedRequest.Bytes(), nil
-}
+// 	req, _ := stsClient.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{})
+// 	// set challenge header
+// 	req.HTTPRequest.Header.Set(challengeHeaderKey, challenge)
+// 	// request json for simpler parsing
+// 	req.HTTPRequest.Header.Set("Accept", "application/json")
+// 	// sign the request, including headers
+// 	if err := req.Sign(); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	// write the signed HTTP request to a buffer
+// 	var signedRequest bytes.Buffer
+// 	if err := req.HTTPRequest.Write(&signedRequest); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return signedRequest.Bytes(), nil
+// }
 
-func newSTSClient(ctx context.Context, cfg *stsIdentityRequestConfig) (*sts.STS, error) {
-	awsConfig := awssdk.Config{
-		UseFIPSEndpoint:     cfg.fipsEndpointOption,
-		STSRegionalEndpoint: cfg.regionalEndpointOption,
-	}
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config:            awsConfig,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// func newSTSClient(ctx context.Context, cfg *stsIdentityRequestConfig) (*sts.STS, error) {
+// 	awsConfig := awssdk.Config{
+// 		UseFIPSEndpoint:     cfg.fipsEndpointOption,
+// 		STSRegionalEndpoint: cfg.regionalEndpointOption,
+// 	}
+// 	sess, err := session.NewSessionWithOptions(session.Options{
+// 		SharedConfigState: session.SharedConfigEnable,
+// 		Config:            awsConfig,
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	stsClient := sts.New(sess)
+// 	stsClient := sts.New(sess)
 
-	if apiutils.SliceContainsStr(globalSTSEndpoints, strings.TrimPrefix(stsClient.Endpoint, "https://")) {
-		// If the caller wants to use the regional endpoint but it was not resolved
-		// from the environment, attempt to find the region from the EC2 IMDS
-		if cfg.regionalEndpointOption == endpoints.RegionalSTSEndpoint {
-			region, err := getEC2LocalRegion(ctx)
-			if err != nil {
-				return nil, trace.Wrap(err, "failed to resolve local AWS region from environment or IMDS")
-			}
-			stsClient = sts.New(sess, awssdk.NewConfig().WithRegion(region))
-		} else {
-			log.Info("Attempting to use the global STS endpoint for the IAM join method. " +
-				"This will probably fail in non-default AWS partitions such as China or GovCloud, or if FIPS mode is enabled. " +
-				"Consider setting the AWS_REGION environment variable, setting the region in ~/.aws/config, or enabling the IMDSv2.")
-		}
-	}
+// 	if apiutils.SliceContainsStr(globalSTSEndpoints, strings.TrimPrefix(stsClient.Endpoint, "https://")) {
+// 		// If the caller wants to use the regional endpoint but it was not resolved
+// 		// from the environment, attempt to find the region from the EC2 IMDS
+// 		if cfg.regionalEndpointOption == endpoints.RegionalSTSEndpoint {
+// 			region, err := getEC2LocalRegion(ctx)
+// 			if err != nil {
+// 				return nil, trace.Wrap(err, "failed to resolve local AWS region from environment or IMDS")
+// 			}
+// 			stsClient = sts.New(sess, awssdk.NewConfig().WithRegion(region))
+// 		} else {
+// 			log.Info("Attempting to use the global STS endpoint for the IAM join method. " +
+// 				"This will probably fail in non-default AWS partitions such as China or GovCloud, or if FIPS mode is enabled. " +
+// 				"Consider setting the AWS_REGION environment variable, setting the region in ~/.aws/config, or enabling the IMDSv2.")
+// 		}
+// 	}
 
-	if cfg.fipsEndpointOption == endpoints.FIPSEndpointStateEnabled &&
-		!apiutils.SliceContainsStr(validSTSEndpoints, strings.TrimPrefix(stsClient.Endpoint, "https://")) {
-		// The AWS SDK will generate invalid endpoints when attempting to
-		// resolve the FIPS endpoint for a region which does not have one.
-		// In this case, try to use the FIPS endpoint in us-east-1. This should
-		// work for all regions in the standard partition. In GovCloud we should
-		// not hit this because all regional endpoints support FIPS. In China or
-		// other partitions this will fail and FIPS mode will not be supported.
-		log.Infof("AWS SDK resolved FIPS STS endpoint %s, which does not appear to be valid. "+
-			"Attempting to use the FIPS STS endpoint for us-east-1.",
-			stsClient.Endpoint)
-		stsClient = sts.New(sess, awssdk.NewConfig().WithRegion("us-east-1"))
-	}
+// 	if cfg.fipsEndpointOption == endpoints.FIPSEndpointStateEnabled &&
+// 		!apiutils.SliceContainsStr(validSTSEndpoints, strings.TrimPrefix(stsClient.Endpoint, "https://")) {
+// 		// The AWS SDK will generate invalid endpoints when attempting to
+// 		// resolve the FIPS endpoint for a region which does not have one.
+// 		// In this case, try to use the FIPS endpoint in us-east-1. This should
+// 		// work for all regions in the standard partition. In GovCloud we should
+// 		// not hit this because all regional endpoints support FIPS. In China or
+// 		// other partitions this will fail and FIPS mode will not be supported.
+// 		log.Infof("AWS SDK resolved FIPS STS endpoint %s, which does not appear to be valid. "+
+// 			"Attempting to use the FIPS STS endpoint for us-east-1.",
+// 			stsClient.Endpoint)
+// 		stsClient = sts.New(sess, awssdk.NewConfig().WithRegion("us-east-1"))
+// 	}
 
-	return stsClient, nil
-}
+// 	return stsClient, nil
+// }
 
-// getEC2LocalRegion returns the AWS region this EC2 instance is running in, or
-// a NotFound error if the EC2 IMDS is unavailable.
-func getEC2LocalRegion(ctx context.Context) (string, error) {
-	imdsClient, err := utils.NewInstanceMetadataClient(ctx)
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
+// // getEC2LocalRegion returns the AWS region this EC2 instance is running in, or
+// // a NotFound error if the EC2 IMDS is unavailable.
+// func getEC2LocalRegion(ctx context.Context) (string, error) {
+// 	imdsClient, err := utils.NewInstanceMetadataClient(ctx)
+// 	if err != nil {
+// 		return "", trace.Wrap(err)
+// 	}
 
-	if !imdsClient.IsAvailable(ctx) {
-		return "", trace.NotFound("IMDS is unavailable")
-	}
+// 	if !imdsClient.IsAvailable(ctx) {
+// 		return "", trace.NotFound("IMDS is unavailable")
+// 	}
 
-	region, err := imdsClient.GetRegion(ctx)
-	return region, trace.Wrap(err)
-}
+// 	region, err := imdsClient.GetRegion(ctx)
+// 	return region, trace.Wrap(err)
+// }

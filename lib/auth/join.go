@@ -99,10 +99,10 @@ func (a *Server) RegisterUsingToken(ctx context.Context, req *types.RegisterUsin
 	}
 
 	switch a.tokenJoinMethod(ctx, req.Token) {
-	case types.JoinMethodEC2:
-		if err := a.checkEC2JoinRequest(ctx, req); err != nil {
-			return nil, trace.Wrap(err)
-		}
+	// case types.JoinMethodEC2:
+	// 	if err := a.checkEC2JoinRequest(ctx, req); err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
 	case types.JoinMethodIAM:
 		// IAM join method must use the gRPC RegisterUsingIAMMethod
 		return nil, trace.AccessDenied("this token is only valid for the IAM " +

@@ -21,8 +21,6 @@ import (
 	"crypto/tls"
 	"io"
 	"net"
-	"net/http"
-	"net/http/httputil"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/gravitational/trace"
@@ -31,7 +29,6 @@ import (
 
 	"github.com/gravitational/teleport/lib/srv/alpnproxy/common"
 	"github.com/gravitational/teleport/lib/utils"
-	"github.com/gravitational/teleport/lib/utils/aws"
 )
 
 // LocalProxy allows upgrading incoming connection to TLS where custom TLS values are set SNI ALPN and
@@ -204,40 +201,40 @@ func (l *LocalProxy) Close() error {
 	return nil
 }
 
-// StartAWSAccessProxy starts the local AWS CLI proxy.
-func (l *LocalProxy) StartAWSAccessProxy(ctx context.Context) error {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			NextProtos:         l.cfg.GetProtocols(),
-			InsecureSkipVerify: l.cfg.InsecureSkipVerify,
-			ServerName:         l.cfg.SNI,
-			Certificates:       l.cfg.Certs,
-		},
-	}
-	proxy := &httputil.ReverseProxy{
-		Director: func(outReq *http.Request) {
-			outReq.URL.Scheme = "https"
-			outReq.URL.Host = l.cfg.RemoteProxyAddr
-		},
-		Transport: tr,
-	}
-	err := http.Serve(l.cfg.Listener, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		if err := aws.VerifyAWSSignature(req, l.cfg.AWSCredentials); err != nil {
-			log.WithError(err).Errorf("AWS signature verification failed.")
-			rw.WriteHeader(http.StatusForbidden)
-			return
-		}
+// // StartAWSAccessProxy starts the local AWS CLI proxy.
+// func (l *LocalProxy) StartAWSAccessProxy(ctx context.Context) error {
+// 	tr := &http.Transport{
+// 		TLSClientConfig: &tls.Config{
+// 			NextProtos:         l.cfg.GetProtocols(),
+// 			InsecureSkipVerify: l.cfg.InsecureSkipVerify,
+// 			ServerName:         l.cfg.SNI,
+// 			Certificates:       l.cfg.Certs,
+// 		},
+// 	}
+// 	proxy := &httputil.ReverseProxy{
+// 		Director: func(outReq *http.Request) {
+// 			outReq.URL.Scheme = "https"
+// 			outReq.URL.Host = l.cfg.RemoteProxyAddr
+// 		},
+// 		Transport: tr,
+// 	}
+// 	err := http.Serve(l.cfg.Listener, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+// 		if err := aws.VerifyAWSSignature(req, l.cfg.AWSCredentials); err != nil {
+// 			log.WithError(err).Errorf("AWS signature verification failed.")
+// 			rw.WriteHeader(http.StatusForbidden)
+// 			return
+// 		}
 
-		// Requests from forward proxy have original hostnames instead of
-		// localhost. Set appropriate header to keep this information.
-		if addr, err := utils.ParseAddr(req.Host); err == nil && !addr.IsLocal() {
-			req.Header.Set("X-Forwarded-Host", req.Host)
-		}
+// 		// Requests from forward proxy have original hostnames instead of
+// 		// localhost. Set appropriate header to keep this information.
+// 		if addr, err := utils.ParseAddr(req.Host); err == nil && !addr.IsLocal() {
+// 			req.Header.Set("X-Forwarded-Host", req.Host)
+// 		}
 
-		proxy.ServeHTTP(rw, req)
-	}))
-	if err != nil && !utils.IsUseOfClosedNetworkError(err) {
-		return trace.Wrap(err)
-	}
-	return nil
-}
+// 		proxy.ServeHTTP(rw, req)
+// 	}))
+// 	if err != nil && !utils.IsUseOfClosedNetworkError(err) {
+// 		return trace.Wrap(err)
+// 	}
+// 	return nil
+// }
