@@ -16,17 +16,17 @@ limitations under the License.
 
 package protocol
 
-import (
-	"io"
+// import (
+// 	"io"
 
-	mssql "github.com/denisenkom/go-mssqldb"
-)
+// 	mssql "github.com/denisenkom/go-mssqldb"
+// )
 
-func readUcs2(r io.Reader, numchars int) (string, error) {
-	buf := make([]byte, numchars)
-	_, err := io.ReadFull(r, buf)
-	if err != nil {
-		return "", err
-	}
-	return mssql.ParseUCS2String(buf)
-}
+// func readUcs2(r io.Reader, numchars int) (string, error) {
+// 	buf := make([]byte, numchars)
+// 	_, err := io.ReadFull(r, buf)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return mssql.ParseUCS2String(buf)
+// }

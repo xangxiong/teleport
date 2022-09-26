@@ -16,54 +16,54 @@ limitations under the License.
 
 package protocol
 
-import (
-	"bytes"
-	"io"
+// import (
+// 	"bytes"
+// 	"io"
 
-	mssql "github.com/denisenkom/go-mssqldb"
-	"github.com/gravitational/trace"
-)
+// 	mssql "github.com/denisenkom/go-mssqldb"
+// 	"github.com/gravitational/trace"
+// )
 
-// PreLoginPacket represents a Pre-Login packet which is sent by the client
-// to set up context for login.
-//
-// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/60f56408-0188-4cd5-8b90-25c6f2423868
-type PreLoginPacket struct {
-	packet Packet
-}
+// // PreLoginPacket represents a Pre-Login packet which is sent by the client
+// // to set up context for login.
+// //
+// // https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/60f56408-0188-4cd5-8b90-25c6f2423868
+// type PreLoginPacket struct {
+// 	packet Packet
+// }
 
-// ReadPreLoginPacket reads Pre-Login packet from the reader.
-func ReadPreLoginPacket(r io.Reader) (*PreLoginPacket, error) {
-	pkt, err := ReadPacket(r)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // ReadPreLoginPacket reads Pre-Login packet from the reader.
+// func ReadPreLoginPacket(r io.Reader) (*PreLoginPacket, error) {
+// 	pkt, err := ReadPacket(r)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	if pkt.Type() != PacketTypePreLogin {
-		return nil, trace.BadParameter("expected Pre-Login packet, got: %#v", pkt)
-	}
+// 	if pkt.Type() != PacketTypePreLogin {
+// 		return nil, trace.BadParameter("expected Pre-Login packet, got: %#v", pkt)
+// 	}
 
-	return &PreLoginPacket{
-		packet: pkt,
-	}, nil
-}
+// 	return &PreLoginPacket{
+// 		packet: pkt,
+// 	}, nil
+// }
 
-// WritePreLoginResponse writes response to the Pre-Login packet to the writer.
-func WritePreLoginResponse(w io.Writer) error {
-	var buf bytes.Buffer
-	if err := mssql.WritePreLoginFields(&buf, preLoginOptions); err != nil {
-		return trace.Wrap(err)
-	}
+// // WritePreLoginResponse writes response to the Pre-Login packet to the writer.
+// func WritePreLoginResponse(w io.Writer) error {
+// 	var buf bytes.Buffer
+// 	if err := mssql.WritePreLoginFields(&buf, preLoginOptions); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	pkt, err := makePacket(PacketTypeResponse, buf.Bytes())
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	pkt, err := makePacket(PacketTypeResponse, buf.Bytes())
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	_, err = w.Write(pkt)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	_, err = w.Write(pkt)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

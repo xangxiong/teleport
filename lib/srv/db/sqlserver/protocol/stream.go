@@ -16,46 +16,46 @@ limitations under the License.
 
 package protocol
 
-import (
-	"io"
+// import (
+// 	"io"
 
-	mssql "github.com/denisenkom/go-mssqldb"
-	"github.com/gravitational/trace"
-)
+// 	mssql "github.com/denisenkom/go-mssqldb"
+// 	"github.com/gravitational/trace"
+// )
 
-// WriteStreamResponse writes stream response packet to the writer.
-func WriteStreamResponse(w io.Writer, tokens []mssql.Token) error {
-	var data []byte
+// // WriteStreamResponse writes stream response packet to the writer.
+// func WriteStreamResponse(w io.Writer, tokens []mssql.Token) error {
+// 	var data []byte
 
-	for _, token := range tokens {
-		bytes, err := token.Marshal()
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		data = append(data, bytes...)
-	}
+// 	for _, token := range tokens {
+// 		bytes, err := token.Marshal()
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		data = append(data, bytes...)
+// 	}
 
-	pkt, err := makePacket(PacketTypeResponse, data)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	pkt, err := makePacket(PacketTypeResponse, data)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	_, err = w.Write(pkt)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	_, err = w.Write(pkt)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-// WriteErrorResponse writes error response to the client.
-func WriteErrorResponse(w io.Writer, err error) error {
-	return WriteStreamResponse(w, []mssql.Token{
-		&mssql.Error{
-			Number:  errorNumber,
-			Class:   errorClassSecurity,
-			Message: err.Error(),
-		},
-		mssql.DoneToken(),
-	})
-}
+// // WriteErrorResponse writes error response to the client.
+// func WriteErrorResponse(w io.Writer, err error) error {
+// 	return WriteStreamResponse(w, []mssql.Token{
+// 		&mssql.Error{
+// 			Number:  errorNumber,
+// 			Class:   errorClassSecurity,
+// 			Message: err.Error(),
+// 		},
+// 		mssql.DoneToken(),
+// 	})
+// }

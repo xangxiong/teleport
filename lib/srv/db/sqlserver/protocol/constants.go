@@ -16,59 +16,59 @@ limitations under the License.
 
 package protocol
 
-const (
-	// PacketTypeSQLBatch is the SQLBatch packet type.
-	PacketTypeSQLBatch uint8 = 0x01
-	// PacketTypeRPCRequest is the RPCRequest packet type.
-	PacketTypeRPCRequest uint8 = 0x03
+// const (
+// 	// PacketTypeSQLBatch is the SQLBatch packet type.
+// 	PacketTypeSQLBatch uint8 = 0x01
+// 	// PacketTypeRPCRequest is the RPCRequest packet type.
+// 	PacketTypeRPCRequest uint8 = 0x03
 
-	// PacketTypeResponse is the packet type for server response messages.
-	PacketTypeResponse uint8 = 0x04
-	// PacketTypeLogin7 is the Login7 packet type.
-	PacketTypeLogin7 uint8 = 0x10
-	// PacketTypePreLogin is the Pre-Login packet type.
-	PacketTypePreLogin uint8 = 0x12
+// 	// PacketTypeResponse is the packet type for server response messages.
+// 	PacketTypeResponse uint8 = 0x04
+// 	// PacketTypeLogin7 is the Login7 packet type.
+// 	PacketTypeLogin7 uint8 = 0x10
+// 	// PacketTypePreLogin is the Pre-Login packet type.
+// 	PacketTypePreLogin uint8 = 0x12
 
-	// packetHeaderSize is the size of the protocol packet header.
-	packetHeaderSize = 8
+// 	// packetHeaderSize is the size of the protocol packet header.
+// 	packetHeaderSize = 8
 
-	// packetStatusLast indicates that the packet is the last in the request.
-	packetStatusLast uint8 = 0x01
+// 	// packetStatusLast indicates that the packet is the last in the request.
+// 	packetStatusLast uint8 = 0x01
 
-	preLoginOptionVersion    = 0x00
-	preLoginOptionEncryption = 0x01
-	preLoginOptionInstance   = 0x02
-	preLoginOptionThreadID   = 0x03
-	preLoginOptionMARS       = 0x04
+// 	preLoginOptionVersion    = 0x00
+// 	preLoginOptionEncryption = 0x01
+// 	preLoginOptionInstance   = 0x02
+// 	preLoginOptionThreadID   = 0x03
+// 	preLoginOptionMARS       = 0x04
 
-	// preLoginEncryptionNotSupported is a Pre-Login option indicating that
-	// server does not accept TLS connection (clients connect through local
-	// proxy's TLS tunnel).
-	preLoginEncryptionNotSupported = 0x02
+// 	// preLoginEncryptionNotSupported is a Pre-Login option indicating that
+// 	// server does not accept TLS connection (clients connect through local
+// 	// proxy's TLS tunnel).
+// 	preLoginEncryptionNotSupported = 0x02
 
-	// errorClassSecurity is the SQL Server error class representing security
-	// related errors such as access denied.
-	errorClassSecurity uint8 = 14
-	// errorNumber is the error number used for all Teleport-returned errors.
-	// Numbers < 20001 are reserved by SQL Server.
-	errorNumber = 28353
-)
+// 	// errorClassSecurity is the SQL Server error class representing security
+// 	// related errors such as access denied.
+// 	errorClassSecurity uint8 = 14
+// 	// errorNumber is the error number used for all Teleport-returned errors.
+// 	// Numbers < 20001 are reserved by SQL Server.
+// 	errorNumber = 28353
+// )
 
-// preLoginOptions are getting returned to the client during Pre-Login handshake.
-//
-// SQL Server clients always connect to the local proxy and connections come
-// through TLS tunnel.
-var preLoginOptions = map[uint8][]byte{
-	preLoginOptionVersion:    []uint8{0x0f, 0x00, 0x07, 0xd0, 0x00, 0x00},
-	preLoginOptionEncryption: {preLoginEncryptionNotSupported},
-	preLoginOptionInstance:   {0x00},
-	preLoginOptionThreadID:   {},
-	preLoginOptionMARS:       {0x00},
-}
+// // preLoginOptions are getting returned to the client during Pre-Login handshake.
+// //
+// // SQL Server clients always connect to the local proxy and connections come
+// // through TLS tunnel.
+// var preLoginOptions = map[uint8][]byte{
+// 	preLoginOptionVersion:    []uint8{0x0f, 0x00, 0x07, 0xd0, 0x00, 0x00},
+// 	preLoginOptionEncryption: {preLoginEncryptionNotSupported},
+// 	preLoginOptionInstance:   {0x00},
+// 	preLoginOptionThreadID:   {},
+// 	preLoginOptionMARS:       {0x00},
+// }
 
-const (
-	// procIDSwitchRPCRequest is a magic value defined in:
-	// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/619c43b6-9495-4a58-9e49-a4950db245b3
-	// as  "ProcIDSwitch     =   %xFF %xFF" used to distinguish user custom user procedure.
-	procIDSwitchRPCRequest = 0xFFFF
-)
+// const (
+// 	// procIDSwitchRPCRequest is a magic value defined in:
+// 	// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/619c43b6-9495-4a58-9e49-a4950db245b3
+// 	// as  "ProcIDSwitch     =   %xFF %xFF" used to distinguish user custom user procedure.
+// 	procIDSwitchRPCRequest = 0xFFFF
+// )
