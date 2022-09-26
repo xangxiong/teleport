@@ -20,22 +20,22 @@
 
 package protocol
 
-import (
-	"bytes"
-	"testing"
+// import (
+// 	"bytes"
+// 	"testing"
 
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/stretchr/testify/require"
+// )
 
-func FuzzMongoRead(f *testing.F) {
-	f.Add([]byte{})
-	f.Add([]byte("000\xa4000000000000"))
+// func FuzzMongoRead(f *testing.F) {
+// 	f.Add([]byte{})
+// 	f.Add([]byte("000\xa4000000000000"))
 
-	f.Fuzz(func(t *testing.T, msgBytes []byte) {
-		msg := bytes.NewReader(msgBytes)
+// 	f.Fuzz(func(t *testing.T, msgBytes []byte) {
+// 		msg := bytes.NewReader(msgBytes)
 
-		require.NotPanics(t, func() {
-			_, _ = ReadMessage(msg)
-		})
-	})
-}
+// 		require.NotPanics(t, func() {
+// 			_, _ = ReadMessage(msg)
+// 		})
+// 	})
+// }
