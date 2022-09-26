@@ -14,40 +14,40 @@
 
 package main
 
-import "path"
+// import "path"
 
-// This function calls the build-apt-repos tool which handles the APT portion of RFD 0058.
-func promoteAptPipeline() pipeline {
-	return getAptPipelineBuilder().buildPromoteOsPackagePipeline()
-}
+// // This function calls the build-apt-repos tool which handles the APT portion of RFD 0058.
+// func promoteAptPipeline() pipeline {
+// 	return getAptPipelineBuilder().buildPromoteOsPackagePipeline()
+// }
 
-func migrateAptPipeline(triggerBranch string, migrationVersions []string) pipeline {
-	return getAptPipelineBuilder().buildMigrateOsPackagePipeline(triggerBranch, migrationVersions)
-}
+// func migrateAptPipeline(triggerBranch string, migrationVersions []string) pipeline {
+// 	return getAptPipelineBuilder().buildMigrateOsPackagePipeline(triggerBranch, migrationVersions)
+// }
 
-func getAptPipelineBuilder() *OsPackageToolPipelineBuilder {
-	optpb := NewOsPackageToolPipelineBuilder(
-		"drone-s3-aptrepo-pvc",
-		"deb",
-		"apt",
-		NewRepoBucketSecretNames(
-			"APT_REPO_NEW_AWS_S3_BUCKET",
-			"APT_REPO_NEW_AWS_ACCESS_KEY_ID",
-			"APT_REPO_NEW_AWS_SECRET_ACCESS_KEY",
-		),
-	)
+// func getAptPipelineBuilder() *OsPackageToolPipelineBuilder {
+// 	optpb := NewOsPackageToolPipelineBuilder(
+// 		"drone-s3-aptrepo-pvc",
+// 		"deb",
+// 		"apt",
+// 		NewRepoBucketSecretNames(
+// 			"APT_REPO_NEW_AWS_S3_BUCKET",
+// 			"APT_REPO_NEW_AWS_ACCESS_KEY_ID",
+// 			"APT_REPO_NEW_AWS_SECRET_ACCESS_KEY",
+// 		),
+// 	)
 
-	optpb.environmentVars["APTLY_ROOT_DIR"] = value{
-		raw: path.Join(optpb.pvcMountPoint, "aptly"),
-	}
+// 	optpb.environmentVars["APTLY_ROOT_DIR"] = value{
+// 		raw: path.Join(optpb.pvcMountPoint, "aptly"),
+// 	}
 
-	optpb.requiredPackages = []string{
-		"aptly",
-	}
+// 	optpb.requiredPackages = []string{
+// 		"aptly",
+// 	}
 
-	optpb.extraArgs = []string{
-		"-aptly-root-dir \"$APTLY_ROOT_DIR\"",
-	}
+// 	optpb.extraArgs = []string{
+// 		"-aptly-root-dir \"$APTLY_ROOT_DIR\"",
+// 	}
 
-	return optpb
-}
+// 	return optpb
+// }

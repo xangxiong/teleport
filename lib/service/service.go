@@ -32,7 +32,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/gravitational/trace"
@@ -66,7 +65,6 @@ import (
 	"github.com/gravitational/teleport/lib/reversetunnel"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
-	"github.com/gravitational/teleport/lib/srv/app"
 	"github.com/gravitational/teleport/lib/srv/regular"
 	"github.com/gravitational/teleport/lib/system"
 	"github.com/gravitational/teleport/lib/utils"
@@ -4523,26 +4521,26 @@ func initSelfSignedHTTPSCert(cfg *Config) (err error) {
 // 	fmt.Fprint(w, string(requestDump))
 // }
 
-// getPublicAddr waits for a proxy to be registered with Teleport.
-func getPublicAddr(authClient auth.ReadAppsAccessPoint, a App) (string, error) {
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-	timeout := time.NewTimer(5 * time.Second)
-	defer timeout.Stop()
+// // getPublicAddr waits for a proxy to be registered with Teleport.
+// func getPublicAddr(authClient auth.ReadAppsAccessPoint, a App) (string, error) {
+// 	ticker := time.NewTicker(500 * time.Millisecond)
+// 	defer ticker.Stop()
+// 	timeout := time.NewTimer(5 * time.Second)
+// 	defer timeout.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			publicAddr, err := app.FindPublicAddr(authClient, a.PublicAddr, a.Name)
+// 	for {
+// 		select {
+// 		case <-ticker.C:
+// 			publicAddr, err := app.FindPublicAddr(authClient, a.PublicAddr, a.Name)
 
-			if err == nil {
-				return publicAddr, nil
-			}
-		case <-timeout.C:
-			return "", trace.BadParameter("timed out waiting for proxy with public address")
-		}
-	}
-}
+// 			if err == nil {
+// 				return publicAddr, nil
+// 			}
+// 		case <-timeout.C:
+// 			return "", trace.BadParameter("timed out waiting for proxy with public address")
+// 		}
+// 	}
+// }
 
 // newHTTPFileSystem creates a new HTTP file system for the web handler.
 // It uses external configuration to make the decision

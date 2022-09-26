@@ -119,8 +119,8 @@ const (
 	// ComponentProxyPeer is the proxy peering component of the proxy service
 	ComponentProxyPeer = "proxy:peer"
 
-	// ComponentApp is the application proxy service.
-	ComponentApp = "app:service"
+	// // ComponentApp is the application proxy service.
+	// ComponentApp = "app:service"
 
 	// ComponentDatabase is the database proxy service.
 	ComponentDatabase = "db:service"

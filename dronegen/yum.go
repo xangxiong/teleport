@@ -14,49 +14,49 @@
 
 package main
 
-import (
-	"path"
-)
+// import (
+// 	"path"
+// )
 
-// This function calls the build-apt-repos tool which handles the APT portion of RFD 0058.
-func promoteYumPipeline() pipeline {
-	return getYumPipelineBuilder().buildPromoteOsPackagePipeline()
-}
+// // This function calls the build-apt-repos tool which handles the APT portion of RFD 0058.
+// func promoteYumPipeline() pipeline {
+// 	return getYumPipelineBuilder().buildPromoteOsPackagePipeline()
+// }
 
-func migrateYumPipeline(triggerBranch string, migrationVersions []string) pipeline {
-	return getYumPipelineBuilder().buildMigrateOsPackagePipeline(triggerBranch, migrationVersions)
-}
+// func migrateYumPipeline(triggerBranch string, migrationVersions []string) pipeline {
+// 	return getYumPipelineBuilder().buildMigrateOsPackagePipeline(triggerBranch, migrationVersions)
+// }
 
-func getYumPipelineBuilder() *OsPackageToolPipelineBuilder {
-	optpb := NewOsPackageToolPipelineBuilder(
-		"drone-s3-yumrepo-pvc",
-		"rpm",
-		"yum",
-		NewRepoBucketSecretNames(
-			"YUM_REPO_NEW_AWS_S3_BUCKET",
-			"YUM_REPO_NEW_AWS_ACCESS_KEY_ID",
-			"YUM_REPO_NEW_AWS_SECRET_ACCESS_KEY",
-		),
-	)
+// func getYumPipelineBuilder() *OsPackageToolPipelineBuilder {
+// 	optpb := NewOsPackageToolPipelineBuilder(
+// 		"drone-s3-yumrepo-pvc",
+// 		"rpm",
+// 		"yum",
+// 		NewRepoBucketSecretNames(
+// 			"YUM_REPO_NEW_AWS_S3_BUCKET",
+// 			"YUM_REPO_NEW_AWS_ACCESS_KEY_ID",
+// 			"YUM_REPO_NEW_AWS_SECRET_ACCESS_KEY",
+// 		),
+// 	)
 
-	optpb.environmentVars["CACHE_DIR"] = value{
-		raw: path.Join(optpb.pvcMountPoint, "createrepo_cache"),
-	}
-	optpb.environmentVars["BUCKET_CACHE_PATH"] = value{
-		raw: path.Join(optpb.pvcMountPoint, "bucket"),
-	}
+// 	optpb.environmentVars["CACHE_DIR"] = value{
+// 		raw: path.Join(optpb.pvcMountPoint, "createrepo_cache"),
+// 	}
+// 	optpb.environmentVars["BUCKET_CACHE_PATH"] = value{
+// 		raw: path.Join(optpb.pvcMountPoint, "bucket"),
+// 	}
 
-	optpb.requiredPackages = []string{
-		"createrepo-c",
-	}
+// 	optpb.requiredPackages = []string{
+// 		"createrepo-c",
+// 	}
 
-	optpb.setupCommands = []string{
-		"mkdir -pv \"$CACHE_DIR\"",
-	}
+// 	optpb.setupCommands = []string{
+// 		"mkdir -pv \"$CACHE_DIR\"",
+// 	}
 
-	optpb.extraArgs = []string{
-		"-cache-dir \"$CACHE_DIR\"",
-	}
+// 	optpb.extraArgs = []string{
+// 		"-cache-dir \"$CACHE_DIR\"",
+// 	}
 
-	return optpb
-}
+// 	return optpb
+// }

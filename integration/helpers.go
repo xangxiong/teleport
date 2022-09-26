@@ -35,7 +35,6 @@ import (
 	"time"
 
 	"github.com/gravitational/teleport/api/breaker"
-	apiclient "github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/constants"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
@@ -402,8 +401,8 @@ func (i *TeleInstance) Create(t *testing.T, trustedSecrets []*InstanceSecrets, e
 	tconf.SSH.Enabled = enableSSH
 	tconf.Console = console
 	tconf.Log = i.log
-	tconf.Proxy.DisableWebService = true
-	tconf.Proxy.DisableWebInterface = true
+	//tconf.Proxy.DisableWebService = true
+	//tconf.Proxy.DisableWebInterface = true
 	tconf.CircuitBreakerConfig = breaker.NoopBreakerConfig()
 	return i.CreateEx(t, trustedSecrets, tconf)
 }
@@ -613,10 +612,10 @@ func (i *TeleInstance) GenerateConfig(t *testing.T, trustedSecrets []*InstanceSe
 	}
 
 	if i.isSinglePortSetup {
-		tconf.Proxy.WebAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortWeb())
+		//tconf.Proxy.WebAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortWeb())
 		// Reset other addresses to ensure that teleport instance will expose only web port listener.
 		tconf.Proxy.ReverseTunnelListenAddr = utils.NetAddr{}
-		tconf.Proxy.MySQLAddr = utils.NetAddr{}
+		//tconf.Proxy.MySQLAddr = utils.NetAddr{}
 		tconf.Proxy.SSHAddr = utils.NetAddr{}
 	} else {
 		tunAddr, err := utils.ParseAddr(i.Secrets.TunnelAddr)
@@ -625,16 +624,16 @@ func (i *TeleInstance) GenerateConfig(t *testing.T, trustedSecrets []*InstanceSe
 		}
 		tconf.Proxy.ReverseTunnelListenAddr = *tunAddr
 		tconf.Proxy.SSHAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortProxy())
-		tconf.Proxy.WebAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortWeb())
-		tconf.Proxy.MySQLAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortMySQL())
-		if i.Postgres != nil {
-			// Postgres proxy port was configured on a separate listener.
-			tconf.Proxy.PostgresAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortPostgres())
-		}
-		if i.Mongo != nil {
-			// Mongo proxy port was configured on a separate listener.
-			tconf.Proxy.MongoAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortMongo())
-		}
+		//tconf.Proxy.WebAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortWeb())
+		//tconf.Proxy.MySQLAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortMySQL())
+		// if i.Postgres != nil {
+		// 	// Postgres proxy port was configured on a separate listener.
+		// 	tconf.Proxy.PostgresAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortPostgres())
+		// }
+		// if i.Mongo != nil {
+		// 	// Mongo proxy port was configured on a separate listener.
+		// 	tconf.Proxy.MongoAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortMongo())
+		// }
 	}
 	tconf.AuthServers = append(tconf.AuthServers, tconf.Auth.SSHAddr)
 	tconf.Auth.StorageConfig = backend.Config{
@@ -1041,9 +1040,9 @@ func (i *TeleInstance) StartNodeAndProxy(name string, sshPort, proxyWebPort, pro
 
 	tconf.Proxy.Enabled = true
 	tconf.Proxy.SSHAddr.Addr = net.JoinHostPort(i.Hostname, fmt.Sprintf("%v", proxySSHPort))
-	tconf.Proxy.WebAddr.Addr = net.JoinHostPort(i.Hostname, fmt.Sprintf("%v", proxyWebPort))
+	//tconf.Proxy.WebAddr.Addr = net.JoinHostPort(i.Hostname, fmt.Sprintf("%v", proxyWebPort))
 	tconf.Proxy.DisableReverseTunnel = true
-	tconf.Proxy.DisableWebService = true
+	//tconf.Proxy.DisableWebService = true
 
 	tconf.SSH.Enabled = true
 	tconf.SSH.Addr.Addr = net.JoinHostPort(i.Hostname, fmt.Sprintf("%v", sshPort))
@@ -1140,10 +1139,10 @@ func (i *TeleInstance) StartProxy(cfg ProxyConfig) (reversetunnel.Server, error)
 		},
 	}
 	tconf.Proxy.ReverseTunnelListenAddr.Addr = net.JoinHostPort(i.Hostname, fmt.Sprintf("%v", cfg.ReverseTunnelPort))
-	tconf.Proxy.WebAddr.Addr = net.JoinHostPort(i.Hostname, fmt.Sprintf("%v", cfg.WebPort))
+	//tconf.Proxy.WebAddr.Addr = net.JoinHostPort(i.Hostname, fmt.Sprintf("%v", cfg.WebPort))
 	tconf.Proxy.DisableReverseTunnel = false
-	tconf.Proxy.DisableWebService = cfg.DisableWebService
-	tconf.Proxy.DisableWebInterface = cfg.DisableWebInterface
+	//tconf.Proxy.DisableWebService = cfg.DisableWebService
+	//tconf.Proxy.DisableWebInterface = cfg.DisableWebInterface
 	tconf.Proxy.DisableALPNSNIListener = cfg.DisableALPNSNIListener
 	tconf.CircuitBreakerConfig = breaker.NoopBreakerConfig()
 
@@ -1244,9 +1243,9 @@ func (i *TeleInstance) Start() error {
 		expectedEvents = append(expectedEvents, service.ProxyReverseTunnelReady)
 		expectedEvents = append(expectedEvents, service.ProxySSHReady)
 		expectedEvents = append(expectedEvents, service.ProxyAgentPoolReady)
-		if !i.Config.Proxy.DisableWebService {
-			expectedEvents = append(expectedEvents, service.ProxyWebServerReady)
-		}
+		// if !i.Config.Proxy.DisableWebService {
+		// 	expectedEvents = append(expectedEvents, service.ProxyWebServerReady)
+		// }
 	}
 	if i.Config.SSH.Enabled {
 		expectedEvents = append(expectedEvents, service.NodeSSHReady)
@@ -1778,22 +1777,22 @@ func fatalIf(err error) {
 // 	return nil
 // }
 
-// getKubeClusters gets all kubernetes clusters accessible from a given auth server.
-func getKubeClusters(t *testing.T, as *auth.Server) []*types.KubernetesCluster {
-	ctx := context.Background()
-	resources, err := apiclient.GetResourcesWithFilters(ctx, as, proto.ListResourcesRequest{
-		ResourceType: types.KindKubeService,
-	})
-	require.NoError(t, err)
-	kss, err := types.ResourcesWithLabels(resources).AsServers()
-	require.NoError(t, err)
+// // getKubeClusters gets all kubernetes clusters accessible from a given auth server.
+// func getKubeClusters(t *testing.T, as *auth.Server) []*types.KubernetesCluster {
+// 	ctx := context.Background()
+// 	resources, err := apiclient.GetResourcesWithFilters(ctx, as, proto.ListResourcesRequest{
+// 		ResourceType: types.KindKubeService,
+// 	})
+// 	require.NoError(t, err)
+// 	kss, err := types.ResourcesWithLabels(resources).AsServers()
+// 	require.NoError(t, err)
 
-	clusters := make([]*types.KubernetesCluster, 0)
-	for _, ks := range kss {
-		clusters = append(clusters, ks.GetKubernetesClusters()...)
-	}
-	return clusters
-}
+// 	clusters := make([]*types.KubernetesCluster, 0)
+// 	for _, ks := range kss {
+// 		clusters = append(clusters, ks.GetKubernetesClusters()...)
+// 	}
+// 	return clusters
+// }
 
 func genUserKey() (*client.Key, error) {
 	caKey, caCert, err := tlsca.GenerateSelfSignedCA(pkix.Name{

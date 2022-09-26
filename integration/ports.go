@@ -55,10 +55,10 @@ func (p *InstancePort) String() string {
 func singleProxyPortSetup() *InstancePorts {
 	v := newInstancePort()
 	return &InstancePorts{
-		Web:               v,
-		SSHProxy:          v,
-		ReverseTunnel:     v,
-		MySQL:             v,
+		Web:           v,
+		SSHProxy:      v,
+		ReverseTunnel: v,
+		//MySQL:             v,
 		SSH:               newInstancePort(),
 		Auth:              newInstancePort(),
 		isSinglePortSetup: true,
@@ -71,7 +71,7 @@ func standardPortSetup() *InstancePorts {
 		Auth:          newInstancePort(),
 		SSHProxy:      newInstancePort(),
 		ReverseTunnel: newInstancePort(),
-		MySQL:         newInstancePort(),
+		//MySQL:         newInstancePort(),
 	}
 }
 
@@ -82,8 +82,8 @@ func webReverseTunnelMuxPortSetup() *InstancePorts {
 		ReverseTunnel: v,
 		SSH:           newInstancePort(),
 		SSHProxy:      newInstancePort(),
-		MySQL:         newInstancePort(),
-		Auth:          newInstancePort(),
+		//MySQL:         newInstancePort(),
+		Auth: newInstancePort(),
 	}
 }
 
@@ -94,8 +94,8 @@ func separatePostgresPortSetup() *InstancePorts {
 		Auth:          newInstancePort(),
 		SSHProxy:      newInstancePort(),
 		ReverseTunnel: newInstancePort(),
-		MySQL:         newInstancePort(),
-		Postgres:      newInstancePort(),
+		//MySQL:         newInstancePort(),
+		//Postgres:      newInstancePort(),
 	}
 }
 
@@ -106,8 +106,8 @@ func separateMongoPortSetup() *InstancePorts {
 		Auth:          newInstancePort(),
 		SSHProxy:      newInstancePort(),
 		ReverseTunnel: newInstancePort(),
-		MySQL:         newInstancePort(),
-		Mongo:         newInstancePort(),
+		//MySQL:         newInstancePort(),
+		//Mongo:         newInstancePort(),
 	}
 }
 
@@ -120,21 +120,23 @@ type InstancePorts struct {
 	SSHProxy      *InstancePort
 	Auth          *InstancePort
 	ReverseTunnel *InstancePort
-	MySQL         *InstancePort
-	Postgres      *InstancePort
-	Mongo         *InstancePort
+	//MySQL         *InstancePort
+	//Postgres      *InstancePort
+	//Mongo         *InstancePort
 
 	isSinglePortSetup bool
 }
 
-func (i *InstancePorts) GetPortSSHInt() int           { return int(*i.SSH) }
-func (i *InstancePorts) GetPortSSH() string           { return i.SSH.String() }
-func (i *InstancePorts) GetPortAuth() string          { return i.Auth.String() }
-func (i *InstancePorts) GetPortProxy() string         { return i.SSHProxy.String() }
-func (i *InstancePorts) GetPortWeb() string           { return i.Web.String() }
-func (i *InstancePorts) GetPortMySQL() string         { return i.MySQL.String() }
-func (i *InstancePorts) GetPortPostgres() string      { return i.Postgres.String() }
-func (i *InstancePorts) GetPortMongo() string         { return i.Mongo.String() }
+func (i *InstancePorts) GetPortSSHInt() int   { return int(*i.SSH) }
+func (i *InstancePorts) GetPortSSH() string   { return i.SSH.String() }
+func (i *InstancePorts) GetPortAuth() string  { return i.Auth.String() }
+func (i *InstancePorts) GetPortProxy() string { return i.SSHProxy.String() }
+
+func (i *InstancePorts) GetPortWeb() string { return i.Web.String() }
+
+// func (i *InstancePorts) GetPortMySQL() string         { return i.MySQL.String() }
+// func (i *InstancePorts) GetPortPostgres() string      { return i.Postgres.String() }
+// func (i *InstancePorts) GetPortMongo() string         { return i.Mongo.String() }
 func (i *InstancePorts) GetPortReverseTunnel() string { return i.ReverseTunnel.String() }
 
 func (i *InstancePorts) GetSSHAddr() string {
@@ -165,12 +167,12 @@ func (i *InstancePorts) GetWebAddr() string {
 	return net.JoinHostPort(i.Host, i.GetPortWeb())
 }
 
-func (i *InstancePorts) GetMySQLAddr() string {
-	if i.MySQL == nil {
-		return ""
-	}
-	return net.JoinHostPort(i.Host, i.GetPortMySQL())
-}
+// func (i *InstancePorts) GetMySQLAddr() string {
+// 	if i.MySQL == nil {
+// 		return ""
+// 	}
+// 	return net.JoinHostPort(i.Host, i.GetPortMySQL())
+// }
 
 func (i *InstancePorts) GetReverseTunnelAddr() string {
 	if i.ReverseTunnel == nil {

@@ -14,7 +14,7 @@
 
 package main
 
-func cronPipelines() []pipeline {
-	// TODO: migrate
-	return nil
-}
+// func cronPipelines() []pipeline {
+// 	// TODO: migrate
+// 	return nil
+// }
