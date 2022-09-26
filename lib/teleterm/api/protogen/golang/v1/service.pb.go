@@ -3122,16 +3122,16 @@ type TerminalServiceServer interface {
 	ListRootClusters(context.Context, *ListClustersRequest) (*ListClustersResponse, error)
 	// ListLeafClusters lists leaf clusters
 	ListLeafClusters(context.Context, *ListLeafClustersRequest) (*ListClustersResponse, error)
-	// ListDatabases lists databases
+	// // ListDatabases lists databases
 	ListDatabases(context.Context, *ListDatabasesRequest) (*ListDatabasesResponse, error)
-	// ListDatabaseUsers lists allowed users for the given database based on the role set.
+	// // ListDatabaseUsers lists allowed users for the given database based on the role set.
 	ListDatabaseUsers(context.Context, *ListDatabaseUsersRequest) (*ListDatabaseUsersResponse, error)
 	// ListServers lists servers
 	ListServers(context.Context, *ListServersRequest) (*ListServersResponse, error)
-	// ListKubes list kubes
-	ListKubes(context.Context, *ListKubesRequest) (*ListKubesResponse, error)
-	// ListApps list apps
-	ListApps(context.Context, *ListAppsRequest) (*ListAppsResponse, error)
+	// // ListKubes list kubes
+	// ListKubes(context.Context, *ListKubesRequest) (*ListKubesResponse, error)
+	// // ListApps list apps
+	// ListApps(context.Context, *ListAppsRequest) (*ListAppsResponse, error)
 	// AddCluster adds a cluster to profile
 	AddCluster(context.Context, *AddClusterRequest) (*Cluster, error)
 	// RemoveCluster removes a cluster from profile
@@ -3286,41 +3286,41 @@ func _TerminalService_ListLeafClusters_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TerminalService_ListDatabases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListDatabasesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TerminalServiceServer).ListDatabases(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/teleport.terminal.v1.TerminalService/ListDatabases",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TerminalServiceServer).ListDatabases(ctx, req.(*ListDatabasesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
+// func _TerminalService_ListDatabases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+// 	in := new(ListDatabasesRequest)
+// 	if err := dec(in); err != nil {
+// 		return nil, err
+// 	}
+// 	if interceptor == nil {
+// 		return srv.(TerminalServiceServer).ListDatabases(ctx, in)
+// 	}
+// 	info := &grpc.UnaryServerInfo{
+// 		Server:     srv,
+// 		FullMethod: "/teleport.terminal.v1.TerminalService/ListDatabases",
+// 	}
+// 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+// 		return srv.(TerminalServiceServer).ListDatabases(ctx, req.(*ListDatabasesRequest))
+// 	}
+// 	return interceptor(ctx, in, info, handler)
+// }
 
-func _TerminalService_ListDatabaseUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListDatabaseUsersRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TerminalServiceServer).ListDatabaseUsers(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/teleport.terminal.v1.TerminalService/ListDatabaseUsers",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TerminalServiceServer).ListDatabaseUsers(ctx, req.(*ListDatabaseUsersRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
+// func _TerminalService_ListDatabaseUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+// 	in := new(ListDatabaseUsersRequest)
+// 	if err := dec(in); err != nil {
+// 		return nil, err
+// 	}
+// 	if interceptor == nil {
+// 		return srv.(TerminalServiceServer).ListDatabaseUsers(ctx, in)
+// 	}
+// 	info := &grpc.UnaryServerInfo{
+// 		Server:     srv,
+// 		FullMethod: "/teleport.terminal.v1.TerminalService/ListDatabaseUsers",
+// 	}
+// 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+// 		return srv.(TerminalServiceServer).ListDatabaseUsers(ctx, req.(*ListDatabaseUsersRequest))
+// 	}
+// 	return interceptor(ctx, in, info, handler)
+// }
 
 func _TerminalService_ListServers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListServersRequest)
@@ -3340,41 +3340,41 @@ func _TerminalService_ListServers_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TerminalService_ListKubes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListKubesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TerminalServiceServer).ListKubes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/teleport.terminal.v1.TerminalService/ListKubes",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TerminalServiceServer).ListKubes(ctx, req.(*ListKubesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
+// func _TerminalService_ListKubes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+// 	in := new(ListKubesRequest)
+// 	if err := dec(in); err != nil {
+// 		return nil, err
+// 	}
+// 	if interceptor == nil {
+// 		return srv.(TerminalServiceServer).ListKubes(ctx, in)
+// 	}
+// 	info := &grpc.UnaryServerInfo{
+// 		Server:     srv,
+// 		FullMethod: "/teleport.terminal.v1.TerminalService/ListKubes",
+// 	}
+// 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+// 		return srv.(TerminalServiceServer).ListKubes(ctx, req.(*ListKubesRequest))
+// 	}
+// 	return interceptor(ctx, in, info, handler)
+// }
 
-func _TerminalService_ListApps_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListAppsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TerminalServiceServer).ListApps(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/teleport.terminal.v1.TerminalService/ListApps",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TerminalServiceServer).ListApps(ctx, req.(*ListAppsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
+// func _TerminalService_ListApps_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+// 	in := new(ListAppsRequest)
+// 	if err := dec(in); err != nil {
+// 		return nil, err
+// 	}
+// 	if interceptor == nil {
+// 		return srv.(TerminalServiceServer).ListApps(ctx, in)
+// 	}
+// 	info := &grpc.UnaryServerInfo{
+// 		Server:     srv,
+// 		FullMethod: "/teleport.terminal.v1.TerminalService/ListApps",
+// 	}
+// 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+// 		return srv.(TerminalServiceServer).ListApps(ctx, req.(*ListAppsRequest))
+// 	}
+// 	return interceptor(ctx, in, info, handler)
+// }
 
 func _TerminalService_AddCluster_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddClusterRequest)
@@ -3630,26 +3630,26 @@ var _TerminalService_serviceDesc = grpc.ServiceDesc{
 			MethodName: "ListLeafClusters",
 			Handler:    _TerminalService_ListLeafClusters_Handler,
 		},
-		{
-			MethodName: "ListDatabases",
-			Handler:    _TerminalService_ListDatabases_Handler,
-		},
-		{
-			MethodName: "ListDatabaseUsers",
-			Handler:    _TerminalService_ListDatabaseUsers_Handler,
-		},
+		// {
+		// 	MethodName: "ListDatabases",
+		// 	Handler:    _TerminalService_ListDatabases_Handler,
+		// },
+		// {
+		// 	MethodName: "ListDatabaseUsers",
+		// 	Handler:    _TerminalService_ListDatabaseUsers_Handler,
+		// },
 		{
 			MethodName: "ListServers",
 			Handler:    _TerminalService_ListServers_Handler,
 		},
-		{
-			MethodName: "ListKubes",
-			Handler:    _TerminalService_ListKubes_Handler,
-		},
-		{
-			MethodName: "ListApps",
-			Handler:    _TerminalService_ListApps_Handler,
-		},
+		// {
+		// 	MethodName: "ListKubes",
+		// 	Handler:    _TerminalService_ListKubes_Handler,
+		// },
+		// {
+		// 	MethodName: "ListApps",
+		// 	Handler:    _TerminalService_ListApps_Handler,
+		// },
 		{
 			MethodName: "AddCluster",
 			Handler:    _TerminalService_AddCluster_Handler,

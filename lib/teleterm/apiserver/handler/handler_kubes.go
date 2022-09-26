@@ -14,52 +14,52 @@
 
 package handler
 
-import (
-	"context"
-	"sort"
+// import (
+// 	"context"
+// 	"sort"
 
-	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
-	"github.com/gravitational/teleport/lib/teleterm/clusters"
+// 	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
+// 	"github.com/gravitational/teleport/lib/teleterm/clusters"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-// ListKubes lists kubernetes clusters
-func (s *Handler) ListKubes(ctx context.Context, req *api.ListKubesRequest) (*api.ListKubesResponse, error) {
-	kubes, err := s.DaemonService.ListKubes(ctx, req.ClusterUri)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // ListKubes lists kubernetes clusters
+// func (s *Handler) ListKubes(ctx context.Context, req *api.ListKubesRequest) (*api.ListKubesResponse, error) {
+// 	kubes, err := s.DaemonService.ListKubes(ctx, req.ClusterUri)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	response := &api.ListKubesResponse{}
-	for _, k := range kubes {
-		response.Kubes = append(response.Kubes, newAPIKube(k))
-	}
+// 	response := &api.ListKubesResponse{}
+// 	for _, k := range kubes {
+// 		response.Kubes = append(response.Kubes, newAPIKube(k))
+// 	}
 
-	return response, nil
-}
+// 	return response, nil
+// }
 
-func newAPIKube(kube clusters.Kube) *api.Kube {
-	apiLabels := APILabels{}
-	for name, value := range kube.StaticLabels {
-		apiLabels = append(apiLabels, &api.Label{
-			Name:  name,
-			Value: value,
-		})
-	}
+// func newAPIKube(kube clusters.Kube) *api.Kube {
+// 	apiLabels := APILabels{}
+// 	for name, value := range kube.StaticLabels {
+// 		apiLabels = append(apiLabels, &api.Label{
+// 			Name:  name,
+// 			Value: value,
+// 		})
+// 	}
 
-	for name, cmd := range kube.DynamicLabels {
-		apiLabels = append(apiLabels, &api.Label{
-			Name:  name,
-			Value: cmd.GetResult(),
-		})
-	}
+// 	for name, cmd := range kube.DynamicLabels {
+// 		apiLabels = append(apiLabels, &api.Label{
+// 			Name:  name,
+// 			Value: cmd.GetResult(),
+// 		})
+// 	}
 
-	sort.Sort(apiLabels)
+// 	sort.Sort(apiLabels)
 
-	return &api.Kube{
-		Name:   kube.Name,
-		Uri:    kube.URI.String(),
-		Labels: apiLabels,
-	}
-}
+// 	return &api.Kube{
+// 		Name:   kube.Name,
+// 		Uri:    kube.URI.String(),
+// 		Labels: apiLabels,
+// 	}
+// }

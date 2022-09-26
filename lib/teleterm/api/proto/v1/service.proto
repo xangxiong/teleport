@@ -39,9 +39,9 @@ service TerminalService {
   // ListServers lists servers
   rpc ListServers(ListServersRequest) returns (ListServersResponse);
   // ListKubes list kubes
-  rpc ListKubes(ListKubesRequest) returns (ListKubesResponse);
+  //#rpc ListKubes(ListKubesRequest) returns (ListKubesResponse);
   // ListApps list apps
-  rpc ListApps(ListAppsRequest) returns (ListAppsResponse);
+  //#rpc ListApps(ListAppsRequest) returns (ListAppsResponse);
   // AddCluster adds a cluster to profile
   rpc AddCluster(AddClusterRequest) returns (Cluster);
   // RemoveCluster removes a cluster from profile

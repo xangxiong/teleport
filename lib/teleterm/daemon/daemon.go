@@ -337,35 +337,35 @@ func (s *Service) ListServers(ctx context.Context, clusterURI string) ([]cluster
 	return servers, nil
 }
 
-// ListServers returns cluster servers
-func (s *Service) ListApps(ctx context.Context, clusterURI string) ([]clusters.App, error) {
-	cluster, err := s.ResolveCluster(clusterURI)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // ListServers returns cluster servers
+// func (s *Service) ListApps(ctx context.Context, clusterURI string) ([]clusters.App, error) {
+// 	cluster, err := s.ResolveCluster(clusterURI)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	apps, err := cluster.GetApps(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	apps, err := cluster.GetApps(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return apps, nil
-}
+// 	return apps, nil
+// }
 
-// ListKubes lists kubernetes clusters
-func (s *Service) ListKubes(ctx context.Context, uri string) ([]clusters.Kube, error) {
-	cluster, err := s.ResolveCluster(uri)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // ListKubes lists kubernetes clusters
+// func (s *Service) ListKubes(ctx context.Context, uri string) ([]clusters.Kube, error) {
+// 	cluster, err := s.ResolveCluster(uri)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	kubes, err := cluster.GetKubes(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	kubes, err := cluster.GetKubes(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return kubes, nil
-}
+// 	return kubes, nil
+// }
 
 // Stop terminates all cluster open connections
 func (s *Service) Stop() {

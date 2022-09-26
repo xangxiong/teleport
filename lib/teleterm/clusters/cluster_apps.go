@@ -16,46 +16,46 @@ limitations under the License.
 
 package clusters
 
-import (
-	"context"
+// import (
+// 	"context"
 
-	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/defaults"
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/teleterm/api/uri"
+// 	"github.com/gravitational/teleport/api/client/proto"
+// 	"github.com/gravitational/teleport/api/defaults"
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/teleterm/api/uri"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-// App describes an app
-type App struct {
-	// URI is the app URI
-	URI uri.ResourceURI
+// // App describes an app
+// type App struct {
+// 	// URI is the app URI
+// 	URI uri.ResourceURI
 
-	types.Application
-}
+// 	types.Application
+// }
 
-// GetApps returns apps
-func (c *Cluster) GetApps(ctx context.Context) ([]App, error) {
-	var apps []types.Application
-	var err error
-	err = addMetadataToRetryableError(ctx, func() error {
-		apps, err = c.clusterClient.ListApps(ctx, &proto.ListResourcesRequest{
-			Namespace: defaults.Namespace,
-		})
-		return err
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // GetApps returns apps
+// func (c *Cluster) GetApps(ctx context.Context) ([]App, error) {
+// 	var apps []types.Application
+// 	var err error
+// 	err = addMetadataToRetryableError(ctx, func() error {
+// 		apps, err = c.clusterClient.ListApps(ctx, &proto.ListResourcesRequest{
+// 			Namespace: defaults.Namespace,
+// 		})
+// 		return err
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	results := []App{}
-	for _, app := range apps {
-		results = append(results, App{
-			URI:         c.URI.AppendApp(app.GetName()),
-			Application: app,
-		})
-	}
+// 	results := []App{}
+// 	for _, app := range apps {
+// 		results = append(results, App{
+// 			URI:         c.URI.AppendApp(app.GetName()),
+// 			Application: app,
+// 		})
+// 	}
 
-	return results, nil
-}
+// 	return results, nil
+// }

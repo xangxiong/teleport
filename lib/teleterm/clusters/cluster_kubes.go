@@ -16,66 +16,66 @@ limitations under the License.
 
 package clusters
 
-import (
-	"context"
+// import (
+// 	"context"
 
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/auth"
-	"github.com/gravitational/teleport/lib/teleterm/api/uri"
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/auth"
+// 	"github.com/gravitational/teleport/lib/teleterm/api/uri"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-// Kube describes kubernetes service
-type Kube struct {
-	// URI is the kube URI
-	URI uri.ResourceURI
+// // Kube describes kubernetes service
+// type Kube struct {
+// 	// URI is the kube URI
+// 	URI uri.ResourceURI
 
-	types.KubernetesCluster
-}
+// 	types.KubernetesCluster
+// }
 
-// GetKubes returns kube services
-func (c *Cluster) GetKubes(ctx context.Context) ([]Kube, error) {
-	var authClient auth.ClientI
-	err := addMetadataToRetryableError(ctx, func() error {
-		proxyClient, err := c.clusterClient.ConnectToProxy(ctx)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		defer proxyClient.Close()
+// // GetKubes returns kube services
+// func (c *Cluster) GetKubes(ctx context.Context) ([]Kube, error) {
+// 	var authClient auth.ClientI
+// 	err := addMetadataToRetryableError(ctx, func() error {
+// 		proxyClient, err := c.clusterClient.ConnectToProxy(ctx)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		defer proxyClient.Close()
 
-		authClient, err = proxyClient.ConnectToCluster(ctx, c.clusterClient.SiteName)
-		if err != nil {
-			return trace.Wrap(err)
-		}
+// 		authClient, err = proxyClient.ConnectToCluster(ctx, c.clusterClient.SiteName)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
 
-		return nil
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 		return nil
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	defer authClient.Close()
+// 	defer authClient.Close()
 
-	services, err := authClient.GetKubeServices(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	services, err := authClient.GetKubeServices(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	kubeMap := map[string]Kube{}
-	for _, service := range services {
-		for _, kube := range service.GetKubernetesClusters() {
-			kubeMap[kube.Name] = Kube{
-				URI:               c.URI.AppendKube(kube.Name),
-				KubernetesCluster: *kube,
-			}
-		}
-	}
+// 	kubeMap := map[string]Kube{}
+// 	for _, service := range services {
+// 		for _, kube := range service.GetKubernetesClusters() {
+// 			kubeMap[kube.Name] = Kube{
+// 				URI:               c.URI.AppendKube(kube.Name),
+// 				KubernetesCluster: *kube,
+// 			}
+// 		}
+// 	}
 
-	kubes := make([]Kube, 0, len(kubeMap))
-	for _, value := range kubeMap {
-		kubes = append(kubes, value)
-	}
+// 	kubes := make([]Kube, 0, len(kubeMap))
+// 	for _, value := range kubeMap {
+// 		kubes = append(kubes, value)
+// 	}
 
-	return kubes, nil
-}
+// 	return kubes, nil
+// }

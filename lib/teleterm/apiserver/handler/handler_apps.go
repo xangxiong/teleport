@@ -14,48 +14,48 @@
 
 package handler
 
-import (
-	"context"
-	"sort"
+// import (
+// 	"context"
+// 	"sort"
 
-	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
-	"github.com/gravitational/teleport/lib/teleterm/clusters"
+// 	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
+// 	"github.com/gravitational/teleport/lib/teleterm/clusters"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-// ListApps lists cluster applications
-func (s *Handler) ListApps(ctx context.Context, req *api.ListAppsRequest) (*api.ListAppsResponse, error) {
-	apps, err := s.DaemonService.ListApps(ctx, req.ClusterUri)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // ListApps lists cluster applications
+// func (s *Handler) ListApps(ctx context.Context, req *api.ListAppsRequest) (*api.ListAppsResponse, error) {
+// 	apps, err := s.DaemonService.ListApps(ctx, req.ClusterUri)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	response := &api.ListAppsResponse{}
-	for _, app := range apps {
-		response.Apps = append(response.Apps, newAPIApp(app))
-	}
+// 	response := &api.ListAppsResponse{}
+// 	for _, app := range apps {
+// 		response.Apps = append(response.Apps, newAPIApp(app))
+// 	}
 
-	return response, nil
-}
+// 	return response, nil
+// }
 
-func newAPIApp(app clusters.App) *api.App {
-	apiLabels := APILabels{}
-	for name, value := range app.GetAllLabels() {
-		apiLabels = append(apiLabels, &api.Label{
-			Name:  name,
-			Value: value,
-		})
-	}
-	sort.Sort(apiLabels)
+// func newAPIApp(app clusters.App) *api.App {
+// 	apiLabels := APILabels{}
+// 	for name, value := range app.GetAllLabels() {
+// 		apiLabels = append(apiLabels, &api.Label{
+// 			Name:  name,
+// 			Value: value,
+// 		})
+// 	}
+// 	sort.Sort(apiLabels)
 
-	return &api.App{
-		Uri:         app.URI.String(),
-		Name:        app.GetName(),
-		Labels:      apiLabels,
-		Description: app.GetDescription(),
-		AppUri:      app.GetURI(),
-		PublicAddr:  app.GetPublicAddr(),
-		AwsConsole:  app.IsAWSConsole(),
-	}
-}
+// 	return &api.App{
+// 		Uri:         app.URI.String(),
+// 		Name:        app.GetName(),
+// 		Labels:      apiLabels,
+// 		Description: app.GetDescription(),
+// 		AppUri:      app.GetURI(),
+// 		PublicAddr:  app.GetPublicAddr(),
+// 		AwsConsole:  app.IsAWSConsole(),
+// 	}
+// }
