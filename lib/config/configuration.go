@@ -707,13 +707,13 @@ func applyProxyConfig(fc *FileConfig, cfg *service.Config) error {
 		}
 		cfg.Proxy.SSHAddr = *addr
 	}
-	if fc.Proxy.WebAddr != "" {
-		addr, err := utils.ParseHostPortAddr(fc.Proxy.WebAddr, defaults.HTTPListenPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Proxy.WebAddr = *addr
-	}
+	// if fc.Proxy.WebAddr != "" {
+	// 	addr, err := utils.ParseHostPortAddr(fc.Proxy.WebAddr, defaults.HTTPListenPort)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Proxy.WebAddr = *addr
+	// }
 	if fc.Proxy.TunAddr != "" {
 		addr, err := utils.ParseHostPortAddr(fc.Proxy.TunAddr, defaults.SSHProxyTunnelListenPort)
 		if err != nil {
@@ -721,27 +721,27 @@ func applyProxyConfig(fc *FileConfig, cfg *service.Config) error {
 		}
 		cfg.Proxy.ReverseTunnelListenAddr = *addr
 	}
-	if fc.Proxy.MySQLAddr != "" {
-		addr, err := utils.ParseHostPortAddr(fc.Proxy.MySQLAddr, defaults.MySQLListenPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Proxy.MySQLAddr = *addr
-	}
-	if fc.Proxy.PostgresAddr != "" {
-		addr, err := utils.ParseHostPortAddr(fc.Proxy.PostgresAddr, defaults.PostgresListenPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Proxy.PostgresAddr = *addr
-	}
-	if fc.Proxy.MongoAddr != "" {
-		addr, err := utils.ParseHostPortAddr(fc.Proxy.MongoAddr, defaults.MongoListenPort)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Proxy.MongoAddr = *addr
-	}
+	// if fc.Proxy.MySQLAddr != "" {
+	// 	addr, err := utils.ParseHostPortAddr(fc.Proxy.MySQLAddr, defaults.MySQLListenPort)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Proxy.MySQLAddr = *addr
+	// }
+	// if fc.Proxy.PostgresAddr != "" {
+	// 	addr, err := utils.ParseHostPortAddr(fc.Proxy.PostgresAddr, defaults.PostgresListenPort)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Proxy.PostgresAddr = *addr
+	// }
+	// if fc.Proxy.MongoAddr != "" {
+	// 	addr, err := utils.ParseHostPortAddr(fc.Proxy.MongoAddr, defaults.MongoListenPort)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	cfg.Proxy.MongoAddr = *addr
+	// }
 	if fc.Proxy.PeerAddr != "" {
 		addr, err := utils.ParseHostPortAddr(fc.Proxy.PeerAddr, int(defaults.ProxyPeeringListenPort))
 		if err != nil {
@@ -852,7 +852,8 @@ func applyProxyConfig(fc *FileConfig, cfg *service.Config) error {
 	// 	}
 	// }
 	if len(fc.Proxy.PublicAddr) != 0 {
-		addrs, err := utils.AddrsFromStrings(fc.Proxy.PublicAddr, cfg.Proxy.WebAddr.Port(defaults.HTTPListenPort))
+		//addrs, err := utils.AddrsFromStrings(fc.Proxy.PublicAddr, cfg.Proxy.WebAddr.Port(defaults.HTTPListenPort))
+		addrs, err := utils.AddrsFromStrings(fc.Proxy.PublicAddr, defaults.HTTPListenPort)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -939,11 +940,11 @@ func applyDefaultProxyListenerAddresses(cfg *service.Config) {
 		return
 	}
 
-	// For v1 configuration check if address was set in config file if
-	// not fallback to the default listener address.
-	if cfg.Proxy.WebAddr.IsEmpty() {
-		cfg.Proxy.WebAddr = *defaults.ProxyWebListenAddr()
-	}
+	// // For v1 configuration check if address was set in config file if
+	// // not fallback to the default listener address.
+	// if cfg.Proxy.WebAddr.IsEmpty() {
+	// 	cfg.Proxy.WebAddr = *defaults.ProxyWebListenAddr()
+	// }
 	if cfg.Proxy.SSHAddr.IsEmpty() {
 		cfg.Proxy.SSHAddr = *defaults.ProxyListenAddr()
 	}
@@ -1033,10 +1034,10 @@ func applySSHConfig(fc *FileConfig, cfg *service.Config) (err error) {
 
 	cfg.SSH.AllowTCPForwarding = fc.SSH.AllowTCPForwarding()
 
-	cfg.SSH.X11, err = fc.SSH.X11ServerConfig()
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	// cfg.SSH.X11, err = fc.SSH.X11ServerConfig()
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
 	cfg.SSH.AllowFileCopying = fc.SSH.SSHFileCopy()
 
@@ -2083,7 +2084,7 @@ func applyListenIP(ip net.IP, cfg *service.Config) {
 		//&cfg.Auth.SSHAddr,
 		//&cfg.Auth.SSHAddr,
 		&cfg.Proxy.SSHAddr,
-		&cfg.Proxy.WebAddr,
+		//&cfg.Proxy.WebAddr,
 		&cfg.SSH.Addr,
 		&cfg.Proxy.ReverseTunnelListenAddr,
 	}

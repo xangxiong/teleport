@@ -45,7 +45,6 @@ import (
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/srv/app/common"
 	"github.com/gravitational/teleport/lib/sshca"
-	"github.com/gravitational/teleport/lib/sshutils/x11"
 	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/gravitational/trace"
@@ -367,17 +366,17 @@ type ProxyConfig struct {
 	// DisableTLS is enabled if we don't want self-signed certs
 	DisableTLS bool
 
-	// DisableWebInterface allows turning off serving the Web UI interface
-	DisableWebInterface bool
+	// // DisableWebInterface allows turning off serving the Web UI interface
+	// DisableWebInterface bool
 
-	// DisableWebService turns off serving web service completely, including web UI
-	DisableWebService bool
+	// // DisableWebService turns off serving web service completely, including web UI
+	// DisableWebService bool
 
 	// DisableReverseTunnel disables reverse tunnel on the proxy
 	DisableReverseTunnel bool
 
-	// DisableDatabaseProxy disables database access proxy listener
-	DisableDatabaseProxy bool
+	// // DisableDatabaseProxy disables database access proxy listener
+	// DisableDatabaseProxy bool
 
 	// ReverseTunnelListenAddr is address where reverse tunnel dialers connect to
 	ReverseTunnelListenAddr utils.NetAddr
@@ -385,20 +384,20 @@ type ProxyConfig struct {
 	// EnableProxyProtocol enables proxy protocol support
 	EnableProxyProtocol bool
 
-	// WebAddr is address for web portal of the proxy
-	WebAddr utils.NetAddr
+	// // WebAddr is address for web portal of the proxy
+	// WebAddr utils.NetAddr
 
 	// SSHAddr is address of ssh proxy
 	SSHAddr utils.NetAddr
 
-	// MySQLAddr is address of MySQL proxy.
-	MySQLAddr utils.NetAddr
+	// // MySQLAddr is address of MySQL proxy.
+	// MySQLAddr utils.NetAddr
 
-	// PostgresAddr is address of Postgres proxy.
-	PostgresAddr utils.NetAddr
+	// // PostgresAddr is address of Postgres proxy.
+	// PostgresAddr utils.NetAddr
 
-	// MongoAddr is address of Mongo proxy.
-	MongoAddr utils.NetAddr
+	// // MongoAddr is address of Mongo proxy.
+	// MongoAddr utils.NetAddr
 
 	// PeerAddr is the proxy peering address.
 	PeerAddr utils.NetAddr
@@ -420,19 +419,19 @@ type ProxyConfig struct {
 	// list of host principals on the TLS and SSH certificate.
 	TunnelPublicAddrs []utils.NetAddr
 
-	// PostgresPublicAddrs is a list of the public addresses the proxy
-	// advertises for Postgres clients.
-	PostgresPublicAddrs []utils.NetAddr
+	// // PostgresPublicAddrs is a list of the public addresses the proxy
+	// // advertises for Postgres clients.
+	// PostgresPublicAddrs []utils.NetAddr
 
-	// MySQLPublicAddrs is a list of the public addresses the proxy
-	// advertises for MySQL clients.
-	MySQLPublicAddrs []utils.NetAddr
+	// // MySQLPublicAddrs is a list of the public addresses the proxy
+	// // advertises for MySQL clients.
+	// MySQLPublicAddrs []utils.NetAddr
 
-	// MongoPublicAddrs is a list of the public addresses the proxy
-	// advertises for Mongo clients.
-	MongoPublicAddrs []utils.NetAddr
+	// // MongoPublicAddrs is a list of the public addresses the proxy
+	// // advertises for Mongo clients.
+	// MongoPublicAddrs []utils.NetAddr
 
-	// Kube specifies kubernetes proxy configuration
+	// // Kube specifies kubernetes proxy configuration
 	// Kube KubeProxyConfig
 
 	// KeyPairs are the key and certificate pairs that the proxy will load.
@@ -602,8 +601,8 @@ type SSHConfig struct {
 	// timeout message will be sent.
 	IdleTimeoutMessage string
 
-	// X11 holds x11 forwarding configuration for Teleport.
-	X11 *x11.ServerConfig
+	// // X11 holds x11 forwarding configuration for Teleport.
+	// X11 *x11.ServerConfig
 
 	// AllowFileCopying indicates whether this node is allowed to handle
 	// remote file operations via SCP or SFTP.

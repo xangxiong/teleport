@@ -16,12 +16,10 @@ limitations under the License.
 package service
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -33,7 +31,6 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/auth"
-	"github.com/gravitational/teleport/lib/backend/memory"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/reversetunnel"
 	"github.com/gravitational/teleport/lib/utils"
@@ -49,24 +46,24 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestServiceDebugModeEnv(t *testing.T) {
-	require.False(t, isDebugMode())
+// func TestServiceDebugModeEnv(t *testing.T) {
+// 	require.False(t, isDebugMode())
 
-	for _, test := range []struct {
-		debugVal string
-		isDebug  bool
-	}{
-		{"no", false},
-		{"0", false},
-		{"1", true},
-		{"true", true},
-	} {
-		t.Run(fmt.Sprintf("%v=%v", teleport.DebugEnvVar, test.debugVal), func(t *testing.T) {
-			t.Setenv(teleport.DebugEnvVar, test.debugVal)
-			require.Equal(t, test.isDebug, isDebugMode())
-		})
-	}
-}
+// 	for _, test := range []struct {
+// 		debugVal string
+// 		isDebug  bool
+// 	}{
+// 		{"no", false},
+// 		{"0", false},
+// 		{"1", true},
+// 		{"true", true},
+// 	} {
+// 		t.Run(fmt.Sprintf("%v=%v", teleport.DebugEnvVar, test.debugVal), func(t *testing.T) {
+// 			t.Setenv(teleport.DebugEnvVar, test.debugVal)
+// 			require.Equal(t, test.isDebug, isDebugMode())
+// 		})
+// 	}
+// }
 
 func TestServiceSelfSignedHTTPS(t *testing.T) {
 	cfg := &Config{
@@ -248,57 +245,57 @@ func TestServiceCheckPrincipals(t *testing.T) {
 	}
 }
 
-// TestServiceInitExternalLog verifies that external logging can be used both as a means of
-// overriding the local audit event target.  Ideally, this test would also verify
-// setup of true external loggers, but at the time of writing there isn't good
-// support for setting up fake external logging endpoints.
-func TestServiceInitExternalLog(t *testing.T) {
-	tts := []struct {
-		events []string
-		isNil  bool
-		isErr  bool
-	}{
-		// no URIs => no external logger
-		{isNil: true},
-		// local-only event uri w/o hostname => ok
-		{events: []string{"file:///tmp/teleport-test/events"}},
-		// local-only event uri w/ localhost => ok
-		{events: []string{"file://localhost/tmp/teleport-test/events"}},
-		// invalid host parameter => rejected
-		{events: []string{"file://example.com/should/fail"}, isErr: true},
-		// missing path specifier => rejected
-		{events: []string{"file://localhost"}, isErr: true},
-	}
+// // TestServiceInitExternalLog verifies that external logging can be used both as a means of
+// // overriding the local audit event target.  Ideally, this test would also verify
+// // setup of true external loggers, but at the time of writing there isn't good
+// // support for setting up fake external logging endpoints.
+// func TestServiceInitExternalLog(t *testing.T) {
+// 	tts := []struct {
+// 		events []string
+// 		isNil  bool
+// 		isErr  bool
+// 	}{
+// 		// no URIs => no external logger
+// 		{isNil: true},
+// 		// local-only event uri w/o hostname => ok
+// 		{events: []string{"file:///tmp/teleport-test/events"}},
+// 		// local-only event uri w/ localhost => ok
+// 		{events: []string{"file://localhost/tmp/teleport-test/events"}},
+// 		// invalid host parameter => rejected
+// 		{events: []string{"file://example.com/should/fail"}, isErr: true},
+// 		// missing path specifier => rejected
+// 		{events: []string{"file://localhost"}, isErr: true},
+// 	}
 
-	backend, err := memory.New(memory.Config{})
-	require.NoError(t, err)
+// 	backend, err := memory.New(memory.Config{})
+// 	require.NoError(t, err)
 
-	for _, tt := range tts {
-		t.Run(strings.Join(tt.events, ","), func(t *testing.T) {
-			// isErr implies isNil.
-			if tt.isErr {
-				tt.isNil = true
-			}
+// 	for _, tt := range tts {
+// 		t.Run(strings.Join(tt.events, ","), func(t *testing.T) {
+// 			// isErr implies isNil.
+// 			if tt.isErr {
+// 				tt.isNil = true
+// 			}
 
-			auditConfig, err := types.NewClusterAuditConfig(types.ClusterAuditConfigSpecV2{
-				AuditEventsURI: tt.events,
-			})
-			require.NoError(t, err)
-			loggers, err := initExternalLog(context.Background(), auditConfig, logrus.New(), backend)
-			if tt.isErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
+// 			auditConfig, err := types.NewClusterAuditConfig(types.ClusterAuditConfigSpecV2{
+// 				AuditEventsURI: tt.events,
+// 			})
+// 			require.NoError(t, err)
+// 			loggers, err := initExternalLog(context.Background(), auditConfig, logrus.New(), backend)
+// 			if tt.isErr {
+// 				require.Error(t, err)
+// 			} else {
+// 				require.NoError(t, err)
+// 			}
 
-			if tt.isNil {
-				require.Nil(t, loggers)
-			} else {
-				require.NotNil(t, loggers)
-			}
-		})
-	}
-}
+// 			if tt.isNil {
+// 				require.Nil(t, loggers)
+// 			} else {
+// 				require.NotNil(t, loggers)
+// 			}
+// 		})
+// 	}
+// }
 
 func TestGetAdditionalPrincipals(t *testing.T) {
 	p := &TeleportProcess{

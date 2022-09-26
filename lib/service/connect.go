@@ -618,22 +618,22 @@ func (process *TeleportProcess) firstTimeConnect(role types.SystemRole) (*Connec
 
 	process.log.Infof("%v has obtained credentials to connect to the cluster.", role)
 	var connector *Connector
-	if role == types.RoleAdmin || role == types.RoleAuth {
-		connector = &Connector{
-			ClientIdentity: identity,
-			ServerIdentity: identity,
-		}
-	} else {
-		clt, err := process.newClient(process.Config.AuthServers, identity)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		connector = &Connector{
-			ClientIdentity: identity,
-			ServerIdentity: identity,
-			Client:         clt,
-		}
+	// if role == types.RoleAdmin || role == types.RoleAuth {
+	// 	connector = &Connector{
+	// 		ClientIdentity: identity,
+	// 		ServerIdentity: identity,
+	// 	}
+	// } else {
+	clt, err := process.newClient(process.Config.AuthServers, identity)
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
+	connector = &Connector{
+		ClientIdentity: identity,
+		ServerIdentity: identity,
+		Client:         clt,
+	}
+	// }
 
 	// Sync local rotation state to match the remote rotation state.
 	ca, err := process.getCertAuthority(connector, types.CertAuthID{
