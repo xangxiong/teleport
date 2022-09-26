@@ -25,7 +25,6 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/srv/db/cloud"
 	"github.com/gravitational/teleport/lib/srv/db/common"
 	"github.com/gravitational/teleport/lib/srv/db/common/role"
 	"github.com/gravitational/teleport/lib/utils"
@@ -430,38 +429,38 @@ func (e *Engine) getConnectConfig(ctx context.Context, sessionCtx *common.Sessio
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-	case types.DatabaseTypeCloudSQL:
-		config.Password, err = e.Auth.GetCloudSQLAuthToken(ctx, sessionCtx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		// Get the client once for subsequent calls (it acquires a read lock).
-		gcpClient, err := e.CloudClients.GetGCPSQLAdminClient(ctx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		// Detect whether the instance is set to require SSL.
-		// Fallback to not requiring SSL for access denied errors.
-		requireSSL, err := cloud.GetGCPRequireSSL(ctx, sessionCtx, gcpClient)
-		if err != nil && !trace.IsAccessDenied(err) {
-			return nil, trace.Wrap(err)
-		}
-		// Create ephemeral certificate and append to TLS config when
-		// the instance requires SSL.
-		if requireSSL {
-			err = cloud.AppendGCPClientCert(ctx, sessionCtx, gcpClient, config.TLSConfig)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-		}
-	case types.DatabaseTypeAzure:
-		config.Password, err = e.Auth.GetAzureAccessToken(ctx, sessionCtx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		// Azure requires database login to be <user>@<server-name> e.g.
-		// alice@postgres-server-name.
-		config.User = fmt.Sprintf("%v@%v", config.User, sessionCtx.Database.GetAzure().Name)
+		// case types.DatabaseTypeCloudSQL:
+		// 	config.Password, err = e.Auth.GetCloudSQLAuthToken(ctx, sessionCtx)
+		// 	if err != nil {
+		// 		return nil, trace.Wrap(err)
+		// 	}
+		// 	// Get the client once for subsequent calls (it acquires a read lock).
+		// 	gcpClient, err := e.CloudClients.GetGCPSQLAdminClient(ctx)
+		// 	if err != nil {
+		// 		return nil, trace.Wrap(err)
+		// 	}
+		// 	// Detect whether the instance is set to require SSL.
+		// 	// Fallback to not requiring SSL for access denied errors.
+		// 	requireSSL, err := cloud.GetGCPRequireSSL(ctx, sessionCtx, gcpClient)
+		// 	if err != nil && !trace.IsAccessDenied(err) {
+		// 		return nil, trace.Wrap(err)
+		// 	}
+		// 	// Create ephemeral certificate and append to TLS config when
+		// 	// the instance requires SSL.
+		// 	if requireSSL {
+		// 		err = cloud.AppendGCPClientCert(ctx, sessionCtx, gcpClient, config.TLSConfig)
+		// 		if err != nil {
+		// 			return nil, trace.Wrap(err)
+		// 		}
+		// 	}
+		// case types.DatabaseTypeAzure:
+		// 	config.Password, err = e.Auth.GetAzureAccessToken(ctx, sessionCtx)
+		// 	if err != nil {
+		// 		return nil, trace.Wrap(err)
+		// 	}
+		// 	// Azure requires database login to be <user>@<server-name> e.g.
+		// 	// alice@postgres-server-name.
+		// 	config.User = fmt.Sprintf("%v@%v", config.User, sessionCtx.Database.GetAzure().Name)
 	}
 	return config, nil
 }

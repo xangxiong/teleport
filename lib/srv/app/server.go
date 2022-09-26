@@ -95,8 +95,8 @@ type Config struct {
 	// OnHeartbeat is called after every heartbeat. Used to update process state.
 	OnHeartbeat func(error)
 
-	// Cloud provides cloud provider access related functionality.
-	Cloud Cloud
+	// // Cloud provides cloud provider access related functionality.
+	// Cloud Cloud
 
 	// ResourceMatchers is a list of app resource matchers.
 	ResourceMatchers []services.ResourceMatcher
@@ -145,13 +145,13 @@ func (c *Config) CheckAndSetDefaults() error {
 	if c.OnHeartbeat == nil {
 		return trace.BadParameter("heartbeat missing")
 	}
-	if c.Cloud == nil {
-		cloud, err := NewCloud(CloudConfig{})
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		c.Cloud = cloud
-	}
+	// if c.Cloud == nil {
+	// 	cloud, err := NewCloud(CloudConfig{})
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	c.Cloud = cloud
+	// }
 	if c.ConnectedProxyGetter == nil {
 		c.ConnectedProxyGetter = reversetunnel.NewConnectedProxyGetter()
 	}
@@ -677,24 +677,24 @@ func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 
 }
 
-// serveAWSWebConsole generates a sign-in URL for AWS management console and
-// redirects the user to it.
-func (s *Server) serveAWSWebConsole(w http.ResponseWriter, r *http.Request, identity *tlsca.Identity, app types.Application) error {
-	s.log.Debugf("Redirecting %v to AWS mananement console with role %v.",
-		identity.Username, identity.RouteToApp.AWSRoleARN)
+// // serveAWSWebConsole generates a sign-in URL for AWS management console and
+// // redirects the user to it.
+// func (s *Server) serveAWSWebConsole(w http.ResponseWriter, r *http.Request, identity *tlsca.Identity, app types.Application) error {
+// 	s.log.Debugf("Redirecting %v to AWS mananement console with role %v.",
+// 		identity.Username, identity.RouteToApp.AWSRoleARN)
 
-	url, err := s.c.Cloud.GetAWSSigninURL(AWSSigninRequest{
-		Identity:   identity,
-		TargetURL:  app.GetURI(),
-		Issuer:     app.GetPublicAddr(),
-		ExternalID: app.GetAWSExternalID(),
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	http.Redirect(w, r, url.SigninURL, http.StatusFound)
-	return nil
-}
+// 	url, err := s.c.Cloud.GetAWSSigninURL(AWSSigninRequest{
+// 		Identity:   identity,
+// 		TargetURL:  app.GetURI(),
+// 		Issuer:     app.GetPublicAddr(),
+// 		ExternalID: app.GetAWSExternalID(),
+// 	})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	http.Redirect(w, r, url.SigninURL, http.StatusFound)
+// 	return nil
+// }
 
 // serveSession finds the app session and forwards the request.
 func (s *Server) serveSession(w http.ResponseWriter, r *http.Request, identity *tlsca.Identity, app types.Application, opts ...sessionOpt) error {

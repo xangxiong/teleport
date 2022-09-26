@@ -270,19 +270,19 @@ func SetUpSuiteWithConfig(t *testing.T, config suiteConfig) *Suite {
 	}
 
 	s.appServer, err = New(s.closeContext, &Config{
-		Clock:            s.clock,
-		DataDir:          s.dataDir,
-		AccessPoint:      s.authClient,
-		AuthClient:       s.authClient,
-		TLSConfig:        tlsConfig,
-		CipherSuites:     utils.DefaultCipherSuites(),
-		HostID:           s.hostUUID,
-		Hostname:         "test",
-		Authorizer:       authorizer,
-		GetRotation:      testRotationGetter,
-		Apps:             apps,
-		OnHeartbeat:      func(err error) {},
-		Cloud:            &testCloud{},
+		Clock:        s.clock,
+		DataDir:      s.dataDir,
+		AccessPoint:  s.authClient,
+		AuthClient:   s.authClient,
+		TLSConfig:    tlsConfig,
+		CipherSuites: utils.DefaultCipherSuites(),
+		HostID:       s.hostUUID,
+		Hostname:     "test",
+		Authorizer:   authorizer,
+		GetRotation:  testRotationGetter,
+		Apps:         apps,
+		OnHeartbeat:  func(err error) {},
+		// Cloud:            &testCloud{},
 		ResourceMatchers: config.ResourceMatchers,
 		OnReconcile:      config.OnReconcile,
 	})
@@ -603,11 +603,11 @@ func testRotationGetter(role types.SystemRole) (*types.Rotation, error) {
 
 type testCloud struct{}
 
-func (c *testCloud) GetAWSSigninURL(_ AWSSigninRequest) (*AWSSigninResponse, error) {
-	return &AWSSigninResponse{
-		SigninURL: "https://signin.aws.amazon.com",
-	}, nil
-}
+// func (c *testCloud) GetAWSSigninURL(_ AWSSigninRequest) (*AWSSigninResponse, error) {
+// 	return &AWSSigninResponse{
+// 		SigninURL: "https://signin.aws.amazon.com",
+// 	}, nil
+// }
 
 var (
 	staticLabels = map[string]string{

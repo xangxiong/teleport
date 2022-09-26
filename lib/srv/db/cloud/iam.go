@@ -29,9 +29,7 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/auth"
 	awslib "github.com/gravitational/teleport/lib/cloud/aws"
-	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/srv/db/common"
-	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
@@ -154,23 +152,23 @@ func (c *IAM) Teardown(ctx context.Context, database types.Database) error {
 	return nil
 }
 
-// getAWSConfigurator returns configurator instance for the provided database.
-func (c *IAM) getAWSConfigurator(ctx context.Context, database types.Database) (*awsClient, error) {
-	identity, err := c.getAWSIdentity(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	policyName, err := c.getPolicyName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return newAWS(ctx, awsConfig{
-		clients:    c.cfg.Clients,
-		policyName: policyName,
-		identity:   identity,
-		database:   database,
-	})
-}
+// // getAWSConfigurator returns configurator instance for the provided database.
+// func (c *IAM) getAWSConfigurator(ctx context.Context, database types.Database) (*awsClient, error) {
+// 	identity, err := c.getAWSIdentity(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	policyName, err := c.getPolicyName()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return newAWS(ctx, awsConfig{
+// 		clients:    c.cfg.Clients,
+// 		policyName: policyName,
+// 		identity:   identity,
+// 		database:   database,
+// 	})
+// }
 
 // getAWSIdentity returns this process' AWS identity.
 func (c *IAM) getAWSIdentity(ctx context.Context) (awslib.Identity, error) {
@@ -215,53 +213,54 @@ func (c *IAM) getPolicyName() (string, error) {
 
 // processTask runs an IAM task.
 func (c *IAM) processTask(ctx context.Context, task iamTask) error {
-	configurator, err := c.getAWSConfigurator(ctx, task.database)
-	if err != nil {
-		if trace.Unwrap(err) == credentials.ErrNoValidProvidersFoundInChain {
-			c.log.Warnf("No AWS credentials provider. Skipping IAM task for database %v.", task.database.GetName())
-			return nil
-		}
-		return trace.Wrap(err)
-	}
+	// configurator, err := c.getAWSConfigurator(ctx, task.database)
+	// if err != nil {
+	// 	if trace.Unwrap(err) == credentials.ErrNoValidProvidersFoundInChain {
+	// 		c.log.Warnf("No AWS credentials provider. Skipping IAM task for database %v.", task.database.GetName())
+	// 		return nil
+	// 	}
+	// 	return trace.Wrap(err)
+	// }
 
-	// Acquire a semaphore before making changes to the shared IAM policy.
-	//
-	// TODO(greedy52) ideally tasks can be bundled so the semaphore is acquired
-	// once per group, and the IAM policy is only get/put once per group.
-	lease, err := services.AcquireSemaphoreWithRetry(ctx, services.AcquireSemaphoreWithRetryConfig{
-		Service: c.cfg.AccessPoint,
-		Request: types.AcquireSemaphoreRequest{
-			SemaphoreKind: configurator.cfg.policyName,
-			SemaphoreName: configurator.cfg.identity.GetName(),
-			MaxLeases:     1,
+	// // Acquire a semaphore before making changes to the shared IAM policy.
+	// //
+	// // TODO(greedy52) ideally tasks can be bundled so the semaphore is acquired
+	// // once per group, and the IAM policy is only get/put once per group.
+	// lease, err := services.AcquireSemaphoreWithRetry(ctx, services.AcquireSemaphoreWithRetryConfig{
+	// 	Service: c.cfg.AccessPoint,
+	// 	Request: types.AcquireSemaphoreRequest{
+	// 		SemaphoreKind: configurator.cfg.policyName,
+	// 		SemaphoreName: configurator.cfg.identity.GetName(),
+	// 		MaxLeases:     1,
 
-			// If the semaphore fails to release for some reason, it will expire in a
-			// minute on its own.
-			Expires: c.cfg.Clock.Now().Add(time.Minute),
-		},
+	// 		// If the semaphore fails to release for some reason, it will expire in a
+	// 		// minute on its own.
+	// 		Expires: c.cfg.Clock.Now().Add(time.Minute),
+	// 	},
 
-		// Retry with some jitters up to twice of the semaphore expire time.
-		Retry: utils.LinearConfig{
-			Step:   10 * time.Second,
-			Max:    2 * time.Minute,
-			Jitter: utils.NewHalfJitter(),
-		},
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	// 	// Retry with some jitters up to twice of the semaphore expire time.
+	// 	Retry: utils.LinearConfig{
+	// 		Step:   10 * time.Second,
+	// 		Max:    2 * time.Minute,
+	// 		Jitter: utils.NewHalfJitter(),
+	// 	},
+	// })
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
-	defer func() {
-		err := c.cfg.AccessPoint.CancelSemaphoreLease(ctx, *lease)
-		if err != nil {
-			c.log.WithError(err).Errorf("Failed to cancel lease: %v.", lease)
-		}
-	}()
+	// defer func() {
+	// 	err := c.cfg.AccessPoint.CancelSemaphoreLease(ctx, *lease)
+	// 	if err != nil {
+	// 		c.log.WithError(err).Errorf("Failed to cancel lease: %v.", lease)
+	// 	}
+	// }()
 
-	if task.isSetup {
-		return configurator.setupIAM(ctx)
-	}
-	return configurator.teardownIAM(ctx)
+	// if task.isSetup {
+	// 	return configurator.setupIAM(ctx)
+	// }
+	// return configurator.teardownIAM(ctx)
+	return nil
 }
 
 // addTask adds a task for processing.

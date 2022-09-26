@@ -34,8 +34,6 @@ import (
 	"github.com/gravitational/teleport/lib/reversetunnel"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/srv"
-	"github.com/gravitational/teleport/lib/srv/db/cloud"
-	"github.com/gravitational/teleport/lib/srv/db/cloud/users"
 	"github.com/gravitational/teleport/lib/srv/db/common"
 	"github.com/gravitational/teleport/lib/srv/db/mysql"
 	"github.com/gravitational/teleport/lib/utils"
@@ -85,10 +83,10 @@ type Config struct {
 	HostID string
 	// ResourceMatchers is a list of database resource matchers.
 	ResourceMatchers []services.ResourceMatcher
-	// AWSMatchers is a list of AWS databases matchers.
-	AWSMatchers []services.AWSMatcher
-	// AzureMatchers is a list of Azure databases matchers.
-	AzureMatchers []services.AzureMatcher
+	// // AWSMatchers is a list of AWS databases matchers.
+	// AWSMatchers []services.AWSMatcher
+	// // AzureMatchers is a list of Azure databases matchers.
+	// AzureMatchers []services.AzureMatcher
 	// Databases is a list of proxied databases from static configuration.
 	Databases types.Databases
 	// CloudLabels is a service that imports labels from a cloud provider. The labels are shared
@@ -104,16 +102,16 @@ type Config struct {
 	CADownloader CADownloader
 	// LockWatcher is a lock watcher.
 	LockWatcher *services.LockWatcher
-	// CloudClients creates cloud API clients.
-	CloudClients common.CloudClients
-	// CloudMeta fetches cloud metadata for cloud hosted databases.
-	CloudMeta *cloud.Metadata
-	// CloudIAM configures IAM for cloud hosted databases.
-	CloudIAM *cloud.IAM
+	// // CloudClients creates cloud API clients.
+	// CloudClients common.CloudClients
+	// // CloudMeta fetches cloud metadata for cloud hosted databases.
+	// CloudMeta *cloud.Metadata
+	// // CloudIAM configures IAM for cloud hosted databases.
+	// CloudIAM *cloud.IAM
 	// ConnectedProxyGetter gets the proxies teleport is connected to.
 	ConnectedProxyGetter *reversetunnel.ConnectedProxyGetter
-	// CloudUsers manage users for cloud hosted databases.
-	CloudUsers *users.Users
+	// // CloudUsers manage users for cloud hosted databases.
+	// CloudUsers *users.Users
 }
 
 // NewAuditFn defines a function that creates an audit logger.
@@ -170,27 +168,27 @@ func (c *Config) CheckAndSetDefaults(ctx context.Context) (err error) {
 	if c.LockWatcher == nil {
 		return trace.BadParameter("missing LockWatcher")
 	}
-	if c.CloudClients == nil {
-		c.CloudClients = common.NewCloudClients()
-	}
-	if c.CloudMeta == nil {
-		c.CloudMeta, err = cloud.NewMetadata(cloud.MetadataConfig{
-			Clients: c.CloudClients,
-		})
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	if c.CloudIAM == nil {
-		c.CloudIAM, err = cloud.NewIAM(ctx, cloud.IAMConfig{
-			AccessPoint: c.AccessPoint,
-			Clients:     c.CloudClients,
-			HostID:      c.HostID,
-		})
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
+	// if c.CloudClients == nil {
+	// 	c.CloudClients = common.NewCloudClients()
+	// }
+	// if c.CloudMeta == nil {
+	// 	c.CloudMeta, err = cloud.NewMetadata(cloud.MetadataConfig{
+	// 		Clients: c.CloudClients,
+	// 	})
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
+	// if c.CloudIAM == nil {
+	// 	c.CloudIAM, err = cloud.NewIAM(ctx, cloud.IAMConfig{
+	// 		AccessPoint: c.AccessPoint,
+	// 		Clients:     c.CloudClients,
+	// 		HostID:      c.HostID,
+	// 	})
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
 	if c.Limiter == nil {
 		// Use default limiter if nothing is provided. Connection limiting will be disabled.
 		c.Limiter, err = limiter.NewLimiter(limiter.Config{})
@@ -202,15 +200,15 @@ func (c *Config) CheckAndSetDefaults(ctx context.Context) (err error) {
 		c.ConnectedProxyGetter = reversetunnel.NewConnectedProxyGetter()
 	}
 
-	if c.CloudUsers == nil {
-		c.CloudUsers, err = users.NewUsers(users.Config{
-			Clients:    c.CloudClients,
-			UpdateMeta: c.CloudMeta.Update,
-		})
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
+	// if c.CloudUsers == nil {
+	// 	c.CloudUsers, err = users.NewUsers(users.Config{
+	// 		Clients:    c.CloudClients,
+	// 		UpdateMeta: c.CloudMeta.Update,
+	// 	})
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
 	return nil
 }
 
@@ -324,20 +322,20 @@ func (s *Server) startDatabase(ctx context.Context, database types.Database) err
 	if err := s.initCACert(ctx, database); err != nil {
 		return trace.Wrap(err)
 	}
-	// Update cloud metadata if it's a cloud hosted database on a best-effort
-	// basis.
-	if err := s.cfg.CloudMeta.Update(ctx, database); err != nil {
-		s.log.Warnf("Failed to fetch cloud metadata for %v: %v.", database, err)
-	}
-	// Attempts to fetch cloud metadata and configure IAM for cloud-hosted
-	// databases on a best-effort basis.
-	//
-	// TODO(r0mant): It may also make sense to auto-configure IAM upon getting
-	// access denied error at connection time in case this fails or the policy
-	// gets removed off-band.
-	if err := s.cfg.CloudIAM.Setup(ctx, database); err != nil {
-		s.log.Warnf("Failed to auto-configure IAM for %v: %v.", database, err)
-	}
+	// // Update cloud metadata if it's a cloud hosted database on a best-effort
+	// // basis.
+	// if err := s.cfg.CloudMeta.Update(ctx, database); err != nil {
+	// 	s.log.Warnf("Failed to fetch cloud metadata for %v: %v.", database, err)
+	// }
+	// // Attempts to fetch cloud metadata and configure IAM for cloud-hosted
+	// // databases on a best-effort basis.
+	// //
+	// // TODO(r0mant): It may also make sense to auto-configure IAM upon getting
+	// // access denied error at connection time in case this fails or the policy
+	// // gets removed off-band.
+	// if err := s.cfg.CloudIAM.Setup(ctx, database); err != nil {
+	// 	s.log.Warnf("Failed to auto-configure IAM for %v: %v.", database, err)
+	// }
 	// Start a goroutine that will be updating database's command labels (if any)
 	// on the defined schedule.
 	if err := s.startDynamicLabels(ctx, database); err != nil {
@@ -352,10 +350,10 @@ func (s *Server) startDatabase(ctx context.Context, database types.Database) err
 	if err := s.startHeartbeat(ctx, database); err != nil {
 		return trace.Wrap(err)
 	}
-	// Setup managed users for database.
-	if err := s.cfg.CloudUsers.Setup(ctx, database); err != nil {
-		s.log.WithError(err).Warnf("Failed to setup users for %v.", database.GetName())
-	}
+	// // Setup managed users for database.
+	// if err := s.cfg.CloudUsers.Setup(ctx, database); err != nil {
+	// 	s.log.WithError(err).Warnf("Failed to setup users for %v.", database.GetName())
+	// }
 
 	s.log.Debugf("Started %v.", database)
 	return nil
@@ -458,10 +456,10 @@ func (s *Server) updateDatabase(ctx context.Context, database types.Database) er
 // unregisterDatabase uninitializes the specified database and removes it from
 // the list of databases this server proxies.
 func (s *Server) unregisterDatabase(ctx context.Context, database types.Database) error {
-	// Deconfigure IAM for the cloud database.
-	if err := s.cfg.CloudIAM.Teardown(ctx, database); err != nil {
-		s.log.Warnf("Failed to teardown IAM for %v: %v.", database, err)
-	}
+	// // Deconfigure IAM for the cloud database.
+	// if err := s.cfg.CloudIAM.Teardown(ctx, database); err != nil {
+	// 	s.log.Warnf("Failed to teardown IAM for %v: %v.", database, err)
+	// }
 	// Stop heartbeat, labels, etc.
 	if err := s.stopProxyingDatabase(ctx, database); err != nil {
 		return trace.Wrap(err)
@@ -596,13 +594,13 @@ func (s *Server) getRotationState() types.Rotation {
 
 // Start starts proxying all server's registered databases.
 func (s *Server) Start(ctx context.Context) (err error) {
-	// Start IAM service that will be configuring IAM auth for databases.
-	if err := s.cfg.CloudIAM.Start(ctx); err != nil {
-		return trace.Wrap(err)
-	}
+	// // Start IAM service that will be configuring IAM auth for databases.
+	// if err := s.cfg.CloudIAM.Start(ctx); err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
-	// Start cloud users that will be monitoring cloud users.
-	go s.cfg.CloudUsers.Start(ctx, s.getProxiedDatabases)
+	// // Start cloud users that will be monitoring cloud users.
+	// go s.cfg.CloudUsers.Start(ctx, s.getProxiedDatabases)
 
 	// Register all databases from static configuration.
 	for _, database := range s.cfg.Databases {
@@ -831,14 +829,14 @@ func (s *Server) dispatch(sessionCtx *common.Session, streamWriter events.Stream
 // An error is returned when a protocol is not supported.
 func (s *Server) createEngine(sessionCtx *common.Session, audit common.Audit) (common.Engine, error) {
 	return common.GetEngine(sessionCtx.Database.GetProtocol(), common.EngineConfig{
-		Auth:         s.cfg.Auth,
-		Audit:        audit,
-		AuthClient:   s.cfg.AuthClient,
-		CloudClients: s.cfg.CloudClients,
-		Context:      s.closeContext,
-		Clock:        s.cfg.Clock,
-		Log:          sessionCtx.Log,
-		Users:        s.cfg.CloudUsers,
+		Auth:       s.cfg.Auth,
+		Audit:      audit,
+		AuthClient: s.cfg.AuthClient,
+		// CloudClients: s.cfg.CloudClients,
+		Context: s.closeContext,
+		Clock:   s.cfg.Clock,
+		Log:     sessionCtx.Log,
+		// Users:        s.cfg.CloudUsers,
 	})
 }
 
