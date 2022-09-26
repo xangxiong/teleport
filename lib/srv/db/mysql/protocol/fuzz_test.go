@@ -18,64 +18,64 @@ limitations under the License.
 
 package protocol
 
-import (
-	"bytes"
-	"context"
-	"net"
-	"testing"
+// import (
+// 	"bytes"
+// 	"context"
+// 	"net"
+// 	"testing"
 
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/stretchr/testify/require"
+// )
 
-func FuzzParsePacket(f *testing.F) {
-	testcases := [][]byte{
-		{},
-		[]byte("00000"),
-	}
+// func FuzzParsePacket(f *testing.F) {
+// 	testcases := [][]byte{
+// 		{},
+// 		[]byte("00000"),
+// 	}
 
-	for _, tc := range testcases {
-		f.Add(tc)
-	}
+// 	for _, tc := range testcases {
+// 		f.Add(tc)
+// 	}
 
-	f.Fuzz(func(t *testing.T, packet []byte) {
-		r := bytes.NewReader(packet)
-		require.NotPanics(t, func() {
-			_, _ = ParsePacket(r)
-		})
-	})
-}
+// 	f.Fuzz(func(t *testing.T, packet []byte) {
+// 		r := bytes.NewReader(packet)
+// 		require.NotPanics(t, func() {
+// 			_, _ = ParsePacket(r)
+// 		})
+// 	})
+// }
 
-func FuzzFetchMySQLVersion(f *testing.F) {
-	testcases := [][]byte{
-		{},
-		[]byte("00000"),
-	}
+// func FuzzFetchMySQLVersion(f *testing.F) {
+// 	testcases := [][]byte{
+// 		{},
+// 		[]byte("00000"),
+// 	}
 
-	for _, tc := range testcases {
-		f.Add(tc)
-	}
+// 	for _, tc := range testcases {
+// 		f.Add(tc)
+// 	}
 
-	f.Fuzz(func(t *testing.T, packet []byte) {
-		r := bytes.NewReader(packet)
-		require.NotPanics(t, func() {
-			_, _ = FetchMySQLVersionInternal(context.TODO(), func(ctx context.Context, network, address string) (net.Conn, error) {
-				return &buffTestReader{reader: r}, nil
-			}, "")
-		})
-	})
-}
+// 	f.Fuzz(func(t *testing.T, packet []byte) {
+// 		r := bytes.NewReader(packet)
+// 		require.NotPanics(t, func() {
+// 			_, _ = FetchMySQLVersionInternal(context.TODO(), func(ctx context.Context, network, address string) (net.Conn, error) {
+// 				return &buffTestReader{reader: r}, nil
+// 			}, "")
+// 		})
+// 	})
+// }
 
-// buffTestReader is a fake reader used for test where read only
-// net.Conn is needed.
-type buffTestReader struct {
-	reader *bytes.Reader
-	net.Conn
-}
+// // buffTestReader is a fake reader used for test where read only
+// // net.Conn is needed.
+// type buffTestReader struct {
+// 	reader *bytes.Reader
+// 	net.Conn
+// }
 
-func (r *buffTestReader) Read(b []byte) (int, error) {
-	return r.reader.Read(b)
-}
+// func (r *buffTestReader) Read(b []byte) (int, error) {
+// 	return r.reader.Read(b)
+// }
 
-func (r *buffTestReader) Close() error {
-	return nil
-}
+// func (r *buffTestReader) Close() error {
+// 	return nil
+// }

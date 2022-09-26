@@ -44,9 +44,6 @@ import (
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/srv"
 	"github.com/gravitational/teleport/lib/srv/db/common"
-	"github.com/gravitational/teleport/lib/srv/db/dbutils"
-	"github.com/gravitational/teleport/lib/srv/db/mysql"
-	"github.com/gravitational/teleport/lib/srv/db/postgres"
 	"github.com/gravitational/teleport/lib/srv/db/sqlserver"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
@@ -193,55 +190,55 @@ func NewProxyServer(ctx context.Context, config ProxyServerConfig) (*ProxyServer
 	return server, nil
 }
 
-// ServePostgres starts accepting Postgres connections from the provided listener.
-func (s *ProxyServer) ServePostgres(listener net.Listener) error {
-	s.log.Debug("Started database proxy.")
-	defer s.log.Debug("Database proxy exited.")
-	for {
-		// Accept the connection from the database client, such as psql.
-		// The connection is expected to come through via multiplexer.
-		clientConn, err := listener.Accept()
-		if err != nil {
-			if utils.IsOKNetworkError(err) || trace.IsConnectionProblem(err) {
-				return nil
-			}
-			return trace.Wrap(err)
-		}
-		// Let the appropriate proxy handle the connection and go back
-		// to listening.
-		go func() {
-			defer clientConn.Close()
-			err := s.PostgresProxy().HandleConnection(s.closeCtx, clientConn)
-			if err != nil && !utils.IsOKNetworkError(err) {
-				s.log.WithError(err).Warn("Failed to handle Postgres client connection.")
-			}
-		}()
-	}
-}
+// // ServePostgres starts accepting Postgres connections from the provided listener.
+// func (s *ProxyServer) ServePostgres(listener net.Listener) error {
+// 	s.log.Debug("Started database proxy.")
+// 	defer s.log.Debug("Database proxy exited.")
+// 	for {
+// 		// Accept the connection from the database client, such as psql.
+// 		// The connection is expected to come through via multiplexer.
+// 		clientConn, err := listener.Accept()
+// 		if err != nil {
+// 			if utils.IsOKNetworkError(err) || trace.IsConnectionProblem(err) {
+// 				return nil
+// 			}
+// 			return trace.Wrap(err)
+// 		}
+// 		// Let the appropriate proxy handle the connection and go back
+// 		// to listening.
+// 		go func() {
+// 			defer clientConn.Close()
+// 			err := s.PostgresProxy().HandleConnection(s.closeCtx, clientConn)
+// 			if err != nil && !utils.IsOKNetworkError(err) {
+// 				s.log.WithError(err).Warn("Failed to handle Postgres client connection.")
+// 			}
+// 		}()
+// 	}
+// }
 
-// ServeMySQL starts accepting MySQL client connections.
-func (s *ProxyServer) ServeMySQL(listener net.Listener) error {
-	s.log.Debug("Started MySQL proxy.")
-	defer s.log.Debug("MySQL proxy exited.")
-	for {
-		// Accept the connection from a MySQL client.
-		clientConn, err := listener.Accept()
-		if err != nil {
-			if utils.IsOKNetworkError(err) || trace.IsConnectionProblem(err) {
-				return nil
-			}
-			return trace.Wrap(err)
-		}
-		// Pass over to the MySQL proxy handler.
-		go func() {
-			defer clientConn.Close()
-			err := s.MySQLProxy().HandleConnection(s.closeCtx, clientConn)
-			if err != nil && !utils.IsOKNetworkError(err) {
-				s.log.WithError(err).Error("Failed to handle MySQL client connection.")
-			}
-		}()
-	}
-}
+// // ServeMySQL starts accepting MySQL client connections.
+// func (s *ProxyServer) ServeMySQL(listener net.Listener) error {
+// 	s.log.Debug("Started MySQL proxy.")
+// 	defer s.log.Debug("MySQL proxy exited.")
+// 	for {
+// 		// Accept the connection from a MySQL client.
+// 		clientConn, err := listener.Accept()
+// 		if err != nil {
+// 			if utils.IsOKNetworkError(err) || trace.IsConnectionProblem(err) {
+// 				return nil
+// 			}
+// 			return trace.Wrap(err)
+// 		}
+// 		// Pass over to the MySQL proxy handler.
+// 		go func() {
+// 			defer clientConn.Close()
+// 			err := s.MySQLProxy().HandleConnection(s.closeCtx, clientConn)
+// 			if err != nil && !utils.IsOKNetworkError(err) {
+// 				s.log.WithError(err).Error("Failed to handle MySQL client connection.")
+// 			}
+// 		}()
+// 	}
+// }
 
 // ServeMongo starts accepting Mongo client connections.
 func (s *ProxyServer) ServeMongo(listener net.Listener, tlsConfig *tls.Config) error {
@@ -324,13 +321,13 @@ func (s *ProxyServer) handleConnection(conn net.Conn) error {
 		return trace.Wrap(err)
 	}
 	switch proxyCtx.Identity.RouteToDatabase.Protocol {
-	case defaults.ProtocolPostgres, defaults.ProtocolCockroachDB:
-		return s.PostgresProxyNoTLS().HandleConnection(s.closeCtx, tlsConn)
-	case defaults.ProtocolMySQL:
-		version := getMySQLVersionFromServer(proxyCtx.Servers)
-		// Set the version in the context to match a behaviour in other handlers.
-		ctx := context.WithValue(s.closeCtx, dbutils.ContextMySQLServerVersion, version)
-		return s.MySQLProxyNoTLS().HandleConnection(ctx, tlsConn)
+	// case defaults.ProtocolPostgres, defaults.ProtocolCockroachDB:
+	// 	return s.PostgresProxyNoTLS().HandleConnection(s.closeCtx, tlsConn)
+	// case defaults.ProtocolMySQL:
+	// 	version := getMySQLVersionFromServer(proxyCtx.Servers)
+	// 	// Set the version in the context to match a behaviour in other handlers.
+	// 	ctx := context.WithValue(s.closeCtx, dbutils.ContextMySQLServerVersion, version)
+	// 	return s.MySQLProxyNoTLS().HandleConnection(ctx, tlsConn)
 	case defaults.ProtocolSQLServer:
 		return s.SQLServerProxy().HandleConnection(s.closeCtx, proxyCtx, tlsConn)
 	}
@@ -355,47 +352,47 @@ func getMySQLVersionFromServer(servers []types.DatabaseServer) string {
 	return db.GetMySQLServerVersion()
 }
 
-// PostgresProxy returns a new instance of the Postgres protocol aware proxy.
-func (s *ProxyServer) PostgresProxy() *postgres.Proxy {
-	return &postgres.Proxy{
-		TLSConfig:  s.cfg.TLSConfig,
-		Middleware: s.middleware,
-		Service:    s,
-		Limiter:    s.cfg.Limiter,
-		Log:        s.log,
-	}
-}
+// // PostgresProxy returns a new instance of the Postgres protocol aware proxy.
+// func (s *ProxyServer) PostgresProxy() *postgres.Proxy {
+// 	return &postgres.Proxy{
+// 		TLSConfig:  s.cfg.TLSConfig,
+// 		Middleware: s.middleware,
+// 		Service:    s,
+// 		Limiter:    s.cfg.Limiter,
+// 		Log:        s.log,
+// 	}
+// }
 
-// PostgresProxyNoTLS returns a new instance of the non-TLS Postgres proxy.
-func (s *ProxyServer) PostgresProxyNoTLS() *postgres.Proxy {
-	return &postgres.Proxy{
-		Middleware: s.middleware,
-		Service:    s,
-		Limiter:    s.cfg.Limiter,
-		Log:        s.log,
-	}
-}
+// // PostgresProxyNoTLS returns a new instance of the non-TLS Postgres proxy.
+// func (s *ProxyServer) PostgresProxyNoTLS() *postgres.Proxy {
+// 	return &postgres.Proxy{
+// 		Middleware: s.middleware,
+// 		Service:    s,
+// 		Limiter:    s.cfg.Limiter,
+// 		Log:        s.log,
+// 	}
+// }
 
-// MySQLProxy returns a new instance of the MySQL protocol aware proxy.
-func (s *ProxyServer) MySQLProxy() *mysql.Proxy {
-	return &mysql.Proxy{
-		TLSConfig:  s.cfg.TLSConfig,
-		Middleware: s.middleware,
-		Service:    s,
-		Limiter:    s.cfg.Limiter,
-		Log:        s.log,
-	}
-}
+// // MySQLProxy returns a new instance of the MySQL protocol aware proxy.
+// func (s *ProxyServer) MySQLProxy() *mysql.Proxy {
+// 	return &mysql.Proxy{
+// 		TLSConfig:  s.cfg.TLSConfig,
+// 		Middleware: s.middleware,
+// 		Service:    s,
+// 		Limiter:    s.cfg.Limiter,
+// 		Log:        s.log,
+// 	}
+// }
 
-// MySQLProxyNoTLS returns a new instance of the non-TLS MySQL proxy.
-func (s *ProxyServer) MySQLProxyNoTLS() *mysql.Proxy {
-	return &mysql.Proxy{
-		Middleware: s.middleware,
-		Service:    s,
-		Limiter:    s.cfg.Limiter,
-		Log:        s.log,
-	}
-}
+// // MySQLProxyNoTLS returns a new instance of the non-TLS MySQL proxy.
+// func (s *ProxyServer) MySQLProxyNoTLS() *mysql.Proxy {
+// 	return &mysql.Proxy{
+// 		Middleware: s.middleware,
+// 		Service:    s,
+// 		Limiter:    s.cfg.Limiter,
+// 		Log:        s.log,
+// 	}
+// }
 
 // SQLServerProxy returns a new instance of the SQL Server protocol aware proxy.
 func (s *ProxyServer) SQLServerProxy() *sqlserver.Proxy {

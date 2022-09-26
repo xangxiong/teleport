@@ -18,141 +18,141 @@
 
 package redis
 
-import (
-	"testing"
+// import (
+// 	"testing"
 
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/stretchr/testify/require"
+// )
 
-func Test_parseRedisURI(t *testing.T) {
-	tests := []struct {
-		name   string
-		uri    string
-		want   *ConnectionOptions
-		errStr string
-	}{
-		{
-			name: "correct URI",
-			uri:  "redis://localhost:6379",
-			want: &ConnectionOptions{
-				mode:    Standalone,
-				address: "localhost",
-				port:    "6379",
-			},
-			errStr: "",
-		},
-		{
-			name: "correct host:port",
-			uri:  "localhost:6379",
-			want: &ConnectionOptions{
-				mode:    Standalone,
-				address: "localhost",
-				port:    "6379",
-			},
-			errStr: "",
-		},
-		{
-			name: "rediss schema is accepted",
-			uri:  "rediss://localhost:6379",
-			want: &ConnectionOptions{
-				mode:    Standalone,
-				address: "localhost",
-				port:    "6379",
-			},
-			errStr: "",
-		},
-		{
-			name: "IP address passes",
-			uri:  "rediss://1.2.3.4:6379",
-			want: &ConnectionOptions{
-				mode:    Standalone,
-				address: "1.2.3.4",
-				port:    "6379",
-			},
-			errStr: "",
-		},
-		{
-			name: "single instance explicit",
-			uri:  "redis://localhost:6379?mode=standalone",
-			want: &ConnectionOptions{
-				mode:    Standalone,
-				address: "localhost",
-				port:    "6379",
-			},
-			errStr: "",
-		},
-		{
-			name: "cluster enabled",
-			uri:  "redis://localhost:6379?mode=cluster",
-			want: &ConnectionOptions{
-				mode:    Cluster,
-				address: "localhost",
-				port:    "6379",
-			},
-			errStr: "",
-		},
-		{
-			name:   "invalid connection mode",
-			uri:    "redis://localhost:6379?mode=foo",
-			want:   nil,
-			errStr: "incorrect connection mode",
-		},
-		{
-			name:   "invalid connection string",
-			uri:    "localhost:6379?mode=foo",
-			want:   nil,
-			errStr: "failed to parse Redis URL",
-		},
-		{
-			name: "only address default port",
-			uri:  "localhost",
-			want: &ConnectionOptions{
-				mode:    Standalone,
-				address: "localhost",
-				port:    "6379",
-			},
-			errStr: "",
-		},
-		{
-			name: "default port",
-			uri:  "redis://localhost",
-			want: &ConnectionOptions{
-				mode:    Standalone,
-				address: "localhost",
-				port:    "6379",
-			},
-			errStr: "",
-		},
-		{
-			name:   "incorrect URI schema is rejected",
-			uri:    "http://localhost",
-			want:   nil,
-			errStr: "invalid Redis URI scheme",
-		},
-		{
-			name:   "empty address",
-			uri:    "",
-			want:   nil,
-			errStr: "address is empty",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
+// func Test_parseRedisURI(t *testing.T) {
+// 	tests := []struct {
+// 		name   string
+// 		uri    string
+// 		want   *ConnectionOptions
+// 		errStr string
+// 	}{
+// 		{
+// 			name: "correct URI",
+// 			uri:  "redis://localhost:6379",
+// 			want: &ConnectionOptions{
+// 				mode:    Standalone,
+// 				address: "localhost",
+// 				port:    "6379",
+// 			},
+// 			errStr: "",
+// 		},
+// 		{
+// 			name: "correct host:port",
+// 			uri:  "localhost:6379",
+// 			want: &ConnectionOptions{
+// 				mode:    Standalone,
+// 				address: "localhost",
+// 				port:    "6379",
+// 			},
+// 			errStr: "",
+// 		},
+// 		{
+// 			name: "rediss schema is accepted",
+// 			uri:  "rediss://localhost:6379",
+// 			want: &ConnectionOptions{
+// 				mode:    Standalone,
+// 				address: "localhost",
+// 				port:    "6379",
+// 			},
+// 			errStr: "",
+// 		},
+// 		{
+// 			name: "IP address passes",
+// 			uri:  "rediss://1.2.3.4:6379",
+// 			want: &ConnectionOptions{
+// 				mode:    Standalone,
+// 				address: "1.2.3.4",
+// 				port:    "6379",
+// 			},
+// 			errStr: "",
+// 		},
+// 		{
+// 			name: "single instance explicit",
+// 			uri:  "redis://localhost:6379?mode=standalone",
+// 			want: &ConnectionOptions{
+// 				mode:    Standalone,
+// 				address: "localhost",
+// 				port:    "6379",
+// 			},
+// 			errStr: "",
+// 		},
+// 		{
+// 			name: "cluster enabled",
+// 			uri:  "redis://localhost:6379?mode=cluster",
+// 			want: &ConnectionOptions{
+// 				mode:    Cluster,
+// 				address: "localhost",
+// 				port:    "6379",
+// 			},
+// 			errStr: "",
+// 		},
+// 		{
+// 			name:   "invalid connection mode",
+// 			uri:    "redis://localhost:6379?mode=foo",
+// 			want:   nil,
+// 			errStr: "incorrect connection mode",
+// 		},
+// 		{
+// 			name:   "invalid connection string",
+// 			uri:    "localhost:6379?mode=foo",
+// 			want:   nil,
+// 			errStr: "failed to parse Redis URL",
+// 		},
+// 		{
+// 			name: "only address default port",
+// 			uri:  "localhost",
+// 			want: &ConnectionOptions{
+// 				mode:    Standalone,
+// 				address: "localhost",
+// 				port:    "6379",
+// 			},
+// 			errStr: "",
+// 		},
+// 		{
+// 			name: "default port",
+// 			uri:  "redis://localhost",
+// 			want: &ConnectionOptions{
+// 				mode:    Standalone,
+// 				address: "localhost",
+// 				port:    "6379",
+// 			},
+// 			errStr: "",
+// 		},
+// 		{
+// 			name:   "incorrect URI schema is rejected",
+// 			uri:    "http://localhost",
+// 			want:   nil,
+// 			errStr: "invalid Redis URI scheme",
+// 		},
+// 		{
+// 			name:   "empty address",
+// 			uri:    "",
+// 			want:   nil,
+// 			errStr: "address is empty",
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		tt := tt
 
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			t.Parallel()
 
-			got, err := ParseRedisAddress(tt.uri)
-			if err != nil {
-				if tt.errStr == "" {
-					require.FailNow(t, "unexpected error: %v", err)
-					return
-				}
-				require.Contains(t, err.Error(), tt.errStr)
-				return
-			}
+// 			got, err := ParseRedisAddress(tt.uri)
+// 			if err != nil {
+// 				if tt.errStr == "" {
+// 					require.FailNow(t, "unexpected error: %v", err)
+// 					return
+// 				}
+// 				require.Contains(t, err.Error(), tt.errStr)
+// 				return
+// 			}
 
-			require.Equal(t, tt.want, got)
-		})
-	}
-}
+// 			require.Equal(t, tt.want, got)
+// 		})
+// 	}
+// }

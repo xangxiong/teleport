@@ -18,100 +18,100 @@
 
 package snowflake
 
-import (
-	"bytes"
-	"compress/gzip"
-	"context"
-	"io"
-	"net/http"
-	"strings"
+// import (
+// 	"bytes"
+// 	"compress/gzip"
+// 	"context"
+// 	"io"
+// 	"net/http"
+// 	"strings"
 
-	"github.com/gravitational/teleport"
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/teleport"
+// 	"github.com/gravitational/trace"
+// )
 
-func writeResponse(resp *http.Response, newResp []byte) (*bytes.Buffer, error) {
-	buf := &bytes.Buffer{}
-	if isGzipEncoded(resp) {
-		newGzBody := gzip.NewWriter(buf)
-		defer newGzBody.Close()
+// func writeResponse(resp *http.Response, newResp []byte) (*bytes.Buffer, error) {
+// 	buf := &bytes.Buffer{}
+// 	if isGzipEncoded(resp) {
+// 		newGzBody := gzip.NewWriter(buf)
+// 		defer newGzBody.Close()
 
-		if _, err := newGzBody.Write(newResp); err != nil {
-			return nil, trace.Wrap(err)
-		}
+// 		if _, err := newGzBody.Write(newResp); err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
 
-		if err := newGzBody.Close(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	} else {
-		buf.Write(newResp)
-	}
-	return buf, nil
-}
+// 		if err := newGzBody.Close(); err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 	} else {
+// 		buf.Write(newResp)
+// 	}
+// 	return buf, nil
+// }
 
-// isGzipEncoded returns true if the body should be gzip compressed.
-func isGzipEncoded(resp *http.Response) bool {
-	return strings.Contains(resp.Header.Get("Content-Encoding"), "gzip")
-}
+// // isGzipEncoded returns true if the body should be gzip compressed.
+// func isGzipEncoded(resp *http.Response) bool {
+// 	return strings.Contains(resp.Header.Get("Content-Encoding"), "gzip")
+// }
 
-func copyRequest(ctx context.Context, req *http.Request, body io.Reader) (*http.Request, error) {
-	reqCopy, err := http.NewRequestWithContext(ctx, req.Method, req.URL.String(), body)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// func copyRequest(ctx context.Context, req *http.Request, body io.Reader) (*http.Request, error) {
+// 	reqCopy, err := http.NewRequestWithContext(ctx, req.Method, req.URL.String(), body)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	reqCopy.Header = req.Header.Clone()
+// 	reqCopy.Header = req.Header.Clone()
 
-	return reqCopy, nil
-}
+// 	return reqCopy, nil
+// }
 
-func readRequestBody(req *http.Request) ([]byte, error) {
-	defer req.Body.Close()
+// func readRequestBody(req *http.Request) ([]byte, error) {
+// 	defer req.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(req.Body, teleport.MaxHTTPRequestSize))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	body, err := io.ReadAll(io.LimitReader(req.Body, teleport.MaxHTTPRequestSize))
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return maybeReadGzip(&req.Header, body)
-}
+// 	return maybeReadGzip(&req.Header, body)
+// }
 
-func readResponseBody(resp *http.Response) ([]byte, error) {
-	defer resp.Body.Close()
+// func readResponseBody(resp *http.Response) ([]byte, error) {
+// 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, teleport.MaxHTTPRequestSize))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	body, err := io.ReadAll(io.LimitReader(resp.Body, teleport.MaxHTTPRequestSize))
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return maybeReadGzip(&resp.Header, body)
-}
+// 	return maybeReadGzip(&resp.Header, body)
+// }
 
-// maybeReadGzip checks if the body is gzip encoded and returns decoded version.
-// To determine gzip encoding the beginning of body message is being checked
-// instead of HTTP header and the second one was less reliable during testing.
-func maybeReadGzip(headers *http.Header, body []byte) ([]byte, error) {
-	gzipMagic := []byte{0x1f, 0x8b, 0x08}
+// // maybeReadGzip checks if the body is gzip encoded and returns decoded version.
+// // To determine gzip encoding the beginning of body message is being checked
+// // instead of HTTP header and the second one was less reliable during testing.
+// func maybeReadGzip(headers *http.Header, body []byte) ([]byte, error) {
+// 	gzipMagic := []byte{0x1f, 0x8b, 0x08}
 
-	// Check if the body is gzip encoded. Alternative here could check
-	// Content-Encoding header, but for some reason during testing header check
-	// didn't always work.
-	if !bytes.HasPrefix(body, gzipMagic) {
-		return body, nil
-	}
+// 	// Check if the body is gzip encoded. Alternative here could check
+// 	// Content-Encoding header, but for some reason during testing header check
+// 	// didn't always work.
+// 	if !bytes.HasPrefix(body, gzipMagic) {
+// 		return body, nil
+// 	}
 
-	bodyGZ, err := gzip.NewReader(bytes.NewReader(body))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer bodyGZ.Close()
+// 	bodyGZ, err := gzip.NewReader(bytes.NewReader(body))
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer bodyGZ.Close()
 
-	body, err = io.ReadAll(bodyGZ)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Make sure that the content-encoding is correct.
-	headers.Set("Content-Encoding", "gzip")
+// 	body, err = io.ReadAll(bodyGZ)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	// Make sure that the content-encoding is correct.
+// 	headers.Set("Content-Encoding", "gzip")
 
-	return body, nil
-}
+// 	return body, nil
+// }

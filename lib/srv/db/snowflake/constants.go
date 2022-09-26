@@ -18,21 +18,21 @@
 
 package snowflake
 
-// Borrowed from https://github.com/snowflakedb/gosnowflake/blob/e24bda449ced75324e8ce61377c88e4cea9c1efa/restful.go#L33-L42
+// // Borrowed from https://github.com/snowflakedb/gosnowflake/blob/e24bda449ced75324e8ce61377c88e4cea9c1efa/restful.go#L33-L42
 
-// Snowflake Server Endpoints
-const (
-	loginRequestPath   = "/session/v1/login-request"
-	queryRequestPath   = "/queries/v1/query-request"
-	tokenRequestPath   = "/session/token-request"
-	sessionRequestPath = "/session"
-)
+// // Snowflake Server Endpoints
+// const (
+// 	loginRequestPath   = "/session/v1/login-request"
+// 	queryRequestPath   = "/queries/v1/query-request"
+// 	tokenRequestPath   = "/session/token-request"
+// 	sessionRequestPath = "/session"
+// )
 
-// Snowflake API has more endpoint, but for those Teleport behave as pass through proxy:
-// 	/queries/v1/abort-request
-//	/session/authenticator-request
-//	/session/heartbeat
+// // Snowflake API has more endpoint, but for those Teleport behave as pass through proxy:
+// // 	/queries/v1/abort-request
+// //	/session/authenticator-request
+// //	/session/heartbeat
 
-// teleportAuthHeaderPrefix is the prefix added to the session ID sent to the client, so we are able to distinguish between
-// our own tokens and headers set by Snowflake SDK.
-const teleportAuthHeaderPrefix = "Teleport:"
+// // teleportAuthHeaderPrefix is the prefix added to the session ID sent to the client, so we are able to distinguish between
+// // our own tokens and headers set by Snowflake SDK.
+// const teleportAuthHeaderPrefix = "Teleport:"
