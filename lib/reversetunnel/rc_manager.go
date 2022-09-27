@@ -214,13 +214,13 @@ func (w *RemoteClusterTunnelManager) Sync(ctx context.Context) error {
 func realNewAgentPool(ctx context.Context, cfg RemoteClusterTunnelManagerConfig, cluster, addr string) (*AgentPool, error) {
 	pool, err := NewAgentPool(ctx, AgentPoolConfig{
 		// Configs for our cluster.
-		Client:              cfg.AuthClient,
-		AccessPoint:         cfg.AccessPoint,
-		HostSigner:          cfg.HostSigner,
-		HostUUID:            cfg.HostUUID,
-		LocalCluster:        cfg.LocalCluster,
-		Clock:               cfg.Clock,
-		KubeDialAddr:        cfg.KubeDialAddr,
+		Client:       cfg.AuthClient,
+		AccessPoint:  cfg.AccessPoint,
+		HostSigner:   cfg.HostSigner,
+		HostUUID:     cfg.HostUUID,
+		LocalCluster: cfg.LocalCluster,
+		Clock:        cfg.Clock,
+		// KubeDialAddr:        cfg.KubeDialAddr,
 		ReverseTunnelServer: cfg.ReverseTunnelServer,
 		FIPS:                cfg.FIPS,
 		LocalAuthAddresses:  cfg.LocalAuthAddresses,

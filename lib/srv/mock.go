@@ -173,10 +173,10 @@ func (m *mockServer) PermitUserEnvironment() bool {
 	return false
 }
 
-// GetAccessPoint returns an AccessPoint for this cluster.
-func (m *mockServer) GetAccessPoint() AccessPoint {
-	return m.auth
-}
+// // GetAccessPoint returns an AccessPoint for this cluster.
+// func (m *mockServer) GetAccessPoint() AccessPoint {
+// 	return m.auth
+// }
 
 // GetSessionServer returns a session server.
 func (m *mockServer) GetSessionServer() rsession.Service {

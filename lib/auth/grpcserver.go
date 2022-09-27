@@ -3488,31 +3488,31 @@ func (g *GRPCServer) GetApps(ctx context.Context, _ *empty.Empty) (*types.AppV3L
 // 	return &empty.Empty{}, nil
 // }
 
-// CreateDatabase creates a new database resource.
-func (g *GRPCServer) CreateDatabase(ctx context.Context, database *types.DatabaseV3) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	database.SetOrigin(types.OriginDynamic)
-	if err := auth.CreateDatabase(ctx, database); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // CreateDatabase creates a new database resource.
+// func (g *GRPCServer) CreateDatabase(ctx context.Context, database *types.DatabaseV3) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	database.SetOrigin(types.OriginDynamic)
+// 	if err := auth.CreateDatabase(ctx, database); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
-// UpdateDatabase updates existing database resource.
-func (g *GRPCServer) UpdateDatabase(ctx context.Context, database *types.DatabaseV3) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	database.SetOrigin(types.OriginDynamic)
-	if err := auth.UpdateDatabase(ctx, database); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // UpdateDatabase updates existing database resource.
+// func (g *GRPCServer) UpdateDatabase(ctx context.Context, database *types.DatabaseV3) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	database.SetOrigin(types.OriginDynamic)
+// 	if err := auth.UpdateDatabase(ctx, database); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
 // GetDatabase returns the specified database resource.
 func (g *GRPCServer) GetDatabase(ctx context.Context, req *types.ResourceRequest) (*types.DatabaseV3, error) {
@@ -3554,29 +3554,29 @@ func (g *GRPCServer) GetDatabases(ctx context.Context, _ *empty.Empty) (*types.D
 	}, nil
 }
 
-// DeleteDatabase removes the specified database.
-func (g *GRPCServer) DeleteDatabase(ctx context.Context, req *types.ResourceRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.DeleteDatabase(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // DeleteDatabase removes the specified database.
+// func (g *GRPCServer) DeleteDatabase(ctx context.Context, req *types.ResourceRequest) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err := auth.DeleteDatabase(ctx, req.Name); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
-// DeleteAllDatabases removes all databases.
-func (g *GRPCServer) DeleteAllDatabases(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.DeleteAllDatabases(ctx); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // DeleteAllDatabases removes all databases.
+// func (g *GRPCServer) DeleteAllDatabases(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err := auth.DeleteAllDatabases(ctx); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
 // GetWindowsDesktopServices returns all registered Windows desktop services.
 func (g *GRPCServer) GetWindowsDesktopServices(ctx context.Context, req *empty.Empty) (*proto.GetWindowsDesktopServicesResponse, error) {
@@ -3696,73 +3696,73 @@ func (g *GRPCServer) GetWindowsDesktops(ctx context.Context, filter *types.Windo
 	}, nil
 }
 
-// CreateWindowsDesktop registers a new Windows desktop host.
-func (g *GRPCServer) CreateWindowsDesktop(ctx context.Context, desktop *types.WindowsDesktopV3) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.CreateWindowsDesktop(ctx, desktop); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // CreateWindowsDesktop registers a new Windows desktop host.
+// func (g *GRPCServer) CreateWindowsDesktop(ctx context.Context, desktop *types.WindowsDesktopV3) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err := auth.CreateWindowsDesktop(ctx, desktop); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return &empty.Empty{}, nil
-}
+// 	return &empty.Empty{}, nil
+// }
 
-// UpdateWindowsDesktop updates an existing Windows desktop host.
-func (g *GRPCServer) UpdateWindowsDesktop(ctx context.Context, desktop *types.WindowsDesktopV3) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.UpdateWindowsDesktop(ctx, desktop); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // UpdateWindowsDesktop updates an existing Windows desktop host.
+// func (g *GRPCServer) UpdateWindowsDesktop(ctx context.Context, desktop *types.WindowsDesktopV3) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err := auth.UpdateWindowsDesktop(ctx, desktop); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return &empty.Empty{}, nil
-}
+// 	return &empty.Empty{}, nil
+// }
 
-// UpsertWindowsDesktop updates a Windows desktop host, creating it if it doesn't exist.
-func (g *GRPCServer) UpsertWindowsDesktop(ctx context.Context, desktop *types.WindowsDesktopV3) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.UpsertWindowsDesktop(ctx, desktop); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // UpsertWindowsDesktop updates a Windows desktop host, creating it if it doesn't exist.
+// func (g *GRPCServer) UpsertWindowsDesktop(ctx context.Context, desktop *types.WindowsDesktopV3) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err := auth.UpsertWindowsDesktop(ctx, desktop); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return &empty.Empty{}, nil
-}
+// 	return &empty.Empty{}, nil
+// }
 
-// DeleteWindowsDesktop removes the specified windows desktop host.
-// Note: unlike GetWindowsDesktops, this will delete at-most one desktop.
-// Passing an empty host ID will not trigger "delete all" behavior. To delete
-// all desktops, use DeleteAllWindowsDesktops.
-func (g *GRPCServer) DeleteWindowsDesktop(ctx context.Context, req *proto.DeleteWindowsDesktopRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = auth.DeleteWindowsDesktop(ctx, req.GetHostID(), req.GetName())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // DeleteWindowsDesktop removes the specified windows desktop host.
+// // Note: unlike GetWindowsDesktops, this will delete at-most one desktop.
+// // Passing an empty host ID will not trigger "delete all" behavior. To delete
+// // all desktops, use DeleteAllWindowsDesktops.
+// func (g *GRPCServer) DeleteWindowsDesktop(ctx context.Context, req *proto.DeleteWindowsDesktopRequest) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	err = auth.DeleteWindowsDesktop(ctx, req.GetHostID(), req.GetName())
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
-// DeleteAllWindowsDesktops removes all registered Windows desktop hosts.
-func (g *GRPCServer) DeleteAllWindowsDesktops(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = auth.DeleteAllWindowsDesktops(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // DeleteAllWindowsDesktops removes all registered Windows desktop hosts.
+// func (g *GRPCServer) DeleteAllWindowsDesktops(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	err = auth.DeleteAllWindowsDesktops(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
 // GenerateWindowsDesktopCert generates client certificate for Windows RDP
 // authentication.
@@ -4158,73 +4158,73 @@ func (g *GRPCServer) GetClusterCACert(
 	return auth.ServerWithRoles.GetClusterCACert(ctx)
 }
 
-// GetConnectionDiagnostic reads a connection diagnostic.
-func (g *GRPCServer) GetConnectionDiagnostic(ctx context.Context, req *proto.GetConnectionDiagnosticRequest) (*types.ConnectionDiagnosticV1, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // GetConnectionDiagnostic reads a connection diagnostic.
+// func (g *GRPCServer) GetConnectionDiagnostic(ctx context.Context, req *proto.GetConnectionDiagnosticRequest) (*types.ConnectionDiagnosticV1, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	connectionDiagnostic, err := auth.ServerWithRoles.GetConnectionDiagnostic(ctx, req.Name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	connectionDiagnostic, err := auth.ServerWithRoles.GetConnectionDiagnostic(ctx, req.Name)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	connectionDiagnosticV1, ok := connectionDiagnostic.(*types.ConnectionDiagnosticV1)
-	if !ok {
-		return nil, trace.BadParameter("unexpected connection diagnostic type %T", connectionDiagnostic)
-	}
+// 	connectionDiagnosticV1, ok := connectionDiagnostic.(*types.ConnectionDiagnosticV1)
+// 	if !ok {
+// 		return nil, trace.BadParameter("unexpected connection diagnostic type %T", connectionDiagnostic)
+// 	}
 
-	return connectionDiagnosticV1, nil
-}
+// 	return connectionDiagnosticV1, nil
+// }
 
-// CreateConnectionDiagnostic creates a connection diagnostic
-func (g *GRPCServer) CreateConnectionDiagnostic(ctx context.Context, connectionDiagnostic *types.ConnectionDiagnosticV1) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // CreateConnectionDiagnostic creates a connection diagnostic
+// func (g *GRPCServer) CreateConnectionDiagnostic(ctx context.Context, connectionDiagnostic *types.ConnectionDiagnosticV1) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	if err := auth.ServerWithRoles.CreateConnectionDiagnostic(ctx, connectionDiagnostic); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	if err := auth.ServerWithRoles.CreateConnectionDiagnostic(ctx, connectionDiagnostic); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return &empty.Empty{}, nil
-}
+// 	return &empty.Empty{}, nil
+// }
 
-// UpdateConnectionDiagnostic updates a connection diagnostic
-func (g *GRPCServer) UpdateConnectionDiagnostic(ctx context.Context, connectionDiagnostic *types.ConnectionDiagnosticV1) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // UpdateConnectionDiagnostic updates a connection diagnostic
+// func (g *GRPCServer) UpdateConnectionDiagnostic(ctx context.Context, connectionDiagnostic *types.ConnectionDiagnosticV1) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	if err := auth.ServerWithRoles.UpdateConnectionDiagnostic(ctx, connectionDiagnostic); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	if err := auth.ServerWithRoles.UpdateConnectionDiagnostic(ctx, connectionDiagnostic); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return &empty.Empty{}, nil
-}
+// 	return &empty.Empty{}, nil
+// }
 
-// AppendDiagnosticTrace updates a connection diagnostic
-func (g *GRPCServer) AppendDiagnosticTrace(ctx context.Context, in *proto.AppendDiagnosticTraceRequest) (*types.ConnectionDiagnosticV1, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // AppendDiagnosticTrace updates a connection diagnostic
+// func (g *GRPCServer) AppendDiagnosticTrace(ctx context.Context, in *proto.AppendDiagnosticTraceRequest) (*types.ConnectionDiagnosticV1, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	connectionDiagnostic, err := auth.ServerWithRoles.AppendDiagnosticTrace(ctx, in.Name, in.Trace)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	connectionDiagnostic, err := auth.ServerWithRoles.AppendDiagnosticTrace(ctx, in.Name, in.Trace)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	connectionDiagnosticV1, ok := connectionDiagnostic.(*types.ConnectionDiagnosticV1)
-	if !ok {
-		return nil, trace.BadParameter("unexpected connection diagnostic type %T", connectionDiagnostic)
-	}
+// 	connectionDiagnosticV1, ok := connectionDiagnostic.(*types.ConnectionDiagnosticV1)
+// 	if !ok {
+// 		return nil, trace.BadParameter("unexpected connection diagnostic type %T", connectionDiagnostic)
+// 	}
 
-	return connectionDiagnosticV1, nil
-}
+// 	return connectionDiagnosticV1, nil
+// }
 
 // GRPCServerConfig specifies GRPC server configuration
 type GRPCServerConfig struct {

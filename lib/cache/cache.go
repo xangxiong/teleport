@@ -36,7 +36,6 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -46,24 +45,24 @@ import (
 )
 
 var (
-	cacheEventsReceived = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: teleport.MetricNamespace,
-			Name:      teleport.MetricCacheEventsReceived,
-			Help:      "Number of events received by a Teleport service cache. Teleport's Auth Service, Proxy Service, and other services cache incoming events related to their service.",
-		},
-		[]string{teleport.TagCacheComponent},
-	)
-	cacheStaleEventsReceived = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: teleport.MetricNamespace,
-			Name:      teleport.MetricStaleCacheEventsReceived,
-			Help:      "Number of stale events received by a Teleport service cache. A high percentage of stale events can indicate a degraded backend.",
-		},
-		[]string{teleport.TagCacheComponent},
-	)
+// cacheEventsReceived = prometheus.NewCounterVec(
+// 	prometheus.CounterOpts{
+// 		Namespace: teleport.MetricNamespace,
+// 		Name:      teleport.MetricCacheEventsReceived,
+// 		Help:      "Number of events received by a Teleport service cache. Teleport's Auth Service, Proxy Service, and other services cache incoming events related to their service.",
+// 	},
+// 	[]string{teleport.TagCacheComponent},
+// )
+// cacheStaleEventsReceived = prometheus.NewCounterVec(
+// 	prometheus.CounterOpts{
+// 		Namespace: teleport.MetricNamespace,
+// 		Name:      teleport.MetricStaleCacheEventsReceived,
+// 		Help:      "Number of stale events received by a Teleport service cache. A high percentage of stale events can indicate a degraded backend.",
+// 	},
+// 	[]string{teleport.TagCacheComponent},
+// )
 
-	cacheCollectors = []prometheus.Collector{cacheEventsReceived, cacheStaleEventsReceived}
+// cacheCollectors = []prometheus.Collector{cacheEventsReceived, cacheStaleEventsReceived}
 )
 
 // ForAuth sets up watch configuration for the auth server
@@ -967,26 +966,26 @@ func (c *Cache) fetchAndWatch(ctx context.Context, retry utils.Retry, timer *tim
 			}
 			c.notify(ctx, Event{Type: RelativeExpiry})
 		case event := <-watcher.Events():
-			// check for expired resources in OpPut events and log them periodically. stale OpPut events
-			// may be an indicator of poor performance, and can lead to confusing and inconsistent state
-			// as the cache may prune items that aught to exist.
-			//
-			// NOTE: The inconsistent state mentioned above is a symptom of a deeper issue with the cache
-			// design.  The cache should not expire individual items.  It should instead rely on OpDelete events
-			// from backend expires. As soon as the cache has expired at least one item, it is no longer
-			// a faithful representation of a real backend state, since it is 'anticipating' a change in
-			// backend state that may or may not have actually happened.  Instead, it aught to serve the
-			// most recent internally-consistent "view" of the backend, and individual consumers should
-			// determine if the resources they are handling are sufficiently fresh.  Resource-level expiry
-			// is a convenience/cleanup feature and aught not be relied upon for meaningful logic anyhow.
-			// If we need to protect against a stale cache, we aught to invalidate the cache in its entirity, rather
-			// than pruning the resources that we think *might* have been removed from the real backend.
-			// TODO(fspmarshall): ^^^
-			//
-			cacheEventsReceived.WithLabelValues(c.target).Inc()
+			// // check for expired resources in OpPut events and log them periodically. stale OpPut events
+			// // may be an indicator of poor performance, and can lead to confusing and inconsistent state
+			// // as the cache may prune items that aught to exist.
+			// //
+			// // NOTE: The inconsistent state mentioned above is a symptom of a deeper issue with the cache
+			// // design.  The cache should not expire individual items.  It should instead rely on OpDelete events
+			// // from backend expires. As soon as the cache has expired at least one item, it is no longer
+			// // a faithful representation of a real backend state, since it is 'anticipating' a change in
+			// // backend state that may or may not have actually happened.  Instead, it aught to serve the
+			// // most recent internally-consistent "view" of the backend, and individual consumers should
+			// // determine if the resources they are handling are sufficiently fresh.  Resource-level expiry
+			// // is a convenience/cleanup feature and aught not be relied upon for meaningful logic anyhow.
+			// // If we need to protect against a stale cache, we aught to invalidate the cache in its entirity, rather
+			// // than pruning the resources that we think *might* have been removed from the real backend.
+			// // TODO(fspmarshall): ^^^
+			// //
+			// cacheEventsReceived.WithLabelValues(c.target).Inc()
 			if event.Type == types.OpPut && !event.Resource.Expiry().IsZero() {
 				if now := c.Clock.Now(); now.After(event.Resource.Expiry()) {
-					cacheStaleEventsReceived.WithLabelValues(c.target).Inc()
+					// cacheStaleEventsReceived.WithLabelValues(c.target).Inc()
 					staleEventCount++
 					if now.After(lastStalenessWarning.Add(time.Minute)) {
 						kind := event.Resource.GetKind()
@@ -1800,18 +1799,18 @@ func (c *Cache) GetAllTunnelConnections(opts ...services.MarshalOption) (conns [
 	return rg.presence.GetAllTunnelConnections(opts...)
 }
 
-// GetKubeServices is a part of auth.Cache implementation
-func (c *Cache) GetKubeServices(ctx context.Context) ([]types.Server, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetKubeServices")
-	defer span.End()
+// // GetKubeServices is a part of auth.Cache implementation
+// func (c *Cache) GetKubeServices(ctx context.Context) ([]types.Server, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetKubeServices")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetKubeServices(ctx)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.presence.GetKubeServices(ctx)
+// }
 
 // // GetApplicationServers returns all registered application servers.
 // func (c *Cache) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
@@ -1880,83 +1879,83 @@ func (c *Cache) GetKubeServices(ctx context.Context) ([]types.Server, error) {
 // 	return rg.appSession.GetAppSession(ctx, req)
 // }
 
-// GetSnowflakeSession gets Snowflake web session.
-func (c *Cache) GetSnowflakeSession(ctx context.Context, req types.GetSnowflakeSessionRequest) (types.WebSession, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetSnowflakeSession")
-	defer span.End()
+// // GetSnowflakeSession gets Snowflake web session.
+// func (c *Cache) GetSnowflakeSession(ctx context.Context, req types.GetSnowflakeSessionRequest) (types.WebSession, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetSnowflakeSession")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.snowflakeSession.GetSnowflakeSession(ctx, req)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.snowflakeSession.GetSnowflakeSession(ctx, req)
+// }
 
-// GetDatabaseServers returns all registered database proxy servers.
-func (c *Cache) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabaseServers")
-	defer span.End()
+// // GetDatabaseServers returns all registered database proxy servers.
+// func (c *Cache) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabaseServers")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetDatabaseServers(ctx, namespace, opts...)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.presence.GetDatabaseServers(ctx, namespace, opts...)
+// }
 
-// GetDatabases returns all database resources.
-func (c *Cache) GetDatabases(ctx context.Context) ([]types.Database, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabases")
-	defer span.End()
+// // GetDatabases returns all database resources.
+// func (c *Cache) GetDatabases(ctx context.Context) ([]types.Database, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabases")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.databases.GetDatabases(ctx)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.databases.GetDatabases(ctx)
+// }
 
-// GetDatabase returns the specified database resource.
-func (c *Cache) GetDatabase(ctx context.Context, name string) (types.Database, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabase")
-	defer span.End()
+// // GetDatabase returns the specified database resource.
+// func (c *Cache) GetDatabase(ctx context.Context, name string) (types.Database, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabase")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.databases.GetDatabase(ctx, name)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.databases.GetDatabase(ctx, name)
+// }
 
-// GetWebSession gets a regular web session.
-func (c *Cache) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetWebSession")
-	defer span.End()
+// // GetWebSession gets a regular web session.
+// func (c *Cache) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetWebSession")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.webSession.Get(ctx, req)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.webSession.Get(ctx, req)
+// }
 
-// GetWebToken gets a web token.
-func (c *Cache) GetWebToken(ctx context.Context, req types.GetWebTokenRequest) (types.WebToken, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetWebToken")
-	defer span.End()
+// // GetWebToken gets a web token.
+// func (c *Cache) GetWebToken(ctx context.Context, req types.GetWebTokenRequest) (types.WebToken, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetWebToken")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.webToken.Get(ctx, req)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.webToken.Get(ctx, req)
+// }
 
 // GetAuthPreference gets the cluster authentication config.
 func (c *Cache) GetAuthPreference(ctx context.Context) (types.AuthPreference, error) {
@@ -2036,57 +2035,57 @@ func (c *Cache) GetLocks(ctx context.Context, inForceOnly bool, targets ...types
 	return rg.access.GetLocks(ctx, inForceOnly, targets...)
 }
 
-// GetWindowsDesktopServices returns all registered Windows desktop services.
-func (c *Cache) GetWindowsDesktopServices(ctx context.Context) ([]types.WindowsDesktopService, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetWindowsDesktopServices")
-	defer span.End()
+// // GetWindowsDesktopServices returns all registered Windows desktop services.
+// func (c *Cache) GetWindowsDesktopServices(ctx context.Context) ([]types.WindowsDesktopService, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetWindowsDesktopServices")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetWindowsDesktopServices(ctx)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.presence.GetWindowsDesktopServices(ctx)
+// }
 
-// GetWindowsDesktopService returns a registered Windows desktop service by name.
-func (c *Cache) GetWindowsDesktopService(ctx context.Context, name string) (types.WindowsDesktopService, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetWindowsDesktopService")
-	defer span.End()
+// // GetWindowsDesktopService returns a registered Windows desktop service by name.
+// func (c *Cache) GetWindowsDesktopService(ctx context.Context, name string) (types.WindowsDesktopService, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetWindowsDesktopService")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetWindowsDesktopService(ctx, name)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.presence.GetWindowsDesktopService(ctx, name)
+// }
 
-// GetWindowsDesktops returns all registered Windows desktop hosts.
-func (c *Cache) GetWindowsDesktops(ctx context.Context, filter types.WindowsDesktopFilter) ([]types.WindowsDesktop, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetWindowsDesktops")
-	defer span.End()
+// // GetWindowsDesktops returns all registered Windows desktop hosts.
+// func (c *Cache) GetWindowsDesktops(ctx context.Context, filter types.WindowsDesktopFilter) ([]types.WindowsDesktop, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetWindowsDesktops")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.windowsDesktops.GetWindowsDesktops(ctx, filter)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.windowsDesktops.GetWindowsDesktops(ctx, filter)
+// }
 
-// ListWindowsDesktops returns all registered Windows desktop hosts.
-func (c *Cache) ListWindowsDesktops(ctx context.Context, req types.ListWindowsDesktopsRequest) (*types.ListWindowsDesktopsResponse, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/ListWindowsDesktops")
-	defer span.End()
+// // ListWindowsDesktops returns all registered Windows desktop hosts.
+// func (c *Cache) ListWindowsDesktops(ctx context.Context, req types.ListWindowsDesktopsRequest) (*types.ListWindowsDesktopsResponse, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/ListWindowsDesktops")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.windowsDesktops.ListWindowsDesktops(ctx, req)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.windowsDesktops.ListWindowsDesktops(ctx, req)
+// }
 
 // ListResources is a part of auth.Cache implementation
 func (c *Cache) ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {

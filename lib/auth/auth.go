@@ -131,9 +131,9 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	// if cfg.Apps == nil {
 	// 	cfg.Apps = local.NewAppService(cfg.Backend)
 	// }
-	if cfg.Databases == nil {
-		cfg.Databases = local.NewDatabasesService(cfg.Backend)
-	}
+	// if cfg.Databases == nil {
+	// 	cfg.Databases = local.NewDatabasesService(cfg.Backend)
+	// }
 	if cfg.Status == nil {
 		cfg.Status = local.NewStatusService(cfg.Backend)
 	}
@@ -149,12 +149,12 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Streamer == nil {
 		cfg.Streamer = events.NewDiscardEmitter()
 	}
-	if cfg.WindowsDesktops == nil {
-		cfg.WindowsDesktops = local.NewWindowsDesktopService(cfg.Backend)
-	}
-	if cfg.ConnectionsDiagnostic == nil {
-		cfg.ConnectionsDiagnostic = local.NewConnectionsDiagnosticService(cfg.Backend)
-	}
+	// if cfg.WindowsDesktops == nil {
+	// 	cfg.WindowsDesktops = local.NewWindowsDesktopService(cfg.Backend)
+	// }
+	// if cfg.ConnectionsDiagnostic == nil {
+	// 	cfg.ConnectionsDiagnostic = local.NewConnectionsDiagnosticService(cfg.Backend)
+	// }
 	if cfg.SessionTrackerService == nil {
 		cfg.SessionTrackerService, err = local.NewSessionTrackerService(cfg.Backend)
 		if err != nil {
@@ -197,13 +197,13 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		ClusterConfiguration: cfg.ClusterConfiguration,
 		Restrictions:         cfg.Restrictions,
 		// Apps:                  cfg.Apps,
-		Databases:             cfg.Databases,
-		IAuditLog:             cfg.AuditLog,
-		Events:                cfg.Events,
-		WindowsDesktops:       cfg.WindowsDesktops,
+		// Databases: cfg.Databases,
+		IAuditLog: cfg.AuditLog,
+		Events:    cfg.Events,
+		// WindowsDesktops:       cfg.WindowsDesktops,
 		SessionTrackerService: cfg.SessionTrackerService,
-		ConnectionsDiagnostic: cfg.ConnectionsDiagnostic,
-		StatusInternal:        cfg.Status,
+		// ConnectionsDiagnostic: cfg.ConnectionsDiagnostic,
+		StatusInternal: cfg.Status,
 	}
 
 	closeCtx, cancelFunc := context.WithCancel(context.TODO())
@@ -250,20 +250,20 @@ type Services struct {
 	services.ClusterConfiguration
 	services.Restrictions
 	// services.Apps
-	services.Databases
-	services.WindowsDesktops
+	// services.Databases
+	// services.WindowsDesktops
 	services.SessionTrackerService
-	services.ConnectionsDiagnostic
+	// services.ConnectionsDiagnostic
 	services.StatusInternal
 	types.Events
 	events.IAuditLog
 }
 
-// GetWebSession returns existing web session described by req.
-// Implements ReadAccessPoint
-func (r *Services) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
-	return r.Identity.WebSessions().Get(ctx, req)
-}
+// // GetWebSession returns existing web session described by req.
+// // Implements ReadAccessPoint
+// func (r *Services) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
+// 	return r.Identity.WebSessions().Get(ctx, req)
+// }
 
 // GetWebToken returns existing web token described by req.
 // Implements ReadAccessPoint
@@ -1929,11 +1929,11 @@ func (a *Server) registerWebauthnDevice(ctx context.Context, regResp *proto.MFAR
 	return dev, trace.Wrap(err)
 }
 
-// GetWebSession returns existing web session described by req. Explicitly
-// delegating to Services as it's directly implemented by Cache as well.
-func (a *Server) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
-	return a.Services.GetWebSession(ctx, req)
-}
+// // GetWebSession returns existing web session described by req. Explicitly
+// // delegating to Services as it's directly implemented by Cache as well.
+// func (a *Server) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
+// 	return a.Services.GetWebSession(ctx, req)
+// }
 
 // GetWebToken returns existing web token described by req. Explicitly
 // delegating to Services as it's directly implemented by Cache as well.
@@ -3066,85 +3066,85 @@ func (a *Server) CreateSessionTracker(ctx context.Context, tracker types.Session
 	return a.Services.CreateSessionTracker(ctx, tracker)
 }
 
-// CreateDatabase creates a new database resource.
-func (a *Server) CreateDatabase(ctx context.Context, database types.Database) error {
-	if err := a.Services.CreateDatabase(ctx, database); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.DatabaseCreate{
-		Metadata: apievents.Metadata{
-			Type: events.DatabaseCreateEvent,
-			Code: events.DatabaseCreateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    database.GetName(),
-			Expires: database.Expiry(),
-		},
-		DatabaseMetadata: apievents.DatabaseMetadata{
-			DatabaseProtocol:             database.GetProtocol(),
-			DatabaseURI:                  database.GetURI(),
-			DatabaseLabels:               database.GetStaticLabels(),
-			DatabaseAWSRegion:            database.GetAWS().Region,
-			DatabaseAWSRedshiftClusterID: database.GetAWS().Redshift.ClusterID,
-			DatabaseGCPProjectID:         database.GetGCP().ProjectID,
-			DatabaseGCPInstanceID:        database.GetGCP().InstanceID,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit database create event.")
-	}
-	return nil
-}
+// // CreateDatabase creates a new database resource.
+// func (a *Server) CreateDatabase(ctx context.Context, database types.Database) error {
+// 	if err := a.Services.CreateDatabase(ctx, database); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.emitter.EmitAuditEvent(ctx, &apievents.DatabaseCreate{
+// 		Metadata: apievents.Metadata{
+// 			Type: events.DatabaseCreateEvent,
+// 			Code: events.DatabaseCreateCode,
+// 		},
+// 		UserMetadata: ClientUserMetadata(ctx),
+// 		ResourceMetadata: apievents.ResourceMetadata{
+// 			Name:    database.GetName(),
+// 			Expires: database.Expiry(),
+// 		},
+// 		DatabaseMetadata: apievents.DatabaseMetadata{
+// 			DatabaseProtocol:             database.GetProtocol(),
+// 			DatabaseURI:                  database.GetURI(),
+// 			DatabaseLabels:               database.GetStaticLabels(),
+// 			DatabaseAWSRegion:            database.GetAWS().Region,
+// 			DatabaseAWSRedshiftClusterID: database.GetAWS().Redshift.ClusterID,
+// 			DatabaseGCPProjectID:         database.GetGCP().ProjectID,
+// 			DatabaseGCPInstanceID:        database.GetGCP().InstanceID,
+// 		},
+// 	}); err != nil {
+// 		log.WithError(err).Warn("Failed to emit database create event.")
+// 	}
+// 	return nil
+// }
 
-// UpdateDatabase updates an existing database resource.
-func (a *Server) UpdateDatabase(ctx context.Context, database types.Database) error {
-	if err := a.Services.UpdateDatabase(ctx, database); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.DatabaseUpdate{
-		Metadata: apievents.Metadata{
-			Type: events.DatabaseUpdateEvent,
-			Code: events.DatabaseUpdateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    database.GetName(),
-			Expires: database.Expiry(),
-		},
-		DatabaseMetadata: apievents.DatabaseMetadata{
-			DatabaseProtocol:             database.GetProtocol(),
-			DatabaseURI:                  database.GetURI(),
-			DatabaseLabels:               database.GetStaticLabels(),
-			DatabaseAWSRegion:            database.GetAWS().Region,
-			DatabaseAWSRedshiftClusterID: database.GetAWS().Redshift.ClusterID,
-			DatabaseGCPProjectID:         database.GetGCP().ProjectID,
-			DatabaseGCPInstanceID:        database.GetGCP().InstanceID,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit database update event.")
-	}
-	return nil
-}
+// // UpdateDatabase updates an existing database resource.
+// func (a *Server) UpdateDatabase(ctx context.Context, database types.Database) error {
+// 	if err := a.Services.UpdateDatabase(ctx, database); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.emitter.EmitAuditEvent(ctx, &apievents.DatabaseUpdate{
+// 		Metadata: apievents.Metadata{
+// 			Type: events.DatabaseUpdateEvent,
+// 			Code: events.DatabaseUpdateCode,
+// 		},
+// 		UserMetadata: ClientUserMetadata(ctx),
+// 		ResourceMetadata: apievents.ResourceMetadata{
+// 			Name:    database.GetName(),
+// 			Expires: database.Expiry(),
+// 		},
+// 		DatabaseMetadata: apievents.DatabaseMetadata{
+// 			DatabaseProtocol:             database.GetProtocol(),
+// 			DatabaseURI:                  database.GetURI(),
+// 			DatabaseLabels:               database.GetStaticLabels(),
+// 			DatabaseAWSRegion:            database.GetAWS().Region,
+// 			DatabaseAWSRedshiftClusterID: database.GetAWS().Redshift.ClusterID,
+// 			DatabaseGCPProjectID:         database.GetGCP().ProjectID,
+// 			DatabaseGCPInstanceID:        database.GetGCP().InstanceID,
+// 		},
+// 	}); err != nil {
+// 		log.WithError(err).Warn("Failed to emit database update event.")
+// 	}
+// 	return nil
+// }
 
-// DeleteDatabase deletes a database resource.
-func (a *Server) DeleteDatabase(ctx context.Context, name string) error {
-	if err := a.Services.DeleteDatabase(ctx, name); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.DatabaseDelete{
-		Metadata: apievents.Metadata{
-			Type: events.DatabaseDeleteEvent,
-			Code: events.DatabaseDeleteCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: name,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit database delete event.")
-	}
-	return nil
-}
+// // DeleteDatabase deletes a database resource.
+// func (a *Server) DeleteDatabase(ctx context.Context, name string) error {
+// 	if err := a.Services.DeleteDatabase(ctx, name); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.emitter.EmitAuditEvent(ctx, &apievents.DatabaseDelete{
+// 		Metadata: apievents.Metadata{
+// 			Type: events.DatabaseDeleteEvent,
+// 			Code: events.DatabaseDeleteCode,
+// 		},
+// 		UserMetadata: ClientUserMetadata(ctx),
+// 		ResourceMetadata: apievents.ResourceMetadata{
+// 			Name: name,
+// 		},
+// 	}); err != nil {
+// 		log.WithError(err).Warn("Failed to emit database delete event.")
+// 	}
+// 	return nil
+// }
 
 // ListResources returns paginated resources depending on the resource type..
 func (a *Server) ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {

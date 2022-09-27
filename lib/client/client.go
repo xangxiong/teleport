@@ -136,30 +136,30 @@ func (proxy *ProxyClient) GetSites(ctx context.Context) ([]types.Site, error) {
 	return sites, nil
 }
 
-// GetLeafClusters returns the leaf/remote clusters.
-func (proxy *ProxyClient) GetLeafClusters(ctx context.Context) ([]types.RemoteCluster, error) {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/GetLeafClusters",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("cluster", proxy.siteName),
-		),
-	)
-	defer span.End()
+// // GetLeafClusters returns the leaf/remote clusters.
+// func (proxy *ProxyClient) GetLeafClusters(ctx context.Context) ([]types.RemoteCluster, error) {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/GetLeafClusters",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("cluster", proxy.siteName),
+// 		),
+// 	)
+// 	defer span.End()
 
-	clt, err := proxy.ConnectToRootCluster(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer clt.Close()
+// 	clt, err := proxy.ConnectToRootCluster(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer clt.Close()
 
-	remoteClusters, err := clt.GetRemoteClusters()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return remoteClusters, nil
-}
+// 	remoteClusters, err := clt.GetRemoteClusters()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return remoteClusters, nil
+// }
 
 // ReissueParams encodes optional parameters for
 // user certificate reissue.
@@ -194,20 +194,20 @@ func (p ReissueParams) usage() proto.UserCertsRequest_CertUsage {
 		// SSH means a request for an SSH certificate for access to a specific
 		// SSH node, as specified by NodeName.
 		return proto.UserCertsRequest_SSH
-	case p.KubernetesCluster != "":
-		// Kubernetes means a request for a TLS certificate for access to a
-		// specific Kubernetes cluster, as specified by KubernetesCluster.
-		return proto.UserCertsRequest_Kubernetes
-	case p.RouteToDatabase.ServiceName != "":
-		// Database means a request for a TLS certificate for access to a
-		// specific database, as specified by RouteToDatabase.
-		return proto.UserCertsRequest_Database
-	case p.RouteToApp.Name != "":
-		// App means a request for a TLS certificate for access to a specific
-		// web app, as specified by RouteToApp.
-		return proto.UserCertsRequest_App
-	case p.RouteToWindowsDesktop.WindowsDesktop != "":
-		return proto.UserCertsRequest_WindowsDesktop
+	// case p.KubernetesCluster != "":
+	// 	// Kubernetes means a request for a TLS certificate for access to a
+	// 	// specific Kubernetes cluster, as specified by KubernetesCluster.
+	// 	return proto.UserCertsRequest_Kubernetes
+	// case p.RouteToDatabase.ServiceName != "":
+	// 	// Database means a request for a TLS certificate for access to a
+	// 	// specific database, as specified by RouteToDatabase.
+	// 	return proto.UserCertsRequest_Database
+	// case p.RouteToApp.Name != "":
+	// 	// App means a request for a TLS certificate for access to a specific
+	// 	// web app, as specified by RouteToApp.
+	// 	return proto.UserCertsRequest_App
+	// case p.RouteToWindowsDesktop.WindowsDesktop != "":
+	// 	return proto.UserCertsRequest_WindowsDesktop
 	default:
 		// All means a request for both SSH and TLS certificates for the
 		// overall user session. These certificates are not specific to any SSH
@@ -221,12 +221,12 @@ func (p ReissueParams) isMFARequiredRequest(sshLogin string) *proto.IsMFARequire
 	switch {
 	case p.NodeName != "":
 		req.Target = &proto.IsMFARequiredRequest_Node{Node: &proto.NodeLogin{Node: p.NodeName, Login: sshLogin}}
-	case p.KubernetesCluster != "":
-		req.Target = &proto.IsMFARequiredRequest_KubernetesCluster{KubernetesCluster: p.KubernetesCluster}
-	case p.RouteToDatabase.ServiceName != "":
-		req.Target = &proto.IsMFARequiredRequest_Database{Database: &p.RouteToDatabase}
-	case p.RouteToWindowsDesktop.WindowsDesktop != "":
-		req.Target = &proto.IsMFARequiredRequest_WindowsDesktop{WindowsDesktop: &p.RouteToWindowsDesktop}
+		// case p.KubernetesCluster != "":
+		// 	req.Target = &proto.IsMFARequiredRequest_KubernetesCluster{KubernetesCluster: p.KubernetesCluster}
+		// case p.RouteToDatabase.ServiceName != "":
+		// 	req.Target = &proto.IsMFARequiredRequest_Database{Database: &p.RouteToDatabase}
+		// case p.RouteToWindowsDesktop.WindowsDesktop != "":
+		// 	req.Target = &proto.IsMFARequiredRequest_WindowsDesktop{WindowsDesktop: &p.RouteToWindowsDesktop}
 	}
 	return req
 }
@@ -327,18 +327,18 @@ func (proxy *ProxyClient) reissueUserCerts(ctx context.Context, cachePolicy Cert
 		key.TLSCert = certs.TLS
 	case proto.UserCertsRequest_SSH:
 		key.Cert = certs.SSH
-	case proto.UserCertsRequest_App:
-		key.AppTLSCerts[params.RouteToApp.Name] = certs.TLS
-	case proto.UserCertsRequest_Database:
-		dbCert, err := makeDatabaseClientPEM(params.RouteToDatabase.Protocol, certs.TLS, key)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		key.DBTLSCerts[params.RouteToDatabase.ServiceName] = dbCert
-	case proto.UserCertsRequest_Kubernetes:
-		key.KubeTLSCerts[params.KubernetesCluster] = certs.TLS
-	case proto.UserCertsRequest_WindowsDesktop:
-		key.WindowsDesktopCerts[params.RouteToWindowsDesktop.WindowsDesktop] = certs.TLS
+		// case proto.UserCertsRequest_App:
+		// 	key.AppTLSCerts[params.RouteToApp.Name] = certs.TLS
+		// case proto.UserCertsRequest_Database:
+		// 	dbCert, err := makeDatabaseClientPEM(params.RouteToDatabase.Protocol, certs.TLS, key)
+		// 	if err != nil {
+		// 		return nil, trace.Wrap(err)
+		// 	}
+		// 	key.DBTLSCerts[params.RouteToDatabase.ServiceName] = dbCert
+		// case proto.UserCertsRequest_Kubernetes:
+		// 	key.KubeTLSCerts[params.KubernetesCluster] = certs.TLS
+		// case proto.UserCertsRequest_WindowsDesktop:
+		// 	key.WindowsDesktopCerts[params.RouteToWindowsDesktop.WindowsDesktop] = certs.TLS
 	}
 	return key, nil
 }
@@ -519,16 +519,16 @@ func (proxy *ProxyClient) IssueUserCertsWithMFA(ctx context.Context, params Reis
 		key.Cert = crt.SSH
 	case *proto.SingleUseUserCert_TLS:
 		switch initReq.Usage {
-		case proto.UserCertsRequest_Kubernetes:
-			key.KubeTLSCerts[initReq.KubernetesCluster] = crt.TLS
-		case proto.UserCertsRequest_Database:
-			dbCert, err := makeDatabaseClientPEM(params.RouteToDatabase.Protocol, crt.TLS, key)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			key.DBTLSCerts[params.RouteToDatabase.ServiceName] = dbCert
-		case proto.UserCertsRequest_WindowsDesktop:
-			key.WindowsDesktopCerts[params.RouteToWindowsDesktop.WindowsDesktop] = crt.TLS
+		// case proto.UserCertsRequest_Kubernetes:
+		// 	key.KubeTLSCerts[initReq.KubernetesCluster] = crt.TLS
+		// case proto.UserCertsRequest_Database:
+		// 	dbCert, err := makeDatabaseClientPEM(params.RouteToDatabase.Protocol, crt.TLS, key)
+		// 	if err != nil {
+		// 		return nil, trace.Wrap(err)
+		// 	}
+		// 	key.DBTLSCerts[params.RouteToDatabase.ServiceName] = dbCert
+		// case proto.UserCertsRequest_WindowsDesktop:
+		// 	key.WindowsDesktopCerts[params.RouteToWindowsDesktop.WindowsDesktop] = crt.TLS
 		default:
 			return nil, trace.BadParameter("server returned a TLS certificate but cert request usage was %s", initReq.Usage)
 		}
@@ -559,19 +559,19 @@ func (proxy *ProxyClient) prepareUserCertsRequest(params ReissueParams, key *Key
 	}
 
 	return &proto.UserCertsRequest{
-		PublicKey:             key.MarshalSSHPublicKey(),
-		Username:              tlsCert.Subject.CommonName,
-		Expires:               tlsCert.NotAfter,
-		RouteToCluster:        params.RouteToCluster,
-		KubernetesCluster:     params.KubernetesCluster,
-		AccessRequests:        params.AccessRequests,
-		DropAccessRequests:    params.DropAccessRequests,
-		RouteToDatabase:       params.RouteToDatabase,
-		RouteToWindowsDesktop: params.RouteToWindowsDesktop,
-		RouteToApp:            params.RouteToApp,
-		NodeName:              params.NodeName,
-		Usage:                 params.usage(),
-		Format:                proxy.teleportClient.CertificateFormat,
+		PublicKey:      key.MarshalSSHPublicKey(),
+		Username:       tlsCert.Subject.CommonName,
+		Expires:        tlsCert.NotAfter,
+		RouteToCluster: params.RouteToCluster,
+		// KubernetesCluster:     params.KubernetesCluster,
+		AccessRequests:     params.AccessRequests,
+		DropAccessRequests: params.DropAccessRequests,
+		// RouteToDatabase:       params.RouteToDatabase,
+		// RouteToWindowsDesktop: params.RouteToWindowsDesktop,
+		// RouteToApp:            params.RouteToApp,
+		NodeName: params.NodeName,
+		Usage:    params.usage(),
+		Format:   proxy.teleportClient.CertificateFormat,
 	}, nil
 }
 
@@ -789,75 +789,75 @@ func (proxy *ProxyClient) FindNodesByFiltersForCluster(ctx context.Context, req 
 	return servers, nil
 }
 
-// FindAppServersByFilters returns a list of application servers in the current cluster which have filters matched.
-func (proxy *ProxyClient) FindAppServersByFilters(ctx context.Context, req proto.ListResourcesRequest) ([]types.AppServer, error) {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/FindAppServersByFilters",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("resource", req.ResourceType),
-			attribute.Int("limit", int(req.Limit)),
-			attribute.String("predicate", req.PredicateExpression),
-			attribute.StringSlice("keywords", req.SearchKeywords),
-		),
-	)
-	defer span.End()
+// // FindAppServersByFilters returns a list of application servers in the current cluster which have filters matched.
+// func (proxy *ProxyClient) FindAppServersByFilters(ctx context.Context, req proto.ListResourcesRequest) ([]types.AppServer, error) {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/FindAppServersByFilters",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("resource", req.ResourceType),
+// 			attribute.Int("limit", int(req.Limit)),
+// 			attribute.String("predicate", req.PredicateExpression),
+// 			attribute.StringSlice("keywords", req.SearchKeywords),
+// 		),
+// 	)
+// 	defer span.End()
 
-	cluster, err := proxy.currentCluster(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers, err := proxy.FindAppServersByFiltersForCluster(ctx, req, cluster.Name)
-	return servers, trace.Wrap(err)
-}
+// 	cluster, err := proxy.currentCluster(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	servers, err := proxy.FindAppServersByFiltersForCluster(ctx, req, cluster.Name)
+// 	return servers, trace.Wrap(err)
+// }
 
-// FindAppServersByFiltersForCluster returns a list of application servers for a given cluster which have filters matched.
-func (proxy *ProxyClient) FindAppServersByFiltersForCluster(ctx context.Context, req proto.ListResourcesRequest, cluster string) ([]types.AppServer, error) {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/FindAppServersByFiltersForCluster",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("cluster", cluster),
-			attribute.String("resource", req.ResourceType),
-			attribute.Int("limit", int(req.Limit)),
-			attribute.String("predicate", req.PredicateExpression),
-			attribute.StringSlice("keywords", req.SearchKeywords),
-		),
-	)
-	defer span.End()
+// // FindAppServersByFiltersForCluster returns a list of application servers for a given cluster which have filters matched.
+// func (proxy *ProxyClient) FindAppServersByFiltersForCluster(ctx context.Context, req proto.ListResourcesRequest, cluster string) ([]types.AppServer, error) {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/FindAppServersByFiltersForCluster",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("cluster", cluster),
+// 			attribute.String("resource", req.ResourceType),
+// 			attribute.Int("limit", int(req.Limit)),
+// 			attribute.String("predicate", req.PredicateExpression),
+// 			attribute.StringSlice("keywords", req.SearchKeywords),
+// 		),
+// 	)
+// 	defer span.End()
 
-	req.ResourceType = types.KindAppServer
-	authClient, err := proxy.ClusterAccessPoint(ctx, cluster)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	req.ResourceType = types.KindAppServer
+// 	authClient, err := proxy.ClusterAccessPoint(ctx, cluster)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	resources, err := client.GetResourcesWithFilters(ctx, authClient, req)
-	if err != nil {
-		// ListResources for app servers not available, provide fallback.
-		// Fallback does not support filters, so if users
-		// provide them, it does nothing.
-		//
-		// DELETE IN 11.0.0
-		if trace.IsNotImplemented(err) {
-			servers, err := authClient.GetApplicationServers(ctx, req.Namespace)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			return servers, nil
-		}
-		return nil, trace.Wrap(err)
-	}
+// 	resources, err := client.GetResourcesWithFilters(ctx, authClient, req)
+// 	if err != nil {
+// 		// ListResources for app servers not available, provide fallback.
+// 		// Fallback does not support filters, so if users
+// 		// provide them, it does nothing.
+// 		//
+// 		// DELETE IN 11.0.0
+// 		if trace.IsNotImplemented(err) {
+// 			servers, err := authClient.GetApplicationServers(ctx, req.Namespace)
+// 			if err != nil {
+// 				return nil, trace.Wrap(err)
+// 			}
+// 			return servers, nil
+// 		}
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	servers, err := types.ResourcesWithLabels(resources).AsAppServers()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	servers, err := types.ResourcesWithLabels(resources).AsAppServers()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return servers, nil
-}
+// 	return servers, nil
+// }
 
 // // CreateAppSession creates a new application access session.
 // func (proxy *ProxyClient) CreateAppSession(ctx context.Context, req types.CreateAppSessionRequest) (types.WebSession, error) {
@@ -942,124 +942,124 @@ func (proxy *ProxyClient) FindAppServersByFiltersForCluster(ctx context.Context,
 // 	return nil
 // }
 
-// FindDatabaseServersByFilters returns registered database proxy servers that match the provided filter.
-func (proxy *ProxyClient) FindDatabaseServersByFilters(ctx context.Context, req proto.ListResourcesRequest) ([]types.DatabaseServer, error) {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/FindDatabaseServersByFilters",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("resource", req.ResourceType),
-			attribute.Int("limit", int(req.Limit)),
-			attribute.String("predicate", req.PredicateExpression),
-			attribute.StringSlice("keywords", req.SearchKeywords),
-		),
-	)
-	defer span.End()
+// // FindDatabaseServersByFilters returns registered database proxy servers that match the provided filter.
+// func (proxy *ProxyClient) FindDatabaseServersByFilters(ctx context.Context, req proto.ListResourcesRequest) ([]types.DatabaseServer, error) {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/FindDatabaseServersByFilters",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("resource", req.ResourceType),
+// 			attribute.Int("limit", int(req.Limit)),
+// 			attribute.String("predicate", req.PredicateExpression),
+// 			attribute.StringSlice("keywords", req.SearchKeywords),
+// 		),
+// 	)
+// 	defer span.End()
 
-	cluster, err := proxy.currentCluster(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers, err := proxy.FindDatabaseServersByFiltersForCluster(ctx, req, cluster.Name)
-	return servers, trace.Wrap(err)
-}
+// 	cluster, err := proxy.currentCluster(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	servers, err := proxy.FindDatabaseServersByFiltersForCluster(ctx, req, cluster.Name)
+// 	return servers, trace.Wrap(err)
+// }
 
-// FindDatabaseServersByFiltersForCluster returns all registered database proxy servers in the provided cluster.
-func (proxy *ProxyClient) FindDatabaseServersByFiltersForCluster(ctx context.Context, req proto.ListResourcesRequest, cluster string) ([]types.DatabaseServer, error) {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/FindDatabaseServersByFiltersForCluster",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("cluster", cluster),
-			attribute.String("resource", req.ResourceType),
-			attribute.Int("limit", int(req.Limit)),
-			attribute.String("predicate", req.PredicateExpression),
-			attribute.StringSlice("keywords", req.SearchKeywords),
-		),
-	)
-	defer span.End()
+// // FindDatabaseServersByFiltersForCluster returns all registered database proxy servers in the provided cluster.
+// func (proxy *ProxyClient) FindDatabaseServersByFiltersForCluster(ctx context.Context, req proto.ListResourcesRequest, cluster string) ([]types.DatabaseServer, error) {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/FindDatabaseServersByFiltersForCluster",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("cluster", cluster),
+// 			attribute.String("resource", req.ResourceType),
+// 			attribute.Int("limit", int(req.Limit)),
+// 			attribute.String("predicate", req.PredicateExpression),
+// 			attribute.StringSlice("keywords", req.SearchKeywords),
+// 		),
+// 	)
+// 	defer span.End()
 
-	req.ResourceType = types.KindDatabaseServer
-	authClient, err := proxy.ClusterAccessPoint(ctx, cluster)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	req.ResourceType = types.KindDatabaseServer
+// 	authClient, err := proxy.ClusterAccessPoint(ctx, cluster)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	resources, err := client.GetResourcesWithFilters(ctx, authClient, req)
-	if err != nil {
-		// ListResources for db servers not available, provide fallback.
-		// Fallback does not support filters, so if users
-		// provide them, it does nothing.
-		//
-		// DELETE IN 11.0.0
-		if trace.IsNotImplemented(err) {
-			servers, err := authClient.GetDatabaseServers(ctx, req.Namespace)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			return servers, nil
-		}
-		return nil, trace.Wrap(err)
-	}
+// 	resources, err := client.GetResourcesWithFilters(ctx, authClient, req)
+// 	if err != nil {
+// 		// ListResources for db servers not available, provide fallback.
+// 		// Fallback does not support filters, so if users
+// 		// provide them, it does nothing.
+// 		//
+// 		// DELETE IN 11.0.0
+// 		if trace.IsNotImplemented(err) {
+// 			servers, err := authClient.GetDatabaseServers(ctx, req.Namespace)
+// 			if err != nil {
+// 				return nil, trace.Wrap(err)
+// 			}
+// 			return servers, nil
+// 		}
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	servers, err := types.ResourcesWithLabels(resources).AsDatabaseServers()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return servers, nil
-}
+// 	servers, err := types.ResourcesWithLabels(resources).AsDatabaseServers()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return servers, nil
+// }
 
-// FindDatabasesByFilters returns registered databases that match the provided
-// filter in the current cluster.
-func (proxy *ProxyClient) FindDatabasesByFilters(ctx context.Context, req proto.ListResourcesRequest) ([]types.Database, error) {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/FindDatabasesByFilters",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("resource", req.ResourceType),
-			attribute.Int("limit", int(req.Limit)),
-			attribute.String("predicate", req.PredicateExpression),
-			attribute.StringSlice("keywords", req.SearchKeywords),
-		),
-	)
-	defer span.End()
+// // FindDatabasesByFilters returns registered databases that match the provided
+// // filter in the current cluster.
+// func (proxy *ProxyClient) FindDatabasesByFilters(ctx context.Context, req proto.ListResourcesRequest) ([]types.Database, error) {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/FindDatabasesByFilters",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("resource", req.ResourceType),
+// 			attribute.Int("limit", int(req.Limit)),
+// 			attribute.String("predicate", req.PredicateExpression),
+// 			attribute.StringSlice("keywords", req.SearchKeywords),
+// 		),
+// 	)
+// 	defer span.End()
 
-	cluster, err := proxy.currentCluster(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	cluster, err := proxy.currentCluster(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	databases, err := proxy.FindDatabasesByFiltersForCluster(ctx, req, cluster.Name)
-	return databases, trace.Wrap(err)
-}
+// 	databases, err := proxy.FindDatabasesByFiltersForCluster(ctx, req, cluster.Name)
+// 	return databases, trace.Wrap(err)
+// }
 
-// FindDatabasesByFiltersForCluster returns registered databases that match the provided
-// filter in the provided cluster.
-func (proxy *ProxyClient) FindDatabasesByFiltersForCluster(ctx context.Context, req proto.ListResourcesRequest, cluster string) ([]types.Database, error) {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/FindDatabasesByFiltersForCluster",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("resource", req.ResourceType),
-			attribute.Int("limit", int(req.Limit)),
-			attribute.String("predicate", req.PredicateExpression),
-			attribute.StringSlice("keywords", req.SearchKeywords),
-		),
-	)
-	defer span.End()
+// // FindDatabasesByFiltersForCluster returns registered databases that match the provided
+// // filter in the provided cluster.
+// func (proxy *ProxyClient) FindDatabasesByFiltersForCluster(ctx context.Context, req proto.ListResourcesRequest, cluster string) ([]types.Database, error) {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/FindDatabasesByFiltersForCluster",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("resource", req.ResourceType),
+// 			attribute.Int("limit", int(req.Limit)),
+// 			attribute.String("predicate", req.PredicateExpression),
+// 			attribute.StringSlice("keywords", req.SearchKeywords),
+// 		),
+// 	)
+// 	defer span.End()
 
-	servers, err := proxy.FindDatabaseServersByFiltersForCluster(ctx, req, cluster)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	servers, err := proxy.FindDatabaseServersByFiltersForCluster(ctx, req, cluster)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	databases := types.DatabaseServers(servers).ToDatabases()
-	return types.DeduplicateDatabases(databases), nil
-}
+// 	databases := types.DatabaseServers(servers).ToDatabases()
+// 	return types.DeduplicateDatabases(databases), nil
+// }
 
 // ListResources returns a paginated list of resources.
 func (proxy *ProxyClient) ListResources(ctx context.Context, namespace, resource, startKey string, limit int) ([]types.ResourceWithLabels, string, error) {

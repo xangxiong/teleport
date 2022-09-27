@@ -105,8 +105,8 @@ type AgentPoolConfig struct {
 	// Clock is a clock used to get time, if not set,
 	// system clock is used
 	Clock clockwork.Clock
-	// KubeDialAddr is an address of a kubernetes proxy
-	KubeDialAddr utils.NetAddr
+	// // KubeDialAddr is an address of a kubernetes proxy
+	// KubeDialAddr utils.NetAddr
 	// Server is either an SSH or application server. It can handle a connection
 	// (perform handshake and handle request).
 	Server ServerHandler
@@ -549,7 +549,7 @@ func (p *AgentPool) transport(ctx context.Context, channel ssh.Channel, requests
 		closeContext:     ctx,
 		component:        p.Component,
 		localClusterName: p.LocalCluster,
-		kubeDialAddr:     p.KubeDialAddr,
+		// kubeDialAddr:     p.KubeDialAddr,
 		// authClient:          p.Client,
 		reverseTunnelServer: p.ReverseTunnelServer,
 		server:              p.Server,

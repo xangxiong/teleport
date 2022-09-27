@@ -3669,17 +3669,17 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	// 	log.Infof("Exited.")
 	// })
 
-	uploaderCfg := filesessions.UploaderConfig{
-		// Streamer: accessPoint,
-		AuditLog: conn.Client,
-	}
-	completerCfg := events.UploadCompleterConfig{
-		SessionTracker: conn.Client,
-		ClusterName:    clusterName,
-	}
-	if err := process.initUploaderService(uploaderCfg, completerCfg); err != nil {
-		return trace.Wrap(err)
-	}
+	// uploaderCfg := filesessions.UploaderConfig{
+	// 	// Streamer: accessPoint,
+	// 	AuditLog: conn.Client,
+	// }
+	// completerCfg := events.UploadCompleterConfig{
+	// 	SessionTracker: conn.Client,
+	// 	ClusterName:    clusterName,
+	// }
+	// if err := process.initUploaderService(uploaderCfg, completerCfg); err != nil {
+	// 	return trace.Wrap(err)
+	// }
 	return nil
 }
 

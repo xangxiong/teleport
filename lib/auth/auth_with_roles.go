@@ -4576,38 +4576,38 @@ func (a *ServerWithRoles) checkAccessToDatabase(database types.Database) error {
 		services.AccessMFAParams{Verified: true})
 }
 
-// CreateDatabase creates a new database resource.
-func (a *ServerWithRoles) CreateDatabase(ctx context.Context, database types.Database) error {
-	if err := a.action(apidefaults.Namespace, types.KindDatabase, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	// Don't allow users create databases they wouldn't have access to (e.g.
-	// non-matching labels).
-	if err := a.checkAccessToDatabase(database); err != nil {
-		return trace.Wrap(err)
-	}
-	return trace.Wrap(a.authServer.CreateDatabase(ctx, database))
-}
+// // CreateDatabase creates a new database resource.
+// func (a *ServerWithRoles) CreateDatabase(ctx context.Context, database types.Database) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindDatabase, types.VerbCreate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	// Don't allow users create databases they wouldn't have access to (e.g.
+// 	// non-matching labels).
+// 	if err := a.checkAccessToDatabase(database); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return trace.Wrap(a.authServer.CreateDatabase(ctx, database))
+// }
 
-// UpdateDatabase updates existing database resource.
-func (a *ServerWithRoles) UpdateDatabase(ctx context.Context, database types.Database) error {
-	if err := a.action(apidefaults.Namespace, types.KindDatabase, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	// Don't allow users update databases they don't have access to (e.g.
-	// non-matching labels). Make sure to check existing database too.
-	existing, err := a.authServer.GetDatabase(ctx, database.GetName())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.checkAccessToDatabase(existing); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.checkAccessToDatabase(database); err != nil {
-		return trace.Wrap(err)
-	}
-	return trace.Wrap(a.authServer.UpdateDatabase(ctx, database))
-}
+// // UpdateDatabase updates existing database resource.
+// func (a *ServerWithRoles) UpdateDatabase(ctx context.Context, database types.Database) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindDatabase, types.VerbUpdate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	// Don't allow users update databases they don't have access to (e.g.
+// 	// non-matching labels). Make sure to check existing database too.
+// 	existing, err := a.authServer.GetDatabase(ctx, database.GetName())
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.checkAccessToDatabase(existing); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.checkAccessToDatabase(database); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return trace.Wrap(a.authServer.UpdateDatabase(ctx, database))
+// }
 
 // GetDatabase returns specified database resource.
 func (a *ServerWithRoles) GetDatabase(ctx context.Context, name string) (types.Database, error) {
@@ -4642,41 +4642,41 @@ func (a *ServerWithRoles) GetDatabases(ctx context.Context) (result []types.Data
 	return result, nil
 }
 
-// DeleteDatabase removes the specified database resource.
-func (a *ServerWithRoles) DeleteDatabase(ctx context.Context, name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindDatabase, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	// Make sure user has access to the database before deleting.
-	database, err := a.authServer.GetDatabase(ctx, name)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.checkAccessToDatabase(database); err != nil {
-		return trace.Wrap(err)
-	}
-	return trace.Wrap(a.authServer.DeleteDatabase(ctx, name))
-}
+// // DeleteDatabase removes the specified database resource.
+// func (a *ServerWithRoles) DeleteDatabase(ctx context.Context, name string) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindDatabase, types.VerbDelete); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	// Make sure user has access to the database before deleting.
+// 	database, err := a.authServer.GetDatabase(ctx, name)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.checkAccessToDatabase(database); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return trace.Wrap(a.authServer.DeleteDatabase(ctx, name))
+// }
 
-// DeleteAllDatabases removes all database resources.
-func (a *ServerWithRoles) DeleteAllDatabases(ctx context.Context) error {
-	if err := a.action(apidefaults.Namespace, types.KindDatabase, types.VerbList, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	// Make sure to only delete databases user has access to.
-	databases, err := a.authServer.GetDatabases(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, database := range databases {
-		if err := a.checkAccessToDatabase(database); err == nil {
-			if err := a.authServer.DeleteDatabase(ctx, database.GetName()); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-	}
-	return nil
-}
+// // DeleteAllDatabases removes all database resources.
+// func (a *ServerWithRoles) DeleteAllDatabases(ctx context.Context) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindDatabase, types.VerbList, types.VerbDelete); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	// Make sure to only delete databases user has access to.
+// 	databases, err := a.authServer.GetDatabases(ctx)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	for _, database := range databases {
+// 		if err := a.checkAccessToDatabase(database); err == nil {
+// 			if err := a.authServer.DeleteDatabase(ctx, database.GetName()); err != nil {
+// 				return trace.Wrap(err)
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }
 
 // GetWindowsDesktopServices returns all registered windows desktop services.
 func (a *ServerWithRoles) GetWindowsDesktopServices(ctx context.Context) ([]types.WindowsDesktopService, error) {
@@ -4742,111 +4742,111 @@ func (a *ServerWithRoles) GetWindowsDesktops(ctx context.Context, filter types.W
 	return filtered, nil
 }
 
-// CreateWindowsDesktop creates a new windows desktop host.
-func (a *ServerWithRoles) CreateWindowsDesktop(ctx context.Context, s types.WindowsDesktop) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.CreateWindowsDesktop(ctx, s)
-}
+// // CreateWindowsDesktop creates a new windows desktop host.
+// func (a *ServerWithRoles) CreateWindowsDesktop(ctx context.Context, s types.WindowsDesktop) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbCreate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return a.authServer.CreateWindowsDesktop(ctx, s)
+// }
 
-// UpdateWindowsDesktop updates an existing windows desktop host.
-func (a *ServerWithRoles) UpdateWindowsDesktop(ctx context.Context, s types.WindowsDesktop) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
+// // UpdateWindowsDesktop updates an existing windows desktop host.
+// func (a *ServerWithRoles) UpdateWindowsDesktop(ctx context.Context, s types.WindowsDesktop) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbUpdate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	existing, err := a.authServer.GetWindowsDesktops(ctx,
-		types.WindowsDesktopFilter{HostID: s.GetHostID(), Name: s.GetName()})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if len(existing) == 0 {
-		return trace.NotFound("no windows desktops with HostID %s and Name %s",
-			s.GetHostID(), s.GetName())
-	}
+// 	existing, err := a.authServer.GetWindowsDesktops(ctx,
+// 		types.WindowsDesktopFilter{HostID: s.GetHostID(), Name: s.GetName()})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if len(existing) == 0 {
+// 		return trace.NotFound("no windows desktops with HostID %s and Name %s",
+// 			s.GetHostID(), s.GetName())
+// 	}
 
-	if err := a.checkAccessToWindowsDesktop(existing[0]); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.checkAccessToWindowsDesktop(s); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpdateWindowsDesktop(ctx, s)
-}
+// 	if err := a.checkAccessToWindowsDesktop(existing[0]); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.checkAccessToWindowsDesktop(s); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return a.authServer.UpdateWindowsDesktop(ctx, s)
+// }
 
-// UpsertWindowsDesktop updates a windows desktop resource, creating it if it doesn't exist.
-func (a *ServerWithRoles) UpsertWindowsDesktop(ctx context.Context, s types.WindowsDesktop) error {
-	// Ensure caller has both Create and Update permissions.
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
+// // UpsertWindowsDesktop updates a windows desktop resource, creating it if it doesn't exist.
+// func (a *ServerWithRoles) UpsertWindowsDesktop(ctx context.Context, s types.WindowsDesktop) error {
+// 	// Ensure caller has both Create and Update permissions.
+// 	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbCreate, types.VerbUpdate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	if s.GetHostID() == "" {
-		// dont try to insert desktops with empty hostIDs
-		return nil
-	}
+// 	if s.GetHostID() == "" {
+// 		// dont try to insert desktops with empty hostIDs
+// 		return nil
+// 	}
 
-	// If the desktop exists, check access,
-	// if it doesn't, continue.
-	existing, err := a.authServer.GetWindowsDesktops(ctx,
-		types.WindowsDesktopFilter{HostID: s.GetHostID(), Name: s.GetName()})
-	if err == nil && len(existing) != 0 {
-		if err := a.checkAccessToWindowsDesktop(existing[0]); err != nil {
-			return trace.Wrap(err)
-		}
-	} else if err != nil && !trace.IsNotFound(err) {
-		return trace.Wrap(err)
-	}
+// 	// If the desktop exists, check access,
+// 	// if it doesn't, continue.
+// 	existing, err := a.authServer.GetWindowsDesktops(ctx,
+// 		types.WindowsDesktopFilter{HostID: s.GetHostID(), Name: s.GetName()})
+// 	if err == nil && len(existing) != 0 {
+// 		if err := a.checkAccessToWindowsDesktop(existing[0]); err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 	} else if err != nil && !trace.IsNotFound(err) {
+// 		return trace.Wrap(err)
+// 	}
 
-	if err := a.checkAccessToWindowsDesktop(s); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertWindowsDesktop(ctx, s)
-}
+// 	if err := a.checkAccessToWindowsDesktop(s); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return a.authServer.UpsertWindowsDesktop(ctx, s)
+// }
 
-// DeleteWindowsDesktop removes the specified Windows desktop host.
-// Note: unlike GetWindowsDesktops, this will delete at-most one desktop.
-// Passing an empty host ID will not trigger "delete all" behavior. To delete
-// all desktops, use DeleteAllWindowsDesktops.
-func (a *ServerWithRoles) DeleteWindowsDesktop(ctx context.Context, hostID, name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	desktop, err := a.authServer.GetWindowsDesktops(ctx,
-		types.WindowsDesktopFilter{HostID: hostID, Name: name})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if len(desktop) == 0 {
-		return trace.NotFound("no windows desktops with HostID %s and Name %s",
-			hostID, name)
-	}
-	if err := a.checkAccessToWindowsDesktop(desktop[0]); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteWindowsDesktop(ctx, hostID, name)
-}
+// // DeleteWindowsDesktop removes the specified Windows desktop host.
+// // Note: unlike GetWindowsDesktops, this will delete at-most one desktop.
+// // Passing an empty host ID will not trigger "delete all" behavior. To delete
+// // all desktops, use DeleteAllWindowsDesktops.
+// func (a *ServerWithRoles) DeleteWindowsDesktop(ctx context.Context, hostID, name string) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbDelete); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	desktop, err := a.authServer.GetWindowsDesktops(ctx,
+// 		types.WindowsDesktopFilter{HostID: hostID, Name: name})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if len(desktop) == 0 {
+// 		return trace.NotFound("no windows desktops with HostID %s and Name %s",
+// 			hostID, name)
+// 	}
+// 	if err := a.checkAccessToWindowsDesktop(desktop[0]); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return a.authServer.DeleteWindowsDesktop(ctx, hostID, name)
+// }
 
-// DeleteAllWindowsDesktops removes all registered windows desktop hosts.
-func (a *ServerWithRoles) DeleteAllWindowsDesktops(ctx context.Context) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbList, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	// Only delete the desktops the user has access to.
-	desktops, err := a.authServer.GetWindowsDesktops(ctx, types.WindowsDesktopFilter{})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, desktop := range desktops {
-		if err := a.checkAccessToWindowsDesktop(desktop); err == nil {
-			if err := a.authServer.DeleteWindowsDesktop(ctx, desktop.GetHostID(), desktop.GetName()); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-	}
-	return nil
-}
+// // DeleteAllWindowsDesktops removes all registered windows desktop hosts.
+// func (a *ServerWithRoles) DeleteAllWindowsDesktops(ctx context.Context) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbList, types.VerbDelete); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	// Only delete the desktops the user has access to.
+// 	desktops, err := a.authServer.GetWindowsDesktops(ctx, types.WindowsDesktopFilter{})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	for _, desktop := range desktops {
+// 		if err := a.checkAccessToWindowsDesktop(desktop); err == nil {
+// 			if err := a.authServer.DeleteWindowsDesktop(ctx, desktop.GetHostID(), desktop.GetName()); err != nil {
+// 				return trace.Wrap(err)
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }
 
 func (a *ServerWithRoles) filterWindowsDesktops(desktops []types.WindowsDesktop) ([]types.WindowsDesktop, error) {
 	// For certain built-in roles allow full access
@@ -4883,54 +4883,54 @@ func (a *ServerWithRoles) GenerateWindowsDesktopCert(ctx context.Context, req *p
 	return a.authServer.GenerateWindowsDesktopCert(ctx, req)
 }
 
-// GetConnectionDiagnostic returns the connection diagnostic with the matching name
-func (a *ServerWithRoles) GetConnectionDiagnostic(ctx context.Context, name string) (types.ConnectionDiagnostic, error) {
-	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // GetConnectionDiagnostic returns the connection diagnostic with the matching name
+// func (a *ServerWithRoles) GetConnectionDiagnostic(ctx context.Context, name string) (types.ConnectionDiagnostic, error) {
+// 	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbRead); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	connectionsDiagnostic, err := a.authServer.GetConnectionDiagnostic(ctx, name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	connectionsDiagnostic, err := a.authServer.GetConnectionDiagnostic(ctx, name)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return connectionsDiagnostic, nil
-}
+// 	return connectionsDiagnostic, nil
+// }
 
-// CreateConnectionDiagnostic creates a new connection diagnostic.
-func (a *ServerWithRoles) CreateConnectionDiagnostic(ctx context.Context, connectionDiagnostic types.ConnectionDiagnostic) error {
-	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
+// // CreateConnectionDiagnostic creates a new connection diagnostic.
+// func (a *ServerWithRoles) CreateConnectionDiagnostic(ctx context.Context, connectionDiagnostic types.ConnectionDiagnostic) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbCreate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	if err := a.authServer.CreateConnectionDiagnostic(ctx, connectionDiagnostic); err != nil {
-		return trace.Wrap(err)
-	}
+// 	if err := a.authServer.CreateConnectionDiagnostic(ctx, connectionDiagnostic); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-// UpdateConnectionDiagnostic updates a connection diagnostic.
-func (a *ServerWithRoles) UpdateConnectionDiagnostic(ctx context.Context, connectionDiagnostic types.ConnectionDiagnostic) error {
-	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
+// // UpdateConnectionDiagnostic updates a connection diagnostic.
+// func (a *ServerWithRoles) UpdateConnectionDiagnostic(ctx context.Context, connectionDiagnostic types.ConnectionDiagnostic) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbUpdate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	if err := a.authServer.UpdateConnectionDiagnostic(ctx, connectionDiagnostic); err != nil {
-		return trace.Wrap(err)
-	}
+// 	if err := a.authServer.UpdateConnectionDiagnostic(ctx, connectionDiagnostic); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-// AppendDiagnosticTrace adds a new trace for the given ConnectionDiagnostic.
-func (a *ServerWithRoles) AppendDiagnosticTrace(ctx context.Context, name string, t *types.ConnectionDiagnosticTrace) (types.ConnectionDiagnostic, error) {
-	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // AppendDiagnosticTrace adds a new trace for the given ConnectionDiagnostic.
+// func (a *ServerWithRoles) AppendDiagnosticTrace(ctx context.Context, name string, t *types.ConnectionDiagnosticTrace) (types.ConnectionDiagnostic, error) {
+// 	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbUpdate); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return a.authServer.AppendDiagnosticTrace(ctx, name, t)
-}
+// 	return a.authServer.AppendDiagnosticTrace(ctx, name, t)
+// }
 
 // StartAccountRecovery is implemented by AuthService.StartAccountRecovery.
 func (a *ServerWithRoles) StartAccountRecovery(ctx context.Context, req *proto.StartAccountRecoveryRequest) (types.UserToken, error) {
