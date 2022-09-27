@@ -18,7 +18,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/gravitational/teleport/lib/client/db/dbcmd"
 	"github.com/gravitational/teleport/lib/teleterm/clusters"
 	"github.com/gravitational/teleport/lib/teleterm/gateway"
 
@@ -47,25 +46,25 @@ func (s *Service) ListRootClusters(ctx context.Context) ([]*clusters.Cluster, er
 	return clusters, nil
 }
 
-// ListLeafClusters returns a list of leaf clusters
-func (s *Service) ListLeafClusters(ctx context.Context, uri string) ([]clusters.LeafCluster, error) {
-	cluster, err := s.ResolveCluster(uri)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // ListLeafClusters returns a list of leaf clusters
+// func (s *Service) ListLeafClusters(ctx context.Context, uri string) ([]clusters.LeafCluster, error) {
+// 	cluster, err := s.ResolveCluster(uri)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	// leaf cluster cannot have own leaves
-	if cluster.URI.GetLeafClusterName() != "" {
-		return nil, nil
-	}
+// 	// leaf cluster cannot have own leaves
+// 	if cluster.URI.GetLeafClusterName() != "" {
+// 		return nil, nil
+// 	}
 
-	leaves, err := cluster.GetLeafClusters(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	leaves, err := cluster.GetLeafClusters(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return leaves, nil
-}
+// 	return leaves, nil
+// }
 
 // AddCluster adds a cluster
 func (s *Service) AddCluster(ctx context.Context, webProxyAddress string) (*clusters.Cluster, error) {
@@ -121,50 +120,50 @@ func (s *Service) ClusterLogout(ctx context.Context, uri string) error {
 	return nil
 }
 
-// CreateGateway creates a gateway to given targetURI
-func (s *Service) CreateGateway(ctx context.Context, params CreateGatewayParams) (*gateway.Gateway, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// // CreateGateway creates a gateway to given targetURI
+// func (s *Service) CreateGateway(ctx context.Context, params CreateGatewayParams) (*gateway.Gateway, error) {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
 
-	gateway, err := s.createGateway(ctx, params)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	gateway, err := s.createGateway(ctx, params)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return gateway, nil
-}
+// 	return gateway, nil
+// }
 
-type GatewayCreator interface {
-	CreateGateway(context.Context, clusters.CreateGatewayParams) (*gateway.Gateway, error)
-}
+// type GatewayCreator interface {
+// 	CreateGateway(context.Context, clusters.CreateGatewayParams) (*gateway.Gateway, error)
+// }
 
-// createGateway assumes that mu is already held by a public method.
-func (s *Service) createGateway(ctx context.Context, params CreateGatewayParams) (*gateway.Gateway, error) {
-	cliCommandProvider := clusters.NewDbcmdCLICommandProvider(s.cfg.Storage, dbcmd.SystemExecer{})
-	clusterCreateGatewayParams := clusters.CreateGatewayParams{
-		TargetURI:             params.TargetURI,
-		TargetUser:            params.TargetUser,
-		TargetSubresourceName: params.TargetSubresourceName,
-		LocalPort:             params.LocalPort,
-		CLICommandProvider:    cliCommandProvider,
-		TCPPortAllocator:      s.cfg.TCPPortAllocator,
-	}
+// // createGateway assumes that mu is already held by a public method.
+// func (s *Service) createGateway(ctx context.Context, params CreateGatewayParams) (*gateway.Gateway, error) {
+// 	cliCommandProvider := clusters.NewDbcmdCLICommandProvider(s.cfg.Storage, dbcmd.SystemExecer{})
+// 	clusterCreateGatewayParams := clusters.CreateGatewayParams{
+// 		TargetURI:             params.TargetURI,
+// 		TargetUser:            params.TargetUser,
+// 		TargetSubresourceName: params.TargetSubresourceName,
+// 		LocalPort:             params.LocalPort,
+// 		CLICommandProvider:    cliCommandProvider,
+// 		TCPPortAllocator:      s.cfg.TCPPortAllocator,
+// 	}
 
-	gateway, err := s.cfg.GatewayCreator.CreateGateway(ctx, clusterCreateGatewayParams)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	gateway, err := s.cfg.GatewayCreator.CreateGateway(ctx, clusterCreateGatewayParams)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	go func() {
-		if err := gateway.Serve(); err != nil {
-			gateway.Log().WithError(err).Warn("Failed to handle a gateway connection.")
-		}
-	}()
+// 	go func() {
+// 		if err := gateway.Serve(); err != nil {
+// 			gateway.Log().WithError(err).Warn("Failed to handle a gateway connection.")
+// 		}
+// 	}()
 
-	s.gateways[gateway.URI().String()] = gateway
+// 	s.gateways[gateway.URI().String()] = gateway
 
-	return gateway, nil
-}
+// 	return gateway, nil
+// }
 
 // RemoveGateway removes cluster gateway
 func (s *Service) RemoveGateway(gatewayURI string) error {
@@ -196,40 +195,40 @@ func (s *Service) removeGateway(gateway *gateway.Gateway) error {
 	return nil
 }
 
-// RestartGateway stops a gateway and starts a new one with identical parameters.
-// It also keeps the original URI so that from the perspective of Connect it's still the same
-// gateway but with fresh certs.
-func (s *Service) RestartGateway(ctx context.Context, gatewayURI string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// // RestartGateway stops a gateway and starts a new one with identical parameters.
+// // It also keeps the original URI so that from the perspective of Connect it's still the same
+// // gateway but with fresh certs.
+// func (s *Service) RestartGateway(ctx context.Context, gatewayURI string) error {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
 
-	oldGateway, err := s.findGateway(gatewayURI)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	oldGateway, err := s.findGateway(gatewayURI)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	if err := s.removeGateway(oldGateway); err != nil {
-		return trace.Wrap(err)
-	}
+// 	if err := s.removeGateway(oldGateway); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	newGateway, err := s.createGateway(ctx, CreateGatewayParams{
-		TargetURI:             oldGateway.TargetURI(),
-		TargetUser:            oldGateway.TargetUser(),
-		TargetSubresourceName: oldGateway.TargetSubresourceName(),
-		LocalPort:             oldGateway.LocalPort(),
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	newGateway, err := s.createGateway(ctx, CreateGatewayParams{
+// 		TargetURI:             oldGateway.TargetURI(),
+// 		TargetUser:            oldGateway.TargetUser(),
+// 		TargetSubresourceName: oldGateway.TargetSubresourceName(),
+// 		LocalPort:             oldGateway.LocalPort(),
+// 	})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	// s.createGateway adds a gateway under a random URI, so we need to place the new gateway under
-	// the URI of the old gateway.
-	delete(s.gateways, newGateway.URI().String())
-	newGateway.SetURI(oldGateway.URI())
-	s.gateways[oldGateway.URI().String()] = newGateway
+// 	// s.createGateway adds a gateway under a random URI, so we need to place the new gateway under
+// 	// the URI of the old gateway.
+// 	delete(s.gateways, newGateway.URI().String())
+// 	newGateway.SetURI(oldGateway.URI())
+// 	s.gateways[oldGateway.URI().String()] = newGateway
 
-	return nil
-}
+// 	return nil
+// }
 
 // findGateway assumes that mu is already held by a public method.
 func (s *Service) findGateway(gatewayURI string) (*gateway.Gateway, error) {

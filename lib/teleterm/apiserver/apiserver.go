@@ -23,8 +23,6 @@ import (
 	"path/filepath"
 
 	"github.com/gravitational/teleport/api/utils/keys"
-	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
-	"github.com/gravitational/teleport/lib/teleterm/apiserver/handler"
 
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/trace"
@@ -48,14 +46,14 @@ func New(cfg Config) (*APIServer, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	serviceHandler, err := handler.New(
-		handler.Config{
-			DaemonService: cfg.Daemon,
-		},
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// serviceHandler, err := handler.New(
+	// 	handler.Config{
+	// 		DaemonService: cfg.Daemon,
+	// 	},
+	// )
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	ls, err := newListener(cfg.HostAddr)
 	if err != nil {
@@ -71,7 +69,7 @@ func New(cfg Config) (*APIServer, error) {
 		withErrorHandling(cfg.Log),
 	))
 
-	api.RegisterTerminalServiceServer(grpcServer, serviceHandler)
+	// api.RegisterTerminalServiceServer(grpcServer, serviceHandler)
 
 	return &APIServer{cfg, ls, grpcServer}, nil
 }

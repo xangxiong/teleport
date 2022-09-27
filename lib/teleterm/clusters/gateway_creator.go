@@ -14,34 +14,34 @@
 
 package clusters
 
-import (
-	"context"
+// import (
+// 	"context"
 
-	"github.com/gravitational/teleport/lib/teleterm/gateway"
+// 	"github.com/gravitational/teleport/lib/teleterm/gateway"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-type GatewayCreator struct {
-	resolver Resolver
-}
+// type GatewayCreator struct {
+// 	resolver Resolver
+// }
 
-func NewGatewayCreator(resolver Resolver) GatewayCreator {
-	return GatewayCreator{
-		resolver: resolver,
-	}
-}
+// func NewGatewayCreator(resolver Resolver) GatewayCreator {
+// 	return GatewayCreator{
+// 		resolver: resolver,
+// 	}
+// }
 
-func (g GatewayCreator) CreateGateway(ctx context.Context, params CreateGatewayParams) (*gateway.Gateway, error) {
-	cluster, err := g.resolver.ResolveCluster(params.TargetURI)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// func (g GatewayCreator) CreateGateway(ctx context.Context, params CreateGatewayParams) (*gateway.Gateway, error) {
+// 	cluster, err := g.resolver.ResolveCluster(params.TargetURI)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	gateway, err := cluster.CreateGateway(ctx, params)
-	return gateway, trace.Wrap(err)
-}
+// 	gateway, err := cluster.CreateGateway(ctx, params)
+// 	return gateway, trace.Wrap(err)
+// }
 
-type Resolver interface {
-	ResolveCluster(string) (*Cluster, error)
-}
+// type Resolver interface {
+// 	ResolveCluster(string) (*Cluster, error)
+// }

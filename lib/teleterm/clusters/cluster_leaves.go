@@ -16,58 +16,58 @@ limitations under the License.
 
 package clusters
 
-import (
-	"context"
+// import (
+// 	"context"
 
-	"github.com/gravitational/teleport"
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/teleterm/api/uri"
+// 	"github.com/gravitational/teleport"
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/teleterm/api/uri"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-// LeafCluster describes a leaf (trusted) cluster
-type LeafCluster struct {
-	// URI is the leaf cluster URI
-	URI uri.ResourceURI
-	// LoggedInUser is the logged in user
-	LoggedInUser LoggedInUser
-	// Name is the leaf cluster name
-	Name string
-	// Connected indicates if this leaf cluster is connected
-	Connected bool
-}
+// // LeafCluster describes a leaf (trusted) cluster
+// type LeafCluster struct {
+// 	// URI is the leaf cluster URI
+// 	URI uri.ResourceURI
+// 	// LoggedInUser is the logged in user
+// 	LoggedInUser LoggedInUser
+// 	// Name is the leaf cluster name
+// 	Name string
+// 	// Connected indicates if this leaf cluster is connected
+// 	Connected bool
+// }
 
-// GetLeafClusters returns leaf clusters
-func (c *Cluster) GetLeafClusters(ctx context.Context) ([]LeafCluster, error) {
-	var remoteClusters []types.RemoteCluster
-	err := addMetadataToRetryableError(ctx, func() error {
-		proxyClient, err := c.clusterClient.ConnectToProxy(ctx)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		defer proxyClient.Close()
+// // GetLeafClusters returns leaf clusters
+// func (c *Cluster) GetLeafClusters(ctx context.Context) ([]LeafCluster, error) {
+// 	var remoteClusters []types.RemoteCluster
+// 	err := addMetadataToRetryableError(ctx, func() error {
+// 		proxyClient, err := c.clusterClient.ConnectToProxy(ctx)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		defer proxyClient.Close()
 
-		remoteClusters, err = proxyClient.GetLeafClusters(ctx)
-		if err != nil {
-			return trace.Wrap(err)
-		}
+// 		remoteClusters, err = proxyClient.GetLeafClusters(ctx)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
 
-		return nil
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 		return nil
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	results := []LeafCluster{}
-	for _, remoteCluster := range remoteClusters {
-		results = append(results, LeafCluster{
-			URI:          c.URI.AppendLeafCluster(remoteCluster.GetName()),
-			Name:         remoteCluster.GetName(),
-			Connected:    remoteCluster.GetConnectionStatus() == teleport.RemoteClusterStatusOnline,
-			LoggedInUser: c.GetLoggedInUser(),
-		})
-	}
+// 	results := []LeafCluster{}
+// 	for _, remoteCluster := range remoteClusters {
+// 		results = append(results, LeafCluster{
+// 			URI:          c.URI.AppendLeafCluster(remoteCluster.GetName()),
+// 			Name:         remoteCluster.GetName(),
+// 			Connected:    remoteCluster.GetConnectionStatus() == teleport.RemoteClusterStatusOnline,
+// 			LoggedInUser: c.GetLoggedInUser(),
+// 		})
+// 	}
 
-	return results, nil
-}
+// 	return results, nil
+// }

@@ -30,8 +30,8 @@ type Config struct {
 	// Storage is a storage service that reads/writes to tsh profiles
 	Storage *clusters.Storage
 	// Log is a component logger
-	Log              *logrus.Entry
-	GatewayCreator   GatewayCreator
+	Log *logrus.Entry
+	// GatewayCreator   GatewayCreator
 	TCPPortAllocator gateway.TCPPortAllocator
 }
 
@@ -41,9 +41,9 @@ func (c *Config) CheckAndSetDefaults() error {
 		return trace.BadParameter("missing cluster storage")
 	}
 
-	if c.GatewayCreator == nil {
-		c.GatewayCreator = clusters.NewGatewayCreator(c.Storage)
-	}
+	// if c.GatewayCreator == nil {
+	// 	c.GatewayCreator = clusters.NewGatewayCreator(c.Storage)
+	// }
 
 	if c.TCPPortAllocator == nil {
 		c.TCPPortAllocator = gateway.NetTCPPortAllocator{}

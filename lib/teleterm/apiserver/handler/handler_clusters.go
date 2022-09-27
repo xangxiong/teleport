@@ -40,20 +40,20 @@ func (s *Handler) ListRootClusters(ctx context.Context, r *api.ListClustersReque
 	}, nil
 }
 
-// ListLeafClusters lists leaf clusters
-func (s *Handler) ListLeafClusters(ctx context.Context, req *api.ListLeafClustersRequest) (*api.ListClustersResponse, error) {
-	leaves, err := s.DaemonService.ListLeafClusters(ctx, req.ClusterUri)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // ListLeafClusters lists leaf clusters
+// func (s *Handler) ListLeafClusters(ctx context.Context, req *api.ListLeafClustersRequest) (*api.ListClustersResponse, error) {
+// 	leaves, err := s.DaemonService.ListLeafClusters(ctx, req.ClusterUri)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	response := &api.ListClustersResponse{}
-	for _, leaf := range leaves {
-		response.Clusters = append(response.Clusters, newAPILeafCluster(leaf))
-	}
+// 	response := &api.ListClustersResponse{}
+// 	for _, leaf := range leaves {
+// 		response.Clusters = append(response.Clusters, newAPILeafCluster(leaf))
+// 	}
 
-	return response, nil
-}
+// 	return response, nil
+// }
 
 // AddCluster creates a new cluster
 func (s *Handler) AddCluster(ctx context.Context, req *api.AddClusterRequest) (*api.Cluster, error) {
@@ -99,16 +99,16 @@ func newAPIRootCluster(cluster *clusters.Cluster) *api.Cluster {
 	}
 }
 
-func newAPILeafCluster(leaf clusters.LeafCluster) *api.Cluster {
-	return &api.Cluster{
-		Name:      leaf.Name,
-		Uri:       leaf.URI.String(),
-		Connected: leaf.Connected,
-		Leaf:      true,
-		LoggedInUser: &api.LoggedInUser{
-			Name:      leaf.LoggedInUser.Name,
-			SshLogins: leaf.LoggedInUser.SSHLogins,
-			Roles:     leaf.LoggedInUser.Roles,
-		},
-	}
-}
+// func newAPILeafCluster(leaf clusters.LeafCluster) *api.Cluster {
+// 	return &api.Cluster{
+// 		Name:      leaf.Name,
+// 		Uri:       leaf.URI.String(),
+// 		Connected: leaf.Connected,
+// 		Leaf:      true,
+// 		LoggedInUser: &api.LoggedInUser{
+// 			Name:      leaf.LoggedInUser.Name,
+// 			SshLogins: leaf.LoggedInUser.SSHLogins,
+// 			Roles:     leaf.LoggedInUser.Roles,
+// 		},
+// 	}
+// }
