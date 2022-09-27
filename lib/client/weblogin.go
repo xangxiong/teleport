@@ -26,8 +26,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"os/exec"
-	"runtime"
 	"time"
 
 	"github.com/duo-labs/webauthn/protocol"
@@ -35,10 +33,8 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/client/webclient"
-	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/auth"
-	"github.com/gravitational/teleport/lib/defaults"
 
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
@@ -284,74 +280,74 @@ func initClient(proxyAddr string, insecure bool, pool *x509.CertPool) (*WebClien
 	return clt, u, nil
 }
 
-// SSHAgentSSOLogin is used by tsh to fetch user credentials using OpenID Connect (OIDC) or SAML.
-func SSHAgentSSOLogin(ctx context.Context, login SSHLoginSSO, config *RedirectorConfig) (*auth.SSHLoginResponse, error) {
-	rd, err := NewRedirector(ctx, login, config)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // SSHAgentSSOLogin is used by tsh to fetch user credentials using OpenID Connect (OIDC) or SAML.
+// func SSHAgentSSOLogin(ctx context.Context, login SSHLoginSSO, config *RedirectorConfig) (*auth.SSHLoginResponse, error) {
+// 	rd, err := NewRedirector(ctx, login, config)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	if err := rd.Start(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rd.Close()
+// 	if err := rd.Start(); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rd.Close()
 
-	clickableURL := rd.ClickableURL()
+// 	clickableURL := rd.ClickableURL()
 
-	// If a command was found to launch the browser, create and start it.
-	var execCmd *exec.Cmd
-	if login.Browser != teleport.BrowserNone {
-		switch runtime.GOOS {
-		// macOS.
-		case constants.DarwinOS:
-			path, err := exec.LookPath(teleport.OpenBrowserDarwin)
-			if err == nil {
-				execCmd = exec.Command(path, clickableURL)
-			}
-		// Windows.
-		case constants.WindowsOS:
-			path, err := exec.LookPath(teleport.OpenBrowserWindows)
-			if err == nil {
-				execCmd = exec.Command(path, "url.dll,FileProtocolHandler", clickableURL)
-			}
-		// Linux or any other operating system.
-		default:
-			path, err := exec.LookPath(teleport.OpenBrowserLinux)
-			if err == nil {
-				execCmd = exec.Command(path, clickableURL)
-			}
-		}
-	}
-	if execCmd != nil {
-		if err := execCmd.Start(); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to open a browser window for login: %v\n", err)
-		}
-	}
+// 	// If a command was found to launch the browser, create and start it.
+// 	var execCmd *exec.Cmd
+// 	if login.Browser != teleport.BrowserNone {
+// 		switch runtime.GOOS {
+// 		// macOS.
+// 		case constants.DarwinOS:
+// 			path, err := exec.LookPath(teleport.OpenBrowserDarwin)
+// 			if err == nil {
+// 				execCmd = exec.Command(path, clickableURL)
+// 			}
+// 		// Windows.
+// 		case constants.WindowsOS:
+// 			path, err := exec.LookPath(teleport.OpenBrowserWindows)
+// 			if err == nil {
+// 				execCmd = exec.Command(path, "url.dll,FileProtocolHandler", clickableURL)
+// 			}
+// 		// Linux or any other operating system.
+// 		default:
+// 			path, err := exec.LookPath(teleport.OpenBrowserLinux)
+// 			if err == nil {
+// 				execCmd = exec.Command(path, clickableURL)
+// 			}
+// 		}
+// 	}
+// 	if execCmd != nil {
+// 		if err := execCmd.Start(); err != nil {
+// 			fmt.Fprintf(os.Stderr, "Failed to open a browser window for login: %v\n", err)
+// 		}
+// 	}
 
-	// Print the URL to the screen, in case the command that launches the browser did not run.
-	// If Browser is set to the special string teleport.BrowserNone, no browser will be opened.
-	if login.Browser == teleport.BrowserNone {
-		fmt.Fprintf(os.Stderr, "Use the following URL to authenticate:\n %v\n", clickableURL)
-	} else {
-		fmt.Fprintf(os.Stderr, "If browser window does not open automatically, open it by ")
-		fmt.Fprintf(os.Stderr, "clicking on the link:\n %v\n", clickableURL)
-	}
+// 	// Print the URL to the screen, in case the command that launches the browser did not run.
+// 	// If Browser is set to the special string teleport.BrowserNone, no browser will be opened.
+// 	if login.Browser == teleport.BrowserNone {
+// 		fmt.Fprintf(os.Stderr, "Use the following URL to authenticate:\n %v\n", clickableURL)
+// 	} else {
+// 		fmt.Fprintf(os.Stderr, "If browser window does not open automatically, open it by ")
+// 		fmt.Fprintf(os.Stderr, "clicking on the link:\n %v\n", clickableURL)
+// 	}
 
-	select {
-	case err := <-rd.ErrorC():
-		log.Debugf("Got an error: %v.", err)
-		return nil, trace.Wrap(err)
-	case response := <-rd.ResponseC():
-		log.Debugf("Got response from browser.")
-		return response, nil
-	case <-time.After(defaults.CallbackTimeout):
-		log.Debugf("Timed out waiting for callback after %v.", defaults.CallbackTimeout)
-		return nil, trace.Wrap(trace.Errorf("timed out waiting for callback"))
-	case <-rd.Done():
-		log.Debugf("Canceled by user.")
-		return nil, trace.Wrap(ctx.Err(), "cancelled by user")
-	}
-}
+// 	select {
+// 	case err := <-rd.ErrorC():
+// 		log.Debugf("Got an error: %v.", err)
+// 		return nil, trace.Wrap(err)
+// 	case response := <-rd.ResponseC():
+// 		log.Debugf("Got response from browser.")
+// 		return response, nil
+// 	case <-time.After(defaults.CallbackTimeout):
+// 		log.Debugf("Timed out waiting for callback after %v.", defaults.CallbackTimeout)
+// 		return nil, trace.Wrap(trace.Errorf("timed out waiting for callback"))
+// 	case <-rd.Done():
+// 		log.Debugf("Canceled by user.")
+// 		return nil, trace.Wrap(ctx.Err(), "cancelled by user")
+// 	}
+// }
 
 // SSHAgentLogin is used by tsh to fetch local user credentials.
 func SSHAgentLogin(ctx context.Context, login SSHLoginDirect) (*auth.SSHLoginResponse, error) {

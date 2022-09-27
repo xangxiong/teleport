@@ -3493,31 +3493,31 @@ func (tc *TeleportClient) directLogin(ctx context.Context, secondFactorType cons
 // SSOLoginFunc is a function used in tests to mock SSO logins.
 type SSOLoginFunc func(ctx context.Context, connectorID string, pub []byte, protocol string) (*auth.SSHLoginResponse, error)
 
-// samlLogin opens browser window and uses OIDC or SAML redirect cycle with browser
-func (tc *TeleportClient) ssoLogin(ctx context.Context, connectorID string, pub []byte, protocol string) (*auth.SSHLoginResponse, error) {
-	if tc.MockSSOLogin != nil {
-		// sso login response is being mocked for testing purposes
-		return tc.MockSSOLogin(ctx, connectorID, pub, protocol)
-	}
-	// ask the CA (via proxy) to sign our public key:
-	response, err := SSHAgentSSOLogin(ctx, SSHLoginSSO{
-		SSHLogin: SSHLogin{
-			ProxyAddr:      tc.WebProxyAddr,
-			PubKey:         pub,
-			TTL:            tc.KeyTTL,
-			Insecure:       tc.InsecureSkipVerify,
-			Pool:           loopbackPool(tc.WebProxyAddr),
-			Compatibility:  tc.CertificateFormat,
-			RouteToCluster: tc.SiteName,
-			// KubernetesCluster: tc.KubernetesCluster,
-		},
-		ConnectorID: connectorID,
-		Protocol:    protocol,
-		BindAddr:    tc.BindAddr,
-		Browser:     tc.Browser,
-	}, nil)
-	return response, trace.Wrap(err)
-}
+// // samlLogin opens browser window and uses OIDC or SAML redirect cycle with browser
+// func (tc *TeleportClient) ssoLogin(ctx context.Context, connectorID string, pub []byte, protocol string) (*auth.SSHLoginResponse, error) {
+// 	if tc.MockSSOLogin != nil {
+// 		// sso login response is being mocked for testing purposes
+// 		return tc.MockSSOLogin(ctx, connectorID, pub, protocol)
+// 	}
+// 	// ask the CA (via proxy) to sign our public key:
+// 	response, err := SSHAgentSSOLogin(ctx, SSHLoginSSO{
+// 		SSHLogin: SSHLogin{
+// 			ProxyAddr:      tc.WebProxyAddr,
+// 			PubKey:         pub,
+// 			TTL:            tc.KeyTTL,
+// 			Insecure:       tc.InsecureSkipVerify,
+// 			Pool:           loopbackPool(tc.WebProxyAddr),
+// 			Compatibility:  tc.CertificateFormat,
+// 			RouteToCluster: tc.SiteName,
+// 			// KubernetesCluster: tc.KubernetesCluster,
+// 		},
+// 		ConnectorID: connectorID,
+// 		Protocol:    protocol,
+// 		BindAddr:    tc.BindAddr,
+// 		Browser:     tc.Browser,
+// 	}, nil)
+// 	return response, trace.Wrap(err)
+// }
 
 // ActivateKey saves the target session cert into the local
 // keystore (and into the ssh-agent) for future use.

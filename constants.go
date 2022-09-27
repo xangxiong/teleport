@@ -696,20 +696,20 @@ const (
 	MaxLeases = "err-max-leases"
 )
 
-const (
-	// OpenBrowserLinux is the command used to open a web browser on Linux.
-	OpenBrowserLinux = "xdg-open"
+// const (
+// 	// OpenBrowserLinux is the command used to open a web browser on Linux.
+// 	OpenBrowserLinux = "xdg-open"
 
-	// OpenBrowserDarwin is the command used to open a web browser on macOS/Darwin.
-	OpenBrowserDarwin = "open"
+// 	// OpenBrowserDarwin is the command used to open a web browser on macOS/Darwin.
+// 	OpenBrowserDarwin = "open"
 
-	// OpenBrowserWindows is the command used to open a web browser on Windows.
-	OpenBrowserWindows = "rundll32.exe"
+// 	// OpenBrowserWindows is the command used to open a web browser on Windows.
+// 	OpenBrowserWindows = "rundll32.exe"
 
-	// BrowserNone is the string used to suppress the opening of a browser in
-	// response to 'tsh login' commands.
-	BrowserNone = "none"
-)
+// 	// BrowserNone is the string used to suppress the opening of a browser in
+// 	// response to 'tsh login' commands.
+// 	BrowserNone = "none"
+// )
 
 const (
 	// ExecSubCommand is the sub-command Teleport uses to re-exec itself for
