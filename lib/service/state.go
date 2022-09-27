@@ -17,13 +17,10 @@ limitations under the License.
 package service
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
-	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type componentStateEnum byte
@@ -44,14 +41,14 @@ const (
 	stateStarting = componentStateEnum(3)
 )
 
-var stateGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: teleport.MetricState,
-	Help: fmt.Sprintf("State of the teleport process: %d - ok, %d - recovering, %d - degraded, %d - starting", stateOK, stateRecovering, stateDegraded, stateStarting),
-})
+// var stateGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+// 	Name: teleport.MetricState,
+// 	Help: fmt.Sprintf("State of the teleport process: %d - ok, %d - recovering, %d - degraded, %d - starting", stateOK, stateRecovering, stateDegraded, stateStarting),
+// })
 
-func init() {
-	stateGauge.Set(float64(stateStarting))
-}
+// func init() {
+// 	stateGauge.Set(float64(stateStarting))
+// }
 
 // processState tracks the state of the Teleport process.
 type processState struct {
@@ -82,7 +79,7 @@ func newProcessState(process *TeleportProcess) (*processState, error) {
 func (f *processState) update(event Event) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	defer f.updateGauge()
+	// defer f.updateGauge()
 
 	component, ok := event.Payload.(string)
 	if !ok {
@@ -155,10 +152,10 @@ func (f *processState) getStateLocked() componentStateEnum {
 	return state
 }
 
-// Note: f.mu must be locked by the caller!
-func (f *processState) updateGauge() {
-	stateGauge.Set(float64(f.getStateLocked()))
-}
+// // Note: f.mu must be locked by the caller!
+// func (f *processState) updateGauge() {
+// 	stateGauge.Set(float64(f.getStateLocked()))
+// }
 
 // GetState returns the current state of the system.
 func (f *processState) getState() componentStateEnum {

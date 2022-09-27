@@ -85,18 +85,18 @@ func (process *TeleportProcess) WaitForSignals(ctx context.Context) error {
 				process.log.Infof("Got signal %q, exiting immediately.", signal)
 				process.Close()
 				return nil
-			case syscall.SIGUSR1:
-				// All programs placed diagnostics on the standard output.
-				// This had always caused trouble when the output was redirected into a file, but became intolerable
-				// when the output was sent to an unsuspecting process.
-				// Nevertheless, unwilling to violate the simplicity of the standard-input-standard-output model,
-				// people tolerated this state of affairs through v6. Shortly thereafter Dennis Ritchie cut the Gordian
-				// knot by introducing the standard error file.
-				// That was not quite enough. With pipelines diagnostics could come from any of several programs running simultaneously.
-				// Diagnostics needed to identify themselves.
-				// - Doug McIllroy, "A Research UNIX Reader: Annotated Excerpts from the Programmer’s Manual, 1971-1986"
-				process.log.Infof("Got signal %q, logging diagnostic info to stderr.", signal)
-				writeDebugInfo(os.Stderr)
+			// case syscall.SIGUSR1:
+			// 	// All programs placed diagnostics on the standard output.
+			// 	// This had always caused trouble when the output was redirected into a file, but became intolerable
+			// 	// when the output was sent to an unsuspecting process.
+			// 	// Nevertheless, unwilling to violate the simplicity of the standard-input-standard-output model,
+			// 	// people tolerated this state of affairs through v6. Shortly thereafter Dennis Ritchie cut the Gordian
+			// 	// knot by introducing the standard error file.
+			// 	// That was not quite enough. With pipelines diagnostics could come from any of several programs running simultaneously.
+			// 	// Diagnostics needed to identify themselves.
+			// 	// - Doug McIllroy, "A Research UNIX Reader: Annotated Excerpts from the Programmer’s Manual, 1971-1986"
+			// 	process.log.Infof("Got signal %q, logging diagnostic info to stderr.", signal)
+			// 	writeDebugInfo(os.Stderr)
 			case syscall.SIGUSR2:
 				process.log.Infof("Got signal %q, forking a new process.", signal)
 				if err := process.forkChild(); err != nil {
