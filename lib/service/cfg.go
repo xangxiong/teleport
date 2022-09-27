@@ -46,10 +46,10 @@ import (
 	"github.com/gravitational/teleport/lib/srv/app/common"
 	"github.com/gravitational/teleport/lib/sshca"
 	"github.com/gravitational/teleport/lib/utils"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/http/httpguts"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -955,8 +955,8 @@ type App struct {
 	// Rewrite defines a block that is used to rewrite requests and responses.
 	Rewrite *Rewrite
 
-	// AWS contains additional options for AWS applications.
-	AWS *AppAWS `yaml:"aws,omitempty"`
+	// // AWS contains additional options for AWS applications.
+	// AWS *AppAWS `yaml:"aws,omitempty"`
 }
 
 // CheckAndSetDefaults validates an application.
@@ -1100,44 +1100,44 @@ func (t TracingConfig) Config(attrs ...attribute.KeyValue) (*tracing.Config, err
 	return traceConf, nil
 }
 
-// WindowsDesktopConfig specifies the configuration for the Windows Desktop
-// Access service.
-type WindowsDesktopConfig struct {
-	Enabled bool
-	// ListenAddr is the address to listed on for incoming desktop connections.
-	ListenAddr utils.NetAddr
-	// PublicAddrs is a list of advertised public addresses of the service.
-	PublicAddrs []utils.NetAddr
-	// LDAP is the LDAP connection parameters.
-	LDAP LDAPConfig
+// // WindowsDesktopConfig specifies the configuration for the Windows Desktop
+// // Access service.
+// type WindowsDesktopConfig struct {
+// 	Enabled bool
+// 	// ListenAddr is the address to listed on for incoming desktop connections.
+// 	ListenAddr utils.NetAddr
+// 	// PublicAddrs is a list of advertised public addresses of the service.
+// 	PublicAddrs []utils.NetAddr
+// 	// LDAP is the LDAP connection parameters.
+// 	LDAP LDAPConfig
 
-	// Discovery configures automatic desktop discovery via LDAP.
-	Discovery LDAPDiscoveryConfig
+// 	// Discovery configures automatic desktop discovery via LDAP.
+// 	Discovery LDAPDiscoveryConfig
 
-	// Hosts is an optional list of static Windows hosts to expose through this
-	// service.
-	Hosts []utils.NetAddr
-	// ConnLimiter limits the connection and request rates.
-	ConnLimiter limiter.Config
-	// HostLabels specifies rules that are used to apply labels to Windows hosts.
-	HostLabels HostLabelRules
-}
+// 	// Hosts is an optional list of static Windows hosts to expose through this
+// 	// service.
+// 	Hosts []utils.NetAddr
+// 	// ConnLimiter limits the connection and request rates.
+// 	ConnLimiter limiter.Config
+// 	// HostLabels specifies rules that are used to apply labels to Windows hosts.
+// 	HostLabels HostLabelRules
+// }
 
-type LDAPDiscoveryConfig struct {
-	// BaseDN is the base DN to search for desktops.
-	// Use the value '*' to search from the root of the domain,
-	// or leave blank to disable desktop discovery.
-	BaseDN string `yaml:"base_dn"`
-	// Filters are additional LDAP filters to apply to the search.
-	// See: https://ldap.com/ldap-filters/
-	Filters []string `yaml:"filters"`
-	// LabelAttributes are LDAP attributes to apply to hosts discovered
-	// via LDAP. Teleport labels hosts by prefixing the attribute with
-	// "ldap/" - for example, a value of "location" here would result in
-	// discovered desktops having a label with key "ldap/location" and
-	// the value being the value of the "location" attribute.
-	LabelAttributes []string `yaml:"label_attributes"`
-}
+// type LDAPDiscoveryConfig struct {
+// 	// BaseDN is the base DN to search for desktops.
+// 	// Use the value '*' to search from the root of the domain,
+// 	// or leave blank to disable desktop discovery.
+// 	BaseDN string `yaml:"base_dn"`
+// 	// Filters are additional LDAP filters to apply to the search.
+// 	// See: https://ldap.com/ldap-filters/
+// 	Filters []string `yaml:"filters"`
+// 	// LabelAttributes are LDAP attributes to apply to hosts discovered
+// 	// via LDAP. Teleport labels hosts by prefixing the attribute with
+// 	// "ldap/" - for example, a value of "location" here would result in
+// 	// discovered desktops having a label with key "ldap/location" and
+// 	// the value being the value of the "location" attribute.
+// 	LabelAttributes []string `yaml:"label_attributes"`
+// }
 
 // HostLabelRules is a collection of rules describing how to apply labels to hosts.
 type HostLabelRules []HostLabelRule
@@ -1166,19 +1166,19 @@ type HostLabelRule struct {
 	Labels map[string]string
 }
 
-// LDAPConfig is the LDAP connection parameters.
-type LDAPConfig struct {
-	// Addr is the address:port of the LDAP server (typically port 389).
-	Addr string
-	// Domain is the ActiveDirectory domain name.
-	Domain string
-	// Username for LDAP authentication.
-	Username string
-	// InsecureSkipVerify decides whether whether we skip verifying with the LDAP server's CA when making the LDAPS connection.
-	InsecureSkipVerify bool
-	// CA is an optional CA cert to be used for verification if InsecureSkipVerify is set to false.
-	CA *x509.Certificate
-}
+// // LDAPConfig is the LDAP connection parameters.
+// type LDAPConfig struct {
+// 	// Addr is the address:port of the LDAP server (typically port 389).
+// 	Addr string
+// 	// Domain is the ActiveDirectory domain name.
+// 	Domain string
+// 	// Username for LDAP authentication.
+// 	Username string
+// 	// InsecureSkipVerify decides whether whether we skip verifying with the LDAP server's CA when making the LDAPS connection.
+// 	InsecureSkipVerify bool
+// 	// CA is an optional CA cert to be used for verification if InsecureSkipVerify is set to false.
+// 	CA *x509.Certificate
+// }
 
 // Rewrite is a list of rewriting rules to apply to requests and responses.
 type Rewrite struct {
@@ -1228,11 +1228,11 @@ func ParseHeaders(headers []string) (headersOut []Header, err error) {
 	return headersOut, nil
 }
 
-// AppAWS contains additional options for AWS applications.
-type AppAWS struct {
-	// ExternalID is the AWS External ID used when assuming roles in this app.
-	ExternalID string `yaml:"external_id,omitempty"`
-}
+// // AppAWS contains additional options for AWS applications.
+// type AppAWS struct {
+// 	// ExternalID is the AWS External ID used when assuming roles in this app.
+// 	ExternalID string `yaml:"external_id,omitempty"`
+// }
 
 // MakeDefaultConfig creates a new Config structure and populates it with defaults
 func MakeDefaultConfig() (config *Config) {

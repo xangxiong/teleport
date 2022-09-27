@@ -14,54 +14,54 @@
 
 package s3
 
-import (
-	"context"
-	"io"
-	"time"
+// import (
+// 	"context"
+// 	"io"
+// 	"time"
 
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
-)
+// 	"github.com/aws/aws-sdk-go/service/s3"
+// 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+// 	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
+// )
 
-type UploadAPIMetrics struct {
-	s3manageriface.UploaderAPI
-}
+// type UploadAPIMetrics struct {
+// 	s3manageriface.UploaderAPI
+// }
 
-func NewUploadAPIMetrics(api s3manageriface.UploaderAPI) (*UploadAPIMetrics, error) {
-	// if err := utils.RegisterPrometheusCollectors(s3Collectors...); err != nil {
-	// 	return nil, trace.Wrap(err)
-	// }
+// func NewUploadAPIMetrics(api s3manageriface.UploaderAPI) (*UploadAPIMetrics, error) {
+// 	// if err := utils.RegisterPrometheusCollectors(s3Collectors...); err != nil {
+// 	// 	return nil, trace.Wrap(err)
+// 	// }
 
-	return &UploadAPIMetrics{UploaderAPI: api}, nil
-}
+// 	return &UploadAPIMetrics{UploaderAPI: api}, nil
+// }
 
-func (m *UploadAPIMetrics) UploadWithContext(ctx context.Context, input *s3manager.UploadInput, opts ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-	start := time.Now()
-	output, err := m.UploaderAPI.UploadWithContext(ctx, input, opts...)
+// func (m *UploadAPIMetrics) UploadWithContext(ctx context.Context, input *s3manager.UploadInput, opts ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// 	start := time.Now()
+// 	output, err := m.UploaderAPI.UploadWithContext(ctx, input, opts...)
 
-	recordMetrics("upload", err, time.Since(start).Seconds())
+// 	recordMetrics("upload", err, time.Since(start).Seconds())
 
-	return output, err
-}
+// 	return output, err
+// }
 
-type DownloadAPIMetrics struct {
-	s3manageriface.DownloaderAPI
-}
+// type DownloadAPIMetrics struct {
+// 	s3manageriface.DownloaderAPI
+// }
 
-func NewDownloadAPIMetrics(api s3manageriface.DownloaderAPI) (*DownloadAPIMetrics, error) {
-	// if err := utils.RegisterPrometheusCollectors(s3Collectors...); err != nil {
-	// 	return nil, trace.Wrap(err)
-	// }
+// func NewDownloadAPIMetrics(api s3manageriface.DownloaderAPI) (*DownloadAPIMetrics, error) {
+// 	// if err := utils.RegisterPrometheusCollectors(s3Collectors...); err != nil {
+// 	// 	return nil, trace.Wrap(err)
+// 	// }
 
-	return &DownloadAPIMetrics{DownloaderAPI: api}, nil
-}
+// 	return &DownloadAPIMetrics{DownloaderAPI: api}, nil
+// }
 
-func (m *DownloadAPIMetrics) DownloadWithContext(ctx context.Context, w io.WriterAt, input *s3.GetObjectInput, opts ...func(*s3manager.Downloader)) (int64, error) {
-	start := time.Now()
-	n, err := m.DownloaderAPI.DownloadWithContext(ctx, w, input, opts...)
+// func (m *DownloadAPIMetrics) DownloadWithContext(ctx context.Context, w io.WriterAt, input *s3.GetObjectInput, opts ...func(*s3manager.Downloader)) (int64, error) {
+// 	start := time.Now()
+// 	n, err := m.DownloaderAPI.DownloadWithContext(ctx, w, input, opts...)
 
-	recordMetrics("download", err, time.Since(start).Seconds())
+// 	recordMetrics("download", err, time.Since(start).Seconds())
 
-	return n, err
-}
+// 	return n, err
+// }

@@ -3398,31 +3398,31 @@ func (g *GRPCServer) ReplaceRemoteLocks(ctx context.Context, req *proto.ReplaceR
 	return &empty.Empty{}, nil
 }
 
-// CreateApp creates a new application resource.
-func (g *GRPCServer) CreateApp(ctx context.Context, app *types.AppV3) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	app.SetOrigin(types.OriginDynamic)
-	if err := auth.CreateApp(ctx, app); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // CreateApp creates a new application resource.
+// func (g *GRPCServer) CreateApp(ctx context.Context, app *types.AppV3) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	app.SetOrigin(types.OriginDynamic)
+// 	if err := auth.CreateApp(ctx, app); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
-// UpdateApp updates existing application resource.
-func (g *GRPCServer) UpdateApp(ctx context.Context, app *types.AppV3) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	app.SetOrigin(types.OriginDynamic)
-	if err := auth.UpdateApp(ctx, app); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // UpdateApp updates existing application resource.
+// func (g *GRPCServer) UpdateApp(ctx context.Context, app *types.AppV3) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	app.SetOrigin(types.OriginDynamic)
+// 	if err := auth.UpdateApp(ctx, app); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
 // GetApp returns the specified application resource.
 func (g *GRPCServer) GetApp(ctx context.Context, req *types.ResourceRequest) (*types.AppV3, error) {
@@ -3464,29 +3464,29 @@ func (g *GRPCServer) GetApps(ctx context.Context, _ *empty.Empty) (*types.AppV3L
 	}, nil
 }
 
-// DeleteApp removes the specified application resource.
-func (g *GRPCServer) DeleteApp(ctx context.Context, req *types.ResourceRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.DeleteApp(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // DeleteApp removes the specified application resource.
+// func (g *GRPCServer) DeleteApp(ctx context.Context, req *types.ResourceRequest) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err := auth.DeleteApp(ctx, req.Name); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
-// DeleteAllApps removes all application resources.
-func (g *GRPCServer) DeleteAllApps(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.DeleteAllApps(ctx); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // DeleteAllApps removes all application resources.
+// func (g *GRPCServer) DeleteAllApps(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err := auth.DeleteAllApps(ctx); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
 // CreateDatabase creates a new database resource.
 func (g *GRPCServer) CreateDatabase(ctx context.Context, database *types.DatabaseV3) (*empty.Empty, error) {

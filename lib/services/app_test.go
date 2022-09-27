@@ -16,55 +16,55 @@ limitations under the License.
 
 package services
 
-import (
-	"testing"
+// import (
+// 	"testing"
 
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/utils"
+// 	"github.com/gravitational/teleport/api/types"
+// 	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/stretchr/testify/require"
+// )
 
-// TestApplicationUnmarshal verifies an app resource can be unmarshaled.
-func TestApplicationUnmarshal(t *testing.T) {
-	expected, err := types.NewAppV3(types.Metadata{
-		Name:        "test-app",
-		Description: "Test description",
-		Labels:      map[string]string{"env": "dev"},
-	}, types.AppSpecV3{
-		URI: "http://localhost:8080",
-	})
-	require.NoError(t, err)
-	data, err := utils.ToJSON([]byte(appYAML))
-	require.NoError(t, err)
-	actual, err := UnmarshalApp(data)
-	require.NoError(t, err)
-	require.Equal(t, expected, actual)
-}
+// // TestApplicationUnmarshal verifies an app resource can be unmarshaled.
+// func TestApplicationUnmarshal(t *testing.T) {
+// 	expected, err := types.NewAppV3(types.Metadata{
+// 		Name:        "test-app",
+// 		Description: "Test description",
+// 		Labels:      map[string]string{"env": "dev"},
+// 	}, types.AppSpecV3{
+// 		URI: "http://localhost:8080",
+// 	})
+// 	require.NoError(t, err)
+// 	data, err := utils.ToJSON([]byte(appYAML))
+// 	require.NoError(t, err)
+// 	actual, err := UnmarshalApp(data)
+// 	require.NoError(t, err)
+// 	require.Equal(t, expected, actual)
+// }
 
-// TestApplicationMarshal verifies a marshaled app resource can be unmarshaled back.
-func TestApplicationMarshal(t *testing.T) {
-	expected, err := types.NewAppV3(types.Metadata{
-		Name:        "test-app",
-		Description: "Test description",
-		Labels:      map[string]string{"env": "dev"},
-	}, types.AppSpecV3{
-		URI: "http://localhost:8080",
-	})
-	require.NoError(t, err)
-	data, err := MarshalApp(expected)
-	require.NoError(t, err)
-	actual, err := UnmarshalApp(data)
-	require.NoError(t, err)
-	require.Equal(t, expected, actual)
-}
+// // TestApplicationMarshal verifies a marshaled app resource can be unmarshaled back.
+// func TestApplicationMarshal(t *testing.T) {
+// 	expected, err := types.NewAppV3(types.Metadata{
+// 		Name:        "test-app",
+// 		Description: "Test description",
+// 		Labels:      map[string]string{"env": "dev"},
+// 	}, types.AppSpecV3{
+// 		URI: "http://localhost:8080",
+// 	})
+// 	require.NoError(t, err)
+// 	data, err := MarshalApp(expected)
+// 	require.NoError(t, err)
+// 	actual, err := UnmarshalApp(data)
+// 	require.NoError(t, err)
+// 	require.Equal(t, expected, actual)
+// }
 
-var appYAML = `kind: app
-version: v3
-metadata:
-  name: test-app
-  description: "Test description"
-  labels:
-    env: dev
-spec:
-  uri: "http://localhost:8080"`
+// var appYAML = `kind: app
+// version: v3
+// metadata:
+//   name: test-app
+//   description: "Test description"
+//   labels:
+//     env: dev
+// spec:
+//   uri: "http://localhost:8080"`

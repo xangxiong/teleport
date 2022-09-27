@@ -369,15 +369,15 @@ type Cache struct {
 	// regularly called methods.
 	fnCache *utils.FnCache
 
-	trustCache            services.Trust
-	clusterConfigCache    services.ClusterConfiguration
-	provisionerCache      services.Provisioner
-	usersCache            services.UsersService
-	accessCache           services.Access
-	dynamicAccessCache    services.DynamicAccessExt
-	presenceCache         services.Presence
-	restrictionsCache     services.Restrictions
-	appsCache             services.Apps
+	trustCache         services.Trust
+	clusterConfigCache services.ClusterConfiguration
+	provisionerCache   services.Provisioner
+	usersCache         services.UsersService
+	accessCache        services.Access
+	dynamicAccessCache services.DynamicAccessExt
+	presenceCache      services.Presence
+	restrictionsCache  services.Restrictions
+	// appsCache             services.Apps
 	databasesCache        services.Databases
 	appSessionCache       services.AppSession
 	snowflakeSessionCache services.SnowflakeSession
@@ -429,15 +429,15 @@ func (c *Cache) read() (readGuard, error) {
 	c.rw.RLock()
 	if c.ok {
 		return readGuard{
-			trust:            c.trustCache,
-			clusterConfig:    c.clusterConfigCache,
-			provisioner:      c.provisionerCache,
-			users:            c.usersCache,
-			access:           c.accessCache,
-			dynamicAccess:    c.dynamicAccessCache,
-			presence:         c.presenceCache,
-			restrictions:     c.restrictionsCache,
-			apps:             c.appsCache,
+			trust:         c.trustCache,
+			clusterConfig: c.clusterConfigCache,
+			provisioner:   c.provisionerCache,
+			users:         c.usersCache,
+			access:        c.accessCache,
+			dynamicAccess: c.dynamicAccessCache,
+			presence:      c.presenceCache,
+			restrictions:  c.restrictionsCache,
+			// apps:             c.appsCache,
 			databases:        c.databasesCache,
 			appSession:       c.appSessionCache,
 			snowflakeSession: c.snowflakeSessionCache,
@@ -449,15 +449,15 @@ func (c *Cache) read() (readGuard, error) {
 	}
 	c.rw.RUnlock()
 	return readGuard{
-		trust:            c.Config.Trust,
-		clusterConfig:    c.Config.ClusterConfig,
-		provisioner:      c.Config.Provisioner,
-		users:            c.Config.Users,
-		access:           c.Config.Access,
-		dynamicAccess:    c.Config.DynamicAccess,
-		presence:         c.Config.Presence,
-		restrictions:     c.Config.Restrictions,
-		apps:             c.Config.Apps,
+		trust:         c.Config.Trust,
+		clusterConfig: c.Config.ClusterConfig,
+		provisioner:   c.Config.Provisioner,
+		users:         c.Config.Users,
+		access:        c.Config.Access,
+		dynamicAccess: c.Config.DynamicAccess,
+		presence:      c.Config.Presence,
+		restrictions:  c.Config.Restrictions,
+		// apps:             c.Config.Apps,
 		databases:        c.Config.Databases,
 		appSession:       c.Config.AppSession,
 		snowflakeSession: c.Config.SnowflakeSession,
@@ -483,13 +483,13 @@ type readGuard struct {
 	appSession       services.AppSession
 	snowflakeSession services.SnowflakeSession
 	restrictions     services.Restrictions
-	apps             services.Apps
-	databases        services.Databases
-	webSession       types.WebSessionInterface
-	webToken         types.WebTokenInterface
-	windowsDesktops  services.WindowsDesktops
-	release          func()
-	released         bool
+	// apps             services.Apps
+	databases       services.Databases
+	webSession      types.WebSessionInterface
+	webToken        types.WebTokenInterface
+	windowsDesktops services.WindowsDesktops
+	release         func()
+	released        bool
 }
 
 // Release releases the read lock if it is held.  This method
@@ -535,8 +535,8 @@ type Config struct {
 	Presence services.Presence
 	// Restrictions is a restrictions service
 	Restrictions services.Restrictions
-	// Apps is an apps service.
-	Apps services.Apps
+	// // Apps is an apps service.
+	// Apps services.Apps
 	// Databases is a databases service.
 	Databases services.Databases
 	// SnowflakeSession holds Snowflake sessions.
@@ -677,21 +677,21 @@ func New(config Config) (*Cache, error) {
 	}
 
 	cs := &Cache{
-		ctx:                   ctx,
-		cancel:                cancel,
-		Config:                config,
-		generation:            atomic.NewUint64(0),
-		initC:                 make(chan struct{}),
-		fnCache:               fnCache,
-		trustCache:            local.NewCAService(config.Backend),
-		clusterConfigCache:    clusterConfigCache,
-		provisionerCache:      local.NewProvisioningService(config.Backend),
-		usersCache:            local.NewIdentityService(config.Backend),
-		accessCache:           local.NewAccessService(config.Backend),
-		dynamicAccessCache:    local.NewDynamicAccessService(config.Backend),
-		presenceCache:         local.NewPresenceService(config.Backend),
-		restrictionsCache:     local.NewRestrictionsService(config.Backend),
-		appsCache:             local.NewAppService(config.Backend),
+		ctx:                ctx,
+		cancel:             cancel,
+		Config:             config,
+		generation:         atomic.NewUint64(0),
+		initC:              make(chan struct{}),
+		fnCache:            fnCache,
+		trustCache:         local.NewCAService(config.Backend),
+		clusterConfigCache: clusterConfigCache,
+		provisionerCache:   local.NewProvisioningService(config.Backend),
+		usersCache:         local.NewIdentityService(config.Backend),
+		accessCache:        local.NewAccessService(config.Backend),
+		dynamicAccessCache: local.NewDynamicAccessService(config.Backend),
+		// presenceCache:         local.NewPresenceService(config.Backend),
+		restrictionsCache: local.NewRestrictionsService(config.Backend),
+		// appsCache:             local.NewAppService(config.Backend),
 		databasesCache:        local.NewDatabasesService(config.Backend),
 		appSessionCache:       local.NewIdentityService(config.Backend),
 		snowflakeSessionCache: local.NewIdentityService(config.Backend),
@@ -1813,72 +1813,72 @@ func (c *Cache) GetKubeServices(ctx context.Context) ([]types.Server, error) {
 	return rg.presence.GetKubeServices(ctx)
 }
 
-// GetApplicationServers returns all registered application servers.
-func (c *Cache) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetApplicationServers")
-	defer span.End()
+// // GetApplicationServers returns all registered application servers.
+// func (c *Cache) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetApplicationServers")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetApplicationServers(ctx, namespace)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.presence.GetApplicationServers(ctx, namespace)
+// }
 
-// GetApps returns all application resources.
-func (c *Cache) GetApps(ctx context.Context) ([]types.Application, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetApps")
-	defer span.End()
+// // GetApps returns all application resources.
+// func (c *Cache) GetApps(ctx context.Context) ([]types.Application, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetApps")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.apps.GetApps(ctx)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.apps.GetApps(ctx)
+// }
 
-// GetApp returns the specified application resource.
-func (c *Cache) GetApp(ctx context.Context, name string) (types.Application, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetApp")
-	defer span.End()
+// // GetApp returns the specified application resource.
+// func (c *Cache) GetApp(ctx context.Context, name string) (types.Application, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetApp")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.apps.GetApp(ctx, name)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.apps.GetApp(ctx, name)
+// }
 
-// GetAppServers gets all application servers.
-//
-// DELETE IN 9.0. Deprecated, use GetApplicationServers.
-func (c *Cache) GetAppServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.Server, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetAppServers")
-	defer span.End()
+// // GetAppServers gets all application servers.
+// //
+// // DELETE IN 9.0. Deprecated, use GetApplicationServers.
+// func (c *Cache) GetAppServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.Server, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetAppServers")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetAppServers(ctx, namespace, opts...)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.presence.GetAppServers(ctx, namespace, opts...)
+// }
 
-// GetAppSession gets an application web session.
-func (c *Cache) GetAppSession(ctx context.Context, req types.GetAppSessionRequest) (types.WebSession, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetAppSession")
-	defer span.End()
+// // GetAppSession gets an application web session.
+// func (c *Cache) GetAppSession(ctx context.Context, req types.GetAppSessionRequest) (types.WebSession, error) {
+// 	ctx, span := c.Tracer.Start(ctx, "cache/GetAppSession")
+// 	defer span.End()
 
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.appSession.GetAppSession(ctx, req)
-}
+// 	rg, err := c.read()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer rg.Release()
+// 	return rg.appSession.GetAppSession(ctx, req)
+// }
 
 // GetSnowflakeSession gets Snowflake web session.
 func (c *Cache) GetSnowflakeSession(ctx context.Context, req types.GetSnowflakeSessionRequest) (types.WebSession, error) {

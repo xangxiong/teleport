@@ -1737,20 +1737,20 @@ func (process *TeleportProcess) newLocalCacheForNode(clt auth.ClientI, cacheName
 	return auth.NewNodeWrapper(clt, cache), nil
 }
 
-// newLocalCacheForProxy returns new instance of access point configured for a local proxy.
-func (process *TeleportProcess) newLocalCacheForProxy(clt auth.ClientI, cacheName []string) (auth.ProxyAccessPoint, error) {
-	// if caching is disabled, return access point
-	if !process.Config.CachePolicy.Enabled {
-		return clt, nil
-	}
+// // newLocalCacheForProxy returns new instance of access point configured for a local proxy.
+// func (process *TeleportProcess) newLocalCacheForProxy(clt auth.ClientI, cacheName []string) (auth.ProxyAccessPoint, error) {
+// 	// if caching is disabled, return access point
+// 	if !process.Config.CachePolicy.Enabled {
+// 		return clt, nil
+// 	}
 
-	cache, err := process.newLocalCache(clt, cache.ForProxy, cacheName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	cache, err := process.newLocalCache(clt, cache.ForProxy, cacheName)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return auth.NewProxyWrapper(clt, cache), nil
-}
+// 	return auth.NewProxyWrapper(clt, cache), nil
+// }
 
 // // newLocalCacheForRemoteProxy returns new instance of access point configured for a remote proxy.
 // func (process *TeleportProcess) newLocalCacheForRemoteProxy(clt auth.ClientI, cacheName []string) (auth.RemoteProxyAccessPoint, error) {
@@ -3003,11 +3003,11 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	// 	return trace.Wrap(err)
 	// }
 
-	// make a caching auth client for the auth server:
-	accessPoint, err := process.newLocalCacheForProxy(conn.Client, []string{teleport.ComponentProxy})
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	// // make a caching auth client for the auth server:
+	// accessPoint, err := process.newLocalCacheForProxy(conn.Client, []string{teleport.ComponentProxy})
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
 	// clientTLSConfig, err := conn.ClientIdentity.TLSConfig(cfg.CipherSuites)
 	// if err != nil {
@@ -3351,9 +3351,9 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 
 	// Create and register reverse tunnel AgentPool.
 	rcWatcher, err := reversetunnel.NewRemoteClusterTunnelManager(reversetunnel.RemoteClusterTunnelManagerConfig{
-		HostUUID:     conn.ServerIdentity.ID.HostUUID,
-		AuthClient:   conn.Client,
-		AccessPoint:  accessPoint,
+		HostUUID:   conn.ServerIdentity.ID.HostUUID,
+		AuthClient: conn.Client,
+		// AccessPoint:  accessPoint,
 		HostSigner:   conn.ServerIdentity.KeySigner,
 		LocalCluster: clusterName,
 		// KubeDialAddr:        utils.DialAddrFromListenAddr(kubeDialAddr(cfg.Proxy, clusterNetworkConfig.GetProxyListenerMode())),
@@ -3670,7 +3670,7 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	// })
 
 	uploaderCfg := filesessions.UploaderConfig{
-		Streamer: accessPoint,
+		// Streamer: accessPoint,
 		AuditLog: conn.Client,
 	}
 	completerCfg := events.UploadCompleterConfig{

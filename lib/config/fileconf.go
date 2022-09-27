@@ -1233,31 +1233,31 @@ type Database struct {
 	CACertFile string `yaml:"ca_cert_file,omitempty"`
 	// TLS keeps an optional TLS configuration options.
 	TLS DatabaseTLS `yaml:"tls"`
-	// MySQL are additional database options.
-	MySQL DatabaseMySQL `yaml:"mysql"`
+	// // MySQL are additional database options.
+	// MySQL DatabaseMySQL `yaml:"mysql"`
 	// StaticLabels is a map of database static labels.
 	StaticLabels map[string]string `yaml:"static_labels,omitempty"`
 	// DynamicLabels is a list of database dynamic labels.
 	DynamicLabels []CommandLabel `yaml:"dynamic_labels,omitempty"`
-	// AWS contains AWS specific settings for RDS/Aurora/Redshift databases.
-	AWS DatabaseAWS `yaml:"aws"`
-	// GCP contains GCP specific settings for Cloud SQL databases.
-	GCP DatabaseGCP `yaml:"gcp"`
-	// AD contains Active Directory database configuration.
-	AD DatabaseAD `yaml:"ad"`
+	// // AWS contains AWS specific settings for RDS/Aurora/Redshift databases.
+	// AWS DatabaseAWS `yaml:"aws"`
+	// // GCP contains GCP specific settings for Cloud SQL databases.
+	// GCP DatabaseGCP `yaml:"gcp"`
+	// // AD contains Active Directory database configuration.
+	// AD DatabaseAD `yaml:"ad"`
 }
 
-// DatabaseAD contains database Active Directory configuration.
-type DatabaseAD struct {
-	// KeytabFile is the path to the Kerberos keytab file.
-	KeytabFile string `yaml:"keytab_file"`
-	// Krb5File is the path to the Kerberos configuration file. Defaults to /etc/krb5.conf.
-	Krb5File string `yaml:"krb5_file,omitempty"`
-	// Domain is the Active Directory domain the database resides in.
-	Domain string `yaml:"domain"`
-	// SPN is the service principal name for the database.
-	SPN string `yaml:"spn"`
-}
+// // DatabaseAD contains database Active Directory configuration.
+// type DatabaseAD struct {
+// 	// KeytabFile is the path to the Kerberos keytab file.
+// 	KeytabFile string `yaml:"keytab_file"`
+// 	// Krb5File is the path to the Kerberos configuration file. Defaults to /etc/krb5.conf.
+// 	Krb5File string `yaml:"krb5_file,omitempty"`
+// 	// Domain is the Active Directory domain the database resides in.
+// 	Domain string `yaml:"domain"`
+// 	// SPN is the service principal name for the database.
+// 	SPN string `yaml:"spn"`
+// }
 
 // DatabaseTLS keeps TLS settings used when connecting to database.
 type DatabaseTLS struct {
@@ -1271,11 +1271,11 @@ type DatabaseTLS struct {
 	CACertFile string `yaml:"ca_cert_file,omitempty"`
 }
 
-// DatabaseMySQL are an additional MySQL database options.
-type DatabaseMySQL struct {
-	// ServerVersion is the MySQL version reported by DB proxy instead of default Teleport string.
-	ServerVersion string `yaml:"server_version,omitempty"`
-}
+// // DatabaseMySQL are an additional MySQL database options.
+// type DatabaseMySQL struct {
+// 	// ServerVersion is the MySQL version reported by DB proxy instead of default Teleport string.
+// 	ServerVersion string `yaml:"server_version,omitempty"`
+// }
 
 // SecretStore contains settings for managing secrets.
 type SecretStore struct {
@@ -1285,55 +1285,55 @@ type SecretStore struct {
 	KMSKeyID string `yaml:"kms_key_id,omitempty"`
 }
 
-// DatabaseAWS contains AWS specific settings for RDS/Aurora databases.
-type DatabaseAWS struct {
-	// Region is a cloud region for RDS/Aurora database endpoint.
-	Region string `yaml:"region,omitempty"`
-	// Redshift contains Redshift specific settings.
-	Redshift DatabaseAWSRedshift `yaml:"redshift"`
-	// RDS contains RDS specific settings.
-	RDS DatabaseAWSRDS `yaml:"rds"`
-	// ElastiCache contains ElastiCache specific settings.
-	ElastiCache DatabaseAWSElastiCache `yaml:"elasticache"`
-	// SecretStore contains settings for managing secrets.
-	SecretStore SecretStore `yaml:"secret_store"`
-	// MemoryDB contains MemoryDB specific settings.
-	MemoryDB DatabaseAWSMemoryDB `yaml:"memorydb"`
-}
+// // DatabaseAWS contains AWS specific settings for RDS/Aurora databases.
+// type DatabaseAWS struct {
+// 	// Region is a cloud region for RDS/Aurora database endpoint.
+// 	Region string `yaml:"region,omitempty"`
+// 	// Redshift contains Redshift specific settings.
+// 	Redshift DatabaseAWSRedshift `yaml:"redshift"`
+// 	// RDS contains RDS specific settings.
+// 	RDS DatabaseAWSRDS `yaml:"rds"`
+// 	// ElastiCache contains ElastiCache specific settings.
+// 	ElastiCache DatabaseAWSElastiCache `yaml:"elasticache"`
+// 	// SecretStore contains settings for managing secrets.
+// 	SecretStore SecretStore `yaml:"secret_store"`
+// 	// MemoryDB contains MemoryDB specific settings.
+// 	MemoryDB DatabaseAWSMemoryDB `yaml:"memorydb"`
+// }
 
-// DatabaseAWSRedshift contains AWS Redshift specific settings.
-type DatabaseAWSRedshift struct {
-	// ClusterID is the Redshift cluster identifier.
-	ClusterID string `yaml:"cluster_id,omitempty"`
-}
+// // DatabaseAWSRedshift contains AWS Redshift specific settings.
+// type DatabaseAWSRedshift struct {
+// 	// ClusterID is the Redshift cluster identifier.
+// 	ClusterID string `yaml:"cluster_id,omitempty"`
+// }
 
-// DatabaseAWSRDS contains settings for RDS databases.
-type DatabaseAWSRDS struct {
-	// InstanceID is the RDS instance identifier.
-	InstanceID string `yaml:"instance_id,omitempty"`
-	// ClusterID is the RDS cluster (Aurora) identifier.
-	ClusterID string `yaml:"cluster_id,omitempty"`
-}
+// // DatabaseAWSRDS contains settings for RDS databases.
+// type DatabaseAWSRDS struct {
+// 	// InstanceID is the RDS instance identifier.
+// 	InstanceID string `yaml:"instance_id,omitempty"`
+// 	// ClusterID is the RDS cluster (Aurora) identifier.
+// 	ClusterID string `yaml:"cluster_id,omitempty"`
+// }
 
-// DatabaseAWSElastiCache contains settings for ElastiCache databases.
-type DatabaseAWSElastiCache struct {
-	// ReplicationGroupID is the ElastiCache replication group ID.
-	ReplicationGroupID string `yaml:"replication_group_id,omitempty"`
-}
+// // DatabaseAWSElastiCache contains settings for ElastiCache databases.
+// type DatabaseAWSElastiCache struct {
+// 	// ReplicationGroupID is the ElastiCache replication group ID.
+// 	ReplicationGroupID string `yaml:"replication_group_id,omitempty"`
+// }
 
-// DatabaseAWSMemoryDB contains settings for MemoryDB databases.
-type DatabaseAWSMemoryDB struct {
-	// ClusterName is the MemoryDB cluster name.
-	ClusterName string `yaml:"cluster_name,omitempty"`
-}
+// // DatabaseAWSMemoryDB contains settings for MemoryDB databases.
+// type DatabaseAWSMemoryDB struct {
+// 	// ClusterName is the MemoryDB cluster name.
+// 	ClusterName string `yaml:"cluster_name,omitempty"`
+// }
 
-// DatabaseGCP contains GCP specific settings for Cloud SQL databases.
-type DatabaseGCP struct {
-	// ProjectID is the GCP project ID where the database is deployed.
-	ProjectID string `yaml:"project_id,omitempty"`
-	// InstanceID is the Cloud SQL database instance ID.
-	InstanceID string `yaml:"instance_id,omitempty"`
-}
+// // DatabaseGCP contains GCP specific settings for Cloud SQL databases.
+// type DatabaseGCP struct {
+// 	// ProjectID is the GCP project ID where the database is deployed.
+// 	ProjectID string `yaml:"project_id,omitempty"`
+// 	// InstanceID is the Cloud SQL database instance ID.
+// 	InstanceID string `yaml:"instance_id,omitempty"`
+// }
 
 // Apps represents the configuration for the collection of applications this
 // service will start. In file configuration this would be the "app_service"
@@ -1382,8 +1382,8 @@ type App struct {
 	// Rewrite defines a block that is used to rewrite requests and responses.
 	Rewrite *Rewrite `yaml:"rewrite,omitempty"`
 
-	// AWS contains additional options for AWS applications.
-	AWS *AppAWS `yaml:"aws,omitempty"`
+	// // AWS contains additional options for AWS applications.
+	// AWS *AppAWS `yaml:"aws,omitempty"`
 }
 
 // Rewrite is a list of rewriting rules to apply to requests and responses.
@@ -1394,11 +1394,11 @@ type Rewrite struct {
 	Headers []string `yaml:"headers,omitempty"`
 }
 
-// AppAWS contains additional options for AWS applications.
-type AppAWS struct {
-	// ExternalID is the AWS External ID used when assuming roles in this app.
-	ExternalID string `yaml:"external_id,omitempty"`
-}
+// // AppAWS contains additional options for AWS applications.
+// type AppAWS struct {
+// 	// ExternalID is the AWS External ID used when assuming roles in this app.
+// 	ExternalID string `yaml:"external_id,omitempty"`
+// }
 
 // Proxy is a `proxy_service` section of the config file:
 type Proxy struct {
@@ -1419,13 +1419,13 @@ type Proxy struct {
 	// as only admin knows whether service is in front of trusted load balancer
 	// or not.
 	ProxyProtocol string `yaml:"proxy_protocol,omitempty"`
-	// KubeProxy configures kubernetes protocol support of the proxy
-	Kube KubeProxy `yaml:"kubernetes,omitempty"`
+	// // KubeProxy configures kubernetes protocol support of the proxy
+	// Kube KubeProxy `yaml:"kubernetes,omitempty"`
 	// KubeAddr is a shorthand for enabling the Kubernetes endpoint without a
-	// local Kubernetes cluster.
-	KubeAddr string `yaml:"kube_listen_addr,omitempty"`
-	// KubePublicAddr is a public address of the kubernetes endpoint.
-	KubePublicAddr apiutils.Strings `yaml:"kube_public_addr,omitempty"`
+	// // local Kubernetes cluster.
+	// KubeAddr string `yaml:"kube_listen_addr,omitempty"`
+	// // KubePublicAddr is a public address of the kubernetes endpoint.
+	// KubePublicAddr apiutils.Strings `yaml:"kube_public_addr,omitempty"`
 
 	// PublicAddr sets the hostport the proxy advertises for the HTTP endpoint.
 	// The hosts in PublicAddr are included in the list of host principals
@@ -1448,23 +1448,23 @@ type Proxy struct {
 	// ACME configures ACME protocol support
 	ACME ACME `yaml:"acme"`
 
-	// MySQLAddr is MySQL proxy listen address.
-	MySQLAddr string `yaml:"mysql_listen_addr,omitempty"`
-	// MySQLPublicAddr is the hostport the proxy advertises for MySQL
-	// client connections.
-	MySQLPublicAddr apiutils.Strings `yaml:"mysql_public_addr,omitempty"`
+	// // MySQLAddr is MySQL proxy listen address.
+	// MySQLAddr string `yaml:"mysql_listen_addr,omitempty"`
+	// // MySQLPublicAddr is the hostport the proxy advertises for MySQL
+	// // client connections.
+	// MySQLPublicAddr apiutils.Strings `yaml:"mysql_public_addr,omitempty"`
 
-	// PostgresAddr is Postgres proxy listen address.
-	PostgresAddr string `yaml:"postgres_listen_addr,omitempty"`
-	// PostgresPublicAddr is the hostport the proxy advertises for Postgres
-	// client connections.
-	PostgresPublicAddr apiutils.Strings `yaml:"postgres_public_addr,omitempty"`
+	// // PostgresAddr is Postgres proxy listen address.
+	// PostgresAddr string `yaml:"postgres_listen_addr,omitempty"`
+	// // PostgresPublicAddr is the hostport the proxy advertises for Postgres
+	// // client connections.
+	// PostgresPublicAddr apiutils.Strings `yaml:"postgres_public_addr,omitempty"`
 
-	// MongoAddr is Mongo proxy listen address.
-	MongoAddr string `yaml:"mongo_listen_addr,omitempty"`
-	// MongoPublicAddr is the hostport the proxy advertises for Mongo
-	// client connections.
-	MongoPublicAddr apiutils.Strings `yaml:"mongo_public_addr,omitempty"`
+	// // MongoAddr is Mongo proxy listen address.
+	// MongoAddr string `yaml:"mongo_listen_addr,omitempty"`
+	// // MongoPublicAddr is the hostport the proxy advertises for Mongo
+	// // client connections.
+	// MongoPublicAddr apiutils.Strings `yaml:"mongo_public_addr,omitempty"`
 }
 
 // ACME configures ACME protocol - automatic X.509 certificates
@@ -1510,39 +1510,39 @@ type KeyPair struct {
 	Certificate string `yaml:"cert_file"`
 }
 
-// KubeProxy is a `kubernetes` section in `proxy_service`.
-type KubeProxy struct {
-	// Service is a generic service configuration section
-	Service `yaml:",inline"`
-	// PublicAddr is a publicly advertised address of the kubernetes proxy
-	PublicAddr apiutils.Strings `yaml:"public_addr,omitempty"`
-	// KubeconfigFile is an optional path to kubeconfig file,
-	// if specified, teleport will use API server address and
-	// trusted certificate authority information from it
-	KubeconfigFile string `yaml:"kubeconfig_file,omitempty"`
-	// ClusterName is the name of a kubernetes cluster this proxy is running
-	// in. If set, this proxy will handle kubernetes requests for the cluster.
-	ClusterName string `yaml:"cluster_name,omitempty"`
-}
+// // KubeProxy is a `kubernetes` section in `proxy_service`.
+// type KubeProxy struct {
+// 	// Service is a generic service configuration section
+// 	Service `yaml:",inline"`
+// 	// PublicAddr is a publicly advertised address of the kubernetes proxy
+// 	PublicAddr apiutils.Strings `yaml:"public_addr,omitempty"`
+// 	// KubeconfigFile is an optional path to kubeconfig file,
+// 	// if specified, teleport will use API server address and
+// 	// trusted certificate authority information from it
+// 	KubeconfigFile string `yaml:"kubeconfig_file,omitempty"`
+// 	// ClusterName is the name of a kubernetes cluster this proxy is running
+// 	// in. If set, this proxy will handle kubernetes requests for the cluster.
+// 	ClusterName string `yaml:"cluster_name,omitempty"`
+// }
 
-// Kube is a `kubernetes_service`
-type Kube struct {
-	// Service is a generic service configuration section
-	Service `yaml:",inline"`
-	// PublicAddr is a publicly advertised address of the kubernetes service
-	PublicAddr apiutils.Strings `yaml:"public_addr,omitempty"`
-	// KubeconfigFile is an optional path to kubeconfig file,
-	// if specified, teleport will use API server address and
-	// trusted certificate authority information from it
-	KubeconfigFile string `yaml:"kubeconfig_file,omitempty"`
-	// KubeClusterName is the name of a kubernetes cluster this service is
-	// running in. If set, this proxy will handle kubernetes requests for the
-	// cluster.
-	KubeClusterName string `yaml:"kube_cluster_name,omitempty"`
-	// Static and dynamic labels for RBAC on kubernetes clusters.
-	StaticLabels  map[string]string `yaml:"labels,omitempty"`
-	DynamicLabels []CommandLabel    `yaml:"commands,omitempty"`
-}
+// // Kube is a `kubernetes_service`
+// type Kube struct {
+// 	// Service is a generic service configuration section
+// 	Service `yaml:",inline"`
+// 	// PublicAddr is a publicly advertised address of the kubernetes service
+// 	PublicAddr apiutils.Strings `yaml:"public_addr,omitempty"`
+// 	// KubeconfigFile is an optional path to kubeconfig file,
+// 	// if specified, teleport will use API server address and
+// 	// trusted certificate authority information from it
+// 	KubeconfigFile string `yaml:"kubeconfig_file,omitempty"`
+// 	// KubeClusterName is the name of a kubernetes cluster this service is
+// 	// running in. If set, this proxy will handle kubernetes requests for the
+// 	// cluster.
+// 	KubeClusterName string `yaml:"kube_cluster_name,omitempty"`
+// 	// Static and dynamic labels for RBAC on kubernetes clusters.
+// 	StaticLabels  map[string]string `yaml:"labels,omitempty"`
+// 	DynamicLabels []CommandLabel    `yaml:"commands,omitempty"`
+// }
 
 // ReverseTunnel is a SSH reverse tunnel maintained by one cluster's
 // proxy to remote Teleport proxy
@@ -1582,72 +1582,72 @@ type ClaimMapping struct {
 	Roles []string `yaml:"roles,omitempty"`
 }
 
-// Metrics is a `metrics_service` section of the config file:
-type Metrics struct {
-	// Service is a generic service configuration section
-	Service `yaml:",inline"`
+// // Metrics is a `metrics_service` section of the config file:
+// type Metrics struct {
+// 	// Service is a generic service configuration section
+// 	Service `yaml:",inline"`
 
-	// KeyPairs is a list of x509 serving key pairs used for securing the metrics endpoint with mTLS.
-	// mTLS will be enabled for the service if both 'keypairs' and 'ca_certs' fields are set.
-	KeyPairs []KeyPair `yaml:"keypairs,omitempty"`
+// 	// KeyPairs is a list of x509 serving key pairs used for securing the metrics endpoint with mTLS.
+// 	// mTLS will be enabled for the service if both 'keypairs' and 'ca_certs' fields are set.
+// 	KeyPairs []KeyPair `yaml:"keypairs,omitempty"`
 
-	// CACerts is a list of prometheus CA certificates to validate clients against.
-	// mTLS will be enabled for the service if both 'keypairs' and 'ca_certs' fields are set.
-	CACerts []string `yaml:"ca_certs,omitempty"`
+// 	// CACerts is a list of prometheus CA certificates to validate clients against.
+// 	// mTLS will be enabled for the service if both 'keypairs' and 'ca_certs' fields are set.
+// 	CACerts []string `yaml:"ca_certs,omitempty"`
 
-	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
-	GRPCServerLatency bool `yaml:"grpc_server_latency,omitempty"`
+// 	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
+// 	GRPCServerLatency bool `yaml:"grpc_server_latency,omitempty"`
 
-	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
-	GRPCClientLatency bool `yaml:"grpc_client_latency,omitempty"`
-}
+// 	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
+// 	GRPCClientLatency bool `yaml:"grpc_client_latency,omitempty"`
+// }
 
-// MTLSEnabled returns whether mtls is enabled or not in the metrics service config.
-func (m *Metrics) MTLSEnabled() bool {
-	return len(m.KeyPairs) > 0 && len(m.CACerts) > 0
-}
+// // MTLSEnabled returns whether mtls is enabled or not in the metrics service config.
+// func (m *Metrics) MTLSEnabled() bool {
+// 	return len(m.KeyPairs) > 0 && len(m.CACerts) > 0
+// }
 
-// WindowsDesktopService contains configuration for windows_desktop_service.
-type WindowsDesktopService struct {
-	Service `yaml:",inline"`
-	// PublicAddr is a list of advertised public addresses of this service.
-	PublicAddr apiutils.Strings `yaml:"public_addr,omitempty"`
-	// LDAP is the LDAP connection parameters.
-	LDAP LDAPConfig `yaml:"ldap"`
-	// Discovery configures desktop discovery via LDAP.
-	Discovery service.LDAPDiscoveryConfig `yaml:"discovery,omitempty"`
-	// Hosts is a list of static Windows hosts connected to this service in
-	// gateway mode.
-	Hosts []string `yaml:"hosts,omitempty"`
-	// HostLabels optionally applies labels to Windows hosts for RBAC.
-	// A host can match multiple rules and will get a union of all
-	// the matched labels.
-	HostLabels []WindowsHostLabelRule `yaml:"host_labels,omitempty"`
-}
+// // WindowsDesktopService contains configuration for windows_desktop_service.
+// type WindowsDesktopService struct {
+// 	Service `yaml:",inline"`
+// 	// PublicAddr is a list of advertised public addresses of this service.
+// 	PublicAddr apiutils.Strings `yaml:"public_addr,omitempty"`
+// 	// LDAP is the LDAP connection parameters.
+// 	LDAP LDAPConfig `yaml:"ldap"`
+// 	// Discovery configures desktop discovery via LDAP.
+// 	Discovery service.LDAPDiscoveryConfig `yaml:"discovery,omitempty"`
+// 	// Hosts is a list of static Windows hosts connected to this service in
+// 	// gateway mode.
+// 	Hosts []string `yaml:"hosts,omitempty"`
+// 	// HostLabels optionally applies labels to Windows hosts for RBAC.
+// 	// A host can match multiple rules and will get a union of all
+// 	// the matched labels.
+// 	HostLabels []WindowsHostLabelRule `yaml:"host_labels,omitempty"`
+// }
 
-// WindowsHostLabelRule describes how a set of labels should be a applied to
-// a Windows host.
-type WindowsHostLabelRule struct {
-	// Match is a regexp that is checked against the Windows host's DNS name.
-	// If the regexp matches, this rule's labels will be applied to the host.
-	Match string `yaml:"match"`
-	// Labels is the set of labels to apply to hosts that match this rule.
-	Labels map[string]string `yaml:"labels"`
-}
+// // WindowsHostLabelRule describes how a set of labels should be a applied to
+// // a Windows host.
+// type WindowsHostLabelRule struct {
+// 	// Match is a regexp that is checked against the Windows host's DNS name.
+// 	// If the regexp matches, this rule's labels will be applied to the host.
+// 	Match string `yaml:"match"`
+// 	// Labels is the set of labels to apply to hosts that match this rule.
+// 	Labels map[string]string `yaml:"labels"`
+// }
 
-// LDAPConfig is the LDAP connection parameters.
-type LDAPConfig struct {
-	// Addr is the host:port of the LDAP server (typically port 389).
-	Addr string `yaml:"addr"`
-	// Domain is the ActiveDirectory domain name.
-	Domain string `yaml:"domain"`
-	// Username for LDAP authentication.
-	Username string `yaml:"username"`
-	// InsecureSkipVerify decides whether whether we skip verifying with the LDAP server's CA when making the LDAPS connection.
-	InsecureSkipVerify bool `yaml:"insecure_skip_verify"`
-	// DEREncodedCAFile is the filepath to an optional DER encoded CA cert to be used for verification (if InsecureSkipVerify is set to false).
-	DEREncodedCAFile string `yaml:"der_ca_file,omitempty"`
-}
+// // LDAPConfig is the LDAP connection parameters.
+// type LDAPConfig struct {
+// 	// Addr is the host:port of the LDAP server (typically port 389).
+// 	Addr string `yaml:"addr"`
+// 	// Domain is the ActiveDirectory domain name.
+// 	Domain string `yaml:"domain"`
+// 	// Username for LDAP authentication.
+// 	Username string `yaml:"username"`
+// 	// InsecureSkipVerify decides whether whether we skip verifying with the LDAP server's CA when making the LDAPS connection.
+// 	InsecureSkipVerify bool `yaml:"insecure_skip_verify"`
+// 	// DEREncodedCAFile is the filepath to an optional DER encoded CA cert to be used for verification (if InsecureSkipVerify is set to false).
+// 	DEREncodedCAFile string `yaml:"der_ca_file,omitempty"`
+// }
 
 // TracingService contains configuration for the tracing_service.
 type TracingService struct {

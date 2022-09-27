@@ -776,8 +776,8 @@ func databasesToSlice(databases map[string]types.Database) (slice []types.Databa
 type AppWatcherConfig struct {
 	// ResourceWatcherConfig is the resource watcher configuration.
 	ResourceWatcherConfig
-	// AppGetter is responsible for fetching application resources.
-	AppGetter
+	// // AppGetter is responsible for fetching application resources.
+	// AppGetter
 	// AppsC receives up-to-date list of all application resources.
 	AppsC chan types.Apps
 }
@@ -787,114 +787,114 @@ func (cfg *AppWatcherConfig) CheckAndSetDefaults() error {
 	if err := cfg.ResourceWatcherConfig.CheckAndSetDefaults(); err != nil {
 		return trace.Wrap(err)
 	}
-	if cfg.AppGetter == nil {
-		getter, ok := cfg.Client.(AppGetter)
-		if !ok {
-			return trace.BadParameter("missing parameter AppGetter and Client not usable as AppGetter")
-		}
-		cfg.AppGetter = getter
-	}
+	// if cfg.AppGetter == nil {
+	// 	getter, ok := cfg.Client.(AppGetter)
+	// 	if !ok {
+	// 		return trace.BadParameter("missing parameter AppGetter and Client not usable as AppGetter")
+	// 	}
+	// 	cfg.AppGetter = getter
+	// }
 	if cfg.AppsC == nil {
 		cfg.AppsC = make(chan types.Apps)
 	}
 	return nil
 }
 
-// NewAppWatcher returns a new instance of AppWatcher.
-func NewAppWatcher(ctx context.Context, cfg AppWatcherConfig) (*AppWatcher, error) {
-	if err := cfg.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	collector := &appCollector{
-		AppWatcherConfig: cfg,
-	}
-	watcher, err := newResourceWatcher(ctx, collector, cfg.ResourceWatcherConfig)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &AppWatcher{watcher, collector}, nil
-}
+// // NewAppWatcher returns a new instance of AppWatcher.
+// func NewAppWatcher(ctx context.Context, cfg AppWatcherConfig) (*AppWatcher, error) {
+// 	if err := cfg.CheckAndSetDefaults(); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	collector := &appCollector{
+// 		AppWatcherConfig: cfg,
+// 	}
+// 	watcher, err := newResourceWatcher(ctx, collector, cfg.ResourceWatcherConfig)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &AppWatcher{watcher, collector}, nil
+// }
 
-// AppWatcher is built on top of resourceWatcher to monitor application resources.
-type AppWatcher struct {
-	*resourceWatcher
-	*appCollector
-}
+// // AppWatcher is built on top of resourceWatcher to monitor application resources.
+// type AppWatcher struct {
+// 	*resourceWatcher
+// 	*appCollector
+// }
 
-// appCollector accompanies resourceWatcher when monitoring application resources.
-type appCollector struct {
-	// AppWatcherConfig is the watcher configuration.
-	AppWatcherConfig
-	// current holds a map of the currently known application resources.
-	current map[string]types.Application
-	// lock protects the "current" map.
-	lock sync.RWMutex
-}
+// // appCollector accompanies resourceWatcher when monitoring application resources.
+// type appCollector struct {
+// 	// AppWatcherConfig is the watcher configuration.
+// 	AppWatcherConfig
+// 	// current holds a map of the currently known application resources.
+// 	current map[string]types.Application
+// 	// lock protects the "current" map.
+// 	lock sync.RWMutex
+// }
 
-// resourceKind specifies the resource kind to watch.
-func (p *appCollector) resourceKind() string {
-	return types.KindApp
-}
+// // resourceKind specifies the resource kind to watch.
+// func (p *appCollector) resourceKind() string {
+// 	return types.KindApp
+// }
 
-// getResourcesAndUpdateCurrent refreshes the list of current resources.
-func (p *appCollector) getResourcesAndUpdateCurrent(ctx context.Context) error {
-	apps, err := p.AppGetter.GetApps(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	newCurrent := make(map[string]types.Application, len(apps))
-	for _, app := range apps {
-		newCurrent[app.GetName()] = app
-	}
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	p.current = newCurrent
+// // getResourcesAndUpdateCurrent refreshes the list of current resources.
+// func (p *appCollector) getResourcesAndUpdateCurrent(ctx context.Context) error {
+// 	apps, err := p.AppGetter.GetApps(ctx)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	newCurrent := make(map[string]types.Application, len(apps))
+// 	for _, app := range apps {
+// 		newCurrent[app.GetName()] = app
+// 	}
+// 	p.lock.Lock()
+// 	defer p.lock.Unlock()
+// 	p.current = newCurrent
 
-	select {
-	case <-ctx.Done():
-		return trace.Wrap(ctx.Err())
-	case p.AppsC <- apps:
-	}
-	return nil
-}
+// 	select {
+// 	case <-ctx.Done():
+// 		return trace.Wrap(ctx.Err())
+// 	case p.AppsC <- apps:
+// 	}
+// 	return nil
+// }
 
-// processEventAndUpdateCurrent is called when a watcher event is received.
-func (p *appCollector) processEventAndUpdateCurrent(ctx context.Context, event types.Event) {
-	if event.Resource == nil || event.Resource.GetKind() != types.KindApp {
-		p.Log.Warnf("Unexpected event: %v.", event)
-		return
-	}
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	switch event.Type {
-	case types.OpDelete:
-		delete(p.current, event.Resource.GetName())
-		p.AppsC <- appsToSlice(p.current)
+// // processEventAndUpdateCurrent is called when a watcher event is received.
+// func (p *appCollector) processEventAndUpdateCurrent(ctx context.Context, event types.Event) {
+// 	if event.Resource == nil || event.Resource.GetKind() != types.KindApp {
+// 		p.Log.Warnf("Unexpected event: %v.", event)
+// 		return
+// 	}
+// 	p.lock.Lock()
+// 	defer p.lock.Unlock()
+// 	switch event.Type {
+// 	case types.OpDelete:
+// 		delete(p.current, event.Resource.GetName())
+// 		p.AppsC <- appsToSlice(p.current)
 
-		select {
-		case <-ctx.Done():
-		case p.AppsC <- appsToSlice(p.current):
-		}
+// 		select {
+// 		case <-ctx.Done():
+// 		case p.AppsC <- appsToSlice(p.current):
+// 		}
 
-	case types.OpPut:
-		app, ok := event.Resource.(types.Application)
-		if !ok {
-			p.Log.Warnf("Unexpected resource type %T.", event.Resource)
-			return
-		}
-		p.current[app.GetName()] = app
+// 	case types.OpPut:
+// 		app, ok := event.Resource.(types.Application)
+// 		if !ok {
+// 			p.Log.Warnf("Unexpected resource type %T.", event.Resource)
+// 			return
+// 		}
+// 		p.current[app.GetName()] = app
 
-		select {
-		case <-ctx.Done():
-		case p.AppsC <- appsToSlice(p.current):
-		}
-	default:
-		p.Log.Warnf("Unsupported event type %s.", event.Type)
-		return
-	}
-}
+// 		select {
+// 		case <-ctx.Done():
+// 		case p.AppsC <- appsToSlice(p.current):
+// 		}
+// 	default:
+// 		p.Log.Warnf("Unsupported event type %s.", event.Type)
+// 		return
+// 	}
+// }
 
-func (*appCollector) notifyStale() {}
+// func (*appCollector) notifyStale() {}
 
 func appsToSlice(apps map[string]types.Application) (slice []types.Application) {
 	for _, app := range apps {

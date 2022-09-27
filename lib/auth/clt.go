@@ -1675,7 +1675,7 @@ type ClientI interface {
 	services.DynamicAccess
 	services.DynamicAccessOracle
 	services.Restrictions
-	services.Apps
+	// services.Apps
 	services.Databases
 	services.WindowsDesktops
 	WebService

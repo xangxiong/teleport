@@ -29,7 +29,7 @@ type Services interface {
 	DynamicAccessCore
 	Presence
 	Restrictions
-	Apps
+	//Apps
 	Databases
 	AppSession
 	SnowflakeSession

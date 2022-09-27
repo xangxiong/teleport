@@ -1140,41 +1140,41 @@ func (s *PresenceService) DeleteAllDatabaseServers(ctx context.Context, namespac
 	return s.DeleteRange(ctx, startKey, backend.RangeEnd(startKey))
 }
 
-// GetApplicationServers returns all registered application servers.
-func (s *PresenceService) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	if namespace == "" {
-		return nil, trace.BadParameter("missing namespace")
-	}
-	servers, err := s.getApplicationServers(ctx, namespace)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	legacyServers, err := s.getApplicationServersLegacy(ctx, namespace)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return append(servers, legacyServers...), nil
-}
+// // GetApplicationServers returns all registered application servers.
+// func (s *PresenceService) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
+// 	if namespace == "" {
+// 		return nil, trace.BadParameter("missing namespace")
+// 	}
+// 	servers, err := s.getApplicationServers(ctx, namespace)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	legacyServers, err := s.getApplicationServersLegacy(ctx, namespace)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return append(servers, legacyServers...), nil
+// }
 
-func (s *PresenceService) getApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	startKey := backend.Key(appServersPrefix, namespace)
-	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers := make([]types.AppServer, len(result.Items))
-	for i, item := range result.Items {
-		server, err := services.UnmarshalAppServer(
-			item.Value,
-			services.WithResourceID(item.ID),
-			services.WithExpires(item.Expires))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		servers[i] = server
-	}
-	return servers, nil
-}
+// func (s *PresenceService) getApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
+// 	startKey := backend.Key(appServersPrefix, namespace)
+// 	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	servers := make([]types.AppServer, len(result.Items))
+// 	for i, item := range result.Items {
+// 		server, err := services.UnmarshalAppServer(
+// 			item.Value,
+// 			services.WithResourceID(item.ID),
+// 			services.WithExpires(item.Expires))
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		servers[i] = server
+// 	}
+// 	return servers, nil
+// }
 
 // getApplicationServersLegacy fetches legacy application servers that are
 // represented by types.Server and adapts them to the types.AppServer type.
@@ -1196,43 +1196,43 @@ func (s *PresenceService) getApplicationServersLegacy(ctx context.Context, names
 	return servers, nil
 }
 
-// UpsertApplicationServer registers an application server.
-func (s *PresenceService) UpsertApplicationServer(ctx context.Context, server types.AppServer) (*types.KeepAlive, error) {
-	if err := server.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	value, err := services.MarshalAppServer(server)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Since an app server represents a single proxied application, there may
-	// be multiple database servers on a single host, so they are stored under
-	// the following path in the backend:
-	//   /appServers/<namespace>/<host-uuid>/<name>
-	lease, err := s.Put(ctx, backend.Item{
-		Key: backend.Key(appServersPrefix,
-			server.GetNamespace(),
-			server.GetHostID(),
-			server.GetName()),
-		Value:   value,
-		Expires: server.Expiry(),
-		ID:      server.GetResourceID(),
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if server.Expiry().IsZero() {
-		return &types.KeepAlive{}, nil
-	}
-	return &types.KeepAlive{
-		Type:      types.KeepAlive_APP,
-		LeaseID:   lease.ID,
-		Name:      server.GetName(),
-		Namespace: server.GetNamespace(),
-		HostID:    server.GetHostID(),
-		Expires:   server.Expiry(),
-	}, nil
-}
+// // UpsertApplicationServer registers an application server.
+// func (s *PresenceService) UpsertApplicationServer(ctx context.Context, server types.AppServer) (*types.KeepAlive, error) {
+// 	if err := server.CheckAndSetDefaults(); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	value, err := services.MarshalAppServer(server)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	// Since an app server represents a single proxied application, there may
+// 	// be multiple database servers on a single host, so they are stored under
+// 	// the following path in the backend:
+// 	//   /appServers/<namespace>/<host-uuid>/<name>
+// 	lease, err := s.Put(ctx, backend.Item{
+// 		Key: backend.Key(appServersPrefix,
+// 			server.GetNamespace(),
+// 			server.GetHostID(),
+// 			server.GetName()),
+// 		Value:   value,
+// 		Expires: server.Expiry(),
+// 		ID:      server.GetResourceID(),
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if server.Expiry().IsZero() {
+// 		return &types.KeepAlive{}, nil
+// 	}
+// 	return &types.KeepAlive{
+// 		Type:      types.KeepAlive_APP,
+// 		LeaseID:   lease.ID,
+// 		Name:      server.GetName(),
+// 		Namespace: server.GetNamespace(),
+// 		HostID:    server.GetHostID(),
+// 		Expires:   server.Expiry(),
+// 	}, nil
+// }
 
 // DeleteApplicationServer removes specified application server.
 func (s *PresenceService) DeleteApplicationServer(ctx context.Context, namespace, hostID, name string) error {
@@ -1493,9 +1493,9 @@ func (s *PresenceService) listResources(ctx context.Context, req proto.ListResou
 	case types.KindDatabaseServer:
 		keyPrefix = []string{dbServersPrefix, req.Namespace}
 		unmarshalItemFunc = backendItemToDatabaseServer
-	case types.KindAppServer:
-		keyPrefix = []string{appServersPrefix, req.Namespace}
-		unmarshalItemFunc = backendItemToApplicationServer
+	// case types.KindAppServer:
+	// 	keyPrefix = []string{appServersPrefix, req.Namespace}
+	// 	unmarshalItemFunc = backendItemToApplicationServer
 	case types.KindNode:
 		keyPrefix = []string{nodesPrefix, req.Namespace}
 		unmarshalItemFunc = backendItemToServer(types.KindNode)
@@ -1577,17 +1577,17 @@ func (s *PresenceService) listResourcesWithSort(ctx context.Context, req proto.L
 		}
 		resources = servers.AsResources()
 
-	case types.KindAppServer:
-		appservers, err := s.GetApplicationServers(ctx, req.Namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
+	// case types.KindAppServer:
+	// 	appservers, err := s.GetApplicationServers(ctx, req.Namespace)
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
 
-		servers := types.AppServers(appservers)
-		if err := servers.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = servers.AsResources()
+	// 	servers := types.AppServers(appservers)
+	// 	if err := servers.SortByCustom(req.SortBy); err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	resources = servers.AsResources()
 
 	case types.KindDatabaseServer:
 		dbservers, err := s.GetDatabaseServers(ctx, req.Namespace)
@@ -1700,15 +1700,15 @@ func backendItemToDatabaseServer(item backend.Item) (types.ResourceWithLabels, e
 	)
 }
 
-// backendItemToApplicationServer unmarshals `backend.Item` into a
-// `types.AppServer`, returning it as a `types.Resource`.
-func backendItemToApplicationServer(item backend.Item) (types.ResourceWithLabels, error) {
-	return services.UnmarshalAppServer(
-		item.Value,
-		services.WithResourceID(item.ID),
-		services.WithExpires(item.Expires),
-	)
-}
+// // backendItemToApplicationServer unmarshals `backend.Item` into a
+// // `types.AppServer`, returning it as a `types.Resource`.
+// func backendItemToApplicationServer(item backend.Item) (types.ResourceWithLabels, error) {
+// 	return services.UnmarshalAppServer(
+// 		item.Value,
+// 		services.WithResourceID(item.ID),
+// 		services.WithExpires(item.Expires),
+// 	)
+// }
 
 // backendItemToServer returns `backendItemToResourceFunc` to unmarshal a
 // `backend.Item` into a `types.ServerV2` with a specific `kind`, returning it

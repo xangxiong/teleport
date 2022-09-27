@@ -20,67 +20,67 @@ limitations under the License.
 
 package s3sessions
 
-import (
-	"fmt"
-	"os"
-	"testing"
+// import (
+// 	"fmt"
+// 	"os"
+// 	"testing"
 
-	"github.com/gravitational/teleport/lib/events/test"
-	"github.com/gravitational/teleport/lib/utils"
+// 	"github.com/gravitational/teleport/lib/events/test"
+// 	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/stretchr/testify/require"
+// )
 
-func TestMain(m *testing.M) {
-	utils.InitLoggerForTests()
-	os.Exit(m.Run())
-}
+// func TestMain(m *testing.M) {
+// 	utils.InitLoggerForTests()
+// 	os.Exit(m.Run())
+// }
 
-// TestStreams tests various streaming upload scenarios
-func TestStreams(t *testing.T) {
-	handler, err := NewHandler(Config{
-		Region: "us-west-1",
-		Path:   "/test/",
-		Bucket: fmt.Sprintf("teleport-unit-tests"),
-	})
-	require.Nil(t, err)
+// // TestStreams tests various streaming upload scenarios
+// func TestStreams(t *testing.T) {
+// 	handler, err := NewHandler(Config{
+// 		Region: "us-west-1",
+// 		Path:   "/test/",
+// 		Bucket: fmt.Sprintf("teleport-unit-tests"),
+// 	})
+// 	require.Nil(t, err)
 
-	defer handler.Close()
+// 	defer handler.Close()
 
-	// Stream with handler and many parts
-	t.Run("StreamSinglePart", func(t *testing.T) {
-		test.StreamSinglePart(t, handler)
-	})
-	t.Run("UploadDownload", func(t *testing.T) {
-		test.UploadDownload(t, handler)
-	})
-	t.Run("DownloadNotFound", func(t *testing.T) {
-		test.DownloadNotFound(t, handler)
-	})
-}
+// 	// Stream with handler and many parts
+// 	t.Run("StreamSinglePart", func(t *testing.T) {
+// 		test.StreamSinglePart(t, handler)
+// 	})
+// 	t.Run("UploadDownload", func(t *testing.T) {
+// 		test.UploadDownload(t, handler)
+// 	})
+// 	t.Run("DownloadNotFound", func(t *testing.T) {
+// 		test.DownloadNotFound(t, handler)
+// 	})
+// }
 
-func TestACL(t *testing.T) {
-	t.Parallel()
-	baseUrl := "s3://mybucket/path"
-	for _, tc := range []struct {
-		desc, acl string
-		isError   bool
-	}{
-		{"no ACL", "", false},
-		{"correct ACL", "bucket-owner-full-control", false},
-		{"incorrect ACL", "something-else", true},
-	} {
-		t.Run(tc.desc, func(t *testing.T) {
-			url, err := url.Parse(fmt.Sprintf("%s?acl=%s", baseUrl, tc.acl))
-			require.Nil(t, err)
-			conf := Config{}
-			err = conf.SetFromURL(url, "")
-			if tc.isError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tc.acl, conf.ACL)
-			}
-		})
-	}
-}
+// func TestACL(t *testing.T) {
+// 	t.Parallel()
+// 	baseUrl := "s3://mybucket/path"
+// 	for _, tc := range []struct {
+// 		desc, acl string
+// 		isError   bool
+// 	}{
+// 		{"no ACL", "", false},
+// 		{"correct ACL", "bucket-owner-full-control", false},
+// 		{"incorrect ACL", "something-else", true},
+// 	} {
+// 		t.Run(tc.desc, func(t *testing.T) {
+// 			url, err := url.Parse(fmt.Sprintf("%s?acl=%s", baseUrl, tc.acl))
+// 			require.Nil(t, err)
+// 			conf := Config{}
+// 			err = conf.SetFromURL(url, "")
+// 			if tc.isError {
+// 				require.Error(t, err)
+// 			} else {
+// 				require.NoError(t, err)
+// 				require.Equal(t, tc.acl, conf.ACL)
+// 			}
+// 		})
+// 	}
+// }

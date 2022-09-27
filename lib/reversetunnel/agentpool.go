@@ -546,11 +546,11 @@ func (p *AgentPool) getVersion(ctx context.Context) (string, error) {
 // transport creates a new transport instance.
 func (p *AgentPool) transport(ctx context.Context, channel ssh.Channel, requests <-chan *ssh.Request, conn sshutils.Conn) *transport {
 	return &transport{
-		closeContext:        ctx,
-		component:           p.Component,
-		localClusterName:    p.LocalCluster,
-		kubeDialAddr:        p.KubeDialAddr,
-		authClient:          p.Client,
+		closeContext:     ctx,
+		component:        p.Component,
+		localClusterName: p.LocalCluster,
+		kubeDialAddr:     p.KubeDialAddr,
+		// authClient:          p.Client,
 		reverseTunnelServer: p.ReverseTunnelServer,
 		server:              p.Server,
 		emitter:             p.Client,

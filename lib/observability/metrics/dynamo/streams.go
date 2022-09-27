@@ -14,57 +14,57 @@
 
 package dynamo
 
-import (
-	"context"
-	"time"
+// import (
+// 	"context"
+// 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
-	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
-)
+// 	"github.com/aws/aws-sdk-go/aws/request"
+// 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
+// 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
+// )
 
-// StreamsMetricsAPI wraps a dynamodbstreamsiface.DynamoDBStreamsAPI implementation and
-// reports statistics about the dynamo api operations
-type StreamsMetricsAPI struct {
-	dynamodbstreamsiface.DynamoDBStreamsAPI
-	tableType TableType
-}
+// // StreamsMetricsAPI wraps a dynamodbstreamsiface.DynamoDBStreamsAPI implementation and
+// // reports statistics about the dynamo api operations
+// type StreamsMetricsAPI struct {
+// 	dynamodbstreamsiface.DynamoDBStreamsAPI
+// 	tableType TableType
+// }
 
-// NewStreamsMetricsAPI returns a new StreamsMetricsAPI for the provided TableType
-func NewStreamsMetricsAPI(tableType TableType, api dynamodbstreamsiface.DynamoDBStreamsAPI) (*StreamsMetricsAPI, error) {
-	// if err := utils.RegisterPrometheusCollectors(dynamoCollectors...); err != nil {
-	// 	return nil, trace.Wrap(err)
-	// }
+// // NewStreamsMetricsAPI returns a new StreamsMetricsAPI for the provided TableType
+// func NewStreamsMetricsAPI(tableType TableType, api dynamodbstreamsiface.DynamoDBStreamsAPI) (*StreamsMetricsAPI, error) {
+// 	// if err := utils.RegisterPrometheusCollectors(dynamoCollectors...); err != nil {
+// 	// 	return nil, trace.Wrap(err)
+// 	// }
 
-	return &StreamsMetricsAPI{
-		DynamoDBStreamsAPI: api,
-		tableType:          tableType,
-	}, nil
-}
+// 	return &StreamsMetricsAPI{
+// 		DynamoDBStreamsAPI: api,
+// 		tableType:          tableType,
+// 	}, nil
+// }
 
-func (m *StreamsMetricsAPI) DescribeStreamWithContext(ctx context.Context, input *dynamodbstreams.DescribeStreamInput, opts ...request.Option) (*dynamodbstreams.DescribeStreamOutput, error) {
-	start := time.Now()
-	output, err := m.DynamoDBStreamsAPI.DescribeStreamWithContext(ctx, input, opts...)
+// func (m *StreamsMetricsAPI) DescribeStreamWithContext(ctx context.Context, input *dynamodbstreams.DescribeStreamInput, opts ...request.Option) (*dynamodbstreams.DescribeStreamOutput, error) {
+// 	start := time.Now()
+// 	output, err := m.DynamoDBStreamsAPI.DescribeStreamWithContext(ctx, input, opts...)
 
-	recordMetrics(m.tableType, "describe_stream", err, time.Since(start).Seconds())
+// 	recordMetrics(m.tableType, "describe_stream", err, time.Since(start).Seconds())
 
-	return output, err
-}
+// 	return output, err
+// }
 
-func (m *StreamsMetricsAPI) GetShardIteratorWithContext(ctx context.Context, input *dynamodbstreams.GetShardIteratorInput, opts ...request.Option) (*dynamodbstreams.GetShardIteratorOutput, error) {
-	start := time.Now()
-	output, err := m.DynamoDBStreamsAPI.GetShardIteratorWithContext(ctx, input, opts...)
+// func (m *StreamsMetricsAPI) GetShardIteratorWithContext(ctx context.Context, input *dynamodbstreams.GetShardIteratorInput, opts ...request.Option) (*dynamodbstreams.GetShardIteratorOutput, error) {
+// 	start := time.Now()
+// 	output, err := m.DynamoDBStreamsAPI.GetShardIteratorWithContext(ctx, input, opts...)
 
-	recordMetrics(m.tableType, "get_shard_iterator", err, time.Since(start).Seconds())
+// 	recordMetrics(m.tableType, "get_shard_iterator", err, time.Since(start).Seconds())
 
-	return output, err
-}
+// 	return output, err
+// }
 
-func (m *StreamsMetricsAPI) GetRecordsWithContext(ctx context.Context, input *dynamodbstreams.GetRecordsInput, opts ...request.Option) (*dynamodbstreams.GetRecordsOutput, error) {
-	start := time.Now()
-	output, err := m.DynamoDBStreamsAPI.GetRecordsWithContext(ctx, input, opts...)
+// func (m *StreamsMetricsAPI) GetRecordsWithContext(ctx context.Context, input *dynamodbstreams.GetRecordsInput, opts ...request.Option) (*dynamodbstreams.GetRecordsOutput, error) {
+// 	start := time.Now()
+// 	output, err := m.DynamoDBStreamsAPI.GetRecordsWithContext(ctx, input, opts...)
 
-	recordMetrics(m.tableType, "get_records", err, time.Since(start).Seconds())
+// 	recordMetrics(m.tableType, "get_records", err, time.Since(start).Seconds())
 
-	return output, err
-}
+// 	return output, err
+// }

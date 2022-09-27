@@ -124,8 +124,8 @@ func (e *EventsService) NewWatcher(ctx context.Context, watch types.Watch) (type
 			parser = newDatabaseServerParser()
 		case types.KindDatabase:
 			parser = newDatabaseParser()
-		case types.KindApp:
-			parser = newAppParser()
+		// case types.KindApp:
+		// 	parser = newAppParser()
 		case types.KindLock:
 			parser = newLockParser()
 		case types.KindNetworkRestrictions:
@@ -837,12 +837,12 @@ func (p *appServerV3Parser) parse(event backend.Event) (types.Resource, error) {
 				Description: hostID, // Pass host ID via description field for the cache.
 			},
 		}, nil
-	case types.OpPut:
-		return services.UnmarshalAppServer(
-			event.Item.Value,
-			services.WithResourceID(event.Item.ID),
-			services.WithExpires(event.Item.Expires),
-		)
+	// case types.OpPut:
+	// 	return services.UnmarshalAppServer(
+	// 		event.Item.Value,
+	// 		services.WithResourceID(event.Item.ID),
+	// 		services.WithExpires(event.Item.Expires),
+	// 	)
 	default:
 		return nil, trace.BadParameter("event %v is not supported", event.Type)
 	}
@@ -998,29 +998,29 @@ func (p *databaseServerParser) parse(event backend.Event) (types.Resource, error
 	}
 }
 
-func newAppParser() *appParser {
-	return &appParser{
-		baseParser: newBaseParser(backend.Key(appPrefix)),
-	}
-}
+// func newAppParser() *appParser {
+// 	return &appParser{
+// 		baseParser: newBaseParser(backend.Key(appPrefix)),
+// 	}
+// }
 
-type appParser struct {
-	baseParser
-}
+// type appParser struct {
+// 	baseParser
+// }
 
-func (p *appParser) parse(event backend.Event) (types.Resource, error) {
-	switch event.Type {
-	case types.OpDelete:
-		return resourceHeader(event, types.KindApp, types.V3, 0)
-	case types.OpPut:
-		return services.UnmarshalApp(event.Item.Value,
-			services.WithResourceID(event.Item.ID),
-			services.WithExpires(event.Item.Expires),
-		)
-	default:
-		return nil, trace.BadParameter("event %v is not supported", event.Type)
-	}
-}
+// func (p *appParser) parse(event backend.Event) (types.Resource, error) {
+// 	switch event.Type {
+// 	case types.OpDelete:
+// 		return resourceHeader(event, types.KindApp, types.V3, 0)
+// 	case types.OpPut:
+// 		return services.UnmarshalApp(event.Item.Value,
+// 			services.WithResourceID(event.Item.ID),
+// 			services.WithExpires(event.Item.Expires),
+// 		)
+// 	default:
+// 		return nil, trace.BadParameter("event %v is not supported", event.Type)
+// 	}
+// }
 
 func newDatabaseParser() *databaseParser {
 	return &databaseParser{

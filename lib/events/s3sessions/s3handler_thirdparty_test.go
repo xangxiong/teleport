@@ -17,55 +17,55 @@ limitations under the License.
 
 package s3sessions
 
-import (
-	"context"
-	"fmt"
-	"net/http/httptest"
-	"testing"
+// import (
+// 	"context"
+// 	"fmt"
+// 	"net/http/httptest"
+// 	"testing"
 
-	"github.com/gravitational/teleport/lib/events/test"
+// 	"github.com/gravitational/teleport/lib/events/test"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/google/uuid"
-	"github.com/johannesboyne/gofakes3"
-	"github.com/johannesboyne/gofakes3/backend/s3mem"
-	"github.com/stretchr/testify/require"
+// 	"github.com/aws/aws-sdk-go/aws/credentials"
+// 	"github.com/google/uuid"
+// 	"github.com/johannesboyne/gofakes3"
+// 	"github.com/johannesboyne/gofakes3/backend/s3mem"
+// 	"github.com/stretchr/testify/require"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-// TestThirdpartyStreams tests various streaming upload scenarios
-// implemented by third party backends using fake backend
-func TestThirdpartyStreams(t *testing.T) {
-	var timeSource gofakes3.TimeSource
-	backend := s3mem.New(s3mem.WithTimeSource(timeSource))
-	faker := gofakes3.New(backend, gofakes3.WithLogger(gofakes3.GlobalLog()))
-	server := httptest.NewServer(faker.Server())
+// // TestThirdpartyStreams tests various streaming upload scenarios
+// // implemented by third party backends using fake backend
+// func TestThirdpartyStreams(t *testing.T) {
+// 	var timeSource gofakes3.TimeSource
+// 	backend := s3mem.New(s3mem.WithTimeSource(timeSource))
+// 	faker := gofakes3.New(backend, gofakes3.WithLogger(gofakes3.GlobalLog()))
+// 	server := httptest.NewServer(faker.Server())
 
-	handler, err := NewHandler(context.Background(), Config{
-		Credentials:                 credentials.NewStaticCredentials("YOUR-ACCESSKEYID", "YOUR-SECRETACCESSKEY", ""),
-		Region:                      "us-west-1",
-		Path:                        "/test/",
-		Bucket:                      fmt.Sprintf("teleport-test-%v", uuid.New().String()),
-		Endpoint:                    server.URL,
-		DisableServerSideEncryption: true,
-	})
-	require.Nil(t, err)
+// 	handler, err := NewHandler(context.Background(), Config{
+// 		Credentials:                 credentials.NewStaticCredentials("YOUR-ACCESSKEYID", "YOUR-SECRETACCESSKEY", ""),
+// 		Region:                      "us-west-1",
+// 		Path:                        "/test/",
+// 		Bucket:                      fmt.Sprintf("teleport-test-%v", uuid.New().String()),
+// 		Endpoint:                    server.URL,
+// 		DisableServerSideEncryption: true,
+// 	})
+// 	require.Nil(t, err)
 
-	defer func() {
-		if err := handler.deleteBucket(context.Background()); err != nil {
-			t.Fatalf("Failed to delete bucket: %#v", trace.DebugReport(err))
-		}
-	}()
+// 	defer func() {
+// 		if err := handler.deleteBucket(context.Background()); err != nil {
+// 			t.Fatalf("Failed to delete bucket: %#v", trace.DebugReport(err))
+// 		}
+// 	}()
 
-	// Stream with handler and many parts
-	t.Run("StreamManyParts", func(t *testing.T) {
-		test.Stream(t, handler)
-	})
-	t.Run("UploadDownload", func(t *testing.T) {
-		test.UploadDownload(t, handler)
-	})
-	t.Run("DownloadNotFound", func(t *testing.T) {
-		test.DownloadNotFound(t, handler)
-	})
-}
+// 	// Stream with handler and many parts
+// 	t.Run("StreamManyParts", func(t *testing.T) {
+// 		test.Stream(t, handler)
+// 	})
+// 	t.Run("UploadDownload", func(t *testing.T) {
+// 		test.UploadDownload(t, handler)
+// 	})
+// 	t.Run("DownloadNotFound", func(t *testing.T) {
+// 		test.DownloadNotFound(t, handler)
+// 	})
+// }

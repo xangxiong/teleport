@@ -14,51 +14,51 @@
 
 package s3
 
-import (
-	"github.com/prometheus/client_golang/prometheus"
-)
+// import (
+// 	"github.com/prometheus/client_golang/prometheus"
+// )
 
-var (
-	apiRequestsTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "s3_requests_total",
-			Help: "Total number of requests to the S3 API",
-		},
-		[]string{"operation"},
-	)
-	apiRequests = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "s3_requests",
-			Help: "Number of requests to the AS3 API by result",
-		},
-		[]string{"operation", "result"},
-	)
-	apiRequestLatencies = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name: "s3_requests_seconds",
-			Help: "Request latency for the S3 API",
-			// lowest bucket start of upper bound 0.001 sec (1 ms) with factor 2
-			// highest bucket start of 0.001 sec * 2^15 == 32.768 sec
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 16),
-		},
-		[]string{"operation"},
-	)
+// var (
+// 	apiRequestsTotal = prometheus.NewCounterVec(
+// 		prometheus.CounterOpts{
+// 			Name: "s3_requests_total",
+// 			Help: "Total number of requests to the S3 API",
+// 		},
+// 		[]string{"operation"},
+// 	)
+// 	apiRequests = prometheus.NewCounterVec(
+// 		prometheus.CounterOpts{
+// 			Name: "s3_requests",
+// 			Help: "Number of requests to the AS3 API by result",
+// 		},
+// 		[]string{"operation", "result"},
+// 	)
+// 	apiRequestLatencies = prometheus.NewHistogramVec(
+// 		prometheus.HistogramOpts{
+// 			Name: "s3_requests_seconds",
+// 			Help: "Request latency for the S3 API",
+// 			// lowest bucket start of upper bound 0.001 sec (1 ms) with factor 2
+// 			// highest bucket start of 0.001 sec * 2^15 == 32.768 sec
+// 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 16),
+// 		},
+// 		[]string{"operation"},
+// 	)
 
-	s3Collectors = []prometheus.Collector{
-		apiRequestsTotal,
-		apiRequests,
-		apiRequestLatencies,
-	}
-)
+// 	s3Collectors = []prometheus.Collector{
+// 		apiRequestsTotal,
+// 		apiRequests,
+// 		apiRequestLatencies,
+// 	}
+// )
 
-// recordMetrics updates the set of s3 api metrics
-func recordMetrics(operation string, err error, latency float64) {
-	apiRequestLatencies.WithLabelValues(operation).Observe(latency)
-	apiRequestsTotal.WithLabelValues(operation).Inc()
+// // recordMetrics updates the set of s3 api metrics
+// func recordMetrics(operation string, err error, latency float64) {
+// 	apiRequestLatencies.WithLabelValues(operation).Observe(latency)
+// 	apiRequestsTotal.WithLabelValues(operation).Inc()
 
-	result := "success"
-	if err != nil {
-		result = "error"
-	}
-	apiRequests.WithLabelValues(operation, result).Inc()
-}
+// 	result := "success"
+// 	if err != nil {
+// 		result = "error"
+// 	}
+// 	apiRequests.WithLabelValues(operation, result).Inc()
+// }

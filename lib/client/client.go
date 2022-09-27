@@ -86,7 +86,6 @@ type NodeClient struct {
 
 // GetSites returns list of the "sites" (AKA teleport clusters) connected to the proxy
 // Each site is returned as an instance of its auth server
-//
 func (proxy *ProxyClient) GetSites(ctx context.Context) ([]types.Site, error) {
 	ctx, span := proxy.Tracer.Start(
 		ctx,
@@ -860,88 +859,88 @@ func (proxy *ProxyClient) FindAppServersByFiltersForCluster(ctx context.Context,
 	return servers, nil
 }
 
-// CreateAppSession creates a new application access session.
-func (proxy *ProxyClient) CreateAppSession(ctx context.Context, req types.CreateAppSessionRequest) (types.WebSession, error) {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/CreateAppSession",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("username", req.Username),
-			attribute.String("cluster", req.ClusterName),
-		),
-	)
-	defer span.End()
+// // CreateAppSession creates a new application access session.
+// func (proxy *ProxyClient) CreateAppSession(ctx context.Context, req types.CreateAppSessionRequest) (types.WebSession, error) {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/CreateAppSession",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("username", req.Username),
+// 			attribute.String("cluster", req.ClusterName),
+// 		),
+// 	)
+// 	defer span.End()
 
-	clusterName, err := proxy.RootClusterName(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	authClient, err := proxy.ConnectToCluster(ctx, clusterName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	ws, err := authClient.CreateAppSession(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Make sure to wait for the created app session to propagate through the cache.
-	accessPoint, err := proxy.ClusterAccessPoint(ctx, clusterName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = auth.WaitForAppSession(ctx, ws.GetName(), ws.GetUser(), accessPoint)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return ws, nil
-}
+// 	clusterName, err := proxy.RootClusterName(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	authClient, err := proxy.ConnectToCluster(ctx, clusterName)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	ws, err := authClient.CreateAppSession(ctx, req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	// Make sure to wait for the created app session to propagate through the cache.
+// 	accessPoint, err := proxy.ClusterAccessPoint(ctx, clusterName)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	err = auth.WaitForAppSession(ctx, ws.GetName(), ws.GetUser(), accessPoint)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return ws, nil
+// }
 
-// DeleteAppSession removes the specified application access session.
-func (proxy *ProxyClient) DeleteAppSession(ctx context.Context, sessionID string) error {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/DeleteAppSession",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("session", sessionID),
-		),
-	)
-	defer span.End()
+// // DeleteAppSession removes the specified application access session.
+// func (proxy *ProxyClient) DeleteAppSession(ctx context.Context, sessionID string) error {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/DeleteAppSession",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("session", sessionID),
+// 		),
+// 	)
+// 	defer span.End()
 
-	authClient, err := proxy.ConnectToRootCluster(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	err = authClient.DeleteAppSession(ctx, types.DeleteAppSessionRequest{SessionID: sessionID})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
+// 	authClient, err := proxy.ConnectToRootCluster(ctx)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	err = authClient.DeleteAppSession(ctx, types.DeleteAppSessionRequest{SessionID: sessionID})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return nil
+// }
 
-// DeleteUserAppSessions removes user's all application web sessions.
-func (proxy *ProxyClient) DeleteUserAppSessions(ctx context.Context, req *proto.DeleteUserAppSessionsRequest) error {
-	ctx, span := proxy.Tracer.Start(
-		ctx,
-		"proxyClient/DeleteUserAppSessions",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("username", req.Username),
-		),
-	)
-	defer span.End()
+// // DeleteUserAppSessions removes user's all application web sessions.
+// func (proxy *ProxyClient) DeleteUserAppSessions(ctx context.Context, req *proto.DeleteUserAppSessionsRequest) error {
+// 	ctx, span := proxy.Tracer.Start(
+// 		ctx,
+// 		"proxyClient/DeleteUserAppSessions",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("username", req.Username),
+// 		),
+// 	)
+// 	defer span.End()
 
-	authClient, err := proxy.ConnectToRootCluster(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	err = authClient.DeleteUserAppSessions(ctx, req)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
+// 	authClient, err := proxy.ConnectToRootCluster(ctx)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	err = authClient.DeleteUserAppSessions(ctx, req)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return nil
+// }
 
 // FindDatabaseServersByFilters returns registered database proxy servers that match the provided filter.
 func (proxy *ProxyClient) FindDatabaseServersByFilters(ctx context.Context, req proto.ListResourcesRequest) ([]types.DatabaseServer, error) {

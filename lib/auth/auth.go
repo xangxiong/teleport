@@ -71,7 +71,6 @@ import (
 	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/modules"
-	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
 	"github.com/gravitational/teleport/lib/session"
@@ -104,9 +103,9 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Trust == nil {
 		cfg.Trust = local.NewCAService(cfg.Backend)
 	}
-	if cfg.Presence == nil {
-		cfg.Presence = local.NewPresenceService(cfg.Backend)
-	}
+	// if cfg.Presence == nil {
+	// 	cfg.Presence = local.NewPresenceService(cfg.Backend)
+	// }
 	if cfg.Provisioner == nil {
 		cfg.Provisioner = local.NewProvisioningService(cfg.Backend)
 	}
@@ -129,9 +128,9 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Restrictions == nil {
 		cfg.Restrictions = local.NewRestrictionsService(cfg.Backend)
 	}
-	if cfg.Apps == nil {
-		cfg.Apps = local.NewAppService(cfg.Backend)
-	}
+	// if cfg.Apps == nil {
+	// 	cfg.Apps = local.NewAppService(cfg.Backend)
+	// }
 	if cfg.Databases == nil {
 		cfg.Databases = local.NewDatabasesService(cfg.Backend)
 	}
@@ -172,9 +171,9 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.KeyStoreConfig.HostUUID == "" {
 		cfg.KeyStoreConfig.HostUUID = cfg.HostUUID
 	}
-	if cfg.TraceClient == nil {
-		cfg.TraceClient = tracing.NewNoopClient()
-	}
+	// if cfg.TraceClient == nil {
+	// 	cfg.TraceClient = tracing.NewNoopClient()
+	// }
 
 	limiter, err := limiter.NewConnectionsLimiter(limiter.Config{
 		MaxConnections: defaults.LimiterMaxConcurrentSignatures,
@@ -189,15 +188,15 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	}
 
 	services := &Services{
-		Trust:                 cfg.Trust,
-		Presence:              cfg.Presence,
-		Provisioner:           cfg.Provisioner,
-		Identity:              cfg.Identity,
-		Access:                cfg.Access,
-		DynamicAccessExt:      cfg.DynamicAccessExt,
-		ClusterConfiguration:  cfg.ClusterConfiguration,
-		Restrictions:          cfg.Restrictions,
-		Apps:                  cfg.Apps,
+		Trust:                cfg.Trust,
+		Presence:             cfg.Presence,
+		Provisioner:          cfg.Provisioner,
+		Identity:             cfg.Identity,
+		Access:               cfg.Access,
+		DynamicAccessExt:     cfg.DynamicAccessExt,
+		ClusterConfiguration: cfg.ClusterConfiguration,
+		Restrictions:         cfg.Restrictions,
+		// Apps:                  cfg.Apps,
 		Databases:             cfg.Databases,
 		IAuditLog:             cfg.AuditLog,
 		Events:                cfg.Events,
@@ -223,8 +222,8 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		streamer:        cfg.Streamer,
 		unstable:        local.NewUnstableService(cfg.Backend, cfg.AssertionReplayService),
 		Services:        services,
-		Cache:           services,
-		keyStore:        keyStore,
+		// Cache:           services,
+		keyStore: keyStore,
 		// getClaimsFun:    getClaims,
 		inventory:   inventory.NewController(cfg.Presence),
 		traceClient: cfg.TraceClient,
@@ -250,7 +249,7 @@ type Services struct {
 	services.DynamicAccessExt
 	services.ClusterConfiguration
 	services.Restrictions
-	services.Apps
+	// services.Apps
 	services.Databases
 	services.WindowsDesktops
 	services.SessionTrackerService
@@ -2238,9 +2237,9 @@ func (a *Server) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequ
 
 	// get the certificate authority that will be signing the public key of the host,
 	client := a.Cache
-	if req.NoCache {
-		client = a.Services
-	}
+	// if req.NoCache {
+	// 	client = a.Services
+	// }
 	ca, err := client.GetCertAuthority(ctx, types.CertAuthID{
 		Type:       types.HostCA,
 		DomainName: clusterName.GetClusterName(),
@@ -2981,77 +2980,77 @@ func (a *Server) modeStreamer(ctx context.Context) (events.Streamer, error) {
 	return a.streamer, nil
 }
 
-// CreateApp creates a new application resource.
-func (a *Server) CreateApp(ctx context.Context, app types.Application) error {
-	if err := a.Services.CreateApp(ctx, app); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AppCreate{
-		Metadata: apievents.Metadata{
-			Type: events.AppCreateEvent,
-			Code: events.AppCreateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    app.GetName(),
-			Expires: app.Expiry(),
-		},
-		AppMetadata: apievents.AppMetadata{
-			AppURI:        app.GetURI(),
-			AppPublicAddr: app.GetPublicAddr(),
-			AppLabels:     app.GetStaticLabels(),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit app create event.")
-	}
-	return nil
-}
+// // CreateApp creates a new application resource.
+// func (a *Server) CreateApp(ctx context.Context, app types.Application) error {
+// 	if err := a.Services.CreateApp(ctx, app); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AppCreate{
+// 		Metadata: apievents.Metadata{
+// 			Type: events.AppCreateEvent,
+// 			Code: events.AppCreateCode,
+// 		},
+// 		UserMetadata: ClientUserMetadata(ctx),
+// 		ResourceMetadata: apievents.ResourceMetadata{
+// 			Name:    app.GetName(),
+// 			Expires: app.Expiry(),
+// 		},
+// 		AppMetadata: apievents.AppMetadata{
+// 			AppURI:        app.GetURI(),
+// 			AppPublicAddr: app.GetPublicAddr(),
+// 			AppLabels:     app.GetStaticLabels(),
+// 		},
+// 	}); err != nil {
+// 		log.WithError(err).Warn("Failed to emit app create event.")
+// 	}
+// 	return nil
+// }
 
-// UpdateApp updates an existing application resource.
-func (a *Server) UpdateApp(ctx context.Context, app types.Application) error {
-	if err := a.Services.UpdateApp(ctx, app); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AppUpdate{
-		Metadata: apievents.Metadata{
-			Type: events.AppUpdateEvent,
-			Code: events.AppUpdateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    app.GetName(),
-			Expires: app.Expiry(),
-		},
-		AppMetadata: apievents.AppMetadata{
-			AppURI:        app.GetURI(),
-			AppPublicAddr: app.GetPublicAddr(),
-			AppLabels:     app.GetStaticLabels(),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit app update event.")
-	}
-	return nil
-}
+// // UpdateApp updates an existing application resource.
+// func (a *Server) UpdateApp(ctx context.Context, app types.Application) error {
+// 	if err := a.Services.UpdateApp(ctx, app); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AppUpdate{
+// 		Metadata: apievents.Metadata{
+// 			Type: events.AppUpdateEvent,
+// 			Code: events.AppUpdateCode,
+// 		},
+// 		UserMetadata: ClientUserMetadata(ctx),
+// 		ResourceMetadata: apievents.ResourceMetadata{
+// 			Name:    app.GetName(),
+// 			Expires: app.Expiry(),
+// 		},
+// 		AppMetadata: apievents.AppMetadata{
+// 			AppURI:        app.GetURI(),
+// 			AppPublicAddr: app.GetPublicAddr(),
+// 			AppLabels:     app.GetStaticLabels(),
+// 		},
+// 	}); err != nil {
+// 		log.WithError(err).Warn("Failed to emit app update event.")
+// 	}
+// 	return nil
+// }
 
-// DeleteApp deletes an application resource.
-func (a *Server) DeleteApp(ctx context.Context, name string) error {
-	if err := a.Services.DeleteApp(ctx, name); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AppDelete{
-		Metadata: apievents.Metadata{
-			Type: events.AppDeleteEvent,
-			Code: events.AppDeleteCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: name,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit app delete event.")
-	}
-	return nil
-}
+// // DeleteApp deletes an application resource.
+// func (a *Server) DeleteApp(ctx context.Context, name string) error {
+// 	if err := a.Services.DeleteApp(ctx, name); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AppDelete{
+// 		Metadata: apievents.Metadata{
+// 			Type: events.AppDeleteEvent,
+// 			Code: events.AppDeleteCode,
+// 		},
+// 		UserMetadata: ClientUserMetadata(ctx),
+// 		ResourceMetadata: apievents.ResourceMetadata{
+// 			Name: name,
+// 		},
+// 	}); err != nil {
+// 		log.WithError(err).Warn("Failed to emit app delete event.")
+// 	}
+// 	return nil
+// }
 
 // CreateSessionTracker creates a tracker resource for an active session.
 func (a *Server) CreateSessionTracker(ctx context.Context, tracker types.SessionTracker) (types.SessionTracker, error) {
