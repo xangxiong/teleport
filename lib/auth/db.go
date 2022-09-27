@@ -27,7 +27,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client/proto"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
@@ -161,7 +160,8 @@ func (s *Server) SignDatabaseCSR(ctx context.Context, req *proto.DatabaseCSRRequ
 
 	// Update "accepted usage" field to indicate that the certificate can
 	// only be used for database proxy server and re-encode the identity.
-	id.Usage = []string{teleport.UsageDatabaseOnly}
+	//id.Usage = []string{teleport.UsageDatabaseOnly}
+	id.Usage = []string{}
 	subject, err := id.Subject()
 	if err != nil {
 		return nil, trace.Wrap(err)

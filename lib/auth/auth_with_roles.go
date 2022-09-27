@@ -2533,20 +2533,20 @@ func (a *ServerWithRoles) generateUserCerts(ctx context.Context, req proto.UserC
 		certReq.impersonator = a.context.Identity.GetIdentity().Impersonator
 	}
 	switch req.Usage {
-	case proto.UserCertsRequest_Database:
-		certReq.usage = []string{teleport.UsageDatabaseOnly}
-	case proto.UserCertsRequest_App:
-		certReq.usage = []string{teleport.UsageAppsOnly}
-	case proto.UserCertsRequest_Kubernetes:
-		certReq.usage = []string{teleport.UsageKubeOnly}
+	// case proto.UserCertsRequest_Database:
+	// 	certReq.usage = []string{teleport.UsageDatabaseOnly}
+	// case proto.UserCertsRequest_App:
+	// 	certReq.usage = []string{teleport.UsageAppsOnly}
+	// case proto.UserCertsRequest_Kubernetes:
+	// 	certReq.usage = []string{teleport.UsageKubeOnly}
 	case proto.UserCertsRequest_SSH:
 		// SSH certs are ssh-only by definition, certReq.usage only applies to
 		// TLS certs.
 	case proto.UserCertsRequest_All:
 		// Unrestricted usage.
-	case proto.UserCertsRequest_WindowsDesktop:
-		// Desktop certs.
-		certReq.usage = []string{teleport.UsageWindowsDesktopOnly}
+	// case proto.UserCertsRequest_WindowsDesktop:
+	// 	// Desktop certs.
+	// 	certReq.usage = []string{teleport.UsageWindowsDesktopOnly}
 	default:
 		return nil, trace.BadParameter("unsupported cert usage %q", req.Usage)
 	}

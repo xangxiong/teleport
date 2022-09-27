@@ -20,7 +20,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/jwt"
@@ -72,7 +71,8 @@ func (s *Server) CreateAppSession(ctx context.Context, req types.CreateAppSessio
 		traits:         traits,
 		activeRequests: services.RequestIDs{AccessRequests: identity.ActiveRequests},
 		// Only allow this certificate to be used for applications.
-		usage: []string{teleport.UsageAppsOnly},
+		//usage: []string{teleport.UsageAppsOnly},
+		usage: []string{},
 		// Add in the application routing information.
 		appSessionID:   uuid.New().String(),
 		appPublicAddr:  req.PublicAddr,

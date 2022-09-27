@@ -326,37 +326,37 @@ const (
 	// Off means mode is off
 	Off = "off"
 
-	// SchemeS3 is S3 file scheme, means upload or download to S3 like object
-	// storage
-	SchemeS3 = "s3"
+	// // SchemeS3 is S3 file scheme, means upload or download to S3 like object
+	// // storage
+	// SchemeS3 = "s3"
 
-	// SchemeGCS is GCS file scheme, means upload or download to GCS like object
-	// storage
-	SchemeGCS = "gs"
+	// // SchemeGCS is GCS file scheme, means upload or download to GCS like object
+	// // storage
+	// SchemeGCS = "gs"
 
-	// GCSTestURI turns on GCS tests
-	GCSTestURI = "TEST_GCS_URI"
+	// // GCSTestURI turns on GCS tests
+	// GCSTestURI = "TEST_GCS_URI"
 
-	// AWSRunTests turns on tests executed against AWS directly
-	AWSRunTests = "TEST_AWS"
+	// // AWSRunTests turns on tests executed against AWS directly
+	// AWSRunTests = "TEST_AWS"
 
-	// Region is AWS region parameter
-	Region = "region"
+	// // Region is AWS region parameter
+	// Region = "region"
 
-	// Endpoint is an optional Host for non-AWS S3
-	Endpoint = "endpoint"
+	// // Endpoint is an optional Host for non-AWS S3
+	// Endpoint = "endpoint"
 
 	// Insecure is an optional switch to use HTTP instead of HTTPS
 	Insecure = "insecure"
 
-	// DisableServerSideEncryption is an optional switch to opt out of SSE in case the provider does not support it
-	DisableServerSideEncryption = "disablesse"
+	// // DisableServerSideEncryption is an optional switch to opt out of SSE in case the provider does not support it
+	// DisableServerSideEncryption = "disablesse"
 
-	// ACL is the canned ACL to send to S3
-	ACL = "acl"
+	// // ACL is the canned ACL to send to S3
+	// ACL = "acl"
 
-	// SSEKMSKey is an optional switch to use an KMS CMK key for S3 SSE.
-	SSEKMSKey = "sse_kms_key"
+	// // SSEKMSKey is an optional switch to use an KMS CMK key for S3 SSE.
+	// SSEKMSKey = "sse_kms_key"
 
 	// SchemeFile is a local disk file storage
 	SchemeFile = "file"
@@ -393,17 +393,17 @@ const (
 	HOTP = OTPType("hotp")
 )
 
-const (
-	// These values are from https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+// const (
+// 	// These values are from https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
 
-	// OIDCPromptSelectAccount instructs the Authorization Server to
-	// prompt the End-User to select a user account.
-	OIDCPromptSelectAccount = "select_account"
+// 	// OIDCPromptSelectAccount instructs the Authorization Server to
+// 	// prompt the End-User to select a user account.
+// 	OIDCPromptSelectAccount = "select_account"
 
-	// OIDCAccessTypeOnline indicates that OIDC flow should be performed
-	// with Authorization server and user connected online
-	OIDCAccessTypeOnline = "online"
-)
+// 	// OIDCAccessTypeOnline indicates that OIDC flow should be performed
+// 	// with Authorization server and user connected online
+// 	OIDCAccessTypeOnline = "online"
+// )
 
 // Component generates "component:subcomponent1:subcomponent2" strings used
 // in debugging
@@ -467,15 +467,15 @@ const (
 // for `tctl sso configure oidc` and `tctl sso configure saml` commands
 // as well as docs at https://goteleport.com/docs/enterprise/sso/#provider-specific-workarounds
 const (
-	// NetIQ is an identity provider.
-	NetIQ = "netiq"
-	// ADFS is Microsoft Active Directory Federation Services
-	ADFS = "adfs"
+	// // NetIQ is an identity provider.
+	// NetIQ = "netiq"
+	// // ADFS is Microsoft Active Directory Federation Services
+	// ADFS = "adfs"
 	// Ping is the common backend for all Ping Identity-branded identity
 	// providers (including PingOne, PingFederate, etc).
 	Ping = "ping"
-	// Okta should be used for Okta OIDC providers.
-	Okta = "okta"
+	// // Okta should be used for Okta OIDC providers.
+	// Okta = "okta"
 	// JumpCloud is an identity provider.
 	JumpCloud = "jumpcloud"
 )
@@ -650,40 +650,40 @@ const (
 	SSHSessionJoinPrincipal = "-teleport-internal-join"
 )
 
-const (
-	// EnvKubeConfig is environment variable for kubeconfig
-	EnvKubeConfig = "KUBECONFIG"
+// const (
+// 	// EnvKubeConfig is environment variable for kubeconfig
+// 	EnvKubeConfig = "KUBECONFIG"
 
-	// KubeConfigDir is a default directory where k8s stores its user local config
-	KubeConfigDir = ".kube"
+// 	// KubeConfigDir is a default directory where k8s stores its user local config
+// 	KubeConfigDir = ".kube"
 
-	// KubeConfigFile is a default filename where k8s stores its user local config
-	KubeConfigFile = "config"
+// 	// KubeConfigFile is a default filename where k8s stores its user local config
+// 	KubeConfigFile = "config"
 
-	// KubeRunTests turns on kubernetes tests
-	KubeRunTests = "TEST_KUBE"
+// 	// KubeRunTests turns on kubernetes tests
+// 	KubeRunTests = "TEST_KUBE"
 
-	// KubeSystemAuthenticated is a builtin group that allows
-	// any user to access common API methods, e.g. discovery methods
-	// required for initial client usage
-	KubeSystemAuthenticated = "system:authenticated"
+// 	// KubeSystemAuthenticated is a builtin group that allows
+// 	// any user to access common API methods, e.g. discovery methods
+// 	// required for initial client usage
+// 	KubeSystemAuthenticated = "system:authenticated"
 
-	// UsageKubeOnly specifies certificate usage metadata
-	// that limits certificate to be only used for kubernetes proxying
-	UsageKubeOnly = "usage:kube"
+// 	// UsageKubeOnly specifies certificate usage metadata
+// 	// that limits certificate to be only used for kubernetes proxying
+// 	UsageKubeOnly = "usage:kube"
 
-	// UsageAppOnly specifies a certificate metadata that only allows it to be
-	// used for proxying applications.
-	UsageAppsOnly = "usage:apps"
+// 	// UsageAppOnly specifies a certificate metadata that only allows it to be
+// 	// used for proxying applications.
+// 	UsageAppsOnly = "usage:apps"
 
-	// UsageDatabaseOnly specifies certificate usage metadata that only allows
-	// it to be used for proxying database connections.
-	UsageDatabaseOnly = "usage:db"
+// 	// UsageDatabaseOnly specifies certificate usage metadata that only allows
+// 	// it to be used for proxying database connections.
+// 	UsageDatabaseOnly = "usage:db"
 
-	// UsageWindowsDesktopOnly specifies certificate usage metadata that limits
-	// certificate to be only used for Windows desktop access
-	UsageWindowsDesktopOnly = "usage:windows_desktop"
-)
+// 	// UsageWindowsDesktopOnly specifies certificate usage metadata that limits
+// 	// certificate to be only used for Windows desktop access
+// 	UsageWindowsDesktopOnly = "usage:windows_desktop"
+// )
 
 const (
 	// NodeIsAmbiguous serves as an identifying error string indicating that

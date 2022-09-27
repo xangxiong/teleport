@@ -1009,7 +1009,8 @@ func (a *Server) GenerateUserAppTestCert(req AppTestCertRequest) ([]byte, error)
 			constants.TraitLogins: {uuid.New().String()},
 		}),
 		// Only allow this certificate to be used for applications.
-		usage: []string{teleport.UsageAppsOnly},
+		// usage: []string{teleport.UsageAppsOnly},
+		usage: []string{},
 		// Add in the application routing information.
 		appSessionID:   sessionID,
 		appPublicAddr:  req.PublicAddr,
