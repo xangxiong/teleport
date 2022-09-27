@@ -16,50 +16,50 @@ limitations under the License.
 
 package postgres
 
-import (
-	"fmt"
-	"net"
-	"net/url"
-	"strconv"
-	"strings"
+// import (
+// 	"fmt"
+// 	"net"
+// 	"net/url"
+// 	"strconv"
+// 	"strings"
 
-	"github.com/gravitational/teleport/lib/client/db/profile"
-)
+// 	"github.com/gravitational/teleport/lib/client/db/profile"
+// )
 
-// GetConnString returns formatted Postgres connection string for the profile.
-func GetConnString(c *profile.ConnectProfile, noTLS bool, printFormat bool) string {
-	connStr := "postgres://"
-	if c.User != "" {
-		// Username may contain special characters in which case it should
-		// be percent-encoded. For example, when connecting to a Postgres
-		// instance on GCP user looks like "name@project-id.iam".
-		connStr += url.QueryEscape(c.User) + "@"
-	}
-	connStr += net.JoinHostPort(c.Host, strconv.Itoa(c.Port))
-	if c.Database != "" {
-		connStr += "/" + c.Database
-	}
-	if noTLS {
-		return connStr
-	}
-	params := []string{
-		fmt.Sprintf("sslrootcert=%v", c.CACertPath),
-		fmt.Sprintf("sslcert=%v", c.CertPath),
-		fmt.Sprintf("sslkey=%v", c.KeyPath),
-	}
-	if c.Insecure {
-		params = append(params,
-			fmt.Sprintf("sslmode=%v", SSLModeVerifyCA))
-	} else {
-		params = append(params,
-			fmt.Sprintf("sslmode=%v", SSLModeVerifyFull))
-	}
-	connStr = fmt.Sprintf("%v?%v", connStr, strings.Join(params, "&"))
+// // GetConnString returns formatted Postgres connection string for the profile.
+// func GetConnString(c *profile.ConnectProfile, noTLS bool, printFormat bool) string {
+// 	connStr := "postgres://"
+// 	if c.User != "" {
+// 		// Username may contain special characters in which case it should
+// 		// be percent-encoded. For example, when connecting to a Postgres
+// 		// instance on GCP user looks like "name@project-id.iam".
+// 		connStr += url.QueryEscape(c.User) + "@"
+// 	}
+// 	connStr += net.JoinHostPort(c.Host, strconv.Itoa(c.Port))
+// 	if c.Database != "" {
+// 		connStr += "/" + c.Database
+// 	}
+// 	if noTLS {
+// 		return connStr
+// 	}
+// 	params := []string{
+// 		fmt.Sprintf("sslrootcert=%v", c.CACertPath),
+// 		fmt.Sprintf("sslcert=%v", c.CertPath),
+// 		fmt.Sprintf("sslkey=%v", c.KeyPath),
+// 	}
+// 	if c.Insecure {
+// 		params = append(params,
+// 			fmt.Sprintf("sslmode=%v", SSLModeVerifyCA))
+// 	} else {
+// 		params = append(params,
+// 			fmt.Sprintf("sslmode=%v", SSLModeVerifyFull))
+// 	}
+// 	connStr = fmt.Sprintf("%v?%v", connStr, strings.Join(params, "&"))
 
-	// The printed connection string may get copy-pasted for execution. Add
-	// quotes to avoid "&" getting interpreted by terminals.
-	if printFormat {
-		connStr = fmt.Sprintf(`"%s"`, connStr)
-	}
-	return connStr
-}
+// 	// The printed connection string may get copy-pasted for execution. Add
+// 	// quotes to avoid "&" getting interpreted by terminals.
+// 	if printFormat {
+// 		connStr = fmt.Sprintf(`"%s"`, connStr)
+// 	}
+// 	return connStr
+// }

@@ -16,47 +16,47 @@ limitations under the License.
 
 package mysql
 
-import (
-	"path/filepath"
-	"testing"
+// import (
+// 	"path/filepath"
+// 	"testing"
 
-	"github.com/gravitational/teleport/lib/client/db/profile"
+// 	"github.com/gravitational/teleport/lib/client/db/profile"
 
-	"github.com/gravitational/trace"
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/gravitational/trace"
+// 	"github.com/stretchr/testify/require"
+// )
 
-func TestOptionFile(t *testing.T) {
-	path := filepath.Join(t.TempDir(), mysqlOptionFile)
+// func TestOptionFile(t *testing.T) {
+// 	path := filepath.Join(t.TempDir(), mysqlOptionFile)
 
-	optionFile, err := LoadFromPath(path)
-	require.NoError(t, err)
+// 	optionFile, err := LoadFromPath(path)
+// 	require.NoError(t, err)
 
-	profile := profile.ConnectProfile{
-		Name:       "test",
-		Host:       "localhost",
-		Port:       3036,
-		User:       "root",
-		Database:   "mysql",
-		Insecure:   false,
-		CACertPath: "ca.pem",
-		CertPath:   "cert.pem",
-		KeyPath:    "key.pem",
-	}
+// 	profile := profile.ConnectProfile{
+// 		Name:       "test",
+// 		Host:       "localhost",
+// 		Port:       3036,
+// 		User:       "root",
+// 		Database:   "mysql",
+// 		Insecure:   false,
+// 		CACertPath: "ca.pem",
+// 		CertPath:   "cert.pem",
+// 		KeyPath:    "key.pem",
+// 	}
 
-	err = optionFile.Upsert(profile)
-	require.NoError(t, err)
+// 	err = optionFile.Upsert(profile)
+// 	require.NoError(t, err)
 
-	env, err := optionFile.Env(profile.Name)
-	require.NoError(t, err)
-	require.Equal(t, map[string]string{
-		"MYSQL_GROUP_SUFFIX": "_test",
-	}, env)
+// 	env, err := optionFile.Env(profile.Name)
+// 	require.NoError(t, err)
+// 	require.Equal(t, map[string]string{
+// 		"MYSQL_GROUP_SUFFIX": "_test",
+// 	}, env)
 
-	err = optionFile.Delete(profile.Name)
-	require.NoError(t, err)
+// 	err = optionFile.Delete(profile.Name)
+// 	require.NoError(t, err)
 
-	_, err = optionFile.Env(profile.Name)
-	require.Error(t, err)
-	require.IsType(t, trace.NotFound(""), err)
-}
+// 	_, err = optionFile.Env(profile.Name)
+// 	require.Error(t, err)
+// 	require.IsType(t, trace.NotFound(""), err)
+// }
