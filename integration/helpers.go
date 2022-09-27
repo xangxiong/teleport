@@ -29,7 +29,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime/debug"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -50,7 +49,6 @@ import (
 	"github.com/gravitational/teleport/lib/client/identityfile"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/reversetunnel"
 	"github.com/gravitational/teleport/lib/service"
 	"github.com/gravitational/teleport/lib/services"
@@ -785,120 +783,120 @@ func (i *TeleInstance) startNode(tconf *service.Config, authPort string) (*servi
 	return process, nil
 }
 
-func (i *TeleInstance) StartApp(conf *service.Config) (*service.TeleportProcess, error) {
-	dataDir, err := os.MkdirTemp("", "cluster-"+i.Secrets.SiteName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	i.tempDirs = append(i.tempDirs, dataDir)
+// func (i *TeleInstance) StartApp(conf *service.Config) (*service.TeleportProcess, error) {
+// 	dataDir, err := os.MkdirTemp("", "cluster-"+i.Secrets.SiteName)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	i.tempDirs = append(i.tempDirs, dataDir)
 
-	conf.DataDir = dataDir
-	conf.AuthServers = []utils.NetAddr{
-		{
-			AddrNetwork: "tcp",
-			Addr:        net.JoinHostPort(Loopback, i.GetPortWeb()),
-		},
-	}
-	conf.SetToken("token")
-	conf.UploadEventsC = i.UploadEventsC
-	conf.Auth.Enabled = false
-	conf.Proxy.Enabled = false
+// 	conf.DataDir = dataDir
+// 	conf.AuthServers = []utils.NetAddr{
+// 		{
+// 			AddrNetwork: "tcp",
+// 			Addr:        net.JoinHostPort(Loopback, i.GetPortWeb()),
+// 		},
+// 	}
+// 	conf.SetToken("token")
+// 	conf.UploadEventsC = i.UploadEventsC
+// 	conf.Auth.Enabled = false
+// 	conf.Proxy.Enabled = false
 
-	// Create a new Teleport process and add it to the list of nodes that
-	// compose this "cluster".
-	process, err := service.NewTeleport(conf, service.WithIMDSClient(&disabledIMDSClient{}))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	i.Nodes = append(i.Nodes, process)
+// 	// Create a new Teleport process and add it to the list of nodes that
+// 	// compose this "cluster".
+// 	process, err := service.NewTeleport(conf, service.WithIMDSClient(&disabledIMDSClient{}))
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	i.Nodes = append(i.Nodes, process)
 
-	// Build a list of expected events to wait for before unblocking based off
-	// the configuration passed in.
-	expectedEvents := []string{
-		//service.AppsReady,
-	}
+// 	// Build a list of expected events to wait for before unblocking based off
+// 	// the configuration passed in.
+// 	expectedEvents := []string{
+// 		//service.AppsReady,
+// 	}
 
-	// Start the process and block until the expected events have arrived.
-	receivedEvents, err := startAndWait(process, expectedEvents)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	// Start the process and block until the expected events have arrived.
+// 	receivedEvents, err := startAndWait(process, expectedEvents)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	log.Debugf("Teleport Application Server (in instance %v) started: %v/%v events received.",
-		i.Secrets.SiteName, len(expectedEvents), len(receivedEvents))
-	return process, nil
-}
+// 	log.Debugf("Teleport Application Server (in instance %v) started: %v/%v events received.",
+// 		i.Secrets.SiteName, len(expectedEvents), len(receivedEvents))
+// 	return process, nil
+// }
 
-func (i *TeleInstance) StartApps(configs []*service.Config) ([]*service.TeleportProcess, error) {
-	type result struct {
-		process *service.TeleportProcess
-		tmpDir  string
-		err     error
-	}
+// func (i *TeleInstance) StartApps(configs []*service.Config) ([]*service.TeleportProcess, error) {
+// 	type result struct {
+// 		process *service.TeleportProcess
+// 		tmpDir  string
+// 		err     error
+// 	}
 
-	results := make(chan result, len(configs))
-	for _, conf := range configs {
-		go func(cfg *service.Config) {
-			dataDir, err := os.MkdirTemp("", "cluster-"+i.Secrets.SiteName)
-			if err != nil {
-				results <- result{err: err}
-			}
+// 	results := make(chan result, len(configs))
+// 	for _, conf := range configs {
+// 		go func(cfg *service.Config) {
+// 			dataDir, err := os.MkdirTemp("", "cluster-"+i.Secrets.SiteName)
+// 			if err != nil {
+// 				results <- result{err: err}
+// 			}
 
-			cfg.DataDir = dataDir
-			cfg.AuthServers = []utils.NetAddr{
-				{
-					AddrNetwork: "tcp",
-					Addr:        net.JoinHostPort(Loopback, i.GetPortWeb()),
-				},
-			}
-			cfg.SetToken("token")
-			cfg.UploadEventsC = i.UploadEventsC
-			cfg.Auth.Enabled = false
-			cfg.Proxy.Enabled = false
+// 			cfg.DataDir = dataDir
+// 			cfg.AuthServers = []utils.NetAddr{
+// 				{
+// 					AddrNetwork: "tcp",
+// 					Addr:        net.JoinHostPort(Loopback, i.GetPortWeb()),
+// 				},
+// 			}
+// 			cfg.SetToken("token")
+// 			cfg.UploadEventsC = i.UploadEventsC
+// 			cfg.Auth.Enabled = false
+// 			cfg.Proxy.Enabled = false
 
-			// Create a new Teleport process and add it to the list of nodes that
-			// compose this "cluster".
-			process, err := service.NewTeleport(cfg, service.WithIMDSClient(&disabledIMDSClient{}))
-			if err != nil {
-				results <- result{err: err, tmpDir: dataDir}
-			}
+// 			// Create a new Teleport process and add it to the list of nodes that
+// 			// compose this "cluster".
+// 			process, err := service.NewTeleport(cfg, service.WithIMDSClient(&disabledIMDSClient{}))
+// 			if err != nil {
+// 				results <- result{err: err, tmpDir: dataDir}
+// 			}
 
-			// Build a list of expected events to wait for before unblocking based off
-			// the configuration passed in.
-			expectedEvents := []string{
-				//service.AppsReady,
-			}
+// 			// Build a list of expected events to wait for before unblocking based off
+// 			// the configuration passed in.
+// 			expectedEvents := []string{
+// 				//service.AppsReady,
+// 			}
 
-			// Start the process and block until the expected events have arrived.
-			receivedEvents, err := startAndWait(process, expectedEvents)
-			if err != nil {
-				results <- result{err: err, tmpDir: dataDir}
-			}
+// 			// Start the process and block until the expected events have arrived.
+// 			receivedEvents, err := startAndWait(process, expectedEvents)
+// 			if err != nil {
+// 				results <- result{err: err, tmpDir: dataDir}
+// 			}
 
-			log.Debugf("Teleport Application Server (in instance %v) started: %v/%v events received.",
-				i.Secrets.SiteName, len(expectedEvents), len(receivedEvents))
+// 			log.Debugf("Teleport Application Server (in instance %v) started: %v/%v events received.",
+// 				i.Secrets.SiteName, len(expectedEvents), len(receivedEvents))
 
-			results <- result{err: err, tmpDir: dataDir, process: process}
-		}(conf)
-	}
+// 			results <- result{err: err, tmpDir: dataDir, process: process}
+// 		}(conf)
+// 	}
 
-	processes := make([]*service.TeleportProcess, 0, len(configs))
-	for j := 0; j < len(configs); j++ {
-		result := <-results
-		if result.tmpDir != "" {
-			i.tempDirs = append(i.tempDirs, result.tmpDir)
-		}
+// 	processes := make([]*service.TeleportProcess, 0, len(configs))
+// 	for j := 0; j < len(configs); j++ {
+// 		result := <-results
+// 		if result.tmpDir != "" {
+// 			i.tempDirs = append(i.tempDirs, result.tmpDir)
+// 		}
 
-		if result.err != nil {
-			return nil, trace.Wrap(result.err)
-		}
+// 		if result.err != nil {
+// 			return nil, trace.Wrap(result.err)
+// 		}
 
-		i.Nodes = append(i.Nodes, result.process)
-		processes = append(processes, result.process)
-	}
+// 		i.Nodes = append(i.Nodes, result.process)
+// 		processes = append(processes, result.process)
+// 	}
 
-	return processes, nil
-}
+// 	return processes, nil
+// }
 
 // StartDatabase starts the database access service with the provided config.
 // func (i *TeleInstance) StartDatabase(conf *service.Config) (*service.TeleportProcess, *auth.Client, error) {
@@ -1288,144 +1286,144 @@ func (i *TeleInstance) Start() error {
 	return nil
 }
 
-// ClientConfig is a client configuration
-type ClientConfig struct {
-	// Login is SSH login name
-	Login string
-	// Cluster is a cluster name to connect to
-	Cluster string
-	// Host string is a target host to connect to
-	Host string
-	// Port is a target port to connect to
-	Port int
-	// Proxy is an optional alternative proxy to use
-	Proxy *ProxyConfig
-	// ForwardAgent controls if the client requests it's agent be forwarded to
-	// the server.
-	ForwardAgent bool
-	// JumpHost turns on jump host mode
-	JumpHost bool
-	// Labels represents host labels
-	Labels map[string]string
-	// Interactive launches with the terminal attached if true
-	Interactive bool
-	// Source IP to used in generated SSH cert
-	SourceIP string
-	// EnableEscapeSequences will scan Stdin for SSH escape sequences during command/shell execution.
-	EnableEscapeSequences bool
-}
+// // ClientConfig is a client configuration
+// type ClientConfig struct {
+// 	// Login is SSH login name
+// 	Login string
+// 	// Cluster is a cluster name to connect to
+// 	Cluster string
+// 	// Host string is a target host to connect to
+// 	Host string
+// 	// Port is a target port to connect to
+// 	Port int
+// 	// Proxy is an optional alternative proxy to use
+// 	Proxy *ProxyConfig
+// 	// ForwardAgent controls if the client requests it's agent be forwarded to
+// 	// the server.
+// 	ForwardAgent bool
+// 	// JumpHost turns on jump host mode
+// 	JumpHost bool
+// 	// Labels represents host labels
+// 	Labels map[string]string
+// 	// Interactive launches with the terminal attached if true
+// 	Interactive bool
+// 	// Source IP to used in generated SSH cert
+// 	SourceIP string
+// 	// EnableEscapeSequences will scan Stdin for SSH escape sequences during command/shell execution.
+// 	EnableEscapeSequences bool
+// }
 
-// NewClientWithCreds creates client with credentials
-func (i *TeleInstance) NewClientWithCreds(cfg ClientConfig, creds UserCreds) (tc *client.TeleportClient, err error) {
-	clt, err := i.NewUnauthenticatedClient(cfg)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = SetupUserCreds(clt, i.Config.Proxy.SSHAddr.Addr, creds)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return clt, nil
-}
+// // NewClientWithCreds creates client with credentials
+// func (i *TeleInstance) NewClientWithCreds(cfg ClientConfig, creds UserCreds) (tc *client.TeleportClient, err error) {
+// 	clt, err := i.NewUnauthenticatedClient(cfg)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	err = SetupUserCreds(clt, i.Config.Proxy.SSHAddr.Addr, creds)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return clt, nil
+// }
 
-// NewUnauthenticatedClient returns a fully configured and pre-authenticated client
-// (pre-authenticated with server CAs and signed session key)
-func (i *TeleInstance) NewUnauthenticatedClient(cfg ClientConfig) (tc *client.TeleportClient, err error) {
-	keyDir, err := os.MkdirTemp(i.Config.DataDir, "tsh")
-	if err != nil {
-		return nil, err
-	}
+// // NewUnauthenticatedClient returns a fully configured and pre-authenticated client
+// // (pre-authenticated with server CAs and signed session key)
+// func (i *TeleInstance) NewUnauthenticatedClient(cfg ClientConfig) (tc *client.TeleportClient, err error) {
+// 	keyDir, err := os.MkdirTemp(i.Config.DataDir, "tsh")
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	proxyConf := &i.Config.Proxy
-	var proxyHost string
-	if !proxyConf.SSHAddr.IsEmpty() {
-		proxyHost, _, err = net.SplitHostPort(proxyConf.SSHAddr.Addr)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
+// 	proxyConf := &i.Config.Proxy
+// 	var proxyHost string
+// 	if !proxyConf.SSHAddr.IsEmpty() {
+// 		proxyHost, _, err = net.SplitHostPort(proxyConf.SSHAddr.Addr)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 	}
 
-	var webProxyAddr string
-	var sshProxyAddr string
+// 	var webProxyAddr string
+// 	var sshProxyAddr string
 
-	if cfg.Proxy == nil {
-		webProxyAddr = i.GetWebAddr()
-		sshProxyAddr = i.GetProxyAddr()
-	} else {
-		webProxyAddr = net.JoinHostPort(proxyHost, strconv.Itoa(cfg.Proxy.WebPort))
-		sshProxyAddr = net.JoinHostPort(proxyHost, strconv.Itoa(cfg.Proxy.SSHPort))
-	}
+// 	if cfg.Proxy == nil {
+// 		webProxyAddr = i.GetWebAddr()
+// 		sshProxyAddr = i.GetProxyAddr()
+// 	} else {
+// 		webProxyAddr = net.JoinHostPort(proxyHost, strconv.Itoa(cfg.Proxy.WebPort))
+// 		sshProxyAddr = net.JoinHostPort(proxyHost, strconv.Itoa(cfg.Proxy.SSHPort))
+// 	}
 
-	fwdAgentMode := client.ForwardAgentNo
-	if cfg.ForwardAgent {
-		fwdAgentMode = client.ForwardAgentYes
-	}
+// 	fwdAgentMode := client.ForwardAgentNo
+// 	if cfg.ForwardAgent {
+// 		fwdAgentMode = client.ForwardAgentYes
+// 	}
 
-	cconf := &client.Config{
-		Username:              cfg.Login,
-		Host:                  cfg.Host,
-		HostPort:              cfg.Port,
-		HostLogin:             cfg.Login,
-		InsecureSkipVerify:    true,
-		KeysDir:               keyDir,
-		SiteName:              cfg.Cluster,
-		ForwardAgent:          fwdAgentMode,
-		Labels:                cfg.Labels,
-		WebProxyAddr:          webProxyAddr,
-		SSHProxyAddr:          sshProxyAddr,
-		Interactive:           cfg.Interactive,
-		TLSRoutingEnabled:     i.isSinglePortSetup,
-		Tracer:                tracing.NoopProvider().Tracer("test"),
-		EnableEscapeSequences: cfg.EnableEscapeSequences,
-	}
+// 	cconf := &client.Config{
+// 		Username:              cfg.Login,
+// 		Host:                  cfg.Host,
+// 		HostPort:              cfg.Port,
+// 		HostLogin:             cfg.Login,
+// 		InsecureSkipVerify:    true,
+// 		KeysDir:               keyDir,
+// 		SiteName:              cfg.Cluster,
+// 		ForwardAgent:          fwdAgentMode,
+// 		Labels:                cfg.Labels,
+// 		WebProxyAddr:          webProxyAddr,
+// 		SSHProxyAddr:          sshProxyAddr,
+// 		Interactive:           cfg.Interactive,
+// 		TLSRoutingEnabled:     i.isSinglePortSetup,
+// 		Tracer:                tracing.NoopProvider().Tracer("test"),
+// 		EnableEscapeSequences: cfg.EnableEscapeSequences,
+// 	}
 
-	// JumpHost turns on jump host mode
-	if cfg.JumpHost {
-		cconf.JumpHosts = []utils.JumpHost{{
-			Username: cfg.Login,
-			Addr:     *utils.MustParseAddr(sshProxyAddr),
-		}}
-	}
+// 	// JumpHost turns on jump host mode
+// 	if cfg.JumpHost {
+// 		cconf.JumpHosts = []utils.JumpHost{{
+// 			Username: cfg.Login,
+// 			Addr:     *utils.MustParseAddr(sshProxyAddr),
+// 		}}
+// 	}
 
-	return client.NewClient(cconf)
-}
+// 	return client.NewClient(cconf)
+// }
 
-// NewClient returns a fully configured and pre-authenticated client
-// (pre-authenticated with server CAs and signed session key).
-func (i *TeleInstance) NewClient(cfg ClientConfig) (*client.TeleportClient, error) {
-	tc, err := i.NewUnauthenticatedClient(cfg)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // NewClient returns a fully configured and pre-authenticated client
+// // (pre-authenticated with server CAs and signed session key).
+// func (i *TeleInstance) NewClient(cfg ClientConfig) (*client.TeleportClient, error) {
+// 	tc, err := i.NewUnauthenticatedClient(cfg)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	// Generate certificates for the user simulating login.
-	creds, err := GenerateUserCreds(UserCredsRequest{
-		Process:  i.Process,
-		Username: cfg.Login,
-		SourceIP: cfg.SourceIP,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	// Generate certificates for the user simulating login.
+// 	creds, err := GenerateUserCreds(UserCredsRequest{
+// 		Process:  i.Process,
+// 		Username: cfg.Login,
+// 		SourceIP: cfg.SourceIP,
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	// Add key to client and update CAs that will be trusted (equivalent to
-	// updating "known hosts" with OpenSSH.
-	err = tc.AddKey(&creds.Key)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	cas, err := i.Secrets.GetCAs()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	for _, ca := range cas {
-		err = tc.AddTrustedCA(context.Background(), ca)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return tc, nil
-}
+// 	// Add key to client and update CAs that will be trusted (equivalent to
+// 	// updating "known hosts" with OpenSSH.
+// 	err = tc.AddKey(&creds.Key)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	cas, err := i.Secrets.GetCAs()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	for _, ca := range cas {
+// 		err = tc.AddTrustedCA(context.Background(), ca)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 	}
+// 	return tc, nil
+// }
 
 // StopProxy loops over the extra nodes in a TeleInstance and stops all
 // nodes where the proxy server is enabled.
