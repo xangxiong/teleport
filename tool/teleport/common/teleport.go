@@ -82,10 +82,13 @@ func Run(options Options) (app *kingpin.Application, executedCommand string, con
 		BoolVar(&ccf.Debug)
 	start.Flag("insecure-no-tls", "Disable TLS for the web socket").
 		BoolVar(&ccf.DisableTLS)
-	start.Flag("roles",
-		fmt.Sprintf("Comma-separated list of roles to start with [%s]", strings.Join(defaults.StartRoles, ","))).
-		Short('r').
-		StringVar(&ccf.Roles)
+
+	// XXIONG: we will hard-code to node only
+	ccf.Roles = "node"
+	// start.Flag("roles",
+	// 	fmt.Sprintf("Comma-separated list of roles to start with [%s]", strings.Join(defaults.StartRoles, ","))).
+	// 	Short('r').
+	// 	StringVar(&ccf.Roles)
 	start.Flag("pid-file",
 		"Full path to the PID file. By default no PID file will be created").StringVar(&ccf.PIDFile)
 	start.Flag("advertise-ip",

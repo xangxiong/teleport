@@ -36,7 +36,6 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib"
 	"github.com/gravitational/teleport/lib/backend/memory"
 	"github.com/gravitational/teleport/lib/client"
@@ -48,7 +47,6 @@ import (
 	"github.com/gravitational/teleport/lib/utils"
 
 	log "github.com/sirupsen/logrus"
-	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 // // CommandLineFlags stores command line flag values, it's a much simplified subset
@@ -66,14 +64,14 @@ type CommandLineFlags struct {
 	ListenIP net.IP
 	// --advertise-ip flag
 	AdvertiseIP string
-	// --config flag
-	ConfigFile string
-	// Bootstrap flag contains a YAML file that defines a set of resources to bootstrap
-	// a cluster.
-	BootstrapFile string
-	// ConfigString is a base64 encoded configuration string
-	// set by --config-string or TELEPORT_CONFIG environment variable
-	ConfigString string
+	// // --config flag
+	// ConfigFile string
+	// // Bootstrap flag contains a YAML file that defines a set of resources to bootstrap
+	// // a cluster.
+	// BootstrapFile string
+	// // ConfigString is a base64 encoded configuration string
+	// // set by --config-string or TELEPORT_CONFIG environment variable
+	// ConfigString string
 	// --roles flag
 	Roles string
 	// -d flag
@@ -105,48 +103,48 @@ type CommandLineFlags struct {
 	// have an earlier major version number.
 	SkipVersionCheck bool
 
-	// AppName is the name of the application to proxy.
-	AppName string
+	// // AppName is the name of the application to proxy.
+	// AppName string
 
-	// AppURI is the internal address of the application to proxy.
-	AppURI string
+	// // AppURI is the internal address of the application to proxy.
+	// AppURI string
 
-	// AppPublicAddr is the public address of the application to proxy.
-	AppPublicAddr string
+	// // AppPublicAddr is the public address of the application to proxy.
+	// AppPublicAddr string
 
-	// DatabaseName is the name of the database to proxy.
-	DatabaseName string
-	// DatabaseDescription is a free-form database description.
-	DatabaseDescription string
-	// DatabaseProtocol is the type of the proxied database e.g. postgres or mysql.
-	DatabaseProtocol string
-	// DatabaseURI is the address to connect to the proxied database.
-	DatabaseURI string
-	// DatabaseCACertFile is the database CA cert path.
-	DatabaseCACertFile string
-	// DatabaseAWSRegion is an optional database cloud region e.g. when using AWS RDS.
-	DatabaseAWSRegion string
-	// DatabaseAWSRedshiftClusterID is Redshift cluster identifier.
-	DatabaseAWSRedshiftClusterID string
-	// DatabaseAWSRDSInstanceID is RDS instance identifier.
-	DatabaseAWSRDSInstanceID string
-	// DatabaseAWSRDSClusterID is RDS cluster (Aurora) cluster identifier.
-	DatabaseAWSRDSClusterID string
-	// DatabaseGCPProjectID is GCP Cloud SQL project identifier.
-	DatabaseGCPProjectID string
-	// DatabaseGCPInstanceID is GCP Cloud SQL instance identifier.
-	DatabaseGCPInstanceID string
-	// DatabaseADKeytabFile is the path to Kerberos keytab file.
-	DatabaseADKeytabFile string
-	// DatabaseADKrb5File is the path to krb5.conf file.
-	DatabaseADKrb5File string
-	// DatabaseADDomain is the Active Directory domain for authentication.
-	DatabaseADDomain string
-	// DatabaseADSPN is the database Service Principal Name.
-	DatabaseADSPN string
-	// DatabaseMySQLServerVersion is the MySQL server version reported to a client
-	// if the value cannot be obtained from the database.
-	DatabaseMySQLServerVersion string
+	// // DatabaseName is the name of the database to proxy.
+	// DatabaseName string
+	// // DatabaseDescription is a free-form database description.
+	// DatabaseDescription string
+	// // DatabaseProtocol is the type of the proxied database e.g. postgres or mysql.
+	// DatabaseProtocol string
+	// // DatabaseURI is the address to connect to the proxied database.
+	// DatabaseURI string
+	// // DatabaseCACertFile is the database CA cert path.
+	// DatabaseCACertFile string
+	// // DatabaseAWSRegion is an optional database cloud region e.g. when using AWS RDS.
+	// DatabaseAWSRegion string
+	// // DatabaseAWSRedshiftClusterID is Redshift cluster identifier.
+	// DatabaseAWSRedshiftClusterID string
+	// // DatabaseAWSRDSInstanceID is RDS instance identifier.
+	// DatabaseAWSRDSInstanceID string
+	// // DatabaseAWSRDSClusterID is RDS cluster (Aurora) cluster identifier.
+	// DatabaseAWSRDSClusterID string
+	// // DatabaseGCPProjectID is GCP Cloud SQL project identifier.
+	// DatabaseGCPProjectID string
+	// // DatabaseGCPInstanceID is GCP Cloud SQL instance identifier.
+	// DatabaseGCPInstanceID string
+	// // DatabaseADKeytabFile is the path to Kerberos keytab file.
+	// DatabaseADKeytabFile string
+	// // DatabaseADKrb5File is the path to krb5.conf file.
+	// DatabaseADKrb5File string
+	// // DatabaseADDomain is the Active Directory domain for authentication.
+	// DatabaseADDomain string
+	// // DatabaseADSPN is the database Service Principal Name.
+	// DatabaseADSPN string
+	// // DatabaseMySQLServerVersion is the MySQL server version reported to a client
+	// // if the value cannot be obtained from the database.
+	// DatabaseMySQLServerVersion string
 }
 
 // ReadConfigFile reads /etc/teleport.yaml (or whatever is passed via --config flag)
@@ -169,32 +167,32 @@ func ReadConfigFile(cliConfigPath string) (*FileConfig, error) {
 	return ReadFromFile(configFilePath)
 }
 
-// ReadResources loads a set of resources from a file.
-func ReadResources(filePath string) ([]types.Resource, error) {
-	reader, err := utils.OpenFile(filePath)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer reader.Close()
-	decoder := kyaml.NewYAMLOrJSONDecoder(reader, defaults.LookaheadBufSize)
-	var resources []types.Resource
-	for {
-		var raw services.UnknownResource
-		err := decoder.Decode(&raw)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, trace.Wrap(err)
-		}
-		rsc, err := services.UnmarshalResource(raw.Kind, raw.Raw)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = append(resources, rsc)
-	}
-	return resources, nil
-}
+// // ReadResources loads a set of resources from a file.
+// func ReadResources(filePath string) ([]types.Resource, error) {
+// 	reader, err := utils.OpenFile(filePath)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer reader.Close()
+// 	decoder := kyaml.NewYAMLOrJSONDecoder(reader, defaults.LookaheadBufSize)
+// 	var resources []types.Resource
+// 	for {
+// 		var raw services.UnknownResource
+// 		err := decoder.Decode(&raw)
+// 		if err != nil {
+// 			if err == io.EOF {
+// 				break
+// 			}
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		rsc, err := services.UnmarshalResource(raw.Kind, raw.Raw)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		resources = append(resources, rsc)
+// 	}
+// 	return resources, nil
+// }
 
 // ApplyFileConfig applies configuration from a YAML file to Teleport
 // runtime config
@@ -1708,30 +1706,36 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 	// pass the value of --insecure flag to the runtime
 	lib.SetInsecureDevMode(clf.InsecureMode)
 
-	// load /etc/teleport.yaml and apply it's values:
-	fileConf, err := ReadConfigFile(clf.ConfigFile)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	// if configuration is passed as an environment variable,
-	// try to decode it and override the config file
-	if clf.ConfigString != "" {
-		fileConf, err = ReadFromString(clf.ConfigString)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
+	// XXIONG: we will not be loading config from file
+	var err error
+	var fileConf *FileConfig = nil
 
-	if clf.BootstrapFile != "" {
-		resources, err := ReadResources(clf.BootstrapFile)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if len(resources) < 1 {
-			return trace.BadParameter("no resources found: %q", clf.BootstrapFile)
-		}
-		cfg.Auth.Resources = resources
-	}
+	// // load /etc/teleport.yaml and apply it's values:
+	// fileConf, err := ReadConfigFile(clf.ConfigFile)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// // if configuration is passed as an environment variable,
+	// // try to decode it and override the config file
+	// if clf.ConfigString != "" {
+	// 	fileConf, err = ReadFromString(clf.ConfigString)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
+
+	// fmt.Printf("fileConf: %-v\n", fileConf)
+
+	// if clf.BootstrapFile != "" {
+	// 	resources, err := ReadResources(clf.BootstrapFile)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	if len(resources) < 1 {
+	// 		return trace.BadParameter("no resources found: %q", clf.BootstrapFile)
+	// 	}
+	// 	cfg.Auth.Resources = resources
+	// }
 
 	// Apply command line --debug flag to override logger severity.
 	if clf.Debug {
@@ -1746,12 +1750,12 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 		}
 	}
 
-	// If this process is trying to join a cluster as an application service,
-	// make sure application name and URI are provided.
-	if apiutils.SliceContainsStr(splitRoles(clf.Roles), defaults.RoleApp) &&
-		(clf.AppName == "" || clf.AppURI == "") {
-		return trace.BadParameter("application name (--app-name) and URI (--app-uri) flags are both required to join application proxy to the cluster")
-	}
+	// // If this process is trying to join a cluster as an application service,
+	// // make sure application name and URI are provided.
+	// if apiutils.SliceContainsStr(splitRoles(clf.Roles), defaults.RoleApp) &&
+	// 	(clf.AppName == "" || clf.AppURI == "") {
+	// 	return trace.BadParameter("application name (--app-name) and URI (--app-uri) flags are both required to join application proxy to the cluster")
+	// }
 
 	// // If application name was specified on command line, add to file
 	// // configuration where it will be validated.
