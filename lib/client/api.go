@@ -205,17 +205,17 @@ type Config struct {
 	// SSHProxyAddr is the host:port the SSH proxy can be accessed at.
 	SSHProxyAddr string
 
-	// KubeProxyAddr is the host:port the Kubernetes proxy can be accessed at.
-	KubeProxyAddr string
+	// // KubeProxyAddr is the host:port the Kubernetes proxy can be accessed at.
+	// KubeProxyAddr string
 
-	// PostgresProxyAddr is the host:port the Postgres proxy can be accessed at.
-	PostgresProxyAddr string
+	// // PostgresProxyAddr is the host:port the Postgres proxy can be accessed at.
+	// PostgresProxyAddr string
 
-	// MongoProxyAddr is the host:port the Mongo proxy can be accessed at.
-	MongoProxyAddr string
+	// // MongoProxyAddr is the host:port the Mongo proxy can be accessed at.
+	// MongoProxyAddr string
 
-	// MySQLProxyAddr is the host:port the MySQL proxy can be accessed at.
-	MySQLProxyAddr string
+	// // MySQLProxyAddr is the host:port the MySQL proxy can be accessed at.
+	// MySQLProxyAddr string
 
 	// KeyTTL is a time to live for the temporary SSH keypair to remain valid:
 	KeyTTL time.Duration
@@ -241,15 +241,15 @@ type Config struct {
 	// ForwardAgent is used by the client to request agent forwarding from the server.
 	ForwardAgent AgentForwardingMode
 
-	// EnableX11Forwarding specifies whether X11 forwarding should be enabled.
-	EnableX11Forwarding bool
+	// // EnableX11Forwarding specifies whether X11 forwarding should be enabled.
+	// EnableX11Forwarding bool
 
-	// X11ForwardingTimeout can be set to set a X11 forwarding timeout in seconds,
-	// after which any X11 forwarding requests in that session will be rejected.
-	X11ForwardingTimeout time.Duration
+	// // X11ForwardingTimeout can be set to set a X11 forwarding timeout in seconds,
+	// // after which any X11 forwarding requests in that session will be rejected.
+	// X11ForwardingTimeout time.Duration
 
-	// X11ForwardingTrusted specifies the X11 forwarding security mode.
-	X11ForwardingTrusted bool
+	// // X11ForwardingTrusted specifies the X11 forwarding security mode.
+	// X11ForwardingTrusted bool
 
 	// AuthMethods are used to login into the cluster. If specified, the client will
 	// use them in addition to certs stored in its local agent (from disk)
@@ -276,14 +276,14 @@ type Config struct {
 	// if omitted, first available site will be selected
 	SiteName string
 
-	// KubernetesCluster specifies the kubernetes cluster for any relevant
-	// operations. If empty, the auth server will choose one using stable (same
-	// cluster every time) but unspecified logic.
-	KubernetesCluster string
+	// // KubernetesCluster specifies the kubernetes cluster for any relevant
+	// // operations. If empty, the auth server will choose one using stable (same
+	// // cluster every time) but unspecified logic.
+	// KubernetesCluster string
 
-	// DatabaseService specifies name of the database proxy server to issue
-	// certificate for.
-	DatabaseService string
+	// // DatabaseService specifies name of the database proxy server to issue
+	// // certificate for.
+	// DatabaseService string
 
 	// LocalForwardPorts are the local ports tsh listens on for port forwarding
 	// (parameters to -L ssh flag).
@@ -442,22 +442,22 @@ func VirtualPathCAParams(caType types.CertAuthType) VirtualPathParams {
 	}
 }
 
-// VirtualPathDatabaseParams returns parameters for selecting specific database
-// certificates.
-func VirtualPathDatabaseParams(databaseName string) VirtualPathParams {
-	return VirtualPathParams{databaseName}
-}
+// // VirtualPathDatabaseParams returns parameters for selecting specific database
+// // certificates.
+// func VirtualPathDatabaseParams(databaseName string) VirtualPathParams {
+// 	return VirtualPathParams{databaseName}
+// }
 
-// VirtualPathAppParams returns parameters for selecting specific apps by name.
-func VirtualPathAppParams(appName string) VirtualPathParams {
-	return VirtualPathParams{appName}
-}
+// // VirtualPathAppParams returns parameters for selecting specific apps by name.
+// func VirtualPathAppParams(appName string) VirtualPathParams {
+// 	return VirtualPathParams{appName}
+// }
 
-// VirtualPathKubernetesParams returns parameters for selecting k8s clusters by
-// name.
-func VirtualPathKubernetesParams(k8sCluster string) VirtualPathParams {
-	return VirtualPathParams{k8sCluster}
-}
+// // VirtualPathKubernetesParams returns parameters for selecting k8s clusters by
+// // name.
+// func VirtualPathKubernetesParams(k8sCluster string) VirtualPathParams {
+// 	return VirtualPathParams{k8sCluster}
+// }
 
 // VirtualPathEnvName formats a single virtual path environment variable name.
 func VirtualPathEnvName(kind VirtualPathKind, params VirtualPathParams) string {
@@ -507,21 +507,21 @@ type ProfileStatus struct {
 	// Logins are the Linux accounts, also known as principals in OpenSSH terminology.
 	Logins []string
 
-	// KubeEnabled is true when this profile is configured to connect to a
-	// kubernetes cluster.
-	KubeEnabled bool
+	// // KubeEnabled is true when this profile is configured to connect to a
+	// // kubernetes cluster.
+	// KubeEnabled bool
 
-	// KubeUsers are the kubernetes users used by this profile.
-	KubeUsers []string
+	// // KubeUsers are the kubernetes users used by this profile.
+	// KubeUsers []string
 
-	// KubeGroups are the kubernetes groups used by this profile.
-	KubeGroups []string
+	// // KubeGroups are the kubernetes groups used by this profile.
+	// KubeGroups []string
 
-	// Databases is a list of database services this profile is logged into.
-	Databases []tlsca.RouteToDatabase
+	// // Databases is a list of database services this profile is logged into.
+	// Databases []tlsca.RouteToDatabase
 
-	// Apps is a list of apps this profile is logged into.
-	Apps []tlsca.RouteToApp
+	// // Apps is a list of apps this profile is logged into.
+	// Apps []tlsca.RouteToApp
 
 	// ValidUntil is the time at which this SSH certificate will expire.
 	ValidUntil time.Time
@@ -542,8 +542,8 @@ type ProfileStatus struct {
 	// during certificate construction.
 	ActiveRequests services.RequestIDs
 
-	// AWSRoleARNs is a list of allowed AWS role ARNs user can assume.
-	AWSRolesARNs []string
+	// // AWSRoleARNs is a list of allowed AWS role ARNs user can assume.
+	// AWSRolesARNs []string
 
 	// AllowedResourceIDs is a list of resources the user can access. An empty
 	// list means there are no resource-specific restrictions.
@@ -620,36 +620,36 @@ func (p *ProfileStatus) KeyPath() string {
 	return keypaths.UserKeyPath(p.Dir, p.Name, p.Username)
 }
 
-// DatabaseCertPathForCluster returns path to the specified database access
-// certificate for this profile, for the specified cluster.
-//
-// It's kept in <profile-dir>/keys/<proxy>/<user>-db/<cluster>/<name>-x509.pem
-//
-// If the input cluster name is an empty string, the selected cluster in the
-// profile will be used.
-func (p *ProfileStatus) DatabaseCertPathForCluster(clusterName string, databaseName string) string {
-	if clusterName == "" {
-		clusterName = p.Cluster
-	}
+// // DatabaseCertPathForCluster returns path to the specified database access
+// // certificate for this profile, for the specified cluster.
+// //
+// // It's kept in <profile-dir>/keys/<proxy>/<user>-db/<cluster>/<name>-x509.pem
+// //
+// // If the input cluster name is an empty string, the selected cluster in the
+// // profile will be used.
+// func (p *ProfileStatus) DatabaseCertPathForCluster(clusterName string, databaseName string) string {
+// 	if clusterName == "" {
+// 		clusterName = p.Cluster
+// 	}
 
-	if path, ok := p.virtualPathFromEnv(VirtualPathDatabase, VirtualPathDatabaseParams(databaseName)); ok {
-		return path
-	}
+// 	if path, ok := p.virtualPathFromEnv(VirtualPathDatabase, VirtualPathDatabaseParams(databaseName)); ok {
+// 		return path
+// 	}
 
-	return keypaths.DatabaseCertPath(p.Dir, p.Name, p.Username, clusterName, databaseName)
-}
+// 	return keypaths.DatabaseCertPath(p.Dir, p.Name, p.Username, clusterName, databaseName)
+// }
 
-// AppCertPath returns path to the specified app access certificate
-// for this profile.
-//
-// It's kept in <profile-dir>/keys/<proxy>/<user>-app/<cluster>/<name>-x509.pem
-func (p *ProfileStatus) AppCertPath(name string) string {
-	if path, ok := p.virtualPathFromEnv(VirtualPathApp, VirtualPathAppParams(name)); ok {
-		return path
-	}
+// // AppCertPath returns path to the specified app access certificate
+// // for this profile.
+// //
+// // It's kept in <profile-dir>/keys/<proxy>/<user>-app/<cluster>/<name>-x509.pem
+// func (p *ProfileStatus) AppCertPath(name string) string {
+// 	if path, ok := p.virtualPathFromEnv(VirtualPathApp, VirtualPathAppParams(name)); ok {
+// 		return path
+// 	}
 
-	return keypaths.AppCertPath(p.Dir, p.Name, p.Username, p.Cluster, name)
-}
+// 	return keypaths.AppCertPath(p.Dir, p.Name, p.Username, p.Cluster, name)
+// }
 
 // AppLocalCAPath returns the specified app's self-signed localhost CA path for
 // this profile.
@@ -659,56 +659,56 @@ func (p *ProfileStatus) AppLocalCAPath(name string) string {
 	return keypaths.AppLocalCAPath(p.Dir, p.Name, p.Username, p.Cluster, name)
 }
 
-// KubeConfigPath returns path to the specified kubeconfig for this profile.
-//
-// It's kept in <profile-dir>/keys/<proxy>/<user>-kube/<cluster>/<name>-kubeconfig
-func (p *ProfileStatus) KubeConfigPath(name string) string {
-	if path, ok := p.virtualPathFromEnv(VirtualPathKubernetes, VirtualPathKubernetesParams(name)); ok {
-		return path
-	}
+// // KubeConfigPath returns path to the specified kubeconfig for this profile.
+// //
+// // It's kept in <profile-dir>/keys/<proxy>/<user>-kube/<cluster>/<name>-kubeconfig
+// func (p *ProfileStatus) KubeConfigPath(name string) string {
+// 	if path, ok := p.virtualPathFromEnv(VirtualPathKubernetes, VirtualPathKubernetesParams(name)); ok {
+// 		return path
+// 	}
 
-	return keypaths.KubeConfigPath(p.Dir, p.Name, p.Username, p.Cluster, name)
-}
+// 	return keypaths.KubeConfigPath(p.Dir, p.Name, p.Username, p.Cluster, name)
+// }
 
-// DatabaseServices returns a list of database service names for this profile.
-func (p *ProfileStatus) DatabaseServices() (result []string) {
-	for _, db := range p.Databases {
-		result = append(result, db.ServiceName)
-	}
-	return result
-}
+// // DatabaseServices returns a list of database service names for this profile.
+// func (p *ProfileStatus) DatabaseServices() (result []string) {
+// 	for _, db := range p.Databases {
+// 		result = append(result, db.ServiceName)
+// 	}
+// 	return result
+// }
 
-// DatabasesForCluster returns a list of databases for this profile, for the
-// specified cluster name.
-func (p *ProfileStatus) DatabasesForCluster(clusterName string) ([]tlsca.RouteToDatabase, error) {
-	if clusterName == "" || clusterName == p.Cluster {
-		return p.Databases, nil
-	}
+// // DatabasesForCluster returns a list of databases for this profile, for the
+// // specified cluster name.
+// func (p *ProfileStatus) DatabasesForCluster(clusterName string) ([]tlsca.RouteToDatabase, error) {
+// 	if clusterName == "" || clusterName == p.Cluster {
+// 		return p.Databases, nil
+// 	}
 
-	idx := KeyIndex{
-		ProxyHost:   p.Name,
-		Username:    p.Username,
-		ClusterName: clusterName,
-	}
+// 	idx := KeyIndex{
+// 		ProxyHost:   p.Name,
+// 		Username:    p.Username,
+// 		ClusterName: clusterName,
+// 	}
 
-	store, err := NewFSLocalKeyStore(p.Dir)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	key, err := store.GetKey(idx, WithDBCerts{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return findActiveDatabases(key)
-}
+// 	store, err := NewFSLocalKeyStore(p.Dir)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	key, err := store.GetKey(idx, WithDBCerts{})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return findActiveDatabases(key)
+// }
 
-// AppNames returns a list of app names this profile is logged into.
-func (p *ProfileStatus) AppNames() (result []string) {
-	for _, app := range p.Apps {
-		result = append(result, app.Name)
-	}
-	return result
-}
+// // AppNames returns a list of app names this profile is logged into.
+// func (p *ProfileStatus) AppNames() (result []string) {
+// 	for _, app := range p.Apps {
+// 		result = append(result, app.Name)
+// 	}
+// 	return result
+// }
 
 // RetryWithRelogin is a helper error handling method, attempts to relogin and
 // retry the function once.
@@ -830,19 +830,19 @@ func profileFromKey(key *Key, opts ProfileOptions) (*ProfileStatus, error) {
 	}
 	sort.Strings(extensions)
 
-	tlsCert, err := key.TeleportTLSCertificate()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	tlsID, err := tlsca.FromSubject(tlsCert.Subject, time.Time{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// tlsCert, err := key.TeleportTLSCertificate()
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
+	// tlsID, err := tlsca.FromSubject(tlsCert.Subject, time.Time{})
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
-	databases, err := findActiveDatabases(key)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// databases, err := findActiveDatabases(key)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	appCerts, err := key.AppTLSCertificates()
 	if err != nil {
@@ -866,21 +866,21 @@ func profileFromKey(key *Key, opts ProfileOptions) (*ProfileStatus, error) {
 			Scheme: "https",
 			Host:   opts.WebProxyAddr,
 		},
-		Username:           opts.Username,
-		Logins:             sshCert.ValidPrincipals,
-		ValidUntil:         validUntil,
-		Extensions:         extensions,
-		CriticalOptions:    sshCert.CriticalOptions,
-		Roles:              roles,
-		Cluster:            opts.SiteName,
-		Traits:             traits,
-		ActiveRequests:     activeRequests,
-		KubeEnabled:        opts.KubeProxyAddr != "",
-		KubeUsers:          tlsID.KubernetesUsers,
-		KubeGroups:         tlsID.KubernetesGroups,
-		Databases:          databases,
-		Apps:               apps,
-		AWSRolesARNs:       tlsID.AWSRoleARNs,
+		Username:        opts.Username,
+		Logins:          sshCert.ValidPrincipals,
+		ValidUntil:      validUntil,
+		Extensions:      extensions,
+		CriticalOptions: sshCert.CriticalOptions,
+		Roles:           roles,
+		Cluster:         opts.SiteName,
+		Traits:          traits,
+		ActiveRequests:  activeRequests,
+		// KubeEnabled:        opts.KubeProxyAddr != "",
+		// KubeUsers:          tlsID.KubernetesUsers,
+		// KubeGroups:         tlsID.KubernetesGroups,
+		// Databases:          databases,
+		// Apps:               apps,
+		// AWSRolesARNs:       tlsID.AWSRoleARNs,
 		IsVirtual:          opts.IsVirtual,
 		AllowedResourceIDs: allowedResourceIDs,
 	}, nil
@@ -1100,12 +1100,12 @@ func (c *Config) LoadProfile(profileDir string, proxyName string) error {
 
 	c.Username = cp.Username
 	c.SiteName = cp.SiteName
-	c.KubeProxyAddr = cp.KubeProxyAddr
+	// c.KubeProxyAddr = cp.KubeProxyAddr
 	c.WebProxyAddr = cp.WebProxyAddr
 	c.SSHProxyAddr = cp.SSHProxyAddr
-	c.PostgresProxyAddr = cp.PostgresProxyAddr
-	c.MySQLProxyAddr = cp.MySQLProxyAddr
-	c.MongoProxyAddr = cp.MongoProxyAddr
+	// c.PostgresProxyAddr = cp.PostgresProxyAddr
+	// c.MySQLProxyAddr = cp.MySQLProxyAddr
+	// c.MongoProxyAddr = cp.MongoProxyAddr
 	c.TLSRoutingEnabled = cp.TLSRoutingEnabled
 	c.KeysDir = profileDir
 	c.AuthConnector = cp.AuthConnector
@@ -1136,10 +1136,10 @@ func (c *Config) SaveProfile(dir string, makeCurrent bool) error {
 	cp.Username = c.Username
 	cp.WebProxyAddr = c.WebProxyAddr
 	cp.SSHProxyAddr = c.SSHProxyAddr
-	cp.KubeProxyAddr = c.KubeProxyAddr
-	cp.PostgresProxyAddr = c.PostgresProxyAddr
-	cp.MySQLProxyAddr = c.MySQLProxyAddr
-	cp.MongoProxyAddr = c.MongoProxyAddr
+	// cp.KubeProxyAddr = c.KubeProxyAddr
+	// cp.PostgresProxyAddr = c.PostgresProxyAddr
+	// cp.MySQLProxyAddr = c.MySQLProxyAddr
+	// cp.MongoProxyAddr = c.MongoProxyAddr
 	cp.ForwardedPorts = c.LocalForwardPorts.String()
 	cp.SiteName = c.SiteName
 	cp.TLSRoutingEnabled = c.TLSRoutingEnabled
@@ -1240,25 +1240,25 @@ func (c *Config) ParseProxyHost(proxyHost string) error {
 	return nil
 }
 
-// KubeProxyHostPort returns the host and port of the Kubernetes proxy.
-func (c *Config) KubeProxyHostPort() (string, int) {
-	if c.KubeProxyAddr != "" {
-		addr, err := utils.ParseAddr(c.KubeProxyAddr)
-		if err == nil {
-			return addr.Host(), addr.Port(defaults.KubeListenPort)
-		}
-	}
+// // KubeProxyHostPort returns the host and port of the Kubernetes proxy.
+// func (c *Config) KubeProxyHostPort() (string, int) {
+// 	if c.KubeProxyAddr != "" {
+// 		addr, err := utils.ParseAddr(c.KubeProxyAddr)
+// 		if err == nil {
+// 			return addr.Host(), addr.Port(defaults.KubeListenPort)
+// 		}
+// 	}
 
-	webProxyHost, _ := c.WebProxyHostPort()
-	return webProxyHost, defaults.KubeListenPort
-}
+// 	webProxyHost, _ := c.WebProxyHostPort()
+// 	return webProxyHost, defaults.KubeListenPort
+// }
 
-// KubeClusterAddr returns a public HTTPS address of the proxy for use by
-// Kubernetes client.
-func (c *Config) KubeClusterAddr() string {
-	host, port := c.KubeProxyHostPort()
-	return fmt.Sprintf("https://%s:%d", host, port)
-}
+// // KubeClusterAddr returns a public HTTPS address of the proxy for use by
+// // Kubernetes client.
+// func (c *Config) KubeClusterAddr() string {
+// 	host, port := c.KubeProxyHostPort()
+// 	return fmt.Sprintf("https://%s:%d", host, port)
+// }
 
 // WebProxyHostPort returns the host and port of the web proxy.
 func (c *Config) WebProxyHostPort() (string, int) {
@@ -1296,52 +1296,52 @@ func (c *Config) SSHProxyHostPort() (string, int) {
 	return webProxyHost, defaults.SSHProxyListenPort
 }
 
-// PostgresProxyHostPort returns the host and port of Postgres proxy.
-func (c *Config) PostgresProxyHostPort() (string, int) {
-	if c.PostgresProxyAddr != "" {
-		addr, err := utils.ParseAddr(c.PostgresProxyAddr)
-		if err == nil {
-			return addr.Host(), addr.Port(c.WebProxyPort())
-		}
-	}
-	return c.WebProxyHostPort()
-}
+// // PostgresProxyHostPort returns the host and port of Postgres proxy.
+// func (c *Config) PostgresProxyHostPort() (string, int) {
+// 	if c.PostgresProxyAddr != "" {
+// 		addr, err := utils.ParseAddr(c.PostgresProxyAddr)
+// 		if err == nil {
+// 			return addr.Host(), addr.Port(c.WebProxyPort())
+// 		}
+// 	}
+// 	return c.WebProxyHostPort()
+// }
 
-// MongoProxyHostPort returns the host and port of Mongo proxy.
-func (c *Config) MongoProxyHostPort() (string, int) {
-	if c.MongoProxyAddr != "" {
-		addr, err := utils.ParseAddr(c.MongoProxyAddr)
-		if err == nil {
-			return addr.Host(), addr.Port(defaults.MongoListenPort)
-		}
-	}
-	return c.WebProxyHostPort()
-}
+// // MongoProxyHostPort returns the host and port of Mongo proxy.
+// func (c *Config) MongoProxyHostPort() (string, int) {
+// 	if c.MongoProxyAddr != "" {
+// 		addr, err := utils.ParseAddr(c.MongoProxyAddr)
+// 		if err == nil {
+// 			return addr.Host(), addr.Port(defaults.MongoListenPort)
+// 		}
+// 	}
+// 	return c.WebProxyHostPort()
+// }
 
-// MySQLProxyHostPort returns the host and port of MySQL proxy.
-func (c *Config) MySQLProxyHostPort() (string, int) {
-	if c.MySQLProxyAddr != "" {
-		addr, err := utils.ParseAddr(c.MySQLProxyAddr)
-		if err == nil {
-			return addr.Host(), addr.Port(defaults.MySQLListenPort)
-		}
-	}
-	webProxyHost, _ := c.WebProxyHostPort()
-	return webProxyHost, defaults.MySQLListenPort
-}
+// // MySQLProxyHostPort returns the host and port of MySQL proxy.
+// func (c *Config) MySQLProxyHostPort() (string, int) {
+// 	if c.MySQLProxyAddr != "" {
+// 		addr, err := utils.ParseAddr(c.MySQLProxyAddr)
+// 		if err == nil {
+// 			return addr.Host(), addr.Port(defaults.MySQLListenPort)
+// 		}
+// 	}
+// 	webProxyHost, _ := c.WebProxyHostPort()
+// 	return webProxyHost, defaults.MySQLListenPort
+// }
 
-// DatabaseProxyHostPort returns proxy connection endpoint for the database.
-func (c *Config) DatabaseProxyHostPort(db tlsca.RouteToDatabase) (string, int) {
-	switch db.Protocol {
-	case defaults.ProtocolPostgres, defaults.ProtocolCockroachDB:
-		return c.PostgresProxyHostPort()
-	case defaults.ProtocolMySQL:
-		return c.MySQLProxyHostPort()
-	case defaults.ProtocolMongoDB:
-		return c.MongoProxyHostPort()
-	}
-	return c.WebProxyHostPort()
-}
+// // DatabaseProxyHostPort returns proxy connection endpoint for the database.
+// func (c *Config) DatabaseProxyHostPort(db tlsca.RouteToDatabase) (string, int) {
+// 	switch db.Protocol {
+// 	case defaults.ProtocolPostgres, defaults.ProtocolCockroachDB:
+// 		return c.PostgresProxyHostPort()
+// 	case defaults.ProtocolMySQL:
+// 		return c.MySQLProxyHostPort()
+// 	case defaults.ProtocolMongoDB:
+// 		return c.MongoProxyHostPort()
+// 	}
+// 	return c.WebProxyHostPort()
+// }
 
 // GetKubeTLSServerName returns k8s server name used in KUBECONFIG to leverage TLS Routing.
 func GetKubeTLSServerName(k8host string) string {
@@ -3356,12 +3356,12 @@ func (tc *TeleportClient) Login(ctx context.Context) (*Key, error) {
 	// extract the new certificate out of the response
 	key.Cert = response.Cert
 	key.TLSCert = response.TLSCert
-	if tc.KubernetesCluster != "" {
-		key.KubeTLSCerts[tc.KubernetesCluster] = response.TLSCert
-	}
-	if tc.DatabaseService != "" {
-		key.DBTLSCerts[tc.DatabaseService] = response.TLSCert
-	}
+	// if tc.KubernetesCluster != "" {
+	// 	key.KubeTLSCerts[tc.KubernetesCluster] = response.TLSCert
+	// }
+	// if tc.DatabaseService != "" {
+	// 	key.DBTLSCerts[tc.DatabaseService] = response.TLSCert
+	// }
 	key.TrustedCA = response.HostSigners
 
 	// Store the requested cluster name in the key.
@@ -3385,14 +3385,14 @@ func (tc *TeleportClient) pwdlessLogin(ctx context.Context, pubKey []byte) (*aut
 
 	response, err := SSHAgentPasswordlessLogin(ctx, SSHLoginPasswordless{
 		SSHLogin: SSHLogin{
-			ProxyAddr:         tc.WebProxyAddr,
-			PubKey:            pubKey,
-			TTL:               tc.KeyTTL,
-			Insecure:          tc.InsecureSkipVerify,
-			Pool:              loopbackPool(tc.WebProxyAddr),
-			Compatibility:     tc.CertificateFormat,
-			RouteToCluster:    tc.SiteName,
-			KubernetesCluster: tc.KubernetesCluster,
+			ProxyAddr:      tc.WebProxyAddr,
+			PubKey:         pubKey,
+			TTL:            tc.KeyTTL,
+			Insecure:       tc.InsecureSkipVerify,
+			Pool:           loopbackPool(tc.WebProxyAddr),
+			Compatibility:  tc.CertificateFormat,
+			RouteToCluster: tc.SiteName,
+			// KubernetesCluster: tc.KubernetesCluster,
 		},
 		User:                    user,
 		AuthenticatorAttachment: tc.AuthenticatorAttachment,
@@ -3446,14 +3446,14 @@ func (tc *TeleportClient) directLogin(ctx context.Context, secondFactorType cons
 	// Ask the CA (via proxy) to sign our public key:
 	response, err := SSHAgentLogin(ctx, SSHLoginDirect{
 		SSHLogin: SSHLogin{
-			ProxyAddr:         tc.WebProxyAddr,
-			PubKey:            pub,
-			TTL:               tc.KeyTTL,
-			Insecure:          tc.InsecureSkipVerify,
-			Pool:              loopbackPool(tc.WebProxyAddr),
-			Compatibility:     tc.CertificateFormat,
-			RouteToCluster:    tc.SiteName,
-			KubernetesCluster: tc.KubernetesCluster,
+			ProxyAddr:      tc.WebProxyAddr,
+			PubKey:         pub,
+			TTL:            tc.KeyTTL,
+			Insecure:       tc.InsecureSkipVerify,
+			Pool:           loopbackPool(tc.WebProxyAddr),
+			Compatibility:  tc.CertificateFormat,
+			RouteToCluster: tc.SiteName,
+			// KubernetesCluster: tc.KubernetesCluster,
 		},
 		User:     tc.Username,
 		Password: password,
@@ -3503,14 +3503,14 @@ func (tc *TeleportClient) ssoLogin(ctx context.Context, connectorID string, pub 
 	// ask the CA (via proxy) to sign our public key:
 	response, err := SSHAgentSSOLogin(ctx, SSHLoginSSO{
 		SSHLogin: SSHLogin{
-			ProxyAddr:         tc.WebProxyAddr,
-			PubKey:            pub,
-			TTL:               tc.KeyTTL,
-			Insecure:          tc.InsecureSkipVerify,
-			Pool:              loopbackPool(tc.WebProxyAddr),
-			Compatibility:     tc.CertificateFormat,
-			RouteToCluster:    tc.SiteName,
-			KubernetesCluster: tc.KubernetesCluster,
+			ProxyAddr:      tc.WebProxyAddr,
+			PubKey:         pub,
+			TTL:            tc.KeyTTL,
+			Insecure:       tc.InsecureSkipVerify,
+			Pool:           loopbackPool(tc.WebProxyAddr),
+			Compatibility:  tc.CertificateFormat,
+			RouteToCluster: tc.SiteName,
+			// KubernetesCluster: tc.KubernetesCluster,
 		},
 		ConnectorID: connectorID,
 		Protocol:    protocol,
@@ -3758,44 +3758,44 @@ func (tc *TeleportClient) UpdateTrustedCA(ctx context.Context, clusterName strin
 // applyProxySettings updates configuration changes based on the advertised
 // proxy settings, overriding existing fields in tc.
 func (tc *TeleportClient) applyProxySettings(proxySettings webclient.ProxySettings) error {
-	// Kubernetes proxy settings.
-	if proxySettings.Kube.Enabled {
-		switch {
-		// PublicAddr is the first preference.
-		case proxySettings.Kube.PublicAddr != "":
-			if _, err := utils.ParseAddr(proxySettings.Kube.PublicAddr); err != nil {
-				return trace.BadParameter(
-					"failed to parse value received from the server: %q, contact your administrator for help",
-					proxySettings.Kube.PublicAddr)
-			}
-			tc.KubeProxyAddr = proxySettings.Kube.PublicAddr
-		// ListenAddr is the second preference.
-		case proxySettings.Kube.ListenAddr != "":
-			addr, err := utils.ParseAddr(proxySettings.Kube.ListenAddr)
-			if err != nil {
-				return trace.BadParameter(
-					"failed to parse value received from the server: %q, contact your administrator for help",
-					proxySettings.Kube.ListenAddr)
-			}
-			// If ListenAddr host is 0.0.0.0 or [::], replace it with something
-			// routable from the web endpoint.
-			if net.ParseIP(addr.Host()).IsUnspecified() {
-				webProxyHost, _ := tc.WebProxyHostPort()
-				tc.KubeProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(addr.Port(defaults.KubeListenPort)))
-			} else {
-				tc.KubeProxyAddr = proxySettings.Kube.ListenAddr
-			}
-		// If neither PublicAddr nor TunnelAddr are passed, use the web
-		// interface hostname with default k8s port as a guess.
-		default:
-			webProxyHost, _ := tc.WebProxyHostPort()
-			tc.KubeProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(defaults.KubeListenPort))
-		}
-	} else {
-		// Zero the field, in case there was a previous value set (e.g. loaded
-		// from profile directory).
-		tc.KubeProxyAddr = ""
-	}
+	// // Kubernetes proxy settings.
+	// if proxySettings.Kube.Enabled {
+	// 	switch {
+	// 	// PublicAddr is the first preference.
+	// 	case proxySettings.Kube.PublicAddr != "":
+	// 		if _, err := utils.ParseAddr(proxySettings.Kube.PublicAddr); err != nil {
+	// 			return trace.BadParameter(
+	// 				"failed to parse value received from the server: %q, contact your administrator for help",
+	// 				proxySettings.Kube.PublicAddr)
+	// 		}
+	// 		tc.KubeProxyAddr = proxySettings.Kube.PublicAddr
+	// 	// ListenAddr is the second preference.
+	// 	case proxySettings.Kube.ListenAddr != "":
+	// 		addr, err := utils.ParseAddr(proxySettings.Kube.ListenAddr)
+	// 		if err != nil {
+	// 			return trace.BadParameter(
+	// 				"failed to parse value received from the server: %q, contact your administrator for help",
+	// 				proxySettings.Kube.ListenAddr)
+	// 		}
+	// 		// If ListenAddr host is 0.0.0.0 or [::], replace it with something
+	// 		// routable from the web endpoint.
+	// 		if net.ParseIP(addr.Host()).IsUnspecified() {
+	// 			webProxyHost, _ := tc.WebProxyHostPort()
+	// 			tc.KubeProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(addr.Port(defaults.KubeListenPort)))
+	// 		} else {
+	// 			tc.KubeProxyAddr = proxySettings.Kube.ListenAddr
+	// 		}
+	// 	// If neither PublicAddr nor TunnelAddr are passed, use the web
+	// 	// interface hostname with default k8s port as a guess.
+	// 	default:
+	// 		webProxyHost, _ := tc.WebProxyHostPort()
+	// 		tc.KubeProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(defaults.KubeListenPort))
+	// 	}
+	// } else {
+	// 	// Zero the field, in case there was a previous value set (e.g. loaded
+	// 	// from profile directory).
+	// 	tc.KubeProxyAddr = ""
+	// }
 
 	// Read in settings for HTTP endpoint of the proxy.
 	if proxySettings.SSH.PublicAddr != "" {
@@ -3840,69 +3840,69 @@ func (tc *TeleportClient) applyProxySettings(proxySettings webclient.ProxySettin
 		tc.SSHProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(defaults.SSHProxyListenPort)))
 	}
 
-	// Read Postgres proxy settings.
-	switch {
-	case proxySettings.DB.PostgresPublicAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.PostgresPublicAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse Postgres public address received from server: %q, contact your administrator for help",
-				proxySettings.DB.PostgresPublicAddr)
-		}
-		tc.PostgresProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(tc.WebProxyPort())))
-	case proxySettings.DB.PostgresListenAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.PostgresListenAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse Postgres listen address received from server: %q, contact your administrator for help",
-				proxySettings.DB.PostgresListenAddr)
-		}
-		tc.PostgresProxyAddr = net.JoinHostPort(tc.WebProxyHost(), strconv.Itoa(addr.Port(defaults.PostgresListenPort)))
-	default:
-		webProxyHost, webProxyPort := tc.WebProxyHostPort()
-		tc.PostgresProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(webProxyPort))
-	}
+	// // Read Postgres proxy settings.
+	// switch {
+	// case proxySettings.DB.PostgresPublicAddr != "":
+	// 	addr, err := utils.ParseAddr(proxySettings.DB.PostgresPublicAddr)
+	// 	if err != nil {
+	// 		return trace.BadParameter("failed to parse Postgres public address received from server: %q, contact your administrator for help",
+	// 			proxySettings.DB.PostgresPublicAddr)
+	// 	}
+	// 	tc.PostgresProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(tc.WebProxyPort())))
+	// case proxySettings.DB.PostgresListenAddr != "":
+	// 	addr, err := utils.ParseAddr(proxySettings.DB.PostgresListenAddr)
+	// 	if err != nil {
+	// 		return trace.BadParameter("failed to parse Postgres listen address received from server: %q, contact your administrator for help",
+	// 			proxySettings.DB.PostgresListenAddr)
+	// 	}
+	// 	tc.PostgresProxyAddr = net.JoinHostPort(tc.WebProxyHost(), strconv.Itoa(addr.Port(defaults.PostgresListenPort)))
+	// default:
+	// 	webProxyHost, webProxyPort := tc.WebProxyHostPort()
+	// 	tc.PostgresProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(webProxyPort))
+	// }
 
-	// Read Mongo proxy settings.
-	switch {
-	case proxySettings.DB.MongoPublicAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.MongoPublicAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse Mongo public address received from server: %q, contact your administrator for help",
-				proxySettings.DB.MongoPublicAddr)
-		}
-		tc.MongoProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(tc.WebProxyPort())))
-	case proxySettings.DB.MongoListenAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.MongoListenAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse Mongo listen address received from server: %q, contact your administrator for help",
-				proxySettings.DB.MongoListenAddr)
-		}
-		tc.MongoProxyAddr = net.JoinHostPort(tc.WebProxyHost(), strconv.Itoa(addr.Port(defaults.MongoListenPort)))
-	}
+	// // Read Mongo proxy settings.
+	// switch {
+	// case proxySettings.DB.MongoPublicAddr != "":
+	// 	addr, err := utils.ParseAddr(proxySettings.DB.MongoPublicAddr)
+	// 	if err != nil {
+	// 		return trace.BadParameter("failed to parse Mongo public address received from server: %q, contact your administrator for help",
+	// 			proxySettings.DB.MongoPublicAddr)
+	// 	}
+	// 	tc.MongoProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(tc.WebProxyPort())))
+	// case proxySettings.DB.MongoListenAddr != "":
+	// 	addr, err := utils.ParseAddr(proxySettings.DB.MongoListenAddr)
+	// 	if err != nil {
+	// 		return trace.BadParameter("failed to parse Mongo listen address received from server: %q, contact your administrator for help",
+	// 			proxySettings.DB.MongoListenAddr)
+	// 	}
+	// 	tc.MongoProxyAddr = net.JoinHostPort(tc.WebProxyHost(), strconv.Itoa(addr.Port(defaults.MongoListenPort)))
+	// }
 
-	// Read MySQL proxy settings if enabled on the server.
-	switch {
-	case proxySettings.DB.MySQLPublicAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.MySQLPublicAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse MySQL public address received from server: %q, contact your administrator for help",
-				proxySettings.DB.MySQLPublicAddr)
-		}
-		tc.MySQLProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(defaults.MySQLListenPort)))
-	case proxySettings.DB.MySQLListenAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.MySQLListenAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse MySQL listen address received from server: %q, contact your administrator for help",
-				proxySettings.DB.MySQLListenAddr)
-		}
-		tc.MySQLProxyAddr = net.JoinHostPort(tc.WebProxyHost(), strconv.Itoa(addr.Port(defaults.MySQLListenPort)))
-	}
+	// // Read MySQL proxy settings if enabled on the server.
+	// switch {
+	// case proxySettings.DB.MySQLPublicAddr != "":
+	// 	addr, err := utils.ParseAddr(proxySettings.DB.MySQLPublicAddr)
+	// 	if err != nil {
+	// 		return trace.BadParameter("failed to parse MySQL public address received from server: %q, contact your administrator for help",
+	// 			proxySettings.DB.MySQLPublicAddr)
+	// 	}
+	// 	tc.MySQLProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(defaults.MySQLListenPort)))
+	// case proxySettings.DB.MySQLListenAddr != "":
+	// 	addr, err := utils.ParseAddr(proxySettings.DB.MySQLListenAddr)
+	// 	if err != nil {
+	// 		return trace.BadParameter("failed to parse MySQL listen address received from server: %q, contact your administrator for help",
+	// 			proxySettings.DB.MySQLListenAddr)
+	// 	}
+	// 	tc.MySQLProxyAddr = net.JoinHostPort(tc.WebProxyHost(), strconv.Itoa(addr.Port(defaults.MySQLListenPort)))
+	// }
 
-	tc.TLSRoutingEnabled = proxySettings.TLSRoutingEnabled
-	if tc.TLSRoutingEnabled {
-		// If proxy supports TLS Routing all k8s requests will be sent to the WebProxyAddr where TLS Routing will identify
-		// k8s requests by "kube." SNI prefix and route to the kube proxy service.
-		tc.KubeProxyAddr = tc.WebProxyAddr
-	}
+	// tc.TLSRoutingEnabled = proxySettings.TLSRoutingEnabled
+	// if tc.TLSRoutingEnabled {
+	// 	// If proxy supports TLS Routing all k8s requests will be sent to the WebProxyAddr where TLS Routing will identify
+	// 	// k8s requests by "kube." SNI prefix and route to the kube proxy service.
+	// 	tc.KubeProxyAddr = tc.WebProxyAddr
+	// }
 
 	return nil
 }

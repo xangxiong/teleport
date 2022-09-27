@@ -26,7 +26,6 @@ import (
 	"github.com/gravitational/teleport/lib/auth"
 	wancli "github.com/gravitational/teleport/lib/auth/webauthncli"
 	"github.com/gravitational/teleport/lib/client"
-	dbprofile "github.com/gravitational/teleport/lib/client/db"
 	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
 
 	"github.com/gravitational/trace"
@@ -53,13 +52,13 @@ func (c *Cluster) SyncAuthPreference(ctx context.Context) (*webclient.WebConfigA
 
 // Logout deletes all cluster certificates
 func (c *Cluster) Logout(ctx context.Context) error {
-	// Delete db certs
-	for _, db := range c.status.Databases {
-		err := dbprofile.Delete(c.clusterClient, db)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
+	// // Delete db certs
+	// for _, db := range c.status.Databases {
+	// 	err := dbprofile.Delete(c.clusterClient, db)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
 
 	// Get the address of the active Kubernetes proxy to find AuthInfos,
 	// Clusters, and Contexts in kubeconfig.
@@ -148,12 +147,12 @@ func (c *Cluster) SSOLogin(ctx context.Context, providerType, providerName strin
 
 	response, err := client.SSHAgentSSOLogin(ctx, client.SSHLoginSSO{
 		SSHLogin: client.SSHLogin{
-			ProxyAddr:         c.clusterClient.WebProxyAddr,
-			PubKey:            key.MarshalSSHPublicKey(),
-			TTL:               c.clusterClient.KeyTTL,
-			Insecure:          c.clusterClient.InsecureSkipVerify,
-			Compatibility:     c.clusterClient.CertificateFormat,
-			KubernetesCluster: c.clusterClient.KubernetesCluster,
+			ProxyAddr:     c.clusterClient.WebProxyAddr,
+			PubKey:        key.MarshalSSHPublicKey(),
+			TTL:           c.clusterClient.KeyTTL,
+			Insecure:      c.clusterClient.InsecureSkipVerify,
+			Compatibility: c.clusterClient.CertificateFormat,
+			// KubernetesCluster: c.clusterClient.KubernetesCluster,
 		},
 		ConnectorID: providerName,
 		Protocol:    providerType,
@@ -179,13 +178,13 @@ func (c *Cluster) localMFALogin(ctx context.Context, user, password string) erro
 
 	response, err := client.SSHAgentMFALogin(ctx, client.SSHLoginMFA{
 		SSHLogin: client.SSHLogin{
-			ProxyAddr:         c.clusterClient.WebProxyAddr,
-			PubKey:            key.MarshalSSHPublicKey(),
-			TTL:               c.clusterClient.KeyTTL,
-			Insecure:          c.clusterClient.InsecureSkipVerify,
-			Compatibility:     c.clusterClient.CertificateFormat,
-			RouteToCluster:    c.clusterClient.SiteName,
-			KubernetesCluster: c.clusterClient.KubernetesCluster,
+			ProxyAddr:      c.clusterClient.WebProxyAddr,
+			PubKey:         key.MarshalSSHPublicKey(),
+			TTL:            c.clusterClient.KeyTTL,
+			Insecure:       c.clusterClient.InsecureSkipVerify,
+			Compatibility:  c.clusterClient.CertificateFormat,
+			RouteToCluster: c.clusterClient.SiteName,
+			// KubernetesCluster: c.clusterClient.KubernetesCluster,
 		},
 		User:     user,
 		Password: password,
@@ -209,12 +208,12 @@ func (c *Cluster) localLogin(ctx context.Context, user, password, otpToken strin
 
 	response, err := client.SSHAgentLogin(ctx, client.SSHLoginDirect{
 		SSHLogin: client.SSHLogin{
-			ProxyAddr:         c.clusterClient.WebProxyAddr,
-			PubKey:            key.MarshalSSHPublicKey(),
-			TTL:               c.clusterClient.KeyTTL,
-			Insecure:          c.clusterClient.InsecureSkipVerify,
-			Compatibility:     c.clusterClient.CertificateFormat,
-			KubernetesCluster: c.clusterClient.KubernetesCluster,
+			ProxyAddr:     c.clusterClient.WebProxyAddr,
+			PubKey:        key.MarshalSSHPublicKey(),
+			TTL:           c.clusterClient.KeyTTL,
+			Insecure:      c.clusterClient.InsecureSkipVerify,
+			Compatibility: c.clusterClient.CertificateFormat,
+			// KubernetesCluster: c.clusterClient.KubernetesCluster,
 		},
 		User:     user,
 		Password: password,
@@ -243,12 +242,12 @@ func (c *Cluster) processAuthResponse(ctx context.Context, key *client.Key, resp
 	key.TrustedCA = response.HostSigners
 	key.Username = response.Username
 
-	if c.clusterClient.KubernetesCluster != "" {
-		key.KubeTLSCerts[c.clusterClient.KubernetesCluster] = response.TLSCert
-	}
-	if c.clusterClient.DatabaseService != "" {
-		key.DBTLSCerts[c.clusterClient.DatabaseService] = response.TLSCert
-	}
+	// if c.clusterClient.KubernetesCluster != "" {
+	// 	key.KubeTLSCerts[c.clusterClient.KubernetesCluster] = response.TLSCert
+	// }
+	// if c.clusterClient.DatabaseService != "" {
+	// 	key.DBTLSCerts[c.clusterClient.DatabaseService] = response.TLSCert
+	// }
 
 	// Store the requested cluster name in the key.
 	key.ClusterName = c.clusterClient.SiteName
@@ -297,13 +296,13 @@ func (c *Cluster) PasswordlessLogin(ctx context.Context, stream api.TerminalServ
 
 	response, err := client.SSHAgentPasswordlessLogin(ctx, client.SSHLoginPasswordless{
 		SSHLogin: client.SSHLogin{
-			ProxyAddr:         c.clusterClient.WebProxyAddr,
-			PubKey:            key.MarshalSSHPublicKey(),
-			TTL:               c.clusterClient.KeyTTL,
-			Insecure:          c.clusterClient.InsecureSkipVerify,
-			Compatibility:     c.clusterClient.CertificateFormat,
-			RouteToCluster:    c.clusterClient.SiteName,
-			KubernetesCluster: c.clusterClient.KubernetesCluster,
+			ProxyAddr:      c.clusterClient.WebProxyAddr,
+			PubKey:         key.MarshalSSHPublicKey(),
+			TTL:            c.clusterClient.KeyTTL,
+			Insecure:       c.clusterClient.InsecureSkipVerify,
+			Compatibility:  c.clusterClient.CertificateFormat,
+			RouteToCluster: c.clusterClient.SiteName,
+			// KubernetesCluster: c.clusterClient.KubernetesCluster,
 		},
 		AuthenticatorAttachment: c.clusterClient.AuthenticatorAttachment,
 		CustomPrompt:            newPwdlessLoginPrompt(ctx, stream),

@@ -229,12 +229,12 @@ func (ns *NodeSession) createServerSession(ctx context.Context) (*tracessh.Sessi
 		return nil, trace.Wrap(err)
 	}
 
-	// If X11 forwading is requested and the server accepts,
-	// X11 channel requests from the server will be accepted.
-	// Otherwise, all X11 channel requests must be rejected.
-	if err := ns.handleX11Forwarding(ctx, sess); err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// // If X11 forwading is requested and the server accepts,
+	// // X11 channel requests from the server will be accepted.
+	// // Otherwise, all X11 channel requests must be rejected.
+	// if err := ns.handleX11Forwarding(ctx, sess); err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	// pass language info into the remote session.
 	evarsToPass := []string{"LANG", "LANGUAGE"}

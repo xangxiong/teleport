@@ -14,68 +14,68 @@
 
 package clusters
 
-import (
-	"fmt"
-	"strings"
+// import (
+// 	"fmt"
+// 	"strings"
 
-	"github.com/gravitational/teleport/lib/client/db/dbcmd"
-	"github.com/gravitational/teleport/lib/teleterm/gateway"
-	"github.com/gravitational/teleport/lib/tlsca"
+// 	"github.com/gravitational/teleport/lib/client/db/dbcmd"
+// 	"github.com/gravitational/teleport/lib/teleterm/gateway"
+// 	"github.com/gravitational/teleport/lib/tlsca"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-// DbcmdCLICommandProvider provides CLI commands for database gateways. It needs Storage to read
-// fresh profile state from the disk.
-type DbcmdCLICommandProvider struct {
-	storage StorageByResourceURI
-	execer  dbcmd.Execer
-}
+// // DbcmdCLICommandProvider provides CLI commands for database gateways. It needs Storage to read
+// // fresh profile state from the disk.
+// type DbcmdCLICommandProvider struct {
+// 	storage StorageByResourceURI
+// 	execer  dbcmd.Execer
+// }
 
-type StorageByResourceURI interface {
-	GetByResourceURI(string) (*Cluster, error)
-}
+// type StorageByResourceURI interface {
+// 	GetByResourceURI(string) (*Cluster, error)
+// }
 
-func NewDbcmdCLICommandProvider(storage StorageByResourceURI, execer dbcmd.Execer) DbcmdCLICommandProvider {
-	return DbcmdCLICommandProvider{
-		storage: storage,
-		execer:  execer,
-	}
-}
+// func NewDbcmdCLICommandProvider(storage StorageByResourceURI, execer dbcmd.Execer) DbcmdCLICommandProvider {
+// 	return DbcmdCLICommandProvider{
+// 		storage: storage,
+// 		execer:  execer,
+// 	}
+// }
 
-func (d DbcmdCLICommandProvider) GetCommand(gateway *gateway.Gateway) (string, error) {
-	cluster, err := d.storage.GetByResourceURI(gateway.TargetURI())
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
+// func (d DbcmdCLICommandProvider) GetCommand(gateway *gateway.Gateway) (string, error) {
+// 	cluster, err := d.storage.GetByResourceURI(gateway.TargetURI())
+// 	if err != nil {
+// 		return "", trace.Wrap(err)
+// 	}
 
-	routeToDb := tlsca.RouteToDatabase{
-		ServiceName: gateway.TargetName(),
-		Protocol:    gateway.Protocol(),
-		Username:    gateway.TargetUser(),
-		Database:    gateway.TargetSubresourceName(),
-	}
+// 	routeToDb := tlsca.RouteToDatabase{
+// 		ServiceName: gateway.TargetName(),
+// 		Protocol:    gateway.Protocol(),
+// 		Username:    gateway.TargetUser(),
+// 		Database:    gateway.TargetSubresourceName(),
+// 	}
 
-	cmd, err := dbcmd.NewCmdBuilder(cluster.clusterClient, &cluster.status, &routeToDb,
-		// TODO(ravicious): Pass the root cluster name here. cluster.Name returns leaf name for leaf
-		// clusters.
-		//
-		// At this point it doesn't matter though because this argument is used only for
-		// generating correct CA paths. We use dbcmd.WithNoTLS here which means that the CA paths aren't
-		// included in the returned CLI command.
-		cluster.Name,
-		dbcmd.WithLogger(gateway.Log()),
-		dbcmd.WithLocalProxy(gateway.LocalAddress(), gateway.LocalPortInt(), ""),
-		dbcmd.WithNoTLS(),
-		dbcmd.WithPrintFormat(),
-		dbcmd.WithTolerateMissingCLIClient(),
-		dbcmd.WithExecer(d.execer),
-	).GetConnectCommandNoAbsPath()
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
+// 	cmd, err := dbcmd.NewCmdBuilder(cluster.clusterClient, &cluster.status, &routeToDb,
+// 		// TODO(ravicious): Pass the root cluster name here. cluster.Name returns leaf name for leaf
+// 		// clusters.
+// 		//
+// 		// At this point it doesn't matter though because this argument is used only for
+// 		// generating correct CA paths. We use dbcmd.WithNoTLS here which means that the CA paths aren't
+// 		// included in the returned CLI command.
+// 		cluster.Name,
+// 		dbcmd.WithLogger(gateway.Log()),
+// 		dbcmd.WithLocalProxy(gateway.LocalAddress(), gateway.LocalPortInt(), ""),
+// 		dbcmd.WithNoTLS(),
+// 		dbcmd.WithPrintFormat(),
+// 		dbcmd.WithTolerateMissingCLIClient(),
+// 		dbcmd.WithExecer(d.execer),
+// 	).GetConnectCommandNoAbsPath()
+// 	if err != nil {
+// 		return "", trace.Wrap(err)
+// 	}
 
-	cmdString := strings.TrimSpace(fmt.Sprintf("%s %s", strings.Join(cmd.Env, " "), cmd.String()))
+// 	cmdString := strings.TrimSpace(fmt.Sprintf("%s %s", strings.Join(cmd.Env, " "), cmd.String()))
 
-	return cmdString, nil
-}
+// 	return cmdString, nil
+// }

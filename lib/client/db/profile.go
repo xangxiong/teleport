@@ -18,10 +18,12 @@ limitations under the License.
 // that combine connection parameters for a particular database.
 //
 // For Postgres it's the connection service file:
-//   https://www.postgresql.org/docs/current/libpq-pgservice.html
+//
+//	https://www.postgresql.org/docs/current/libpq-pgservice.html
 //
 // For MySQL it's the option file:
-//   https://dev.mysql.com/doc/refman/8.0/en/option-files.html
+//
+//	https://dev.mysql.com/doc/refman/8.0/en/option-files.html
 package db
 
 import (
@@ -64,10 +66,10 @@ func add(tc *client.TeleportClient, db tlsca.RouteToDatabase, clientProfile clie
 	var host string
 	var port int
 	switch db.Protocol {
-	case defaults.ProtocolPostgres:
-		host, port = tc.PostgresProxyHostPort()
-	case defaults.ProtocolMySQL:
-		host, port = tc.MySQLProxyHostPort()
+	// case defaults.ProtocolPostgres:
+	// 	host, port = tc.PostgresProxyHostPort()
+	// case defaults.ProtocolMySQL:
+	// 	host, port = tc.MySQLProxyHostPort()
 	default:
 		return nil, trace.BadParameter("unknown database protocol: %q", db)
 	}
@@ -89,8 +91,8 @@ func New(tc *client.TeleportClient, db tlsca.RouteToDatabase, clientProfile clie
 		Database:   db.Database,
 		Insecure:   tc.InsecureSkipVerify,
 		CACertPath: clientProfile.CACertPathForCluster(rootCluster),
-		CertPath:   clientProfile.DatabaseCertPathForCluster(tc.SiteName, db.ServiceName),
-		KeyPath:    clientProfile.KeyPath(),
+		// CertPath:   clientProfile.DatabaseCertPathForCluster(tc.SiteName, db.ServiceName),
+		KeyPath: clientProfile.KeyPath(),
 	}
 }
 
