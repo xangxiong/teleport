@@ -235,7 +235,7 @@ func NewTestAuthServer(cfg TestAuthServerConfig) (*TestAuthServer, error) {
 	}
 
 	access := local.NewAccessService(srv.Backend)
-	identity := local.NewIdentityService(srv.Backend)
+	// identity := local.NewIdentityService(srv.Backend)
 
 	emitter, err := events.NewCheckingEmitter(events.CheckingEmitterConfig{
 		Inner: srv.AuditLog,
@@ -246,10 +246,10 @@ func NewTestAuthServer(cfg TestAuthServerConfig) (*TestAuthServer, error) {
 	}
 
 	srv.AuthServer, err = NewServer(&InitConfig{
-		Backend:                srv.Backend,
-		Authority:              authority.NewWithClock(cfg.Clock),
-		Access:                 access,
-		Identity:               identity,
+		Backend:   srv.Backend,
+		Authority: authority.NewWithClock(cfg.Clock),
+		Access:    access,
+		// Identity:               identity,
 		AuditLog:               srv.AuditLog,
 		Streamer:               cfg.Streamer,
 		SkipPeriodicOperations: true,

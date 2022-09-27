@@ -1068,26 +1068,26 @@ func (s *IdentityService) GetOIDCAuthRequest(ctx context.Context, stateToken str
 	return &req, nil
 }
 
-// UpsertSAMLConnector upserts SAML Connector
-func (s *IdentityService) UpsertSAMLConnector(ctx context.Context, connector types.SAMLConnector) error {
-	if err := services.ValidateSAMLConnector(connector); err != nil {
-		return trace.Wrap(err)
-	}
-	value, err := services.MarshalSAMLConnector(connector)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, connector.GetName()),
-		Value:   value,
-		Expires: connector.Expiry(),
-	}
-	_, err = s.Put(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
+// // UpsertSAMLConnector upserts SAML Connector
+// func (s *IdentityService) UpsertSAMLConnector(ctx context.Context, connector types.SAMLConnector) error {
+// 	if err := services.ValidateSAMLConnector(connector); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	value, err := services.MarshalSAMLConnector(connector)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	item := backend.Item{
+// 		Key:     backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, connector.GetName()),
+// 		Value:   value,
+// 		Expires: connector.Expiry(),
+// 	}
+// 	_, err = s.Put(ctx, item)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return nil
+// }
 
 // DeleteSAMLConnector deletes SAML Connector by name
 func (s *IdentityService) DeleteSAMLConnector(ctx context.Context, name string) error {
@@ -1098,60 +1098,60 @@ func (s *IdentityService) DeleteSAMLConnector(ctx context.Context, name string) 
 	return trace.Wrap(err)
 }
 
-// GetSAMLConnector returns SAML connector data,
-// withSecrets includes or excludes secrets from return results
-func (s *IdentityService) GetSAMLConnector(ctx context.Context, name string, withSecrets bool) (types.SAMLConnector, error) {
-	if name == "" {
-		return nil, trace.BadParameter("missing parameter name")
-	}
-	item, err := s.Get(ctx, backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, name))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return nil, trace.NotFound("SAML connector %q is not configured", name)
-		}
-		return nil, trace.Wrap(err)
-	}
-	conn, err := services.UnmarshalSAMLConnector(
-		item.Value, services.WithExpires(item.Expires))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if !withSecrets {
-		keyPair := conn.GetSigningKeyPair()
-		if keyPair != nil {
-			keyPair.PrivateKey = ""
-			conn.SetSigningKeyPair(keyPair)
-		}
-	}
-	return conn, nil
-}
+// // GetSAMLConnector returns SAML connector data,
+// // withSecrets includes or excludes secrets from return results
+// func (s *IdentityService) GetSAMLConnector(ctx context.Context, name string, withSecrets bool) (types.SAMLConnector, error) {
+// 	if name == "" {
+// 		return nil, trace.BadParameter("missing parameter name")
+// 	}
+// 	item, err := s.Get(ctx, backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, name))
+// 	if err != nil {
+// 		if trace.IsNotFound(err) {
+// 			return nil, trace.NotFound("SAML connector %q is not configured", name)
+// 		}
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	conn, err := services.UnmarshalSAMLConnector(
+// 		item.Value, services.WithExpires(item.Expires))
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if !withSecrets {
+// 		keyPair := conn.GetSigningKeyPair()
+// 		if keyPair != nil {
+// 			keyPair.PrivateKey = ""
+// 			conn.SetSigningKeyPair(keyPair)
+// 		}
+// 	}
+// 	return conn, nil
+// }
 
-// GetSAMLConnectors returns registered connectors
-// withSecrets includes or excludes private key values from return results
-func (s *IdentityService) GetSAMLConnectors(ctx context.Context, withSecrets bool) ([]types.SAMLConnector, error) {
-	startKey := backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix)
-	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	connectors := make([]types.SAMLConnector, len(result.Items))
-	for i, item := range result.Items {
-		conn, err := services.UnmarshalSAMLConnector(
-			item.Value, services.WithExpires(item.Expires))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if !withSecrets {
-			keyPair := conn.GetSigningKeyPair()
-			if keyPair != nil {
-				keyPair.PrivateKey = ""
-				conn.SetSigningKeyPair(keyPair)
-			}
-		}
-		connectors[i] = conn
-	}
-	return connectors, nil
-}
+// // GetSAMLConnectors returns registered connectors
+// // withSecrets includes or excludes private key values from return results
+// func (s *IdentityService) GetSAMLConnectors(ctx context.Context, withSecrets bool) ([]types.SAMLConnector, error) {
+// 	startKey := backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix)
+// 	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	connectors := make([]types.SAMLConnector, len(result.Items))
+// 	for i, item := range result.Items {
+// 		conn, err := services.UnmarshalSAMLConnector(
+// 			item.Value, services.WithExpires(item.Expires))
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		if !withSecrets {
+// 			keyPair := conn.GetSigningKeyPair()
+// 			if keyPair != nil {
+// 				keyPair.PrivateKey = ""
+// 				conn.SetSigningKeyPair(keyPair)
+// 			}
+// 		}
+// 		connectors[i] = conn
+// 	}
+// 	return connectors, nil
+// }
 
 // CreateSAMLAuthRequest creates new auth request
 func (s *IdentityService) CreateSAMLAuthRequest(ctx context.Context, req types.SAMLAuthRequest, ttl time.Duration) error {

@@ -97,8 +97,8 @@ func itemsFromResource(resource types.Resource) ([]backend.Item, error) {
 		item, err = itemFromRole(r)
 	case types.OIDCConnector:
 		item, err = itemFromOIDCConnector(r)
-	case types.SAMLConnector:
-		item, err = itemFromSAMLConnector(r)
+	// case types.SAMLConnector:
+	// 	item, err = itemFromSAMLConnector(r)
 	default:
 		return nil, trace.NotImplemented("cannot itemFrom resource of type %T", resource)
 	}
@@ -160,8 +160,8 @@ func itemToResource(item backend.Item) (types.Resource, error) {
 		rsc, err = itemToRole(item)
 	case types.KindOIDCConnector:
 		rsc, err = itemToOIDCConnector(item)
-	case types.KindSAMLConnector:
-		rsc, err = itemToSAMLConnector(item)
+	// case types.KindSAMLConnector:
+	// 	rsc, err = itemToSAMLConnector(item)
 	case types.KindMFADevice:
 		rsc, err = itemToMFADevice(item)
 	case "":
@@ -373,38 +373,38 @@ func itemToOIDCConnector(item backend.Item) (types.OIDCConnector, error) {
 	return connector, nil
 }
 
-// itemFromSAMLConnector attempts to encode the supplied connector as an
-// instance of `backend.Item` suitable for storage.
-func itemFromSAMLConnector(connector types.SAMLConnector) (*backend.Item, error) {
-	if err := services.ValidateSAMLConnector(connector); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	value, err := services.MarshalSAMLConnector(connector)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	item := &backend.Item{
-		Key:     backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, connector.GetName()),
-		Value:   value,
-		Expires: connector.Expiry(),
-		ID:      connector.GetResourceID(),
-	}
-	return item, nil
-}
+// // itemFromSAMLConnector attempts to encode the supplied connector as an
+// // instance of `backend.Item` suitable for storage.
+// func itemFromSAMLConnector(connector types.SAMLConnector) (*backend.Item, error) {
+// 	if err := services.ValidateSAMLConnector(connector); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	value, err := services.MarshalSAMLConnector(connector)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	item := &backend.Item{
+// 		Key:     backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, connector.GetName()),
+// 		Value:   value,
+// 		Expires: connector.Expiry(),
+// 		ID:      connector.GetResourceID(),
+// 	}
+// 	return item, nil
+// }
 
-// itemToSAMLConnector attempts to decode the supplied `backend.Item` as
-// a saml connector resource.
-func itemToSAMLConnector(item backend.Item) (types.SAMLConnector, error) {
-	connector, err := services.UnmarshalSAMLConnector(
-		item.Value,
-		services.WithResourceID(item.ID),
-		services.WithExpires(item.Expires),
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return connector, nil
-}
+// // itemToSAMLConnector attempts to decode the supplied `backend.Item` as
+// // a saml connector resource.
+// func itemToSAMLConnector(item backend.Item) (types.SAMLConnector, error) {
+// 	connector, err := services.UnmarshalSAMLConnector(
+// 		item.Value,
+// 		services.WithResourceID(item.ID),
+// 		services.WithExpires(item.Expires),
+// 	)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return connector, nil
+// }
 
 func itemToMFADevice(item backend.Item) (*types.MFADevice, error) {
 	var d types.MFADevice

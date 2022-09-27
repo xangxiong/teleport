@@ -2649,20 +2649,20 @@ func (g *GRPCServer) GetSAMLConnectors(ctx context.Context, req *types.Resources
 	}, nil
 }
 
-// UpsertSAMLConnector upserts a SAML connector.
-func (g *GRPCServer) UpsertSAMLConnector(ctx context.Context, samlConnector *types.SAMLConnectorV2) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err = services.ValidateSAMLConnector(samlConnector); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err = auth.ServerWithRoles.UpsertSAMLConnector(ctx, samlConnector); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // UpsertSAMLConnector upserts a SAML connector.
+// func (g *GRPCServer) UpsertSAMLConnector(ctx context.Context, samlConnector *types.SAMLConnectorV2) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err = services.ValidateSAMLConnector(samlConnector); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err = auth.ServerWithRoles.UpsertSAMLConnector(ctx, samlConnector); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &empty.Empty{}, nil
+// }
 
 // DeleteSAMLConnector deletes a SAML connector by name.
 func (g *GRPCServer) DeleteSAMLConnector(ctx context.Context, req *types.ResourceRequest) (*empty.Empty, error) {

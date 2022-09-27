@@ -109,9 +109,9 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Provisioner == nil {
 		cfg.Provisioner = local.NewProvisioningService(cfg.Backend)
 	}
-	if cfg.Identity == nil {
-		cfg.Identity = local.NewIdentityService(cfg.Backend)
-	}
+	// if cfg.Identity == nil {
+	// 	cfg.Identity = local.NewIdentityService(cfg.Backend)
+	// }
 	if cfg.Access == nil {
 		cfg.Access = local.NewAccessService(cfg.Backend)
 	}

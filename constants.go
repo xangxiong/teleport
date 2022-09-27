@@ -79,8 +79,8 @@ const (
 	// ComponentServer is a server subcomponent of some services
 	ComponentServer = "server"
 
-	// ComponentACME is ACME protocol controller
-	ComponentACME = "acme"
+	// // ComponentACME is ACME protocol controller
+	// ComponentACME = "acme"
 
 	// ComponentReverseTunnelServer is reverse tunnel server
 	// that together with agent establish a bi-directional SSH revers tunnel
@@ -95,8 +95,8 @@ const (
 	// ComponentLabel is a component label name used in reporting
 	ComponentLabel = "component"
 
-	// ComponentProxyKube is a kubernetes proxy
-	ComponentProxyKube = "proxy:kube"
+	// // ComponentProxyKube is a kubernetes proxy
+	// ComponentProxyKube = "proxy:kube"
 
 	// ComponentAuth is the cluster CA node (auth server API)
 	ComponentAuth = "auth"
@@ -122,14 +122,14 @@ const (
 	// // ComponentApp is the application proxy service.
 	// ComponentApp = "app:service"
 
-	// ComponentDatabase is the database proxy service.
-	ComponentDatabase = "db:service"
+	// // ComponentDatabase is the database proxy service.
+	// ComponentDatabase = "db:service"
 
-	// ComponentAppProxy is the application handler within the web proxy service.
-	ComponentAppProxy = "app:web"
+	// // ComponentAppProxy is the application handler within the web proxy service.
+	// ComponentAppProxy = "app:web"
 
-	// ComponentWebProxy is the web handler within the web proxy service.
-	ComponentWebProxy = "web"
+	// // ComponentWebProxy is the web handler within the web proxy service.
+	// ComponentWebProxy = "web"
 
 	// ComponentDiagnostic is a diagnostic service
 	ComponentDiagnostic = "diag"
@@ -181,14 +181,14 @@ const (
 	// ComponentKeyGen is the public/private keypair generator.
 	ComponentKeyGen = "keygen"
 
-	// ComponentFirestore represents firestore clients
-	ComponentFirestore = "firestore"
+	// // ComponentFirestore represents firestore clients
+	// ComponentFirestore = "firestore"
 
 	// ComponentSession is an active session.
 	ComponentSession = "session"
 
-	// ComponentDynamoDB represents dynamodb clients
-	ComponentDynamoDB = "dynamodb"
+	// // ComponentDynamoDB represents dynamodb clients
+	// ComponentDynamoDB = "dynamodb"
 
 	// Component pluggable authentication module (PAM)
 	ComponentPAM = "pam"
@@ -196,8 +196,8 @@ const (
 	// ComponentUpload is a session recording upload server
 	ComponentUpload = "upload"
 
-	// ComponentWeb is a web server
-	ComponentWeb = "web"
+	// // ComponentWeb is a web server
+	// ComponentWeb = "web"
 
 	// ComponentWebsocket is websocket server that the web client connects to.
 	ComponentWebsocket = "websocket"
@@ -218,8 +218,8 @@ const (
 	// ComponentTBot is the "tbot" binary
 	ComponentTBot = "tbot"
 
-	// ComponentKubeClient is the Kubernetes client.
-	ComponentKubeClient = "client:kube"
+	// // ComponentKubeClient is the Kubernetes client.
+	// ComponentKubeClient = "client:kube"
 
 	// ComponentBuffer is in-memory event circular buffer
 	// used to broadcast events to subscribers.
@@ -234,17 +234,17 @@ const (
 	// ComponentCgroup is the cgroup package.
 	ComponentCgroup = "cgroups"
 
-	// ComponentKube is an Kubernetes API gateway.
-	ComponentKube = "kubernetes"
+	// // ComponentKube is an Kubernetes API gateway.
+	// ComponentKube = "kubernetes"
 
-	// ComponentSAML is a SAML service provider.
-	ComponentSAML = "saml"
+	// // ComponentSAML is a SAML service provider.
+	// ComponentSAML = "saml"
 
-	// ComponentMetrics is a metrics server
-	ComponentMetrics = "metrics"
+	// // ComponentMetrics is a metrics server
+	// ComponentMetrics = "metrics"
 
-	// ComponentWindowsDesktop is a Windows desktop access server.
-	ComponentWindowsDesktop = "windows_desktop"
+	// // ComponentWindowsDesktop is a Windows desktop access server.
+	// ComponentWindowsDesktop = "windows_desktop"
 
 	// ComponentTracing is a tracing exporter
 	ComponentTracing = "tracing"
@@ -252,8 +252,8 @@ const (
 	// ComponentInstance is an abstract component common to all services.
 	ComponentInstance = "instance"
 
-	// ComponentVersionControl is the component common to all version control operations.
-	ComponentVersionControl = "version-control"
+	// // ComponentVersionControl is the component common to all version control operations.
+	// ComponentVersionControl = "version-control"
 
 	// DebugEnvVar tells tests to use verbose debug output
 	DebugEnvVar = "DEBUG"
