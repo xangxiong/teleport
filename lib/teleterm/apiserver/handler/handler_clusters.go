@@ -14,101 +14,101 @@
 
 package handler
 
-import (
-	"context"
+// import (
+// 	"context"
 
-	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
-	"github.com/gravitational/teleport/lib/teleterm/clusters"
+// 	api "github.com/gravitational/teleport/lib/teleterm/api/protogen/golang/v1"
+// 	"github.com/gravitational/teleport/lib/teleterm/clusters"
 
-	"github.com/gravitational/trace"
-)
+// 	"github.com/gravitational/trace"
+// )
 
-// ListRootClusters lists root clusters
-func (s *Handler) ListRootClusters(ctx context.Context, r *api.ListClustersRequest) (*api.ListClustersResponse, error) {
-	clusters, err := s.DaemonService.ListRootClusters(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	result := []*api.Cluster{}
-	for _, cluster := range clusters {
-		result = append(result, newAPIRootCluster(cluster))
-	}
-
-	return &api.ListClustersResponse{
-		Clusters: result,
-	}, nil
-}
-
-// // ListLeafClusters lists leaf clusters
-// func (s *Handler) ListLeafClusters(ctx context.Context, req *api.ListLeafClustersRequest) (*api.ListClustersResponse, error) {
-// 	leaves, err := s.DaemonService.ListLeafClusters(ctx, req.ClusterUri)
+// // ListRootClusters lists root clusters
+// func (s *Handler) ListRootClusters(ctx context.Context, r *api.ListClustersRequest) (*api.ListClustersResponse, error) {
+// 	clusters, err := s.DaemonService.ListRootClusters(ctx)
 // 	if err != nil {
 // 		return nil, trace.Wrap(err)
 // 	}
 
-// 	response := &api.ListClustersResponse{}
-// 	for _, leaf := range leaves {
-// 		response.Clusters = append(response.Clusters, newAPILeafCluster(leaf))
+// 	result := []*api.Cluster{}
+// 	for _, cluster := range clusters {
+// 		result = append(result, newAPIRootCluster(cluster))
 // 	}
 
-// 	return response, nil
+// 	return &api.ListClustersResponse{
+// 		Clusters: result,
+// 	}, nil
 // }
 
-// AddCluster creates a new cluster
-func (s *Handler) AddCluster(ctx context.Context, req *api.AddClusterRequest) (*api.Cluster, error) {
-	cluster, err := s.DaemonService.AddCluster(ctx, req.Name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // // ListLeafClusters lists leaf clusters
+// // func (s *Handler) ListLeafClusters(ctx context.Context, req *api.ListLeafClustersRequest) (*api.ListClustersResponse, error) {
+// // 	leaves, err := s.DaemonService.ListLeafClusters(ctx, req.ClusterUri)
+// // 	if err != nil {
+// // 		return nil, trace.Wrap(err)
+// // 	}
 
-	return newAPIRootCluster(cluster), nil
-}
+// // 	response := &api.ListClustersResponse{}
+// // 	for _, leaf := range leaves {
+// // 		response.Clusters = append(response.Clusters, newAPILeafCluster(leaf))
+// // 	}
 
-// RemoveCluster removes a cluster from local system
-func (s *Handler) RemoveCluster(ctx context.Context, req *api.RemoveClusterRequest) (*api.EmptyResponse, error) {
-	if err := s.DaemonService.RemoveCluster(ctx, req.ClusterUri); err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // 	return response, nil
+// // }
 
-	return &api.EmptyResponse{}, nil
-}
+// // AddCluster creates a new cluster
+// func (s *Handler) AddCluster(ctx context.Context, req *api.AddClusterRequest) (*api.Cluster, error) {
+// 	cluster, err := s.DaemonService.AddCluster(ctx, req.Name)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-// GetCluster returns a cluster
-func (s *Handler) GetCluster(ctx context.Context, req *api.GetClusterRequest) (*api.Cluster, error) {
-	cluster, err := s.DaemonService.ResolveCluster(req.ClusterUri)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	return newAPIRootCluster(cluster), nil
+// }
 
-	return newAPIRootCluster(cluster), nil
-}
+// // RemoveCluster removes a cluster from local system
+// func (s *Handler) RemoveCluster(ctx context.Context, req *api.RemoveClusterRequest) (*api.EmptyResponse, error) {
+// 	if err := s.DaemonService.RemoveCluster(ctx, req.ClusterUri); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-func newAPIRootCluster(cluster *clusters.Cluster) *api.Cluster {
-	loggedInUser := cluster.GetLoggedInUser()
-	return &api.Cluster{
-		Uri:       cluster.URI.String(),
-		Name:      cluster.Name,
-		ProxyHost: cluster.GetProxyHost(),
-		Connected: cluster.Connected(),
-		LoggedInUser: &api.LoggedInUser{
-			Name:      loggedInUser.Name,
-			SshLogins: loggedInUser.SSHLogins,
-			Roles:     loggedInUser.Roles,
-		},
-	}
-}
+// 	return &api.EmptyResponse{}, nil
+// }
 
-// func newAPILeafCluster(leaf clusters.LeafCluster) *api.Cluster {
+// // GetCluster returns a cluster
+// func (s *Handler) GetCluster(ctx context.Context, req *api.GetClusterRequest) (*api.Cluster, error) {
+// 	cluster, err := s.DaemonService.ResolveCluster(req.ClusterUri)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+
+// 	return newAPIRootCluster(cluster), nil
+// }
+
+// func newAPIRootCluster(cluster *clusters.Cluster) *api.Cluster {
+// 	loggedInUser := cluster.GetLoggedInUser()
 // 	return &api.Cluster{
-// 		Name:      leaf.Name,
-// 		Uri:       leaf.URI.String(),
-// 		Connected: leaf.Connected,
-// 		Leaf:      true,
+// 		Uri:       cluster.URI.String(),
+// 		Name:      cluster.Name,
+// 		ProxyHost: cluster.GetProxyHost(),
+// 		Connected: cluster.Connected(),
 // 		LoggedInUser: &api.LoggedInUser{
-// 			Name:      leaf.LoggedInUser.Name,
-// 			SshLogins: leaf.LoggedInUser.SSHLogins,
-// 			Roles:     leaf.LoggedInUser.Roles,
+// 			Name:      loggedInUser.Name,
+// 			SshLogins: loggedInUser.SSHLogins,
+// 			Roles:     loggedInUser.Roles,
 // 		},
 // 	}
 // }
+
+// // func newAPILeafCluster(leaf clusters.LeafCluster) *api.Cluster {
+// // 	return &api.Cluster{
+// // 		Name:      leaf.Name,
+// // 		Uri:       leaf.URI.String(),
+// // 		Connected: leaf.Connected,
+// // 		Leaf:      true,
+// // 		LoggedInUser: &api.LoggedInUser{
+// // 			Name:      leaf.LoggedInUser.Name,
+// // 			SshLogins: leaf.LoggedInUser.SSHLogins,
+// // 			Roles:     leaf.LoggedInUser.Roles,
+// // 		},
+// // 	}
+// // }

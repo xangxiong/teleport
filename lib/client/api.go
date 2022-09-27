@@ -44,7 +44,6 @@ import (
 	"github.com/gravitational/teleport/api/client/webclient"
 	"github.com/gravitational/teleport/api/constants"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
-	apitracing "github.com/gravitational/teleport/api/observability/tracing"
 	tracessh "github.com/gravitational/teleport/api/observability/tracing/ssh"
 	"github.com/gravitational/teleport/api/profile"
 	"github.com/gravitational/teleport/api/types"
@@ -1838,27 +1837,27 @@ func (tc *TeleportClient) WithRootClusterClient(ctx context.Context, do func(clt
 	return trace.Wrap(do(clt))
 }
 
-// NewTracingClient provides a tracing client that will forward spans on to
-// the current clusters auth server. The auth server will then forward along to the configured
-// telemetry backend.
-func (tc *TeleportClient) NewTracingClient(ctx context.Context) (*apitracing.Client, error) {
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // NewTracingClient provides a tracing client that will forward spans on to
+// // the current clusters auth server. The auth server will then forward along to the configured
+// // telemetry backend.
+// func (tc *TeleportClient) NewTracingClient(ctx context.Context) (*apitracing.Client, error) {
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	site, err := proxyClient.currentCluster(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	site, err := proxyClient.currentCluster(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	clt, err := proxyClient.NewTracingClient(ctx, site.Name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	clt, err := proxyClient.NewTracingClient(ctx, site.Name)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return clt, nil
-}
+// 	return clt, nil
+// }
 
 // SSH connects to a node and, if 'command' is specified, executes the command on it,
 // otherwise runs interactive shell
@@ -2132,41 +2131,41 @@ func (tc *TeleportClient) Join(ctx context.Context, mode types.SessionParticipan
 // 	return playSession(sessionEvents, stream)
 // }
 
-func (tc *TeleportClient) GetSessionEvents(ctx context.Context, namespace, sessionID string) ([]events.EventFields, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/GetSessionEvents",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-		oteltrace.WithAttributes(
-			attribute.String("session", sessionID),
-		),
-	)
-	defer span.End()
+// func (tc *TeleportClient) GetSessionEvents(ctx context.Context, namespace, sessionID string) ([]events.EventFields, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/GetSessionEvents",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 		oteltrace.WithAttributes(
+// 			attribute.String("session", sessionID),
+// 		),
+// 	)
+// 	defer span.End()
 
-	if namespace == "" {
-		return nil, trace.BadParameter(auth.MissingNamespaceError)
-	}
-	sid, err := session.ParseID(sessionID)
-	if err != nil {
-		return nil, trace.BadParameter("%q is not a valid session ID (must be GUID)", sid)
-	}
-	// connect to the auth server (site) who made the recording
-	proxyClient, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer proxyClient.Close()
+// 	if namespace == "" {
+// 		return nil, trace.BadParameter(auth.MissingNamespaceError)
+// 	}
+// 	sid, err := session.ParseID(sessionID)
+// 	if err != nil {
+// 		return nil, trace.BadParameter("%q is not a valid session ID (must be GUID)", sid)
+// 	}
+// 	// connect to the auth server (site) who made the recording
+// 	proxyClient, err := tc.ConnectToProxy(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	defer proxyClient.Close()
 
-	site, err := proxyClient.ConnectToCurrentCluster(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	events, err := site.GetSessionEvents(namespace, *sid, 0, true)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return events, nil
-}
+// 	site, err := proxyClient.ConnectToCurrentCluster(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	events, err := site.GetSessionEvents(namespace, *sid, 0, true)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return events, nil
+// }
 
 // // PlayFile plays the recorded session from a tar file
 // func PlayFile(ctx context.Context, tarFile io.Reader, sid string) error {
@@ -3259,21 +3258,21 @@ func (tc *TeleportClient) PingAndShowMOTD(ctx context.Context) (*webclient.PingR
 	return pr, nil
 }
 
-// GetWebConfig retrieves Teleport proxy web config
-func (tc *TeleportClient) GetWebConfig(ctx context.Context) (*webclient.WebConfig, error) {
-	ctx, span := tc.Tracer.Start(
-		ctx,
-		"teleportClient/GetWebConfig",
-		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	)
-	defer span.End()
+// // GetWebConfig retrieves Teleport proxy web config
+// func (tc *TeleportClient) GetWebConfig(ctx context.Context) (*webclient.WebConfig, error) {
+// 	ctx, span := tc.Tracer.Start(
+// 		ctx,
+// 		"teleportClient/GetWebConfig",
+// 		oteltrace.WithSpanKind(oteltrace.SpanKindClient),
+// 	)
+// 	defer span.End()
 
-	cfg, err := GetWebConfig(ctx, tc.WebProxyAddr, tc.InsecureSkipVerify)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return cfg, nil
-}
+// 	cfg, err := GetWebConfig(ctx, tc.WebProxyAddr, tc.InsecureSkipVerify)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return cfg, nil
+// }
 
 // Login logs the user into a Teleport cluster by talking to a Teleport proxy.
 //
@@ -4346,28 +4345,28 @@ func isFIPS() bool {
 // 	}
 // }
 
-func findActiveDatabases(key *Key) ([]tlsca.RouteToDatabase, error) {
-	dbCerts, err := key.DBTLSCertificates()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var databases []tlsca.RouteToDatabase
-	for _, cert := range dbCerts {
-		tlsID, err := tlsca.FromSubject(cert.Subject, time.Time{})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		// If the cert expiration time is less than 5s consider cert as expired and don't add
-		// it to the user profile as an active database.
-		if time.Until(cert.NotAfter) < 5*time.Second {
-			continue
-		}
-		if tlsID.RouteToDatabase.ServiceName != "" {
-			databases = append(databases, tlsID.RouteToDatabase)
-		}
-	}
-	return databases, nil
-}
+// func findActiveDatabases(key *Key) ([]tlsca.RouteToDatabase, error) {
+// 	dbCerts, err := key.DBTLSCertificates()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	var databases []tlsca.RouteToDatabase
+// 	for _, cert := range dbCerts {
+// 		tlsID, err := tlsca.FromSubject(cert.Subject, time.Time{})
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		// If the cert expiration time is less than 5s consider cert as expired and don't add
+// 		// it to the user profile as an active database.
+// 		if time.Until(cert.NotAfter) < 5*time.Second {
+// 			continue
+// 		}
+// 		if tlsID.RouteToDatabase.ServiceName != "" {
+// 			databases = append(databases, tlsID.RouteToDatabase)
+// 		}
+// 	}
+// 	return databases, nil
+// }
 
 // // SearchSessionEvents allows searching for session events with a full pagination support.
 // func (tc *TeleportClient) SearchSessionEvents(ctx context.Context, fromUTC, toUTC time.Time, pageSize int, order types.EventOrder, max int) ([]apievents.AuditEvent, error) {

@@ -14,43 +14,43 @@
 
 package apiserver
 
-import (
-	"github.com/gravitational/teleport/lib/teleterm/daemon"
+// import (
+// 	"github.com/gravitational/teleport/lib/teleterm/daemon"
 
-	"github.com/gravitational/trace"
+// 	"github.com/gravitational/trace"
 
-	"github.com/sirupsen/logrus"
-)
+// 	"github.com/sirupsen/logrus"
+// )
 
-// Config is the APIServer configuration
-type Config struct {
-	// HostAddr is the APIServer host address
-	HostAddr string
-	// Daemon is the terminal daemon service
-	Daemon *daemon.Service
-	// Log is a component logger
-	Log logrus.FieldLogger
-	// Directory containing certs used to create secure gRPC connection with daemon service
-	CertsDir string
-}
+// // Config is the APIServer configuration
+// type Config struct {
+// 	// HostAddr is the APIServer host address
+// 	HostAddr string
+// 	// Daemon is the terminal daemon service
+// 	Daemon *daemon.Service
+// 	// Log is a component logger
+// 	Log logrus.FieldLogger
+// 	// Directory containing certs used to create secure gRPC connection with daemon service
+// 	CertsDir string
+// }
 
-// CheckAndSetDefaults checks and sets default config values.
-func (c *Config) CheckAndSetDefaults() error {
-	if c.HostAddr == "" {
-		return trace.BadParameter("missing HostAddr")
-	}
+// // CheckAndSetDefaults checks and sets default config values.
+// func (c *Config) CheckAndSetDefaults() error {
+// 	if c.HostAddr == "" {
+// 		return trace.BadParameter("missing HostAddr")
+// 	}
 
-	if c.HostAddr == "" {
-		return trace.BadParameter("missing certs dir")
-	}
+// 	if c.HostAddr == "" {
+// 		return trace.BadParameter("missing certs dir")
+// 	}
 
-	if c.Daemon == nil {
-		return trace.BadParameter("missing daemon service")
-	}
+// 	if c.Daemon == nil {
+// 		return trace.BadParameter("missing daemon service")
+// 	}
 
-	if c.Log == nil {
-		c.Log = logrus.WithField(trace.Component, "conn:apiserver")
-	}
+// 	if c.Log == nil {
+// 		c.Log = logrus.WithField(trace.Component, "conn:apiserver")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

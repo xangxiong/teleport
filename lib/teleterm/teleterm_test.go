@@ -14,69 +14,69 @@
 
 package teleterm_test
 
-import (
-	"context"
-	"errors"
-	"fmt"
-	"net"
-	"os"
-	"path/filepath"
-	"testing"
-	"time"
+// import (
+// 	"context"
+// 	"errors"
+// 	"fmt"
+// 	"net"
+// 	"os"
+// 	"path/filepath"
+// 	"testing"
+// 	"time"
 
-	"github.com/gravitational/teleport/lib/teleterm"
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/gravitational/teleport/lib/teleterm"
+// 	"github.com/stretchr/testify/require"
+// )
 
-func TestStart(t *testing.T) {
-	homeDir := t.TempDir()
-	certsDir := t.TempDir()
-	sockPath := filepath.Join(homeDir, "teleterm.sock")
+// func TestStart(t *testing.T) {
+// 	homeDir := t.TempDir()
+// 	certsDir := t.TempDir()
+// 	sockPath := filepath.Join(homeDir, "teleterm.sock")
 
-	cfg := teleterm.Config{
-		Addr:     fmt.Sprintf("unix://%v", sockPath),
-		HomeDir:  homeDir,
-		CertsDir: certsDir,
-	}
+// 	cfg := teleterm.Config{
+// 		Addr:     fmt.Sprintf("unix://%v", sockPath),
+// 		HomeDir:  homeDir,
+// 		CertsDir: certsDir,
+// 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+// 	ctx, cancel := context.WithCancel(context.Background())
+// 	defer cancel()
 
-	serveErr := make(chan error)
-	go func() {
-		err := teleterm.Serve(ctx, cfg)
-		serveErr <- err
-	}()
+// 	serveErr := make(chan error)
+// 	go func() {
+// 		err := teleterm.Serve(ctx, cfg)
+// 		serveErr <- err
+// 	}()
 
-	blockUntilServerAcceptsConnections(t, sockPath)
+// 	blockUntilServerAcceptsConnections(t, sockPath)
 
-	// Stop the server.
-	cancel()
-	require.NoError(t, <-serveErr)
-}
+// 	// Stop the server.
+// 	cancel()
+// 	require.NoError(t, <-serveErr)
+// }
 
-func blockUntilServerAcceptsConnections(t *testing.T, sockPath string) {
-	// Wait for the socket to be created.
-	require.Eventually(t, func() bool {
-		_, err := os.Stat(sockPath)
-		if errors.Is(err, os.ErrNotExist) {
-			return false
-		}
-		require.NoError(t, err)
-		return true
-	}, time.Millisecond*500, time.Millisecond*50)
+// func blockUntilServerAcceptsConnections(t *testing.T, sockPath string) {
+// 	// Wait for the socket to be created.
+// 	require.Eventually(t, func() bool {
+// 		_, err := os.Stat(sockPath)
+// 		if errors.Is(err, os.ErrNotExist) {
+// 			return false
+// 		}
+// 		require.NoError(t, err)
+// 		return true
+// 	}, time.Millisecond*500, time.Millisecond*50)
 
-	conn, err := net.DialTimeout("unix", sockPath, time.Second*1)
-	require.NoError(t, err)
-	t.Cleanup(func() { conn.Close() })
+// 	conn, err := net.DialTimeout("unix", sockPath, time.Second*1)
+// 	require.NoError(t, err)
+// 	t.Cleanup(func() { conn.Close() })
 
-	err = conn.SetReadDeadline(time.Now().Add(time.Second))
-	require.NoError(t, err)
+// 	err = conn.SetReadDeadline(time.Now().Add(time.Second))
+// 	require.NoError(t, err)
 
-	out := make([]byte, 1024)
-	_, err = conn.Read(out)
-	require.NoError(t, err)
+// 	out := make([]byte, 1024)
+// 	_, err = conn.Read(out)
+// 	require.NoError(t, err)
 
-	err = conn.Close()
-	require.NoError(t, err)
-}
+// 	err = conn.Close()
+// 	require.NoError(t, err)
+// }

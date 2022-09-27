@@ -16,42 +16,42 @@ limitations under the License.
 
 package daemon
 
-import (
-	"github.com/gravitational/teleport/lib/teleterm/clusters"
-	"github.com/gravitational/teleport/lib/teleterm/gateway"
+// import (
+// 	"github.com/gravitational/teleport/lib/teleterm/clusters"
+// 	"github.com/gravitational/teleport/lib/teleterm/gateway"
 
-	"github.com/gravitational/trace"
+// 	"github.com/gravitational/trace"
 
-	"github.com/sirupsen/logrus"
-)
+// 	"github.com/sirupsen/logrus"
+// )
 
-// Config is the cluster service config
-type Config struct {
-	// Storage is a storage service that reads/writes to tsh profiles
-	Storage *clusters.Storage
-	// Log is a component logger
-	Log *logrus.Entry
-	// GatewayCreator   GatewayCreator
-	TCPPortAllocator gateway.TCPPortAllocator
-}
+// // Config is the cluster service config
+// type Config struct {
+// 	// Storage is a storage service that reads/writes to tsh profiles
+// 	Storage *clusters.Storage
+// 	// Log is a component logger
+// 	Log *logrus.Entry
+// 	// GatewayCreator   GatewayCreator
+// 	TCPPortAllocator gateway.TCPPortAllocator
+// }
 
-// CheckAndSetDefaults checks the configuration for its validity and sets default values if needed
-func (c *Config) CheckAndSetDefaults() error {
-	if c.Storage == nil {
-		return trace.BadParameter("missing cluster storage")
-	}
+// // CheckAndSetDefaults checks the configuration for its validity and sets default values if needed
+// func (c *Config) CheckAndSetDefaults() error {
+// 	if c.Storage == nil {
+// 		return trace.BadParameter("missing cluster storage")
+// 	}
 
-	// if c.GatewayCreator == nil {
-	// 	c.GatewayCreator = clusters.NewGatewayCreator(c.Storage)
-	// }
+// 	// if c.GatewayCreator == nil {
+// 	// 	c.GatewayCreator = clusters.NewGatewayCreator(c.Storage)
+// 	// }
 
-	if c.TCPPortAllocator == nil {
-		c.TCPPortAllocator = gateway.NetTCPPortAllocator{}
-	}
+// 	if c.TCPPortAllocator == nil {
+// 		c.TCPPortAllocator = gateway.NetTCPPortAllocator{}
+// 	}
 
-	if c.Log == nil {
-		c.Log = logrus.NewEntry(logrus.StandardLogger()).WithField(trace.Component, "daemon")
-	}
+// 	if c.Log == nil {
+// 		c.Log = logrus.NewEntry(logrus.StandardLogger()).WithField(trace.Component, "daemon")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

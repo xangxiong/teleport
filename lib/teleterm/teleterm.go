@@ -14,75 +14,75 @@
 
 package teleterm
 
-import (
-	"context"
-	"os"
-	"os/signal"
+// import (
+// 	"context"
+// 	"os"
+// 	"os/signal"
 
-	"github.com/gravitational/teleport/lib/teleterm/apiserver"
-	"github.com/gravitational/teleport/lib/teleterm/clusters"
-	"github.com/gravitational/teleport/lib/teleterm/daemon"
+// 	"github.com/gravitational/teleport/lib/teleterm/apiserver"
+// 	"github.com/gravitational/teleport/lib/teleterm/clusters"
+// 	"github.com/gravitational/teleport/lib/teleterm/daemon"
 
-	"github.com/gravitational/trace"
+// 	"github.com/gravitational/trace"
 
-	log "github.com/sirupsen/logrus"
-)
+// 	log "github.com/sirupsen/logrus"
+// )
 
-// Serve starts daemon service
-func Serve(ctx context.Context, cfg Config) error {
-	if err := cfg.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
+// // Serve starts daemon service
+// func Serve(ctx context.Context, cfg Config) error {
+// 	if err := cfg.CheckAndSetDefaults(); err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	storage, err := clusters.NewStorage(clusters.Config{
-		Dir:                cfg.HomeDir,
-		InsecureSkipVerify: cfg.InsecureSkipVerify,
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	storage, err := clusters.NewStorage(clusters.Config{
+// 		Dir:                cfg.HomeDir,
+// 		InsecureSkipVerify: cfg.InsecureSkipVerify,
+// 	})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	daemonService, err := daemon.New(daemon.Config{
-		Storage: storage,
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	daemonService, err := daemon.New(daemon.Config{
+// 		Storage: storage,
+// 	})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	apiServer, err := apiserver.New(apiserver.Config{
-		HostAddr: cfg.Addr,
-		Daemon:   daemonService,
-		CertsDir: cfg.CertsDir,
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// 	apiServer, err := apiserver.New(apiserver.Config{
+// 		HostAddr: cfg.Addr,
+// 		Daemon:   daemonService,
+// 		CertsDir: cfg.CertsDir,
+// 	})
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	serverAPIWait := make(chan error)
-	go func() {
-		err := apiServer.Serve()
-		serverAPIWait <- err
-	}()
+// 	serverAPIWait := make(chan error)
+// 	go func() {
+// 		err := apiServer.Serve()
+// 		serverAPIWait <- err
+// 	}()
 
-	// Wait for shutdown signals
-	go func() {
-		c := make(chan os.Signal, len(cfg.ShutdownSignals))
-		signal.Notify(c, cfg.ShutdownSignals...)
-		select {
-		case <-ctx.Done():
-			log.Info("Context closed, stopping service.")
-		case sig := <-c:
-			log.Infof("Captured %s, stopping service.", sig)
-		}
-		daemonService.Stop()
-		apiServer.Stop()
-	}()
+// 	// Wait for shutdown signals
+// 	go func() {
+// 		c := make(chan os.Signal, len(cfg.ShutdownSignals))
+// 		signal.Notify(c, cfg.ShutdownSignals...)
+// 		select {
+// 		case <-ctx.Done():
+// 			log.Info("Context closed, stopping service.")
+// 		case sig := <-c:
+// 			log.Infof("Captured %s, stopping service.", sig)
+// 		}
+// 		daemonService.Stop()
+// 		apiServer.Stop()
+// 	}()
 
-	errAPI := <-serverAPIWait
+// 	errAPI := <-serverAPIWait
 
-	if errAPI != nil {
-		return trace.Wrap(errAPI, "shutting down due to API Server error")
-	}
+// 	if errAPI != nil {
+// 		return trace.Wrap(errAPI, "shutting down due to API Server error")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
