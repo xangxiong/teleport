@@ -716,12 +716,12 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		}
 	}
 
-	// TODO(espadolini): DELETE IN 11.0, replace with
-	// os.RemoveAll(filepath.Join(cfg.DataDir, "cache")), because no stable v10
-	// should ever use the cache directory, and 11 requires upgrading from 10
-	if fi, err := os.Stat(filepath.Join(cfg.DataDir, "cache")); err == nil && fi.IsDir() {
-		cfg.Log.Warnf("An old cache directory exists at %q. It can be safely deleted after ensuring that no other Teleport instance is running.", filepath.Join(cfg.DataDir, "cache"))
-	}
+	// // TODO(espadolini): DELETE IN 11.0, replace with
+	// // os.RemoveAll(filepath.Join(cfg.DataDir, "cache")), because no stable v10
+	// // should ever use the cache directory, and 11 requires upgrading from 10
+	// if fi, err := os.Stat(filepath.Join(cfg.DataDir, "cache")); err == nil && fi.IsDir() {
+	// 	cfg.Log.Warnf("An old cache directory exists at %q. It can be safely deleted after ensuring that no other Teleport instance is running.", filepath.Join(cfg.DataDir, "cache"))
+	// }
 
 	if len(cfg.FileDescriptors) == 0 {
 		cfg.FileDescriptors, err = importFileDescriptors(cfg.Log)
@@ -2647,52 +2647,52 @@ func (process *TeleportProcess) getAdditionalPrincipals(role types.SystemRole) (
 // }
 
 type proxyListeners struct {
-	mux              *multiplexer.Mux
-	tls              *multiplexer.WebListener
-	ssh              net.Listener
-	web              net.Listener
-	reverseTunnel    net.Listener
-	kube             net.Listener
-	db               dbListeners
-	alpn             net.Listener
+	mux           *multiplexer.Mux
+	tls           *multiplexer.WebListener
+	ssh           net.Listener
+	web           net.Listener
+	reverseTunnel net.Listener
+	// kube             net.Listener
+	// db               dbListeners
+	// alpn             net.Listener
 	proxy            net.Listener
 	grpc             net.Listener
 	reverseTunnelMux *multiplexer.Mux
 	minimalTLS       *multiplexer.WebListener
 }
 
-// dbListeners groups database access listeners.
-type dbListeners struct {
-	// postgres serves Postgres clients.
-	postgres net.Listener
-	// mysql serves MySQL clients.
-	mysql net.Listener
-	// mongo serves Mongo clients.
-	mongo net.Listener
-	// tls serves database clients that use plain TLS handshake.
-	tls net.Listener
-}
+// // dbListeners groups database access listeners.
+// type dbListeners struct {
+// 	// postgres serves Postgres clients.
+// 	postgres net.Listener
+// 	// mysql serves MySQL clients.
+// 	mysql net.Listener
+// 	// mongo serves Mongo clients.
+// 	mongo net.Listener
+// 	// tls serves database clients that use plain TLS handshake.
+// 	tls net.Listener
+// }
 
-// Empty returns true if no database access listeners are initialized.
-func (l *dbListeners) Empty() bool {
-	return l.postgres == nil && l.mysql == nil && l.tls == nil && l.mongo == nil
-}
+// // Empty returns true if no database access listeners are initialized.
+// func (l *dbListeners) Empty() bool {
+// 	return l.postgres == nil && l.mysql == nil && l.tls == nil && l.mongo == nil
+// }
 
-// Close closes all database access listeners.
-func (l *dbListeners) Close() {
-	if l.postgres != nil {
-		l.postgres.Close()
-	}
-	if l.mysql != nil {
-		l.mysql.Close()
-	}
-	if l.tls != nil {
-		l.tls.Close()
-	}
-	if l.mongo != nil {
-		l.mongo.Close()
-	}
-}
+// // Close closes all database access listeners.
+// func (l *dbListeners) Close() {
+// 	if l.postgres != nil {
+// 		l.postgres.Close()
+// 	}
+// 	if l.mysql != nil {
+// 		l.mysql.Close()
+// 	}
+// 	if l.tls != nil {
+// 		l.tls.Close()
+// 	}
+// 	if l.mongo != nil {
+// 		l.mongo.Close()
+// 	}
+// }
 
 // Close closes all proxy listeners.
 func (l *proxyListeners) Close() {
@@ -2708,12 +2708,12 @@ func (l *proxyListeners) Close() {
 	if l.reverseTunnel != nil {
 		l.reverseTunnel.Close()
 	}
-	if l.kube != nil {
-		l.kube.Close()
-	}
-	if !l.db.Empty() {
-		l.db.Close()
-	}
+	// if l.kube != nil {
+	// 	l.kube.Close()
+	// }
+	// if !l.db.Empty() {
+	// 	l.db.Close()
+	// }
 	if l.grpc != nil {
 		l.grpc.Close()
 	}

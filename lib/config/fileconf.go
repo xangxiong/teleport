@@ -25,12 +25,10 @@ import (
 	"io"
 	"io/fs"
 	"net"
-	"net/url"
 	"os"
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/gravitational/teleport"
@@ -1477,30 +1475,30 @@ type ACME struct {
 	URI string `yaml:"uri,omitempty"`
 }
 
-// Parse parses ACME section values
-func (a ACME) Parse() (*service.ACME, error) {
-	// ACME is disabled by default
-	out := service.ACME{}
-	if a.EnabledFlag == "" {
-		return &out, nil
-	}
+// // Parse parses ACME section values
+// func (a ACME) Parse() (*service.ACME, error) {
+// 	// ACME is disabled by default
+// 	out := service.ACME{}
+// 	if a.EnabledFlag == "" {
+// 		return &out, nil
+// 	}
 
-	var err error
-	out.Enabled, err = apiutils.ParseBool(a.EnabledFlag)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	out.Email = a.Email
-	if a.URI != "" {
-		_, err := url.Parse(a.URI)
-		if err != nil {
-			return nil, trace.Wrap(err, "acme.uri should be a valid URI, for example %v", acme.LetsEncryptURL)
-		}
-	}
-	out.URI = a.URI
+// 	var err error
+// 	out.Enabled, err = apiutils.ParseBool(a.EnabledFlag)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	out.Email = a.Email
+// 	if a.URI != "" {
+// 		_, err := url.Parse(a.URI)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err, "acme.uri should be a valid URI, for example %v", acme.LetsEncryptURL)
+// 		}
+// 	}
+// 	out.URI = a.URI
 
-	return &out, nil
-}
+// 	return &out, nil
+// }
 
 // KeyPair represents a path on disk to a private key and certificate.
 type KeyPair struct {

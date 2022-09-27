@@ -905,11 +905,11 @@ func applyProxyConfig(fc *FileConfig, cfg *service.Config) error {
 	// 	cfg.Proxy.MongoPublicAddrs = addrs
 	// }
 
-	acme, err := fc.Proxy.ACME.Parse()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	cfg.Proxy.ACME = *acme
+	// acme, err := fc.Proxy.ACME.Parse()
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// cfg.Proxy.ACME = *acme
 
 	applyDefaultProxyListenerAddresses(cfg)
 

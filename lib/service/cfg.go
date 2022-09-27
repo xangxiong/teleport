@@ -437,22 +437,22 @@ type ProxyConfig struct {
 	// KeyPairs are the key and certificate pairs that the proxy will load.
 	KeyPairs []KeyPairPath
 
-	// ACME is ACME protocol support config
-	ACME ACME
+	// // ACME is ACME protocol support config
+	// ACME ACME
 
-	// DisableALPNSNIListener allows turning off the ALPN Proxy listener. Used in tests.
-	DisableALPNSNIListener bool
+	// // DisableALPNSNIListener allows turning off the ALPN Proxy listener. Used in tests.
+	// DisableALPNSNIListener bool
 }
 
-// ACME configures ACME automatic certificate renewal
-type ACME struct {
-	// Enabled enables or disables ACME support
-	Enabled bool
-	// Email receives notifications from ACME server
-	Email string
-	// URI is ACME server URI
-	URI string
-}
+// // ACME configures ACME automatic certificate renewal
+// type ACME struct {
+// 	// Enabled enables or disables ACME support
+// 	Enabled bool
+// 	// Email receives notifications from ACME server
+// 	Email string
+// 	// URI is ACME server URI
+// 	URI string
+// }
 
 // KeyPairPath are paths to a key and certificate file.
 type KeyPairPath struct {
@@ -729,109 +729,109 @@ func (m TLSMode) ToProto() types.DatabaseTLSMode {
 	}
 }
 
-// MySQLOptions are additional MySQL options.
-type MySQLOptions struct {
-	// ServerVersion is the version reported by Teleport DB Proxy on initial handshake.
-	ServerVersion string
-}
+// // MySQLOptions are additional MySQL options.
+// type MySQLOptions struct {
+// 	// ServerVersion is the version reported by Teleport DB Proxy on initial handshake.
+// 	ServerVersion string
+// }
 
-// DatabaseTLS keeps TLS settings used when connecting to database.
-type DatabaseTLS struct {
-	// Mode is the TLS connection mode. See TLSMode for more details.
-	Mode TLSMode
-	// ServerName allows providing custom server name.
-	// This name will override DNS name when validating certificate presented by the database.
-	ServerName string
-	// CACert is an optional database CA certificate.
-	CACert []byte
-}
+// // DatabaseTLS keeps TLS settings used when connecting to database.
+// type DatabaseTLS struct {
+// 	// Mode is the TLS connection mode. See TLSMode for more details.
+// 	Mode TLSMode
+// 	// ServerName allows providing custom server name.
+// 	// This name will override DNS name when validating certificate presented by the database.
+// 	ServerName string
+// 	// CACert is an optional database CA certificate.
+// 	CACert []byte
+// }
 
-// DatabaseAWS contains AWS specific settings for RDS/Aurora databases.
-type DatabaseAWS struct {
-	// Region is the cloud region database is running in when using AWS RDS.
-	Region string
-	// Redshift contains Redshift specific settings.
-	Redshift DatabaseAWSRedshift
-	// RDS contains RDS specific settings.
-	RDS DatabaseAWSRDS
-	// ElastiCache contains ElastiCache specific settings.
-	ElastiCache DatabaseAWSElastiCache
-	// MemoryDB contains MemoryDB specific settings.
-	MemoryDB DatabaseAWSMemoryDB
-	// SecretStore contains settings for managing secrets.
-	SecretStore DatabaseAWSSecretStore
-}
+// // DatabaseAWS contains AWS specific settings for RDS/Aurora databases.
+// type DatabaseAWS struct {
+// 	// Region is the cloud region database is running in when using AWS RDS.
+// 	Region string
+// 	// Redshift contains Redshift specific settings.
+// 	Redshift DatabaseAWSRedshift
+// 	// RDS contains RDS specific settings.
+// 	RDS DatabaseAWSRDS
+// 	// ElastiCache contains ElastiCache specific settings.
+// 	ElastiCache DatabaseAWSElastiCache
+// 	// MemoryDB contains MemoryDB specific settings.
+// 	MemoryDB DatabaseAWSMemoryDB
+// 	// SecretStore contains settings for managing secrets.
+// 	SecretStore DatabaseAWSSecretStore
+// }
 
-// DatabaseAWSRedshift contains AWS Redshift specific settings.
-type DatabaseAWSRedshift struct {
-	// ClusterID is the Redshift cluster identifier.
-	ClusterID string
-}
+// // DatabaseAWSRedshift contains AWS Redshift specific settings.
+// type DatabaseAWSRedshift struct {
+// 	// ClusterID is the Redshift cluster identifier.
+// 	ClusterID string
+// }
 
-// DatabaseAWSRDS contains AWS RDS specific settings.
-type DatabaseAWSRDS struct {
-	// InstanceID is the RDS instance identifier.
-	InstanceID string
-	// ClusterID is the RDS cluster (Aurora) identifier.
-	ClusterID string
-}
+// // DatabaseAWSRDS contains AWS RDS specific settings.
+// type DatabaseAWSRDS struct {
+// 	// InstanceID is the RDS instance identifier.
+// 	InstanceID string
+// 	// ClusterID is the RDS cluster (Aurora) identifier.
+// 	ClusterID string
+// }
 
-// DatabaseAWSElastiCache contains settings for ElastiCache databases.
-type DatabaseAWSElastiCache struct {
-	// ReplicationGroupID is the ElastiCache replication group ID.
-	ReplicationGroupID string
-}
+// // DatabaseAWSElastiCache contains settings for ElastiCache databases.
+// type DatabaseAWSElastiCache struct {
+// 	// ReplicationGroupID is the ElastiCache replication group ID.
+// 	ReplicationGroupID string
+// }
 
-// DatabaseAWSMemoryDB contains settings for MemoryDB databases.
-type DatabaseAWSMemoryDB struct {
-	// ClusterName is the MemoryDB cluster name.
-	ClusterName string
-}
+// // DatabaseAWSMemoryDB contains settings for MemoryDB databases.
+// type DatabaseAWSMemoryDB struct {
+// 	// ClusterName is the MemoryDB cluster name.
+// 	ClusterName string
+// }
 
-// DatabaseAWSSecretStore contains secret store configurations.
-type DatabaseAWSSecretStore struct {
-	// KeyPrefix specifies the secret key prefix.
-	KeyPrefix string
-	// KMSKeyID specifies the AWS KMS key for encryption.
-	KMSKeyID string
-}
+// // DatabaseAWSSecretStore contains secret store configurations.
+// type DatabaseAWSSecretStore struct {
+// 	// KeyPrefix specifies the secret key prefix.
+// 	KeyPrefix string
+// 	// KMSKeyID specifies the AWS KMS key for encryption.
+// 	KMSKeyID string
+// }
 
-// DatabaseGCP contains GCP specific settings for Cloud SQL databases.
-type DatabaseGCP struct {
-	// ProjectID is the GCP project ID where the database is deployed.
-	ProjectID string
-	// InstanceID is the Cloud SQL instance ID.
-	InstanceID string
-}
+// // DatabaseGCP contains GCP specific settings for Cloud SQL databases.
+// type DatabaseGCP struct {
+// 	// ProjectID is the GCP project ID where the database is deployed.
+// 	ProjectID string
+// 	// InstanceID is the Cloud SQL instance ID.
+// 	InstanceID string
+// }
 
-// DatabaseAD contains database Active Directory configuration.
-type DatabaseAD struct {
-	// KeytabFile is the path to the Kerberos keytab file.
-	KeytabFile string
-	// Krb5File is the path to the Kerberos configuration file. Defaults to /etc/krb5.conf.
-	Krb5File string
-	// Domain is the Active Directory domain the database resides in.
-	Domain string
-	// SPN is the service principal name for the database.
-	SPN string
-}
+// // DatabaseAD contains database Active Directory configuration.
+// type DatabaseAD struct {
+// 	// KeytabFile is the path to the Kerberos keytab file.
+// 	KeytabFile string
+// 	// Krb5File is the path to the Kerberos configuration file. Defaults to /etc/krb5.conf.
+// 	Krb5File string
+// 	// Domain is the Active Directory domain the database resides in.
+// 	Domain string
+// 	// SPN is the service principal name for the database.
+// 	SPN string
+// }
 
-// CheckAndSetDefaults validates database Active Directory configuration.
-func (d *DatabaseAD) CheckAndSetDefaults(name string) error {
-	if d.KeytabFile == "" {
-		return trace.BadParameter("missing keytab file path for database %q", name)
-	}
-	if d.Krb5File == "" {
-		d.Krb5File = defaults.Krb5FilePath
-	}
-	if d.Domain == "" {
-		return trace.BadParameter("missing Active Directory domain for database %q", name)
-	}
-	if d.SPN == "" {
-		return trace.BadParameter("missing service principal name for database %q", name)
-	}
-	return nil
-}
+// // CheckAndSetDefaults validates database Active Directory configuration.
+// func (d *DatabaseAD) CheckAndSetDefaults(name string) error {
+// 	if d.KeytabFile == "" {
+// 		return trace.BadParameter("missing keytab file path for database %q", name)
+// 	}
+// 	if d.Krb5File == "" {
+// 		d.Krb5File = defaults.Krb5FilePath
+// 	}
+// 	if d.Domain == "" {
+// 		return trace.BadParameter("missing Active Directory domain for database %q", name)
+// 	}
+// 	if d.SPN == "" {
+// 		return trace.BadParameter("missing service principal name for database %q", name)
+// 	}
+// 	return nil
+// }
 
 // CheckAndSetDefaults validates the database proxy configuration.
 // func (d *Database) CheckAndSetDefaults() error {
@@ -1006,34 +1006,34 @@ func (a *App) CheckAndSetDefaults() error {
 	return nil
 }
 
-// MetricsConfig specifies configuration for the metrics service
-type MetricsConfig struct {
-	// Enabled turns the metrics service role on or off for this process
-	Enabled bool
+// // MetricsConfig specifies configuration for the metrics service
+// type MetricsConfig struct {
+// 	// Enabled turns the metrics service role on or off for this process
+// 	Enabled bool
 
-	// ListenAddr is the address to listen on for incoming metrics requests.
-	// Optional.
-	ListenAddr *utils.NetAddr
+// 	// ListenAddr is the address to listen on for incoming metrics requests.
+// 	// Optional.
+// 	ListenAddr *utils.NetAddr
 
-	// MTLS turns mTLS on the metrics service on or off
-	MTLS bool
+// 	// MTLS turns mTLS on the metrics service on or off
+// 	MTLS bool
 
-	// KeyPairs are the key and certificate pairs that the metrics service will
-	// use for mTLS.
-	// Used in conjunction with MTLS = true
-	KeyPairs []KeyPairPath
+// 	// KeyPairs are the key and certificate pairs that the metrics service will
+// 	// use for mTLS.
+// 	// Used in conjunction with MTLS = true
+// 	KeyPairs []KeyPairPath
 
-	// CACerts are prometheus ca certs
-	// use for mTLS.
-	// Used in conjunction with MTLS = true
-	CACerts []string
+// 	// CACerts are prometheus ca certs
+// 	// use for mTLS.
+// 	// Used in conjunction with MTLS = true
+// 	CACerts []string
 
-	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
-	GRPCServerLatency bool
+// 	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
+// 	GRPCServerLatency bool
 
-	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
-	GRPCClientLatency bool
-}
+// 	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
+// 	GRPCClientLatency bool
+// }
 
 // TracingConfig specifies the configuration for the tracing service
 type TracingConfig struct {
