@@ -269,10 +269,10 @@ func (cfg *Config) CheckAndSetDefaults() error {
 // NewServer creates and returns a reverse tunnel server which is fully
 // initialized but hasn't been started yet
 func NewServer(cfg Config) (Server, error) {
-	err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	if err := cfg.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)

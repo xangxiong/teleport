@@ -26,7 +26,6 @@ import (
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -45,10 +44,10 @@ type ClusterConfigurationService struct {
 
 // NewClusterConfigurationService returns a new ClusterConfigurationService.
 func NewClusterConfigurationService(backend backend.Backend) (*ClusterConfigurationService, error) {
-	err := utils.RegisterPrometheusCollectors(clusterNameNotFound)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// err := utils.RegisterPrometheusCollectors(clusterNameNotFound)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	return &ClusterConfigurationService{
 		Backend: backend,

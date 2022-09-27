@@ -95,10 +95,11 @@ type ServerOption func(*Server) error
 
 // NewServer creates and configures a new Server instance
 func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
-	err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	var err error
+	// err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	if cfg.Trust == nil {
 		cfg.Trust = local.NewCAService(cfg.Backend)

@@ -21,12 +21,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/teleport/tool/teleport/common"
 )
 
 func init() {
-	utils.RegisterPrometheusCollectors(utils.BuildCollector())
+	//utils.RegisterPrometheusCollectors(utils.BuildCollector())
 	rand.Seed(time.Now().UnixNano())
 }
 

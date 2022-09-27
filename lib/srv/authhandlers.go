@@ -98,10 +98,10 @@ type AuthHandlers struct {
 
 // NewAuthHandlers initializes authorization and authentication handlers
 func NewAuthHandlers(config *AuthHandlerConfig) (*AuthHandlers, error) {
-	err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	return &AuthHandlers{
 		c:   config,

@@ -39,7 +39,6 @@ import (
 	"github.com/gravitational/oxy/ratelimit"
 	"github.com/gravitational/trace"
 	om "github.com/grpc-ecosystem/go-grpc-middleware/providers/openmetrics/v2"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
@@ -135,12 +134,12 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// sets up grpc metrics interceptor
-	grpcMetrics := utils.CreateGRPCServerMetrics(cfg.Metrics.GRPCServerLatency, prometheus.Labels{teleport.TagServer: "teleport-auth"})
-	err = utils.RegisterPrometheusCollectors(grpcMetrics)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// // sets up grpc metrics interceptor
+	// grpcMetrics := utils.CreateGRPCServerMetrics(cfg.Metrics.GRPCServerLatency, prometheus.Labels{teleport.TagServer: "teleport-auth"})
+	// err = utils.RegisterPrometheusCollectors(grpcMetrics)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 	// authMiddleware authenticates request assuming TLS client authentication
 	// adds authentication information to the context
 	// and passes it to the API server
@@ -148,7 +147,7 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 		AccessPoint:   cfg.AccessPoint,
 		AcceptedUsage: cfg.AcceptedUsage,
 		Limiter:       limiter,
-		GRPCMetrics:   grpcMetrics,
+		// GRPCMetrics:   grpcMetrics,
 	}
 
 	apiServer, err := NewAPIServer(&cfg.APIConfig)

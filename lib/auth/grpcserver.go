@@ -4256,10 +4256,10 @@ func (cfg *GRPCServerConfig) CheckAndSetDefaults() error {
 
 // NewGRPCServer returns a new instance of GRPC server
 func NewGRPCServer(cfg GRPCServerConfig) (*GRPCServer, error) {
-	err := utils.RegisterPrometheusCollectors(heartbeatConnectionsReceived, watcherEventsEmitted, watcherEventSizes, connectedResources)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// err := utils.RegisterPrometheusCollectors(heartbeatConnectionsReceived, watcherEventsEmitted, watcherEventSizes, connectedResources)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	if err := cfg.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)

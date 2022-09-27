@@ -189,10 +189,10 @@ func (p *proxySubsysRequest) SetDefaults() {
 // a port forwarding request, used to implement ProxyJump feature in proxy
 // and reuse the code
 func newProxySubsys(ctx *srv.ServerContext, srv *Server, req proxySubsysRequest) (*proxySubsys, error) {
-	err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	req.SetDefaults()
 	if req.clusterName == "" && ctx.Identity.RouteToCluster != "" {

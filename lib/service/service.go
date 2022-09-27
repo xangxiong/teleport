@@ -278,8 +278,8 @@ type TeleportProcess struct {
 	// reporter is used to report some in memory stats
 	reporter *backend.Reporter
 
-	// clusterFeatures contain flags for supported and unsupported features.
-	clusterFeatures proto.Features
+	// // clusterFeatures contain flags for supported and unsupported features.
+	// clusterFeatures proto.Features
 
 	// authSubjectiveAddr is the peer address of this process as seen by the auth
 	// server during the most recent ping (may be empty).
@@ -445,21 +445,21 @@ func (process *TeleportProcess) waitForConnector(identityEvent string, log logru
 	return conn, nil
 }
 
-func (process *TeleportProcess) setClusterFeatures(features *proto.Features) {
-	process.Lock()
-	defer process.Unlock()
+// func (process *TeleportProcess) setClusterFeatures(features *proto.Features) {
+// 	process.Lock()
+// 	defer process.Unlock()
 
-	if features != nil {
-		process.clusterFeatures = *features
-	}
-}
+// 	if features != nil {
+// 		process.clusterFeatures = *features
+// 	}
+// }
 
-func (process *TeleportProcess) getClusterFeatures() proto.Features {
-	process.Lock()
-	defer process.Unlock()
+// func (process *TeleportProcess) getClusterFeatures() proto.Features {
+// 	process.Lock()
+// 	defer process.Unlock()
 
-	return process.clusterFeatures
-}
+// 	return process.clusterFeatures
+// }
 
 // setAuthSubjectiveAddr records the peer address that the auth server observed
 // for this process during the most recent ping.

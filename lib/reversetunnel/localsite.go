@@ -46,10 +46,10 @@ import (
 var periodicFunctionInterval = 3 * time.Minute
 
 func newlocalSite(srv *server, domainName string, authServers []string) (*localSite, error) {
-	err := utils.RegisterPrometheusCollectors(localClusterCollectors...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// err := utils.RegisterPrometheusCollectors(localClusterCollectors...)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	// instantiate a cache of host certificates for the forwarding server. the
 	// certificate cache is created in each site (instead of creating it in

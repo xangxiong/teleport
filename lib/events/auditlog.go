@@ -220,10 +220,10 @@ func (a *AuditLogConfig) CheckAndSetDefaults() error {
 // NewAuditLog creates and returns a new Audit Log object which will store its log files in
 // a given directory.
 func NewAuditLog(cfg AuditLogConfig) (*AuditLog, error) {
-	err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	if err := cfg.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)

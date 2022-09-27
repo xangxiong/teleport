@@ -14,45 +14,45 @@
 
 package gcssessions
 
-import (
-	"context"
-	"fmt"
-	"os"
-	"testing"
+// import (
+// 	"context"
+// 	"fmt"
+// 	"os"
+// 	"testing"
 
-	"github.com/gravitational/teleport/lib/events/test"
-	"github.com/gravitational/teleport/lib/utils"
+// 	"github.com/gravitational/teleport/lib/events/test"
+// 	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/fsouza/fake-gcs-server/fakestorage"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/fsouza/fake-gcs-server/fakestorage"
+// 	"github.com/google/uuid"
+// 	"github.com/stretchr/testify/require"
+// )
 
-func TestMain(m *testing.M) {
-	utils.InitLoggerForTests()
-	os.Exit(m.Run())
-}
+// func TestMain(m *testing.M) {
+// 	utils.InitLoggerForTests()
+// 	os.Exit(m.Run())
+// }
 
-// TestFakeStreams tests various streaming upload scenarios
-// using fake GCS background
-func TestFakeStreams(t *testing.T) {
-	server := *fakestorage.NewServer([]fakestorage.Object{})
-	defer server.Stop()
+// // TestFakeStreams tests various streaming upload scenarios
+// // using fake GCS background
+// func TestFakeStreams(t *testing.T) {
+// 	server := *fakestorage.NewServer([]fakestorage.Object{})
+// 	defer server.Stop()
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	defer cancelFunc()
+// 	ctx, cancelFunc := context.WithCancel(context.Background())
+// 	defer cancelFunc()
 
-	handler, err := NewHandler(ctx, cancelFunc, Config{
-		Endpoint: server.URL(),
-		Bucket:   fmt.Sprintf("teleport-test-%v", uuid.New().String()),
-	}, server.Client())
-	require.Nil(t, err)
-	defer handler.Close()
+// 	handler, err := NewHandler(ctx, cancelFunc, Config{
+// 		Endpoint: server.URL(),
+// 		Bucket:   fmt.Sprintf("teleport-test-%v", uuid.New().String()),
+// 	}, server.Client())
+// 	require.Nil(t, err)
+// 	defer handler.Close()
 
-	t.Run("UploadDownload", func(t *testing.T) {
-		test.UploadDownload(t, handler)
-	})
-	t.Run("DownloadNotFound", func(t *testing.T) {
-		test.DownloadNotFound(t, handler)
-	})
-}
+// 	t.Run("UploadDownload", func(t *testing.T) {
+// 		test.UploadDownload(t, handler)
+// 	})
+// 	t.Run("DownloadNotFound", func(t *testing.T) {
+// 		test.DownloadNotFound(t, handler)
+// 	})
+// }

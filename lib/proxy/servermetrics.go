@@ -15,9 +15,6 @@
 package proxy
 
 import (
-	"github.com/gravitational/teleport/lib/utils"
-
-	"github.com/gravitational/trace"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -97,16 +94,16 @@ func newServerMetrics() (*serverMetrics, error) {
 		),
 	}
 
-	if err := utils.RegisterPrometheusCollectors(
-		sm.connections,
-		sm.rpcs,
-		sm.rpcTotal,
-		sm.rpcDuration,
-		sm.messageSent,
-		sm.messageReceived,
-	); err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// if err := utils.RegisterPrometheusCollectors(
+	// 	sm.connections,
+	// 	sm.rpcs,
+	// 	sm.rpcTotal,
+	// 	sm.rpcDuration,
+	// 	sm.messageSent,
+	// 	sm.messageReceived,
+	// ); err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	return sm, nil
 }
