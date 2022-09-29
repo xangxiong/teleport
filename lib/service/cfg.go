@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -38,7 +37,6 @@ import (
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/auth/keystore"
 	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/backend/lite"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
@@ -106,9 +104,6 @@ type Config struct {
 	// CachePolicy sets caching policy for nodes and proxies
 	// in case if they lose connection to auth servers
 	CachePolicy CachePolicy
-
-	// Auth service configuration. Manages cluster state and configuration.
-	Auth AuthConfig
 
 	// Proxy service configuration. Manages incoming and outbound
 	// connections to the cluster.
@@ -332,7 +327,6 @@ func (cfg *Config) RoleConfig() RoleConfig {
 		HostUUID:    cfg.HostUUID,
 		HostName:    cfg.Hostname,
 		AuthServers: cfg.AuthServers,
-		Auth:        cfg.Auth,
 		Console:     cfg.Console,
 	}
 }
@@ -343,7 +337,6 @@ func (cfg *Config) DebugDumpToYAML() string {
 	shallow := *cfg
 	// do not copy sensitive data to stdout
 	shallow.Identities = nil
-	shallow.Auth.Authorities = nil
 	out, err := yaml.Marshal(shallow)
 	if err != nil {
 		return err.Error()
@@ -1290,19 +1283,6 @@ func ApplyDefaults(cfg *Config) {
 	cfg.KEXAlgorithms = kex
 	cfg.MACAlgorithms = macs
 
-	// Auth service defaults.
-	cfg.Auth.Enabled = true
-	cfg.Auth.SSHAddr = *defaults.AuthListenAddr()
-	cfg.Auth.StorageConfig.Type = lite.GetName()
-	cfg.Auth.StorageConfig.Params = backend.Params{defaults.BackendPath: filepath.Join(cfg.DataDir, defaults.BackendDir)}
-	cfg.Auth.StaticTokens = types.DefaultStaticTokens()
-	cfg.Auth.AuditConfig = types.DefaultClusterAuditConfig()
-	cfg.Auth.NetworkingConfig = types.DefaultClusterNetworkingConfig()
-	cfg.Auth.SessionRecordingConfig = types.DefaultSessionRecordingConfig()
-	cfg.Auth.Preference = types.DefaultAuthPreference()
-	defaults.ConfigureLimiter(&cfg.Auth.Limiter)
-	cfg.Auth.LicenseFile = filepath.Join(cfg.DataDir, defaults.LicenseFile)
-
 	cfg.Proxy.WebAddr = *defaults.ProxyWebListenAddr()
 	// Proxy service defaults.
 	cfg.Proxy.Enabled = true
@@ -1359,12 +1339,4 @@ func ApplyFIPSDefaults(cfg *Config) {
 	cfg.KEXAlgorithms = defaults.FIPSKEXAlgorithms
 	cfg.MACAlgorithms = defaults.FIPSMACAlgorithms
 
-	// Only SSO based authentication is supported in FIPS mode. The SSO
-	// provider is where any FedRAMP/FIPS 140-2 compliance (like password
-	// complexity) should be enforced.
-	cfg.Auth.Preference.SetAllowLocalAuth(false)
-
-	// Update cluster configuration to record sessions at node, this way the
-	// entire cluster is FedRAMP/FIPS 140-2 compliant.
-	cfg.Auth.SessionRecordingConfig.SetMode(types.RecordAtNode)
 }

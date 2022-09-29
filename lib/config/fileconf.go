@@ -220,9 +220,6 @@ func MakeSampleFileConfig(flags SampleFlags) (fc *FileConfig, err error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// Auth config:
-	a := makeSampleAuthConfig(conf, flags, roles[defaults.RoleAuthService])
-
 	// sample proxy config:
 	p, err := makeSampleProxyConfig(conf, flags, roles[defaults.RoleProxy])
 	if err != nil {
@@ -256,7 +253,6 @@ func MakeSampleFileConfig(flags SampleFlags) (fc *FileConfig, err error) {
 		Global:         g,
 		Proxy:          p,
 		SSH:            s,
-		Auth:           a,
 		Apps:           apps,
 		Databases:      dbs,
 		WindowsDesktop: d,
@@ -286,27 +282,6 @@ func makeSampleSSHConfig(conf *service.Config, flags SampleFlags, enabled bool) 
 	}
 
 	return s, nil
-}
-
-func makeSampleAuthConfig(conf *service.Config, flags SampleFlags, enabled bool) Auth {
-	var a Auth
-	if enabled {
-		a.ListenAddress = conf.Auth.SSHAddr.Addr
-		a.ClusterName = ClusterName(flags.ClusterName)
-		a.EnabledFlag = "yes"
-
-		if flags.LicensePath != "" {
-			a.LicenseFile = flags.LicensePath
-		}
-
-		if flags.Version == defaults.TeleportConfigVersionV2 {
-			a.ProxyListenerMode = types.ProxyListenerMode_Multiplex
-		}
-	} else {
-		a.EnabledFlag = "no"
-	}
-
-	return a
 }
 
 func makeSampleProxyConfig(conf *service.Config, flags SampleFlags, enabled bool) (Proxy, error) {

@@ -31,7 +31,6 @@ import (
 
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib"
-	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/client"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/service"
@@ -151,10 +150,6 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 
 	// apply --auth-server flag:
 	if len(clf.AuthServerAddr) > 0 {
-		if cfg.Auth.Enabled {
-			log.Warnf("not starting the local auth service. --auth-server flag tells to connect to another auth server")
-			cfg.Auth.Enabled = false
-		}
 		cfg.AuthServers = make([]utils.NetAddr, 0, len(clf.AuthServerAddr))
 		for _, as := range clf.AuthServerAddr {
 			addr, err := utils.ParseHostPortAddr(as, defaults.AuthListenPort)
@@ -208,16 +203,6 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 		cfg.PIDFile = clf.PIDFile
 	}
 
-	// auth_servers not configured, but the 'auth' is enabled (auth is on localhost)?
-	if len(cfg.AuthServers) == 0 && cfg.Auth.Enabled {
-		cfg.AuthServers = append(cfg.AuthServers, cfg.Auth.SSHAddr)
-	}
-
-	// add data_dir to the backend config:
-	if cfg.Auth.StorageConfig.Params == nil {
-		cfg.Auth.StorageConfig.Params = backend.Params{}
-	}
-	cfg.Auth.StorageConfig.Params["data_dir"] = cfg.DataDir
 	// command line flag takes precedence over file config
 	if clf.PermitUserEnvironment {
 		cfg.SSH.PermitUserEnvironment = true
@@ -317,8 +302,6 @@ func isCmdLabelSpec(spec string) (types.CommandLabel, error) {
 // a given IP
 func applyListenIP(ip net.IP, cfg *service.Config) {
 	listeningAddresses := []*utils.NetAddr{
-		&cfg.Auth.SSHAddr,
-		&cfg.Auth.SSHAddr,
 		&cfg.Proxy.SSHAddr,
 		&cfg.Proxy.WebAddr,
 		&cfg.SSH.Addr,

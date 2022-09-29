@@ -642,13 +642,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 	}
 	var err error
 
-	// auth and proxy benefit from precomputing keys since they can experience spikes in key
-	// generation due to web session creation and recorded session creation respectively.
-	// for all other agents precomputing keys consumes excess resources.
-	if cfg.Auth.Enabled || cfg.Proxy.Enabled {
-		native.PrecomputeKeys()
-	}
-
 	// Before we do anything reset the SIGINT handler back to the default.
 	system.ResetInterruptSignalHandler()
 
@@ -763,16 +756,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		cfg.PluginRegistry = plugin.NewRegistry()
 	}
 
-	// if user did not provide auth domain name, use this host's name
-	if cfg.Auth.Enabled && cfg.Auth.ClusterName == nil {
-		cfg.Auth.ClusterName, err = services.NewClusterNameWithRandomID(types.ClusterNameSpecV2{
-			ClusterName: cfg.Hostname,
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
 	process := &TeleportProcess{
 		PluginRegistry:      cfg.PluginRegistry,
 		Clock:               cfg.Clock,
@@ -802,7 +785,7 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 
 	if len(process.Config.AuthServers) != 0 && process.Config.AuthServers[0].Port(0) == 0 {
 		// port appears undefined, attempt early listener creation so that we can get the real port
-		listener, err := process.importOrCreateListener(listenerAuthSSH, process.Config.Auth.SSHAddr.Addr)
+		listener, err := process.importOrCreateListener(listenerAuthSSH, process.Config.AuthServers[0].Addr)
 		if err == nil {
 			process.Config.AuthServers = []utils.NetAddr{utils.FromAddr(listener.Addr())}
 		}
@@ -851,15 +834,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 	}
 	process.RegisterEventMapping(eventMapping)
 
-	// if cfg.Auth.Enabled {
-	// 	if err := process.initAuthService(); err != nil {
-	// 		return nil, trace.Wrap(err)
-	// 	}
-	// 	serviceStarted = true
-	// } else {
-	// 	warnOnErr(process.closeImportedDescriptors(teleport.ComponentAuth), process.log)
-	// }
-
 	if cfg.SSH.Enabled {
 		if err := process.initSSH(); err != nil {
 			return nil, err
@@ -868,15 +842,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 	} else {
 		warnOnErr(process.closeImportedDescriptors(teleport.ComponentNode), process.log)
 	}
-
-	// if cfg.Proxy.Enabled {
-	// 	if err := process.initProxy(); err != nil {
-	// 		return nil, err
-	// 	}
-	// 	serviceStarted = true
-	// } else {
-	// 	warnOnErr(process.closeImportedDescriptors(teleport.ComponentProxy), process.log)
-	// }
 
 	process.RegisterFunc("common.rotate", process.periodicSyncRotationState)
 
@@ -1160,15 +1125,6 @@ func (process *TeleportProcess) newAsyncEmitter(clt apievents.Emitter) (*events.
 
 // initInstance initializes the pseudo-service "Instance" that is active on all teleport instances.
 func (process *TeleportProcess) initInstance() error {
-	if process.Config.Auth.Enabled {
-		// if we have a local auth server, we cannot create an instance client without breaking HSM rotation.
-		// instance control stream will be created via in-memory pipe, but until this limitation is resolved
-		// or a fully in-memory instance client is implemented, we cannot rely on the instance client existing
-		// for purposes other than the control stream.
-		// TODO(fspmarshall): implement one of the two potential solutions listed above.
-		process.BroadcastEvent(Event{Name: InstanceReady, Payload: nil})
-		return nil
-	}
 	process.registerWithAuthServer(types.RoleInstance, InstanceIdentityEvent)
 
 	log := process.log.WithFields(logrus.Fields{
@@ -1724,9 +1680,9 @@ func (process *TeleportProcess) Close() error {
 }
 
 func validateConfig(cfg *Config) error {
-	if !cfg.Auth.Enabled && !cfg.SSH.Enabled {
+	if !cfg.SSH.Enabled {
 		return trace.BadParameter(
-			"config: enable at least one of auth_service or ssh_service")
+			"config: enable at least one of ssh_service")
 	}
 
 	if cfg.DataDir == "" {
@@ -1743,11 +1699,6 @@ func validateConfig(cfg *Config) error {
 
 	if len(cfg.AuthServers) == 0 {
 		return trace.BadParameter("auth_servers is empty")
-	}
-	for i := range cfg.Auth.Authorities {
-		if err := services.ValidateCertAuthority(cfg.Auth.Authorities[i]); err != nil {
-			return trace.Wrap(err)
-		}
 	}
 	for _, tun := range cfg.ReverseTunnels {
 		if err := services.ValidateReverseTunnel(tun); err != nil {
