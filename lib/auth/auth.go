@@ -129,9 +129,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Restrictions == nil {
 		cfg.Restrictions = local.NewRestrictionsService(cfg.Backend)
 	}
-	if cfg.Apps == nil {
-		cfg.Apps = local.NewAppService(cfg.Backend)
-	}
 	if cfg.Databases == nil {
 		cfg.Databases = local.NewDatabasesService(cfg.Backend)
 	}
@@ -197,7 +194,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		DynamicAccessExt:      cfg.DynamicAccessExt,
 		ClusterConfiguration:  cfg.ClusterConfiguration,
 		Restrictions:          cfg.Restrictions,
-		Apps:                  cfg.Apps,
 		Databases:             cfg.Databases,
 		IAuditLog:             cfg.AuditLog,
 		Events:                cfg.Events,
