@@ -19,7 +19,6 @@ package service
 import (
 	"io"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -42,7 +41,6 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/net/http/httpguts"
 )
 
 // Rate describes a rate ratio, i.e. the number of "events" that happen over
@@ -367,81 +365,6 @@ type SSHConfig struct {
 	// DisableCreateHostUser disables automatic user provisioning on this
 	// SSH node.
 	DisableCreateHostUser bool
-}
-
-// HostLabelRules is a collection of rules describing how to apply labels to hosts.
-type HostLabelRules []HostLabelRule
-
-// LabelsForHost returns the set of all labels that should be applied
-// to the specified host. If multiple rules match and specify the same
-// label keys, the value will be that of the last matching rule.
-func (h HostLabelRules) LabelsForHost(host string) map[string]string {
-	// TODO(zmb3): consider memoizing this call - the set of rules doesn't
-	// change, so it may be worth not matching regexps on each heartbeat.
-	result := make(map[string]string)
-	for _, rule := range h {
-		if rule.Regexp.MatchString(host) {
-			for k, v := range rule.Labels {
-				result[k] = v
-			}
-		}
-	}
-	return result
-}
-
-// HostLabelRule specifies a set of labels that should be applied to
-// hosts matching the provided regexp.
-type HostLabelRule struct {
-	Regexp *regexp.Regexp
-	Labels map[string]string
-}
-
-// Rewrite is a list of rewriting rules to apply to requests and responses.
-type Rewrite struct {
-	// Redirect is a list of hosts that should be rewritten to the public address.
-	Redirect []string
-	// Headers is a list of extra headers to inject in the request.
-	Headers []Header
-}
-
-// Header represents a single http header passed over to the proxied application.
-type Header struct {
-	// Name is the http header name.
-	Name string
-	// Value is the http header value.
-	Value string
-}
-
-// ParseHeader parses the provided string as a http header.
-func ParseHeader(header string) (*Header, error) {
-	parts := strings.SplitN(header, ":", 2)
-	if len(parts) != 2 {
-		return nil, trace.BadParameter("failed to parse %q as http header", header)
-	}
-	name := strings.TrimSpace(parts[0])
-	value := strings.TrimSpace(parts[1])
-	if !httpguts.ValidHeaderFieldName(name) {
-		return nil, trace.BadParameter("invalid http header name: %q", header)
-	}
-	if !httpguts.ValidHeaderFieldValue(value) {
-		return nil, trace.BadParameter("invalid http header value: %q", header)
-	}
-	return &Header{
-		Name:  name,
-		Value: value,
-	}, nil
-}
-
-// ParseHeaders parses the provided list as http headers.
-func ParseHeaders(headers []string) (headersOut []Header, err error) {
-	for _, header := range headers {
-		h, err := ParseHeader(header)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		headersOut = append(headersOut, *h)
-	}
-	return headersOut, nil
 }
 
 // MakeDefaultConfig creates a new Config structure and populates it with defaults
