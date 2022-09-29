@@ -43,8 +43,6 @@ import (
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/auth/testauthority"
-	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/backend/lite"
 
 	"github.com/gravitational/teleport/lib/client"
 	libclient "github.com/gravitational/teleport/lib/client"
@@ -529,47 +527,10 @@ func (i *TeleInstance) GenerateConfig(t *testing.T, trustedSecrets []*InstanceSe
 	tconf.DataDir = dataDir
 	tconf.UploadEventsC = i.UploadEventsC
 	tconf.CachePolicy.Enabled = true
-	tconf.Auth.ClusterName, err = services.NewClusterNameWithRandomID(types.ClusterNameSpecV2{
-		ClusterName: i.Secrets.SiteName,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	tconf.Auth.StaticTokens, err = types.NewStaticTokens(types.StaticTokensSpecV2{
-		StaticTokens: []types.ProvisionTokenV1{
-			{
-				Roles: []types.SystemRole{
-					types.RoleNode,
-					types.RoleProxy,
-					types.RoleTrustedCluster,
-					types.RoleApp,
-					types.RoleDatabase,
-					types.RoleKube,
-				},
-				Token: "token",
-			},
-		},
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	rootCAs, err := i.Secrets.GetCAs()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	tconf.Auth.Authorities = append(tconf.Auth.Authorities, rootCAs...)
 
 	tconf.Identities = append(tconf.Identities, i.Secrets.GetIdentity())
 
 	for _, trusted := range trustedSecrets {
-		leafCAs, err := trusted.GetCAs()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		tconf.Auth.Authorities = append(tconf.Auth.Authorities, leafCAs...)
-
-		tconf.Auth.Roles = append(tconf.Auth.Roles, trusted.GetRoles(t)...)
 		tconf.Identities = append(tconf.Identities, trusted.GetIdentity())
 		if trusted.TunnelAddr != "" {
 			rt, err := types.NewReverseTunnel(trusted.SiteName, []string{trusted.TunnelAddr})
@@ -589,13 +550,6 @@ func (i *TeleInstance) GenerateConfig(t *testing.T, trustedSecrets []*InstanceSe
 		{
 			AddrNetwork: "tcp",
 			Addr:        Host,
-		},
-	}
-	tconf.Auth.SSHAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortAuth())
-	tconf.Auth.PublicAddrs = []utils.NetAddr{
-		{
-			AddrNetwork: "tcp",
-			Addr:        i.Hostname,
 		},
 	}
 	tconf.Proxy.PublicAddrs = []utils.NetAddr{
@@ -637,11 +591,6 @@ func (i *TeleInstance) GenerateConfig(t *testing.T, trustedSecrets []*InstanceSe
 			tconf.Proxy.MongoAddr.Addr = net.JoinHostPort(i.Hostname, i.GetPortMongo())
 		}
 	}
-	tconf.AuthServers = append(tconf.AuthServers, tconf.Auth.SSHAddr)
-	tconf.Auth.StorageConfig = backend.Config{
-		Type:   lite.GetName(),
-		Params: backend.Params{"path": dataDir + string(os.PathListSeparator) + defaults.BackendDir, "poll_stream_period": 50 * time.Millisecond},
-	}
 
 	tconf.Kube.CheckImpersonationPermissions = nullImpersonationCheck
 
@@ -672,11 +621,6 @@ func (i *TeleInstance) CreateEx(t *testing.T, trustedSecrets []*InstanceSecrets,
 	i.Process, err = service.NewTeleport(tconf)
 	if err != nil {
 		return trace.Wrap(err)
-	}
-
-	// if the auth server is not enabled, nothing more to do be done
-	if !tconf.Auth.Enabled {
-		return nil
 	}
 
 	// if this instance contains an auth server, configure the auth server as well.
@@ -759,7 +703,6 @@ func (i *TeleInstance) startNode(tconf *service.Config, authPort string) (*servi
 			Addr:        Host,
 		},
 	}
-	tconf.Auth.Enabled = false
 	tconf.Proxy.Enabled = false
 
 	// Create a new Teleport process and add it to the list of nodes that
@@ -809,8 +752,6 @@ func (i *TeleInstance) StartNodeAndProxy(name string, sshPort, proxyWebPort, pro
 	tconf.CachePolicy = service.CachePolicy{
 		Enabled: true,
 	}
-
-	tconf.Auth.Enabled = false
 
 	tconf.Proxy.Enabled = true
 	tconf.Proxy.SSHAddr.Addr = net.JoinHostPort(i.Hostname, fmt.Sprintf("%v", proxySSHPort))
@@ -895,8 +836,6 @@ func (i *TeleInstance) StartProxy(cfg ProxyConfig) (reversetunnel.Server, error)
 	tconf.HostUUID = cfg.Name
 	tconf.Hostname = cfg.Name
 	tconf.SetToken("token")
-
-	tconf.Auth.Enabled = false
 
 	tconf.SSH.Enabled = false
 
@@ -1010,9 +949,6 @@ func (i *TeleInstance) Start() error {
 	// Build a list of expected events to wait for before unblocking based off
 	// the configuration passed in.
 	expectedEvents := []string{}
-	if i.Config.Auth.Enabled {
-		expectedEvents = append(expectedEvents, service.AuthTLSReady)
-	}
 	if i.Config.Proxy.Enabled {
 		expectedEvents = append(expectedEvents, service.ProxyReverseTunnelReady)
 		expectedEvents = append(expectedEvents, service.ProxySSHReady)

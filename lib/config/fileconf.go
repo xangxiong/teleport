@@ -70,10 +70,6 @@ type FileConfig struct {
 	// defines application access configuration.
 	Apps Apps `yaml:"app_service,omitempty"`
 
-	// Databases is the "db_service" section in Teleport configuration file
-	// that defines database access configuration.
-	Databases Databases `yaml:"db_service,omitempty"`
-
 	// Metrics is the "metrics_service" section in Teleport configuration file
 	// that defines the metrics service configuration
 	Metrics Metrics `yaml:"metrics_service,omitempty"`
@@ -254,7 +250,6 @@ func MakeSampleFileConfig(flags SampleFlags) (fc *FileConfig, err error) {
 		Proxy:          p,
 		SSH:            s,
 		Apps:           apps,
-		Databases:      dbs,
 		WindowsDesktop: d,
 	}
 	return fc, nil
