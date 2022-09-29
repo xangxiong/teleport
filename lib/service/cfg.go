@@ -33,8 +33,6 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/auth"
-	"github.com/gravitational/teleport/lib/auth/keystore"
-	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
@@ -355,93 +353,6 @@ type KeyPairPath struct {
 	PrivateKey string
 	// Certificate is the path to a PEM encoded certificate.
 	Certificate string
-}
-
-// KubeProxyConfig specifies configuration for proxy service
-type KubeProxyConfig struct {
-	// Enabled turns kubernetes proxy role on or off for this process
-	Enabled bool
-
-	// ListenAddr is the address to listen on for incoming kubernetes requests.
-	ListenAddr utils.NetAddr
-
-	// ClusterOverride causes all traffic to go to a specific remote
-	// cluster, used only in tests
-	ClusterOverride string
-
-	// PublicAddrs is a list of the public addresses the Teleport Kube proxy can be accessed by,
-	// it also affects the host principals and routing logic
-	PublicAddrs []utils.NetAddr
-
-	// KubeconfigPath is a path to kubeconfig
-	KubeconfigPath string
-
-	// LegacyKubeProxy specifies that this proxy was configured using the
-	// legacy kubernetes section.
-	LegacyKubeProxy bool
-}
-
-// AuthConfig is a configuration of the auth server
-type AuthConfig struct {
-	// Enabled turns auth role on or off for this process
-	Enabled bool
-
-	// EnableProxyProtocol enables proxy protocol support
-	EnableProxyProtocol bool
-
-	// SSHAddr is the listening address of SSH tunnel to HTTP service
-	SSHAddr utils.NetAddr
-
-	// Authorities is a set of trusted certificate authorities
-	// that will be added by this auth server on the first start
-	Authorities []types.CertAuthority
-
-	// Resources is a set of previously backed up resources
-	// used to bootstrap backend state on the first start.
-	Resources []types.Resource
-
-	// Roles is a set of roles to pre-provision for this cluster
-	Roles []types.Role
-
-	// ClusterName is a name that identifies this authority and all
-	// host nodes in the cluster that will share this authority domain name
-	// as a base name, e.g. if authority domain name is example.com,
-	// all nodes in the cluster will have UUIDs in the form: <uuid>.example.com
-	ClusterName types.ClusterName
-
-	// StaticTokens are pre-defined host provisioning tokens supplied via config file for
-	// environments where paranoid security is not needed
-	StaticTokens types.StaticTokens
-
-	// StorageConfig contains configuration settings for the storage backend.
-	StorageConfig backend.Config
-
-	Limiter limiter.Config
-
-	// NoAudit, when set to true, disables session recording and event audit
-	NoAudit bool
-
-	// Preference defines the authentication preference (type and second factor) for
-	// the auth server.
-	Preference types.AuthPreference
-
-	// AuditConfig stores cluster audit configuration.
-	AuditConfig types.ClusterAuditConfig
-
-	// NetworkingConfig stores cluster networking configuration.
-	NetworkingConfig types.ClusterNetworkingConfig
-
-	// SessionRecordingConfig stores session recording configuration.
-	SessionRecordingConfig types.SessionRecordingConfig
-
-	// LicenseFile is a full path to the license file
-	LicenseFile string
-
-	// PublicAddrs affects the SSH host principals and DNS names added to the SSH and TLS certs.
-	PublicAddrs []utils.NetAddr
-
-	// KeyStore configuration. Handles CA private keys which may be held in a HSM.
-	KeyStore keystore.Config
 }
 
 // SSHConfig configures SSH server node role

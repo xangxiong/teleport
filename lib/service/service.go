@@ -152,7 +152,6 @@ type RoleConfig struct {
 	HostUUID    string
 	HostName    string
 	AuthServers []utils.NetAddr
-	Auth        AuthConfig
 	Console     io.Writer
 }
 
