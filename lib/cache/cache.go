@@ -1545,60 +1545,6 @@ func (c *Cache) GetAllTunnelConnections(opts ...services.MarshalOption) (conns [
 	return rg.presence.GetAllTunnelConnections(opts...)
 }
 
-// GetKubeServices is a part of auth.Cache implementation
-func (c *Cache) GetKubeServices(ctx context.Context) ([]types.Server, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetKubeServices")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetKubeServices(ctx)
-}
-
-// GetApplicationServers returns all registered application servers.
-func (c *Cache) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetApplicationServers")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetApplicationServers(ctx, namespace)
-}
-
-// GetAppServers gets all application servers.
-//
-// DELETE IN 9.0. Deprecated, use GetApplicationServers.
-func (c *Cache) GetAppServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.Server, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetAppServers")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetAppServers(ctx, namespace, opts...)
-}
-
-// GetDatabaseServers returns all registered database proxy servers.
-func (c *Cache) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabaseServers")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetDatabaseServers(ctx, namespace, opts...)
-}
-
 // GetWebSession gets a regular web session.
 func (c *Cache) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
 	ctx, span := c.Tracer.Start(ctx, "cache/GetWebSession")
@@ -1701,32 +1647,6 @@ func (c *Cache) GetLocks(ctx context.Context, inForceOnly bool, targets ...types
 	}
 	defer rg.Release()
 	return rg.access.GetLocks(ctx, inForceOnly, targets...)
-}
-
-// GetWindowsDesktopServices returns all registered Windows desktop services.
-func (c *Cache) GetWindowsDesktopServices(ctx context.Context) ([]types.WindowsDesktopService, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetWindowsDesktopServices")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetWindowsDesktopServices(ctx)
-}
-
-// GetWindowsDesktopService returns a registered Windows desktop service by name.
-func (c *Cache) GetWindowsDesktopService(ctx context.Context, name string) (types.WindowsDesktopService, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetWindowsDesktopService")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetWindowsDesktopService(ctx, name)
 }
 
 // ListResources is a part of auth.Cache implementation
