@@ -150,16 +150,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 			}
 		case types.KindWebSession:
 			switch watch.SubKind {
-			case types.KindAppSession:
-				if c.AppSession == nil {
-					return nil, trace.BadParameter("missing parameter AppSession")
-				}
-				collections[resourceKind] = &appSession{watch: watch, Cache: c}
-			case types.KindSnowflakeSession:
-				if c.SnowflakeSession == nil {
-					return nil, trace.BadParameter("missing parameter SnowflakeSession")
-				}
-				collections[resourceKind] = &snowflakeSession{watch: watch, Cache: c}
 			case types.KindWebSession:
 				if c.WebSession == nil {
 					return nil, trace.BadParameter("missing parameter WebSession")
@@ -181,16 +171,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter Presence")
 			}
 			collections[resourceKind] = &databaseServer{watch: watch, Cache: c}
-		case types.KindApp:
-			if c.Apps == nil {
-				return nil, trace.BadParameter("missing parameter Apps")
-			}
-			collections[resourceKind] = &app{watch: watch, Cache: c}
-		case types.KindDatabase:
-			if c.Databases == nil {
-				return nil, trace.BadParameter("missing parameter Databases")
-			}
-			collections[resourceKind] = &database{watch: watch, Cache: c}
 		case types.KindNetworkRestrictions:
 			if c.Restrictions == nil {
 				return nil, trace.BadParameter("missing parameter Restrictions")
@@ -206,11 +186,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter Presence")
 			}
 			collections[resourceKind] = &windowsDesktopServices{watch: watch, Cache: c}
-		case types.KindWindowsDesktop:
-			if c.WindowsDesktops == nil {
-				return nil, trace.BadParameter("missing parameter WindowsDesktops")
-			}
-			collections[resourceKind] = &windowsDesktops{watch: watch, Cache: c}
 		default:
 			return nil, trace.BadParameter("resource %q is not supported", watch.Kind)
 		}
@@ -1339,29 +1314,6 @@ func (s *database) erase(ctx context.Context) error {
 	return nil
 }
 
-func (s *database) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := s.Databases.GetDatabases(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := s.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-		for _, resource := range resources {
-			if err := s.databasesCache.CreateDatabase(ctx, resource); err != nil {
-				if !trace.IsAlreadyExists(err) {
-					return trace.Wrap(err)
-				}
-				if err := s.databasesCache.UpdateDatabase(ctx, resource); err != nil {
-					return trace.Wrap(err)
-				}
-			}
-		}
-		return nil
-	}, nil
-}
-
 func (s *database) processEvent(ctx context.Context, event types.Event) error {
 	switch event.Type {
 	case types.OpDelete:
@@ -1408,29 +1360,6 @@ func (s *app) erase(ctx context.Context) error {
 		return trace.Wrap(err)
 	}
 	return nil
-}
-
-func (s *app) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := s.Apps.GetApps(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := s.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-		for _, resource := range resources {
-			if err := s.appsCache.CreateApp(ctx, resource); err != nil {
-				if !trace.IsAlreadyExists(err) {
-					return trace.Wrap(err)
-				}
-				if err := s.appsCache.UpdateApp(ctx, resource); err != nil {
-					return trace.Wrap(err)
-				}
-			}
-		}
-		return nil
-	}, nil
 }
 
 func (s *app) processEvent(ctx context.Context, event types.Event) error {
@@ -1610,24 +1539,6 @@ func (a *appSession) erase(ctx context.Context) error {
 	return nil
 }
 
-func (a *appSession) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := a.AppSession.GetAppSessions(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := a.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-		for _, resource := range resources {
-			if err := a.appSessionCache.UpsertAppSession(ctx, resource); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	}, nil
-}
-
 func (a *appSession) processEvent(ctx context.Context, event types.Event) error {
 	switch event.Type {
 	case types.OpDelete:
@@ -1672,24 +1583,6 @@ func (a *snowflakeSession) erase(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-func (a *snowflakeSession) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := a.SnowflakeSession.GetSnowflakeSessions(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := a.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-		for _, resource := range resources {
-			if err := a.snowflakeSessionCache.UpsertSnowflakeSession(ctx, resource); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	}, nil
 }
 
 func (a *snowflakeSession) processEvent(ctx context.Context, event types.Event) error {
@@ -2366,25 +2259,6 @@ func (c *windowsDesktops) erase(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-func (c *windowsDesktops) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := c.WindowsDesktops.GetWindowsDesktops(ctx, types.WindowsDesktopFilter{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := c.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-
-		for _, resource := range resources {
-			if err := c.windowsDesktopsCache.UpsertWindowsDesktop(ctx, resource); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	}, nil
 }
 
 func (c *windowsDesktops) processEvent(ctx context.Context, event types.Event) error {

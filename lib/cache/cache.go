@@ -429,42 +429,32 @@ func (c *Cache) read() (readGuard, error) {
 	c.rw.RLock()
 	if c.ok {
 		return readGuard{
-			trust:            c.trustCache,
-			clusterConfig:    c.clusterConfigCache,
-			provisioner:      c.provisionerCache,
-			users:            c.usersCache,
-			access:           c.accessCache,
-			dynamicAccess:    c.dynamicAccessCache,
-			presence:         c.presenceCache,
-			restrictions:     c.restrictionsCache,
-			apps:             c.appsCache,
-			databases:        c.databasesCache,
-			appSession:       c.appSessionCache,
-			snowflakeSession: c.snowflakeSessionCache,
-			webSession:       c.webSessionCache,
-			webToken:         c.webTokenCache,
-			release:          c.rw.RUnlock,
-			windowsDesktops:  c.windowsDesktopsCache,
+			trust:         c.trustCache,
+			clusterConfig: c.clusterConfigCache,
+			provisioner:   c.provisionerCache,
+			users:         c.usersCache,
+			access:        c.accessCache,
+			dynamicAccess: c.dynamicAccessCache,
+			presence:      c.presenceCache,
+			restrictions:  c.restrictionsCache,
+			webSession:    c.webSessionCache,
+			webToken:      c.webTokenCache,
+			release:       c.rw.RUnlock,
 		}, nil
 	}
 	c.rw.RUnlock()
 	return readGuard{
-		trust:            c.Config.Trust,
-		clusterConfig:    c.Config.ClusterConfig,
-		provisioner:      c.Config.Provisioner,
-		users:            c.Config.Users,
-		access:           c.Config.Access,
-		dynamicAccess:    c.Config.DynamicAccess,
-		presence:         c.Config.Presence,
-		restrictions:     c.Config.Restrictions,
-		apps:             c.Config.Apps,
-		databases:        c.Config.Databases,
-		appSession:       c.Config.AppSession,
-		snowflakeSession: c.Config.SnowflakeSession,
-		webSession:       c.Config.WebSession,
-		webToken:         c.Config.WebToken,
-		windowsDesktops:  c.Config.WindowsDesktops,
-		release:          nil,
+		trust:         c.Config.Trust,
+		clusterConfig: c.Config.ClusterConfig,
+		provisioner:   c.Config.Provisioner,
+		users:         c.Config.Users,
+		access:        c.Config.Access,
+		dynamicAccess: c.Config.DynamicAccess,
+		presence:      c.Config.Presence,
+		restrictions:  c.Config.Restrictions,
+		webSession:    c.Config.WebSession,
+		webToken:      c.Config.WebToken,
+		release:       nil,
 	}, nil
 }
 
@@ -473,23 +463,18 @@ func (c *Cache) read() (readGuard, error) {
 // function for the read lock, and ensures that it is not
 // double-called.
 type readGuard struct {
-	trust            services.Trust
-	clusterConfig    services.ClusterConfiguration
-	provisioner      services.Provisioner
-	users            services.UsersService
-	access           services.Access
-	dynamicAccess    services.DynamicAccessCore
-	presence         services.Presence
-	appSession       services.AppSession
-	snowflakeSession services.SnowflakeSession
-	restrictions     services.Restrictions
-	apps             services.Apps
-	databases        services.Databases
-	webSession       types.WebSessionInterface
-	webToken         types.WebTokenInterface
-	windowsDesktops  services.WindowsDesktops
-	release          func()
-	released         bool
+	trust         services.Trust
+	clusterConfig services.ClusterConfiguration
+	provisioner   services.Provisioner
+	users         services.UsersService
+	access        services.Access
+	dynamicAccess services.DynamicAccessCore
+	presence      services.Presence
+	restrictions  services.Restrictions
+	webSession    types.WebSessionInterface
+	webToken      types.WebTokenInterface
+	release       func()
+	released      bool
 }
 
 // Release releases the read lock if it is held.  This method
@@ -535,20 +520,10 @@ type Config struct {
 	Presence services.Presence
 	// Restrictions is a restrictions service
 	Restrictions services.Restrictions
-	// Apps is an apps service.
-	Apps services.Apps
-	// Databases is a databases service.
-	Databases services.Databases
-	// SnowflakeSession holds Snowflake sessions.
-	SnowflakeSession services.SnowflakeSession
-	// AppSession holds application sessions.
-	AppSession services.AppSession
 	// WebSession holds regular web sessions.
 	WebSession types.WebSessionInterface
 	// WebToken holds web tokens.
 	WebToken types.WebTokenInterface
-	// WindowsDesktops is a windows desktop service.
-	WindowsDesktops services.WindowsDesktops
 	// Backend is a backend for local cache
 	Backend backend.Backend
 	// MaxRetryPeriod is the maximum period between cache retries on failures
@@ -842,23 +817,23 @@ func (c *Cache) notify(ctx context.Context, event Event) {
 // and consistently ordered thanks to Raft. Unfortunately, DynamoDB
 // does not provide such a mechanism for its event system, so
 // some tradeofs have to be made:
-//   a. We assume that events are ordered in regards to the
-//   individual key operations which is the guarantees both Etcd and DynamodDB
-//   provide.
-//   b. Thanks to the init event sent by the server on a successful connect,
-//   and guarantees 1 and 2a, client assumes that once it connects and receives an event,
-//   it will not miss any events, however it can receive stale events.
-//   Event could be stale, if it relates to a change that happened before
-//   the version read by client from the database, for example,
-//   given the event stream: 1. Update a=1 2. Delete a 3. Put a = 2
-//   Client could have subscribed before event 1 happened,
-//   read the value a=2 and then received events 1 and 2 and 3.
-//   The cache will replay all events 1, 2 and 3 and end up in the correct
-//   state 3. If we had a consistent revision number, we could
-//   have skipped 1 and 2, but in the absence of such mechanism in Dynamo
-//   we assume that this cache will eventually end up in a correct state
-//   potentially lagging behind the state of the database.
 //
+//	a. We assume that events are ordered in regards to the
+//	individual key operations which is the guarantees both Etcd and DynamodDB
+//	provide.
+//	b. Thanks to the init event sent by the server on a successful connect,
+//	and guarantees 1 and 2a, client assumes that once it connects and receives an event,
+//	it will not miss any events, however it can receive stale events.
+//	Event could be stale, if it relates to a change that happened before
+//	the version read by client from the database, for example,
+//	given the event stream: 1. Update a=1 2. Delete a 3. Put a = 2
+//	Client could have subscribed before event 1 happened,
+//	read the value a=2 and then received events 1 and 2 and 3.
+//	The cache will replay all events 1, 2 and 3 and end up in the correct
+//	state 3. If we had a consistent revision number, we could
+//	have skipped 1 and 2, but in the absence of such mechanism in Dynamo
+//	we assume that this cache will eventually end up in a correct state
+//	potentially lagging behind the state of the database.
 func (c *Cache) fetchAndWatch(ctx context.Context, retry utils.Retry, timer *time.Timer) error {
 	watcher, err := c.Events.NewWatcher(c.ctx, types.Watch{
 		QueueSize:       c.QueueSize,
@@ -1826,32 +1801,6 @@ func (c *Cache) GetApplicationServers(ctx context.Context, namespace string) ([]
 	return rg.presence.GetApplicationServers(ctx, namespace)
 }
 
-// GetApps returns all application resources.
-func (c *Cache) GetApps(ctx context.Context) ([]types.Application, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetApps")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.apps.GetApps(ctx)
-}
-
-// GetApp returns the specified application resource.
-func (c *Cache) GetApp(ctx context.Context, name string) (types.Application, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetApp")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.apps.GetApp(ctx, name)
-}
-
 // GetAppServers gets all application servers.
 //
 // DELETE IN 9.0. Deprecated, use GetApplicationServers.
@@ -1867,32 +1816,6 @@ func (c *Cache) GetAppServers(ctx context.Context, namespace string, opts ...ser
 	return rg.presence.GetAppServers(ctx, namespace, opts...)
 }
 
-// GetAppSession gets an application web session.
-func (c *Cache) GetAppSession(ctx context.Context, req types.GetAppSessionRequest) (types.WebSession, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetAppSession")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.appSession.GetAppSession(ctx, req)
-}
-
-// GetSnowflakeSession gets Snowflake web session.
-func (c *Cache) GetSnowflakeSession(ctx context.Context, req types.GetSnowflakeSessionRequest) (types.WebSession, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetSnowflakeSession")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.snowflakeSession.GetSnowflakeSession(ctx, req)
-}
-
 // GetDatabaseServers returns all registered database proxy servers.
 func (c *Cache) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {
 	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabaseServers")
@@ -1904,32 +1827,6 @@ func (c *Cache) GetDatabaseServers(ctx context.Context, namespace string, opts .
 	}
 	defer rg.Release()
 	return rg.presence.GetDatabaseServers(ctx, namespace, opts...)
-}
-
-// GetDatabases returns all database resources.
-func (c *Cache) GetDatabases(ctx context.Context) ([]types.Database, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabases")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.databases.GetDatabases(ctx)
-}
-
-// GetDatabase returns the specified database resource.
-func (c *Cache) GetDatabase(ctx context.Context, name string) (types.Database, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetDatabase")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.databases.GetDatabase(ctx, name)
 }
 
 // GetWebSession gets a regular web session.
@@ -2060,32 +1957,6 @@ func (c *Cache) GetWindowsDesktopService(ctx context.Context, name string) (type
 	}
 	defer rg.Release()
 	return rg.presence.GetWindowsDesktopService(ctx, name)
-}
-
-// GetWindowsDesktops returns all registered Windows desktop hosts.
-func (c *Cache) GetWindowsDesktops(ctx context.Context, filter types.WindowsDesktopFilter) ([]types.WindowsDesktop, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetWindowsDesktops")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.windowsDesktops.GetWindowsDesktops(ctx, filter)
-}
-
-// ListWindowsDesktops returns all registered Windows desktop hosts.
-func (c *Cache) ListWindowsDesktops(ctx context.Context, req types.ListWindowsDesktopsRequest) (*types.ListWindowsDesktopsResponse, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/ListWindowsDesktops")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.windowsDesktops.ListWindowsDesktops(ctx, req)
 }
 
 // ListResources is a part of auth.Cache implementation
