@@ -853,18 +853,12 @@ func (a *ServerWithRoles) RegisterInventoryControlStream(ics client.UpstreamInve
 func (a *ServerWithRoles) GetInventoryStatus(ctx context.Context, req proto.InventoryStatusRequest) (proto.InventoryStatusSummary, error) {
 	// only support builtin roles for now, but we'll eventually want to develop an RBAC syntax for
 	// the inventory APIs once they are more developed.
-	if !a.hasBuiltinRole(types.RoleAdmin, types.RoleProxy) {
-		return proto.InventoryStatusSummary{}, trace.AccessDenied("requires builtin admin role")
-	}
 	return a.authServer.GetInventoryStatus(ctx, req), nil
 }
 
 func (a *ServerWithRoles) PingInventory(ctx context.Context, req proto.InventoryPingRequest) (proto.InventoryPingResponse, error) {
 	// admin-only for now, but we'll eventually want to develop an RBAC syntax for
 	// the inventory APIs once they are more developed.
-	if !a.hasBuiltinRole(types.RoleAdmin) {
-		return proto.InventoryPingResponse{}, trace.AccessDenied("requires builtin admin role")
-	}
 	return a.authServer.PingInventory(ctx, req)
 }
 
@@ -879,11 +873,6 @@ func (a *ServerWithRoles) GetClusterAlerts(ctx context.Context, query types.GetC
 	alerts, err := a.authServer.GetClusterAlerts(ctx, query)
 	if err != nil {
 		return nil, trace.Wrap(err)
-	}
-
-	// admin can see all alerts
-	if a.hasBuiltinRole(types.RoleAdmin) {
-		return alerts, nil
 	}
 
 	// filter alerts by teleport.internal labels to determine whether the alert
@@ -908,10 +897,6 @@ func (a *ServerWithRoles) GetClusterAlerts(ctx context.Context, query types.GetC
 func (a *ServerWithRoles) UpsertClusterAlert(ctx context.Context, alert types.ClusterAlert) error {
 	// admin-only API. the expected usage of this is mostly as something the auth server itself would do
 	// internally, but it is useful to be able to create alerts via tctl for testing/debug purposes.
-	if !a.hasBuiltinRole(types.RoleAdmin) {
-		return trace.AccessDenied("cluster alert creation is admin-only")
-	}
-
 	return a.authServer.UpsertClusterAlert(ctx, alert)
 }
 
@@ -3784,15 +3769,15 @@ func (a *ServerWithRoles) SignDatabaseCSR(ctx context.Context, req *proto.Databa
 //
 // This certificate can be requested by:
 //
-//  - Cluster administrator using "tctl auth sign --format=db" command locally
-//    on the auth server to produce a certificate for configuring a self-hosted
-//    database.
-//  - Remote user using "tctl auth sign --format=db" command with a remote
-//    proxy (e.g. Teleport Cloud), as long as they can impersonate system
-//    role Db.
-//  - Database service when initiating connection to a database instance to
-//    produce a client certificate.
-//  - Proxy service when generating mTLS files to a database
+//   - Cluster administrator using "tctl auth sign --format=db" command locally
+//     on the auth server to produce a certificate for configuring a self-hosted
+//     database.
+//   - Remote user using "tctl auth sign --format=db" command with a remote
+//     proxy (e.g. Teleport Cloud), as long as they can impersonate system
+//     role Db.
+//   - Database service when initiating connection to a database instance to
+//     produce a client certificate.
+//   - Proxy service when generating mTLS files to a database
 func (a *ServerWithRoles) GenerateDatabaseCert(ctx context.Context, req *proto.DatabaseCertRequest) (*proto.DatabaseCertResponse, error) {
 	// Check if the User can `create` DatabaseCertificates
 	err := a.action(apidefaults.Namespace, types.KindDatabaseCertificate, types.VerbCreate)
