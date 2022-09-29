@@ -19,14 +19,12 @@ package service
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -341,92 +339,6 @@ func (c CachePolicy) String() string {
 	return "in-memory cache"
 }
 
-// ProxyConfig specifies configuration for proxy service
-type ProxyConfig struct {
-	// Enabled turns proxy role on or off for this process
-	Enabled bool
-
-	// DisableTLS is enabled if we don't want self-signed certs
-	DisableTLS bool
-
-	// DisableWebInterface allows turning off serving the Web UI interface
-	DisableWebInterface bool
-
-	// DisableWebService turns off serving web service completely, including web UI
-	DisableWebService bool
-
-	// DisableReverseTunnel disables reverse tunnel on the proxy
-	DisableReverseTunnel bool
-
-	// DisableDatabaseProxy disables database access proxy listener
-	DisableDatabaseProxy bool
-
-	// ReverseTunnelListenAddr is address where reverse tunnel dialers connect to
-	ReverseTunnelListenAddr utils.NetAddr
-
-	// EnableProxyProtocol enables proxy protocol support
-	EnableProxyProtocol bool
-
-	// WebAddr is address for web portal of the proxy
-	WebAddr utils.NetAddr
-
-	// SSHAddr is address of ssh proxy
-	SSHAddr utils.NetAddr
-
-	// MySQLAddr is address of MySQL proxy.
-	MySQLAddr utils.NetAddr
-
-	// PostgresAddr is address of Postgres proxy.
-	PostgresAddr utils.NetAddr
-
-	// MongoAddr is address of Mongo proxy.
-	MongoAddr utils.NetAddr
-
-	// PeerAddr is the proxy peering address.
-	PeerAddr utils.NetAddr
-
-	Limiter limiter.Config
-
-	// PublicAddrs is a list of the public addresses the proxy advertises
-	// for the HTTP endpoint. The hosts in PublicAddr are included in the
-	// list of host principals on the TLS and SSH certificate.
-	PublicAddrs []utils.NetAddr
-
-	// SSHPublicAddrs is a list of the public addresses the proxy advertises
-	// for the SSH endpoint. The hosts in PublicAddr are included in the
-	// list of host principals on the TLS and SSH certificate.
-	SSHPublicAddrs []utils.NetAddr
-
-	// TunnelPublicAddrs is a list of the public addresses the proxy advertises
-	// for the tunnel endpoint. The hosts in PublicAddr are included in the
-	// list of host principals on the TLS and SSH certificate.
-	TunnelPublicAddrs []utils.NetAddr
-
-	// PostgresPublicAddrs is a list of the public addresses the proxy
-	// advertises for Postgres clients.
-	PostgresPublicAddrs []utils.NetAddr
-
-	// MySQLPublicAddrs is a list of the public addresses the proxy
-	// advertises for MySQL clients.
-	MySQLPublicAddrs []utils.NetAddr
-
-	// MongoPublicAddrs is a list of the public addresses the proxy
-	// advertises for Mongo clients.
-	MongoPublicAddrs []utils.NetAddr
-
-	// Kube specifies kubernetes proxy configuration
-	Kube KubeProxyConfig
-
-	// KeyPairs are the key and certificate pairs that the proxy will load.
-	KeyPairs []KeyPairPath
-
-	// ACME is ACME protocol support config
-	ACME ACME
-
-	// DisableALPNSNIListener allows turning off the ALPN Proxy listener. Used in tests.
-	DisableALPNSNIListener bool
-}
-
 // ACME configures ACME automatic certificate renewal
 type ACME struct {
 	// Enabled enables or disables ACME support
@@ -443,27 +355,6 @@ type KeyPairPath struct {
 	PrivateKey string
 	// Certificate is the path to a PEM encoded certificate.
 	Certificate string
-}
-
-// KubeAddr returns the address for the Kubernetes endpoint on this proxy that
-// can be reached by clients.
-func (c ProxyConfig) KubeAddr() (string, error) {
-	if !c.Kube.Enabled {
-		return "", trace.NotFound("kubernetes support not enabled on this proxy")
-	}
-	if len(c.Kube.PublicAddrs) > 0 {
-		return fmt.Sprintf("https://%s", c.Kube.PublicAddrs[0].Addr), nil
-	}
-	host := "<proxyhost>"
-	// Try to guess the hostname from the HTTP public_addr.
-	if len(c.PublicAddrs) > 0 {
-		host = c.PublicAddrs[0].Host()
-	}
-	u := url.URL{
-		Scheme: "https",
-		Host:   net.JoinHostPort(host, strconv.Itoa(c.Kube.ListenAddr.Port(defaults.KubeListenPort))),
-	}
-	return u.String(), nil
 }
 
 // KubeProxyConfig specifies configuration for proxy service
