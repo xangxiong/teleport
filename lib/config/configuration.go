@@ -23,7 +23,6 @@ package config
 import (
 	"crypto/x509"
 	"io"
-	stdlog "log"
 	"net"
 	"os"
 	"path/filepath"
@@ -36,7 +35,6 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"github.com/gravitational/trace"
 
-	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib"
@@ -49,7 +47,6 @@ import (
 	"github.com/gravitational/teleport/lib/utils"
 
 	log "github.com/sirupsen/logrus"
-	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 // CommandLineFlags stores command line flag values, it's a much simplified subset
@@ -95,127 +92,6 @@ type CommandLineFlags struct {
 	// SkipVersionCheck allows Teleport to connect to auth servers that
 	// have an earlier major version number.
 	SkipVersionCheck bool
-}
-
-// ReadConfigFile reads /etc/teleport.yaml (or whatever is passed via --config flag)
-// and overrides values in 'cfg' structure
-func ReadConfigFile(cliConfigPath string) (*FileConfig, error) {
-	configFilePath := defaults.ConfigFilePath
-	// --config tells us to use a specific conf. file:
-	if cliConfigPath != "" {
-		configFilePath = cliConfigPath
-		if !utils.FileExists(configFilePath) {
-			return nil, trace.NotFound("file %s is not found", configFilePath)
-		}
-	}
-	// default config doesn't exist? quietly return:
-	if !utils.FileExists(configFilePath) {
-		log.Info("not using a config file")
-		return nil, nil
-	}
-	log.Debug("reading config file: ", configFilePath)
-	return ReadFromFile(configFilePath)
-}
-
-// ReadResources loads a set of resources from a file.
-func ReadResources(filePath string) ([]types.Resource, error) {
-	reader, err := utils.OpenFile(filePath)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer reader.Close()
-	decoder := kyaml.NewYAMLOrJSONDecoder(reader, defaults.LookaheadBufSize)
-	var resources []types.Resource
-	for {
-		var raw services.UnknownResource
-		err := decoder.Decode(&raw)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, trace.Wrap(err)
-		}
-		rsc, err := services.UnmarshalResource(raw.Kind, raw.Raw)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = append(resources, rsc)
-	}
-	return resources, nil
-}
-
-func applyLogConfig(loggerConfig Log, cfg *service.Config) error {
-	logger := log.StandardLogger()
-
-	switch loggerConfig.Output {
-	case "":
-		break // not set
-	case "stderr", "error", "2":
-		logger.SetOutput(os.Stderr)
-		cfg.Console = io.Discard // disable console printing
-	case "stdout", "out", "1":
-		logger.SetOutput(os.Stdout)
-		cfg.Console = io.Discard // disable console printing
-	case teleport.Syslog:
-		err := utils.SwitchLoggerToSyslog(logger)
-		if err != nil {
-			// this error will go to stderr
-			log.Errorf("Failed to switch logging to syslog: %v.", err)
-		}
-	default:
-		// assume it's a file path:
-		logFile, err := os.Create(loggerConfig.Output)
-		if err != nil {
-			return trace.Wrap(err, "failed to create the log file")
-		}
-		logger.SetOutput(logFile)
-	}
-
-	switch strings.ToLower(loggerConfig.Severity) {
-	case "", "info":
-		logger.SetLevel(log.InfoLevel)
-	case "err", "error":
-		logger.SetLevel(log.ErrorLevel)
-	case teleport.DebugLevel:
-		logger.SetLevel(log.DebugLevel)
-	case "warn", "warning":
-		logger.SetLevel(log.WarnLevel)
-	default:
-		return trace.BadParameter("unsupported logger severity: %q", loggerConfig.Severity)
-	}
-
-	switch strings.ToLower(loggerConfig.Format.Output) {
-	case "":
-		fallthrough // not set. defaults to 'text'
-	case "text":
-		formatter := &utils.TextFormatter{
-			ExtraFields:  loggerConfig.Format.ExtraFields,
-			EnableColors: trace.IsTerminal(os.Stderr),
-		}
-
-		if err := formatter.CheckAndSetDefaults(); err != nil {
-			return trace.Wrap(err)
-		}
-
-		logger.SetFormatter(formatter)
-	case "json":
-		formatter := &utils.JSONFormatter{
-			ExtraFields: loggerConfig.Format.ExtraFields,
-		}
-
-		if err := formatter.CheckAndSetDefaults(); err != nil {
-			return trace.Wrap(err)
-		}
-
-		logger.SetFormatter(formatter)
-		stdlog.SetOutput(io.Discard) // disable the standard logger used by external dependencies
-		stdlog.SetFlags(0)
-	default:
-		return trace.BadParameter("unsupported log output format : %q", loggerConfig.Format.Output)
-	}
-
-	cfg.Log = logger
-	return nil
 }
 
 // applyAuthConfig applies file configuration for the "auth_service" section.
