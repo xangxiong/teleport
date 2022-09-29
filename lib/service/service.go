@@ -29,7 +29,6 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"net/http/httputil"
 	"os"
 	"path/filepath"
@@ -2491,17 +2490,6 @@ func (process *TeleportProcess) initMinimalReverseTunnel(listeners *proxyListene
 	return minimalWebServer, minimalWebHandler, nil
 }
 
-// kubeDialAddr returns Proxy Kube service address used for dialing local kube service
-// by remote trusted cluster.
-// If the proxy is running with Multiplex mode the WebPort is returned
-// where connections are forwarded to kube service by ALPN SNI router.
-func kubeDialAddr(config ProxyConfig, mode types.ProxyListenerMode) utils.NetAddr {
-	if mode == types.ProxyListenerMode_Multiplex {
-		return config.WebAddr
-	}
-	return config.Kube.ListenAddr
-}
-
 func peerAddr(addr *utils.NetAddr) (*utils.NetAddr, error) {
 	if addr.IsEmpty() {
 		addr = defaults.ProxyPeeringListenAddr()
@@ -2683,9 +2671,9 @@ func (process *TeleportProcess) Close() error {
 }
 
 func validateConfig(cfg *Config) error {
-	if !cfg.Auth.Enabled && !cfg.SSH.Enabled && !cfg.Proxy.Enabled && !cfg.Kube.Enabled && !cfg.Apps.Enabled && !cfg.Databases.Enabled && !cfg.WindowsDesktop.Enabled {
+	if !cfg.Auth.Enabled && !cfg.SSH.Enabled {
 		return trace.BadParameter(
-			"config: enable at least one of auth_service, ssh_service, proxy_service, app_service, database_service, kubernetes_service or windows_desktop_service")
+			"config: enable at least one of auth_service or ssh_service")
 	}
 
 	if cfg.DataDir == "" {
@@ -2721,57 +2709,6 @@ func validateConfig(cfg *Config) error {
 	cfg.SSH.Namespace = types.ProcessNamespace(cfg.SSH.Namespace)
 
 	return nil
-}
-
-// initSelfSignedHTTPSCert generates and self-signs a TLS key+cert pair for https connection
-// to the proxy server.
-func initSelfSignedHTTPSCert(cfg *Config) (err error) {
-	cfg.Log.Warningf("No TLS Keys provided, using self-signed certificate.")
-
-	keyPath := filepath.Join(cfg.DataDir, defaults.SelfSignedKeyPath)
-	certPath := filepath.Join(cfg.DataDir, defaults.SelfSignedCertPath)
-
-	cfg.Proxy.KeyPairs = append(cfg.Proxy.KeyPairs, KeyPairPath{
-		PrivateKey:  keyPath,
-		Certificate: certPath,
-	})
-
-	// return the existing pair if they have already been generated:
-	_, err = tls.LoadX509KeyPair(certPath, keyPath)
-	if err == nil {
-		return nil
-	}
-	if !os.IsNotExist(err) {
-		return trace.Wrap(err, "unrecognized error reading certs")
-	}
-	cfg.Log.Warningf("Generating self-signed key and cert to %v %v.", keyPath, certPath)
-
-	creds, err := utils.GenerateSelfSignedCert([]string{cfg.Hostname, "localhost"})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	if err := os.WriteFile(keyPath, creds.PrivateKey, 0o600); err != nil {
-		return trace.Wrap(err, "error writing key PEM")
-	}
-	if err := os.WriteFile(certPath, creds.Cert, 0o600); err != nil {
-		return trace.Wrap(err, "error writing key PEM")
-	}
-	return nil
-}
-
-// initDebugApp starts a debug server that dumpers request headers.
-func (process *TeleportProcess) initDebugApp() {
-	process.RegisterFunc("debug.app.service", func() error {
-		server := httptest.NewServer(http.HandlerFunc(dumperHandler))
-		process.BroadcastEvent(Event{Name: DebugAppReady, Payload: server})
-
-		process.OnExit("debug.app.shutdown", func(payload interface{}) {
-			server.Close()
-			process.log.Infof("Exited.")
-		})
-		return nil
-	})
 }
 
 // singleProcessModeResolver returns the reversetunnel.Resolver that should be used when running all components needed
