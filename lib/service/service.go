@@ -73,7 +73,6 @@ import (
 	"github.com/gravitational/teleport/lib/backend/postgres"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/cache"
-	"github.com/gravitational/teleport/lib/cloud/aws"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/events/dynamoevents"
@@ -85,8 +84,6 @@ import (
 	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/joinserver"
 	kubeproxy "github.com/gravitational/teleport/lib/kube/proxy"
-	"github.com/gravitational/teleport/lib/labels"
-	"github.com/gravitational/teleport/lib/labels/ec2"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/multiplexer"
@@ -364,9 +361,6 @@ type TeleportProcess struct {
 	// server during the most recent ping (may be empty).
 	authSubjectiveAddr string
 
-	// cloudLabels is a set of labels imported from a cloud provider and shared between
-	// services.
-	cloudLabels labels.Importer
 	// TracingProvider is the provider to be used for exporting traces. In the event
 	// that tracing is disabled this will be a no-op provider that drops all spans.
 	TracingProvider *tracing.Provider
@@ -379,17 +373,9 @@ type keyPairKey struct {
 
 // newTeleportConfig provides extra options to NewTeleport().
 type newTeleportConfig struct {
-	imdsClient aws.InstanceMetadata
 }
 
 type NewTeleportOption func(*newTeleportConfig)
-
-// WithIMDSClient provides NewTeleport with a custom EC2 instance metadata client.
-func WithIMDSClient(client aws.InstanceMetadata) NewTeleportOption {
-	return func(c *newTeleportConfig) {
-		c.imdsClient = client
-	}
-}
 
 // processIndex is an internal process index
 // to help differentiate between two different teleport processes
@@ -790,24 +776,24 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		}
 	}
 
-	// create the data directory if it's missing
-	_, err = os.Stat(cfg.DataDir)
-	if os.IsNotExist(err) {
-		err := os.MkdirAll(cfg.DataDir, os.ModeDir|0o700)
-		if err != nil {
-			if errors.Is(err, fs.ErrPermission) {
-				cfg.Log.Errorf("Teleport does not have permission to write to: %v. Ensure that you are running as a user with appropriate permissions.", cfg.DataDir)
-			}
-			return nil, trace.ConvertSystemError(err)
-		}
-	}
+	// // create the data directory if it's missing
+	// _, err = os.Stat(cfg.DataDir)
+	// if os.IsNotExist(err) {
+	// 	err := os.MkdirAll(cfg.DataDir, os.ModeDir|0o700)
+	// 	if err != nil {
+	// 		if errors.Is(err, fs.ErrPermission) {
+	// 			cfg.Log.Errorf("Teleport does not have permission to write to: %v. Ensure that you are running as a user with appropriate permissions.", cfg.DataDir)
+	// 		}
+	// 		return nil, trace.ConvertSystemError(err)
+	// 	}
+	// }
 
-	// TODO(espadolini): DELETE IN 11.0, replace with
-	// os.RemoveAll(filepath.Join(cfg.DataDir, "cache")), because no stable v10
-	// should ever use the cache directory, and 11 requires upgrading from 10
-	if fi, err := os.Stat(filepath.Join(cfg.DataDir, "cache")); err == nil && fi.IsDir() {
-		cfg.Log.Warnf("An old cache directory exists at %q. It can be safely deleted after ensuring that no other Teleport instance is running.", filepath.Join(cfg.DataDir, "cache"))
-	}
+	// // TODO(espadolini): DELETE IN 11.0, replace with
+	// // os.RemoveAll(filepath.Join(cfg.DataDir, "cache")), because no stable v10
+	// // should ever use the cache directory, and 11 requires upgrading from 10
+	// if fi, err := os.Stat(filepath.Join(cfg.DataDir, "cache")); err == nil && fi.IsDir() {
+	// 	cfg.Log.Warnf("An old cache directory exists at %q. It can be safely deleted after ensuring that no other Teleport instance is running.", filepath.Join(cfg.DataDir, "cache"))
+	// }
 
 	if len(cfg.FileDescriptors) == 0 {
 		cfg.FileDescriptors, err = importFileDescriptors(cfg.Log)
@@ -881,47 +867,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		cfg.PluginRegistry = plugin.NewRegistry()
 	}
 
-	var cloudLabels labels.Importer
-
-	// Check if we're on an EC2 instance, and if we should override the node's hostname.
-	imClient := newTeleportConf.imdsClient
-	if imClient == nil {
-		imClient, err = utils.NewInstanceMetadataClient(supervisor.ExitContext())
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	if imClient.IsAvailable(supervisor.ExitContext()) {
-		ec2Hostname, err := imClient.GetTagValue(supervisor.ExitContext(), types.EC2HostnameTag)
-		if err == nil {
-			ec2Hostname = strings.ReplaceAll(ec2Hostname, " ", "_")
-			if utils.IsValidHostname(ec2Hostname) {
-				cfg.Log.Infof("Found %q tag in EC2 instance. Using %q as hostname.", types.EC2HostnameTag, ec2Hostname)
-				cfg.Hostname = ec2Hostname
-
-				// ec2Hostname exists but is not a valid hostname.
-			} else if ec2Hostname != "" {
-				cfg.Log.Infof("Found %q tag in EC2 instance, but %q is not a valid hostname.", types.EC2HostnameTag, ec2Hostname)
-			}
-		} else if !trace.IsNotFound(err) {
-			cfg.Log.Errorf("Unexpected error while looking for EC2 hostname: %v", err)
-		}
-
-		ec2Labels, err := ec2.New(supervisor.ExitContext(), &ec2.Config{
-			Client: imClient,
-			Clock:  cfg.Clock,
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		cloudLabels = ec2Labels
-	}
-
-	if cloudLabels != nil {
-		cloudLabels.Start(supervisor.ExitContext())
-	}
-
 	// if user did not provide auth domain name, use this host's name
 	if cfg.Auth.Enabled && cfg.Auth.ClusterName == nil {
 		cfg.Auth.ClusterName, err = services.NewClusterNameWithRandomID(types.ClusterNameSpecV2{
@@ -945,7 +890,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		id:                  processID,
 		log:                 cfg.Log,
 		keyPairs:            make(map[keyPairKey]KeyPair),
-		cloudLabels:         cloudLabels,
 		TracingProvider:     tracing.NoopProvider(),
 	}
 
@@ -955,11 +899,11 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		trace.Component: teleport.Component(teleport.ComponentProcess, process.id),
 	})
 
-	// if user started auth and another service (without providing the auth address for
-	// that service, the address of the in-process auth will be used
-	if process.Config.Auth.Enabled && len(process.Config.AuthServers) == 0 {
-		process.Config.AuthServers = []utils.NetAddr{process.Config.Auth.SSHAddr}
-	}
+	// // if user started auth and another service (without providing the auth address for
+	// // that service, the address of the in-process auth will be used
+	// if process.Config.Auth.Enabled && len(process.Config.AuthServers) == 0 {
+	// 	process.Config.AuthServers = []utils.NetAddr{process.Config.Auth.SSHAddr}
+	// }
 
 	if len(process.Config.AuthServers) != 0 && process.Config.AuthServers[0].Port(0) == 0 {
 		// port appears undefined, attempt early listener creation so that we can get the real port
@@ -989,19 +933,19 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 
 	serviceStarted := false
 
-	if !cfg.DiagnosticAddr.IsEmpty() {
-		if err := process.initDiagnosticService(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	} else {
-		warnOnErr(process.closeImportedDescriptors(teleport.ComponentDiagnostic), process.log)
-	}
+	// if !cfg.DiagnosticAddr.IsEmpty() {
+	// 	if err := process.initDiagnosticService(); err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// } else {
+	// 	warnOnErr(process.closeImportedDescriptors(teleport.ComponentDiagnostic), process.log)
+	// }
 
-	if cfg.Tracing.Enabled {
-		if err := process.initTracingService(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
+	// if cfg.Tracing.Enabled {
+	// 	if err := process.initTracingService(); err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// }
 
 	// Create a process wide key generator that will be shared. This is so the
 	// key generator can pre-generate keys and share these across services.
@@ -1015,43 +959,28 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		Out: TeleportReadyEvent,
 		In:  []string{InstanceReady},
 	}
-	if cfg.Auth.Enabled {
-		eventMapping.In = append(eventMapping.In, AuthTLSReady)
-	}
+	// if cfg.Auth.Enabled {
+	// 	eventMapping.In = append(eventMapping.In, AuthTLSReady)
+	// }
 	if cfg.SSH.Enabled {
 		eventMapping.In = append(eventMapping.In, NodeSSHReady)
 	}
 	if cfg.Proxy.Enabled {
 		eventMapping.In = append(eventMapping.In, ProxySSHReady)
 	}
-	if cfg.Kube.Enabled {
-		eventMapping.In = append(eventMapping.In, KubernetesReady)
-	}
-	if cfg.Apps.Enabled {
-		eventMapping.In = append(eventMapping.In, AppsReady)
-	}
-	if process.shouldInitDatabases() {
-		eventMapping.In = append(eventMapping.In, DatabasesReady)
-	}
-	if cfg.Metrics.Enabled {
-		eventMapping.In = append(eventMapping.In, MetricsReady)
-	}
-	if cfg.WindowsDesktop.Enabled {
-		eventMapping.In = append(eventMapping.In, WindowsDesktopReady)
-	}
-	if cfg.Tracing.Enabled {
-		eventMapping.In = append(eventMapping.In, TracingReady)
-	}
+	// if cfg.Tracing.Enabled {
+	// 	eventMapping.In = append(eventMapping.In, TracingReady)
+	// }
 	process.RegisterEventMapping(eventMapping)
 
-	if cfg.Auth.Enabled {
-		if err := process.initAuthService(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		serviceStarted = true
-	} else {
-		warnOnErr(process.closeImportedDescriptors(teleport.ComponentAuth), process.log)
-	}
+	// if cfg.Auth.Enabled {
+	// 	if err := process.initAuthService(); err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	serviceStarted = true
+	// } else {
+	// 	warnOnErr(process.closeImportedDescriptors(teleport.ComponentAuth), process.log)
+	// }
 
 	if cfg.SSH.Enabled {
 		if err := process.initSSH(); err != nil {
@@ -1062,52 +991,14 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		warnOnErr(process.closeImportedDescriptors(teleport.ComponentNode), process.log)
 	}
 
-	if cfg.Proxy.Enabled {
-		if err := process.initProxy(); err != nil {
-			return nil, err
-		}
-		serviceStarted = true
-	} else {
-		warnOnErr(process.closeImportedDescriptors(teleport.ComponentProxy), process.log)
-	}
-
-	// If this process is proxying applications, start application access server.
-	if cfg.Apps.Enabled {
-		process.initApps()
-		serviceStarted = true
-	} else {
-		warnOnErr(process.closeImportedDescriptors(teleport.ComponentApp), process.log)
-	}
-
-	if process.shouldInitDatabases() {
-		process.initDatabases()
-		serviceStarted = true
-	} else {
-		warnOnErr(process.closeImportedDescriptors(teleport.ComponentDatabase), process.log)
-	}
-
-	if cfg.Metrics.Enabled {
-		process.initMetricsService()
-		serviceStarted = true
-	} else {
-		warnOnErr(process.closeImportedDescriptors(teleport.ComponentMetrics), process.log)
-	}
-
-	if cfg.WindowsDesktop.Enabled {
-		// FedRAMP/FIPS is not supported for Desktop Access. Desktop Access uses
-		// Rust for the underlying RDP protocol implementation and smart card
-		// authentication. Returns an error if the user attempts to start Desktop
-		// Access in FedRAMP/RIPS mode for now until we can ensure that the crypto
-		// used by this feature is compliant.
-		if cfg.FIPS {
-			return nil, trace.BadParameter("FedRAMP/FIPS 140-2 compliant configuration for Desktop Access not supported in Teleport %v", teleport.Version)
-		}
-
-		process.initWindowsDesktopService()
-		serviceStarted = true
-	} else {
-		warnOnErr(process.closeImportedDescriptors(teleport.ComponentWindowsDesktop), process.log)
-	}
+	// if cfg.Proxy.Enabled {
+	// 	if err := process.initProxy(); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	serviceStarted = true
+	// } else {
+	// 	warnOnErr(process.closeImportedDescriptors(teleport.ComponentProxy), process.log)
+	// }
 
 	process.RegisterFunc("common.rotate", process.periodicSyncRotationState)
 
@@ -2256,7 +2147,6 @@ func (process *TeleportProcess) initSSH() error {
 			regular.SetShell(cfg.SSH.Shell),
 			regular.SetEmitter(&events.StreamerAndEmitter{Emitter: asyncEmitter, Streamer: streamer}),
 			regular.SetSessionServer(conn.Client),
-			regular.SetLabels(cfg.SSH.Labels, cfg.SSH.CmdLabels, process.cloudLabels),
 			regular.SetNamespace(namespace),
 			regular.SetPermitUserEnvironment(cfg.SSH.PermitUserEnvironment),
 			regular.SetCiphers(cfg.Ciphers),
@@ -4275,7 +4165,6 @@ func (process *TeleportProcess) initApps() {
 			Hostname:             process.Config.Hostname,
 			GetRotation:          process.getRotation,
 			Apps:                 applications,
-			CloudLabels:          process.cloudLabels,
 			ResourceMatchers:     process.Config.Apps.ResourceMatchers,
 			OnHeartbeat:          process.onHeartbeat(teleport.ComponentApp),
 			ConnectedProxyGetter: proxyGetter,

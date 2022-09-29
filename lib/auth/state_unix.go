@@ -22,25 +22,35 @@ package auth
 import (
 	"context"
 
-	"github.com/gravitational/teleport/lib/backend/lite"
-
+	"github.com/gravitational/teleport/lib/backend/memory"
 	"github.com/gravitational/trace"
 )
 
 // NewProcessStorage returns a new instance of the process storage.
 func NewProcessStorage(ctx context.Context, path string) (*ProcessStorage, error) {
-	if path == "" {
-		return nil, trace.BadParameter("missing parameter path")
-	}
+	// if path == "" {
+	// 	return nil, trace.BadParameter("missing parameter path")
+	// }
 
-	litebk, err := lite.NewWithConfig(ctx, lite.Config{
-		Path:      path,
+	// litebk, err := lite.NewWithConfig(ctx, lite.Config{
+	// 	Path:      path,
+	// 	EventsOff: true,
+	// 	Sync:      lite.SyncFull,
+	// })
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
+
+	// return &ProcessStorage{Backend: litebk}, nil
+
+	// XXIONG: will use memory for linux as well to prevent clogging file system on small devices
+	m, err := memory.New(memory.Config{
+		Context:   ctx,
 		EventsOff: true,
-		Sync:      lite.SyncFull,
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	return &ProcessStorage{Backend: litebk}, nil
+	return &ProcessStorage{Backend: m}, nil
 }
