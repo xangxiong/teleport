@@ -369,48 +369,6 @@ type SSHConfig struct {
 	DisableCreateHostUser bool
 }
 
-// TLSMode defines all possible database verification modes.
-type TLSMode string
-
-const (
-	// VerifyFull is the strictest. Verifies certificate and server name.
-	VerifyFull TLSMode = "verify-full"
-	// VerifyCA checks the certificate, but skips the server name verification.
-	VerifyCA TLSMode = "verify-ca"
-	// Insecure accepts any certificate.
-	Insecure TLSMode = "insecure"
-)
-
-// AllTLSModes keeps all possible database TLS modes for easy access.
-var AllTLSModes = []TLSMode{VerifyFull, VerifyCA, Insecure}
-
-// CheckAndSetDefaults check if TLSMode holds a correct value. If the value is not set
-// VerifyFull is set as a default. BadParameter error is returned if value set is incorrect.
-func (m *TLSMode) CheckAndSetDefaults() error {
-	switch *m {
-	case "": // Use VerifyFull if not set.
-		*m = VerifyFull
-	case VerifyFull, VerifyCA, Insecure:
-		// Correct value, do nothing.
-	default:
-		return trace.BadParameter("provided incorrect TLSMode value. Correct values are: %v", AllTLSModes)
-	}
-
-	return nil
-}
-
-// ToProto returns a matching protobuf type or VerifyFull for empty value.
-func (m TLSMode) ToProto() types.DatabaseTLSMode {
-	switch m {
-	case VerifyCA:
-		return types.DatabaseTLSMode_VERIFY_CA
-	case Insecure:
-		return types.DatabaseTLSMode_INSECURE
-	default: // VerifyFull
-		return types.DatabaseTLSMode_VERIFY_FULL
-	}
-}
-
 // HostLabelRules is a collection of rules describing how to apply labels to hosts.
 type HostLabelRules []HostLabelRule
 
