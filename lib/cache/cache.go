@@ -369,22 +369,17 @@ type Cache struct {
 	// regularly called methods.
 	fnCache *utils.FnCache
 
-	trustCache            services.Trust
-	clusterConfigCache    services.ClusterConfiguration
-	provisionerCache      services.Provisioner
-	usersCache            services.UsersService
-	accessCache           services.Access
-	dynamicAccessCache    services.DynamicAccessExt
-	presenceCache         services.Presence
-	restrictionsCache     services.Restrictions
-	appsCache             services.Apps
-	databasesCache        services.Databases
-	appSessionCache       services.AppSession
-	snowflakeSessionCache services.SnowflakeSession
-	webSessionCache       types.WebSessionInterface
-	webTokenCache         types.WebTokenInterface
-	windowsDesktopsCache  services.WindowsDesktops
-	eventsFanout          *services.FanoutSet
+	trustCache         services.Trust
+	clusterConfigCache services.ClusterConfiguration
+	provisionerCache   services.Provisioner
+	usersCache         services.UsersService
+	accessCache        services.Access
+	dynamicAccessCache services.DynamicAccessExt
+	presenceCache      services.Presence
+	restrictionsCache  services.Restrictions
+	webSessionCache    types.WebSessionInterface
+	webTokenCache      types.WebTokenInterface
+	eventsFanout       *services.FanoutSet
 
 	// closed indicates that the cache has been closed
 	closed *atomic.Bool
@@ -652,28 +647,23 @@ func New(config Config) (*Cache, error) {
 	}
 
 	cs := &Cache{
-		ctx:                   ctx,
-		cancel:                cancel,
-		Config:                config,
-		generation:            atomic.NewUint64(0),
-		initC:                 make(chan struct{}),
-		fnCache:               fnCache,
-		trustCache:            local.NewCAService(config.Backend),
-		clusterConfigCache:    clusterConfigCache,
-		provisionerCache:      local.NewProvisioningService(config.Backend),
-		usersCache:            local.NewIdentityService(config.Backend),
-		accessCache:           local.NewAccessService(config.Backend),
-		dynamicAccessCache:    local.NewDynamicAccessService(config.Backend),
-		presenceCache:         local.NewPresenceService(config.Backend),
-		restrictionsCache:     local.NewRestrictionsService(config.Backend),
-		appsCache:             local.NewAppService(config.Backend),
-		databasesCache:        local.NewDatabasesService(config.Backend),
-		appSessionCache:       local.NewIdentityService(config.Backend),
-		snowflakeSessionCache: local.NewIdentityService(config.Backend),
-		webSessionCache:       local.NewIdentityService(config.Backend).WebSessions(),
-		webTokenCache:         local.NewIdentityService(config.Backend).WebTokens(),
-		windowsDesktopsCache:  local.NewWindowsDesktopService(config.Backend),
-		eventsFanout:          services.NewFanoutSet(),
+		ctx:                ctx,
+		cancel:             cancel,
+		Config:             config,
+		generation:         atomic.NewUint64(0),
+		initC:              make(chan struct{}),
+		fnCache:            fnCache,
+		trustCache:         local.NewCAService(config.Backend),
+		clusterConfigCache: clusterConfigCache,
+		provisionerCache:   local.NewProvisioningService(config.Backend),
+		usersCache:         local.NewIdentityService(config.Backend),
+		accessCache:        local.NewAccessService(config.Backend),
+		dynamicAccessCache: local.NewDynamicAccessService(config.Backend),
+		presenceCache:      local.NewPresenceService(config.Backend),
+		restrictionsCache:  local.NewRestrictionsService(config.Backend),
+		webSessionCache:    local.NewIdentityService(config.Backend).WebSessions(),
+		webTokenCache:      local.NewIdentityService(config.Backend).WebTokens(),
+		eventsFanout:       services.NewFanoutSet(),
 		Entry: log.WithFields(log.Fields{
 			trace.Component: config.Component,
 		}),
