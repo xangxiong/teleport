@@ -273,9 +273,6 @@ type TeleportProcess struct {
 	// keyMutex is a mutex to serialize key generation
 	keyMutex sync.Mutex
 
-	// clusterFeatures contain flags for supported and unsupported features.
-	clusterFeatures proto.Features
-
 	// authSubjectiveAddr is the peer address of this process as seen by the auth
 	// server during the most recent ping (may be empty).
 	authSubjectiveAddr string
@@ -430,15 +427,6 @@ func (process *TeleportProcess) waitForConnector(identityEvent string, log logru
 	}
 
 	return conn, nil
-}
-
-func (process *TeleportProcess) setClusterFeatures(features *proto.Features) {
-	process.Lock()
-	defer process.Unlock()
-
-	if features != nil {
-		process.clusterFeatures = *features
-	}
 }
 
 // setAuthSubjectiveAddr records the peer address that the auth server observed

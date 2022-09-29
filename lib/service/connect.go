@@ -85,9 +85,6 @@ func (process *TeleportProcess) reconnectToAuthService(role types.SystemRole) (*
 					return nil, trace.Wrap(compareErr)
 				}
 
-				// Set cluster features and return successfully with a working connector.
-				process.setClusterFeatures(pingResponse.GetServerFeatures())
-				process.log.Infof("%v: features loaded from auth server: %+v", role, pingResponse.GetServerFeatures())
 				process.setAuthSubjectiveAddr(pingResponse.RemoteAddr)
 				return connector, nil
 			}
