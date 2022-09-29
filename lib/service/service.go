@@ -480,13 +480,6 @@ func (process *TeleportProcess) setClusterFeatures(features *proto.Features) {
 	}
 }
 
-func (process *TeleportProcess) getClusterFeatures() proto.Features {
-	process.Lock()
-	defer process.Unlock()
-
-	return process.clusterFeatures
-}
-
 // setAuthSubjectiveAddr records the peer address that the auth server observed
 // for this process during the most recent ping.
 func (process *TeleportProcess) setAuthSubjectiveAddr(ip string) {
@@ -3162,92 +3155,6 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	var webHandler *web.APIHandler
 	var minimalWebServer *http.Server
 	var minimalWebHandler *web.APIHandler
-
-	if !process.Config.Proxy.DisableWebService {
-		var fs http.FileSystem
-		if !process.Config.Proxy.DisableWebInterface {
-			fs, err = newHTTPFileSystem()
-			if err != nil {
-				return trace.Wrap(err)
-			}
-		}
-
-		proxySettings := &proxySettings{
-			cfg:          cfg,
-			proxySSHAddr: proxySSHAddr,
-			accessPoint:  accessPoint,
-		}
-
-		webConfig := web.Config{
-			Proxy:            tsrv,
-			AuthServers:      cfg.AuthServers[0],
-			DomainName:       cfg.Hostname,
-			ProxyClient:      conn.Client,
-			ProxySSHAddr:     proxySSHAddr,
-			ProxyWebAddr:     cfg.Proxy.WebAddr,
-			ProxyPublicAddrs: cfg.Proxy.PublicAddrs,
-			CipherSuites:     cfg.CipherSuites,
-			FIPS:             cfg.FIPS,
-			AccessPoint:      accessPoint,
-			Emitter:          streamEmitter,
-			PluginRegistry:   process.PluginRegistry,
-			HostUUID:         process.Config.HostUUID,
-			Context:          process.ExitContext(),
-			StaticFS:         fs,
-			ClusterFeatures:  process.getClusterFeatures(),
-			ProxySettings:    proxySettings,
-		}
-		webHandler, err = web.NewHandler(webConfig)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		proxyLimiter.WrapHandle(webHandler)
-		if !cfg.Proxy.DisableTLS && cfg.Proxy.DisableALPNSNIListener {
-			listeners.tls, err = multiplexer.NewWebListener(multiplexer.WebListenerConfig{
-				Listener: tls.NewListener(listeners.web, tlsConfigWeb),
-			})
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			listeners.web = listeners.tls.Web()
-			listeners.db.tls = listeners.tls.DB()
-
-			process.RegisterCriticalFunc("proxy.tls", func() error {
-				log.Infof("TLS multiplexer is starting on %v.", cfg.Proxy.WebAddr.Addr)
-				if err := listeners.tls.Serve(); !trace.IsConnectionProblem(err) {
-					log.WithError(err).Warn("TLS multiplexer error.")
-				}
-				log.Info("TLS multiplexer exited.")
-				return nil
-			})
-		}
-
-		webServer = &http.Server{
-			Handler:           httplib.MakeTracingHandler(proxyLimiter, teleport.ComponentProxy),
-			ReadHeaderTimeout: apidefaults.DefaultDialTimeout,
-			ErrorLog:          utils.NewStdlogger(log.Error, teleport.ComponentProxy),
-		}
-		process.RegisterCriticalFunc("proxy.web", func() error {
-			utils.Consolef(cfg.Console, log, teleport.ComponentProxy, "Web proxy service %s:%s is starting on %v.",
-				teleport.Version, teleport.Gitref, cfg.Proxy.WebAddr.Addr)
-			log.Infof("Web proxy service %s:%s is starting on %v.", teleport.Version, teleport.Gitref, cfg.Proxy.WebAddr.Addr)
-			defer webHandler.Close()
-			process.BroadcastEvent(Event{Name: ProxyWebServerReady, Payload: webHandler})
-			if err := webServer.Serve(listeners.web); err != nil && err != http.ErrServerClosed {
-				log.Warningf("Error while serving web requests: %v", err)
-			}
-			log.Info("Exited.")
-			return nil
-		})
-
-		if listeners.reverseTunnelMux != nil {
-			if minimalWebServer, minimalWebHandler, err = process.initMinimalReverseTunnel(listeners, tlsConfigWeb, cfg, webConfig, log); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-	} else {
-		log.Info("Web UI is disabled.")
-	}
 
 	// Register ALPN handler that will be accepting connections for plain
 	// TCP applications.
