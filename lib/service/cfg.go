@@ -441,5 +441,4 @@ func ApplyFIPSDefaults(cfg *Config) {
 	cfg.Ciphers = defaults.FIPSCiphers
 	cfg.KEXAlgorithms = defaults.FIPSKEXAlgorithms
 	cfg.MACAlgorithms = defaults.FIPSMACAlgorithms
-
 }
