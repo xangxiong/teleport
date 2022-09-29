@@ -64,7 +64,6 @@ type FileConfig struct {
 	Auth    Auth  `yaml:"auth_service,omitempty"`
 	SSH     SSH   `yaml:"ssh_service,omitempty"`
 	Proxy   Proxy `yaml:"proxy_service,omitempty"`
-	Kube    Kube  `yaml:"kubernetes_service,omitempty"`
 
 	// Metrics is the "metrics_service" section in Teleport configuration file
 	// that defines the metrics service configuration
@@ -345,7 +344,6 @@ func (conf *FileConfig) CheckAndSetDefaults() error {
 	conf.Auth.defaultEnabled = true
 	conf.Proxy.defaultEnabled = true
 	conf.SSH.defaultEnabled = true
-	conf.Kube.defaultEnabled = false
 	if conf.Version == "" {
 		conf.Version = defaults.TeleportConfigVersionV1
 	}
