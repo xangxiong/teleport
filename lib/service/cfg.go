@@ -112,21 +112,6 @@ type Config struct {
 	// SSH service configuration. Manages SSH servers running within the cluster.
 	SSH SSHConfig
 
-	// App service configuration. Manages applications running within the cluster.
-	Apps AppsConfig
-
-	// Databases defines database proxy service configuration.
-	Databases DatabasesConfig
-
-	// Metrics defines the metrics service configuration.
-	Metrics MetricsConfig
-
-	// WindowsDesktop defines the Windows desktop service configuration.
-	WindowsDesktop WindowsDesktopConfig
-
-	// Tracing defines the tracing service configuration.
-	Tracing TracingConfig
-
 	// Keygen points to a key generator implementation
 	Keygen sshca.Authority
 
@@ -228,9 +213,6 @@ type Config struct {
 
 	// BPFConfig holds configuration for the BPF service.
 	BPFConfig *bpf.Config
-
-	// Kube is a Kubernetes API gateway using Teleport client identities.
-	Kube KubeConfig
 
 	// Log optionally specifies the logger
 	Log utils.Logger
@@ -1299,24 +1281,6 @@ func ApplyDefaults(cfg *Config) {
 	cfg.SSH.RestrictedSession = &restricted.Config{Enabled: false}
 	cfg.SSH.AllowTCPForwarding = true
 	cfg.SSH.AllowFileCopying = true
-
-	// Kubernetes service defaults.
-	cfg.Kube.Enabled = false
-	defaults.ConfigureLimiter(&cfg.Kube.Limiter)
-
-	// Apps service defaults. It's disabled by default.
-	cfg.Apps.Enabled = false
-
-	// Databases proxy service is disabled by default.
-	cfg.Databases.Enabled = false
-	defaults.ConfigureLimiter(&cfg.Databases.Limiter)
-
-	// Metrics service defaults.
-	cfg.Metrics.Enabled = false
-
-	// Windows desktop service is disabled by default.
-	cfg.WindowsDesktop.Enabled = false
-	defaults.ConfigureLimiter(&cfg.WindowsDesktop.ConnLimiter)
 
 	cfg.RotationConnectionInterval = defaults.HighResPollingPeriod
 	cfg.RestartThreshold = Rate{
