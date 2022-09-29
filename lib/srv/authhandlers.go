@@ -41,26 +41,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-)
-
-var (
-	failedLoginCount = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: teleport.MetricFailedLoginAttempts,
-			Help: "Number of times there was a failed login",
-		},
-	)
-
-	certificateMismatchCount = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: teleport.MetricCertificateMismatch,
-			Help: "Number of times there was a certificate mismatch",
-		},
-	)
-
-	prometheusCollectors = []prometheus.Collector{failedLoginCount, certificateMismatchCount}
 )
 
 var errRoleFileCopyingNotPermitted = trace.AccessDenied("file copying via SCP or SFTP is not permitted")
@@ -99,11 +80,6 @@ type AuthHandlers struct {
 
 // NewAuthHandlers initializes authorization and authentication handlers
 func NewAuthHandlers(config *AuthHandlerConfig) (*AuthHandlers, error) {
-	err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	return &AuthHandlers{
 		c:   config,
 		log: log.WithField(trace.Component, config.Component),
@@ -279,8 +255,6 @@ func (h *AuthHandlers) UserKeyAuth(conn ssh.ConnMetadata, key ssh.PublicKey) (*s
 
 	// only failed attempts are logged right now
 	recordFailedLogin := func(err error) {
-		failedLoginCount.Inc()
-
 		message := fmt.Sprintf("Principal %q is not allowed by this certificate. Ensure your roles grants access by adding it to the 'login' property.", conn.User())
 		traceType := types.ConnectionDiagnosticTrace_RBAC_PRINCIPAL
 
@@ -346,7 +320,6 @@ func (h *AuthHandlers) UserKeyAuth(conn ssh.ConnMetadata, key ssh.PublicKey) (*s
 
 	permissions, err := certChecker.Authenticate(conn, key)
 	if err != nil {
-		certificateMismatchCount.Inc()
 		recordFailedLogin(err)
 		return nil, trace.Wrap(err)
 	}
