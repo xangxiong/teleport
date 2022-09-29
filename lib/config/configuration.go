@@ -105,15 +105,6 @@ type CommandLineFlags struct {
 	// have an earlier major version number.
 	SkipVersionCheck bool
 
-	// AppName is the name of the application to proxy.
-	AppName string
-
-	// AppURI is the internal address of the application to proxy.
-	AppURI string
-
-	// AppPublicAddr is the public address of the application to proxy.
-	AppPublicAddr string
-
 	// DatabaseName is the name of the database to proxy.
 	DatabaseName string
 	// DatabaseDescription is a free-form database description.
@@ -1743,38 +1734,6 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 		// } else {
 		// 	fileConf.Logger.Severity = teleport.DebugLevel
 		// }
-	}
-
-	// If this process is trying to join a cluster as an application service,
-	// make sure application name and URI are provided.
-	if apiutils.SliceContainsStr(splitRoles(clf.Roles), defaults.RoleApp) &&
-		(clf.AppName == "" || clf.AppURI == "") {
-		return trace.BadParameter("application name (--app-name) and URI (--app-uri) flags are both required to join application proxy to the cluster")
-	}
-
-	// If application name was specified on command line, add to file
-	// configuration where it will be validated.
-	if clf.AppName != "" {
-		cfg.Apps.Enabled = true
-
-		// Parse static and dynamic labels.
-		static, dynamic, err := parseLabels(clf.Labels)
-		if err != nil {
-			return trace.BadParameter("labels invalid: %v", err)
-		}
-
-		// Create and validate application. If valid, add to list of applications.
-		app := service.App{
-			Name:          clf.AppName,
-			URI:           clf.AppURI,
-			PublicAddr:    clf.AppPublicAddr,
-			StaticLabels:  static,
-			DynamicLabels: dynamic,
-		}
-		if err := app.CheckAndSetDefaults(); err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Apps.Apps = append(cfg.Apps.Apps, app)
 	}
 
 	// If database name was specified on the command line, add to configuration.
