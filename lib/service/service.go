@@ -879,20 +879,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 
 	serviceStarted := false
 
-	// if !cfg.DiagnosticAddr.IsEmpty() {
-	// 	if err := process.initDiagnosticService(); err != nil {
-	// 		return nil, trace.Wrap(err)
-	// 	}
-	// } else {
-	// 	warnOnErr(process.closeImportedDescriptors(teleport.ComponentDiagnostic), process.log)
-	// }
-
-	// if cfg.Tracing.Enabled {
-	// 	if err := process.initTracingService(); err != nil {
-	// 		return nil, trace.Wrap(err)
-	// 	}
-	// }
-
 	// Create a process wide key generator that will be shared. This is so the
 	// key generator can pre-generate keys and share these across services.
 	if cfg.Keygen == nil {
@@ -914,9 +900,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 	if cfg.Proxy.Enabled {
 		eventMapping.In = append(eventMapping.In, ProxySSHReady)
 	}
-	// if cfg.Tracing.Enabled {
-	// 	eventMapping.In = append(eventMapping.In, TracingReady)
-	// }
 	process.RegisterEventMapping(eventMapping)
 
 	// if cfg.Auth.Enabled {
@@ -1767,21 +1750,6 @@ func (process *TeleportProcess) newLocalCacheForNode(clt auth.ClientI, cacheName
 	}
 
 	return auth.NewNodeWrapper(clt, cache), nil
-}
-
-// newLocalCacheForDatabase returns new instance of access point configured for a database service.
-func (process *TeleportProcess) newLocalCacheForDatabase(clt auth.ClientI, cacheName []string) (auth.DatabaseAccessPoint, error) {
-	// if caching is disabled, return access point
-	if !process.Config.CachePolicy.Enabled {
-		return clt, nil
-	}
-
-	cache, err := process.newLocalCache(clt, cache.ForDatabases, cacheName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return auth.NewDatabaseWrapper(clt, cache), nil
 }
 
 // newLocalCacheForProxy returns new instance of access point configured for a local proxy.
