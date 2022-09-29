@@ -66,140 +66,6 @@ var (
 	cacheCollectors = []prometheus.Collector{cacheEventsReceived, cacheStaleEventsReceived}
 )
 
-// ForAuth sets up watch configuration for the auth server
-func ForAuth(cfg Config) Config {
-	cfg.target = "auth"
-	cfg.Watches = []types.WatchKind{
-		{Kind: types.KindCertAuthority, LoadSecrets: true},
-		{Kind: types.KindClusterName},
-		{Kind: types.KindClusterAuditConfig},
-		{Kind: types.KindClusterNetworkingConfig},
-		{Kind: types.KindClusterAuthPreference},
-		{Kind: types.KindSessionRecordingConfig},
-		{Kind: types.KindStaticTokens},
-		{Kind: types.KindToken},
-		{Kind: types.KindUser},
-		{Kind: types.KindRole},
-		{Kind: types.KindNamespace},
-		{Kind: types.KindNode},
-		{Kind: types.KindProxy},
-		{Kind: types.KindAuthServer},
-		{Kind: types.KindReverseTunnel},
-		{Kind: types.KindTunnelConnection},
-		{Kind: types.KindAccessRequest},
-		{Kind: types.KindAppServer},
-		{Kind: types.KindApp},
-		{Kind: types.KindAppServer, Version: types.V2},
-		{Kind: types.KindWebSession, SubKind: types.KindSnowflakeSession},
-		{Kind: types.KindWebSession, SubKind: types.KindAppSession},
-		{Kind: types.KindWebSession, SubKind: types.KindWebSession},
-		{Kind: types.KindWebToken},
-		{Kind: types.KindRemoteCluster},
-		{Kind: types.KindKubeService},
-		{Kind: types.KindDatabaseServer},
-		{Kind: types.KindDatabase},
-		{Kind: types.KindNetworkRestrictions},
-		{Kind: types.KindLock},
-		{Kind: types.KindWindowsDesktopService},
-		{Kind: types.KindWindowsDesktop},
-	}
-	cfg.QueueSize = defaults.AuthQueueSize
-	return cfg
-}
-
-// ForProxy sets up watch configuration for proxy
-func ForProxy(cfg Config) Config {
-	cfg.target = "proxy"
-	cfg.Watches = []types.WatchKind{
-		{Kind: types.KindCertAuthority, LoadSecrets: false},
-		{Kind: types.KindClusterName},
-		{Kind: types.KindClusterAuditConfig},
-		{Kind: types.KindClusterNetworkingConfig},
-		{Kind: types.KindClusterAuthPreference},
-		{Kind: types.KindSessionRecordingConfig},
-		{Kind: types.KindUser},
-		{Kind: types.KindRole},
-		{Kind: types.KindNamespace},
-		{Kind: types.KindNode},
-		{Kind: types.KindProxy},
-		{Kind: types.KindAuthServer},
-		{Kind: types.KindReverseTunnel},
-		{Kind: types.KindTunnelConnection},
-		{Kind: types.KindAppServer},
-		{Kind: types.KindAppServer, Version: types.V2},
-		{Kind: types.KindApp},
-		{Kind: types.KindWebSession, SubKind: types.KindSnowflakeSession},
-		{Kind: types.KindWebSession, SubKind: types.KindAppSession},
-		{Kind: types.KindWebSession, SubKind: types.KindWebSession},
-		{Kind: types.KindWebToken},
-		{Kind: types.KindRemoteCluster},
-		{Kind: types.KindKubeService},
-		{Kind: types.KindDatabaseServer},
-		{Kind: types.KindDatabase},
-		{Kind: types.KindWindowsDesktopService},
-		{Kind: types.KindWindowsDesktop},
-	}
-	cfg.QueueSize = defaults.ProxyQueueSize
-	return cfg
-}
-
-// ForRemoteProxy sets up watch configuration for remote proxies.
-func ForRemoteProxy(cfg Config) Config {
-	cfg.target = "remote-proxy"
-	cfg.Watches = []types.WatchKind{
-		{Kind: types.KindCertAuthority, LoadSecrets: false},
-		{Kind: types.KindClusterName},
-		{Kind: types.KindClusterAuditConfig},
-		{Kind: types.KindClusterNetworkingConfig},
-		{Kind: types.KindClusterAuthPreference},
-		{Kind: types.KindSessionRecordingConfig},
-		{Kind: types.KindUser},
-		{Kind: types.KindRole},
-		{Kind: types.KindNamespace},
-		{Kind: types.KindNode},
-		{Kind: types.KindProxy},
-		{Kind: types.KindAuthServer},
-		{Kind: types.KindReverseTunnel},
-		{Kind: types.KindTunnelConnection},
-		{Kind: types.KindAppServer},
-		{Kind: types.KindAppServer, Version: types.V2},
-		{Kind: types.KindApp},
-		{Kind: types.KindRemoteCluster},
-		{Kind: types.KindKubeService},
-		{Kind: types.KindDatabaseServer},
-		{Kind: types.KindDatabase},
-	}
-	cfg.QueueSize = defaults.ProxyQueueSize
-	return cfg
-}
-
-// ForOldRemoteProxy sets up watch configuration for older remote proxies.
-func ForOldRemoteProxy(cfg Config) Config {
-	cfg.target = "remote-proxy-old"
-	cfg.Watches = []types.WatchKind{
-		{Kind: types.KindCertAuthority, LoadSecrets: false},
-		{Kind: types.KindClusterName},
-		{Kind: types.KindClusterAuditConfig},
-		{Kind: types.KindClusterNetworkingConfig},
-		{Kind: types.KindClusterAuthPreference},
-		{Kind: types.KindSessionRecordingConfig},
-		{Kind: types.KindUser},
-		{Kind: types.KindRole},
-		{Kind: types.KindNamespace},
-		{Kind: types.KindNode},
-		{Kind: types.KindProxy},
-		{Kind: types.KindAuthServer},
-		{Kind: types.KindReverseTunnel},
-		{Kind: types.KindTunnelConnection},
-		{Kind: types.KindAppServer, Version: types.V2},
-		{Kind: types.KindRemoteCluster},
-		{Kind: types.KindKubeService},
-		{Kind: types.KindDatabaseServer},
-	}
-	cfg.QueueSize = defaults.ProxyQueueSize
-	return cfg
-}
-
 // ForNode sets up watch configuration for node
 func ForNode(cfg Config) Config {
 	var caFilter map[string]string
@@ -228,89 +94,6 @@ func ForNode(cfg Config) Config {
 		{Kind: types.KindNetworkRestrictions},
 	}
 	cfg.QueueSize = defaults.NodeQueueSize
-	return cfg
-}
-
-// ForKubernetes sets up watch configuration for a kubernetes service.
-func ForKubernetes(cfg Config) Config {
-	cfg.target = "kube"
-	cfg.Watches = []types.WatchKind{
-		{Kind: types.KindCertAuthority, LoadSecrets: false},
-		{Kind: types.KindClusterName},
-		{Kind: types.KindClusterAuditConfig},
-		{Kind: types.KindClusterNetworkingConfig},
-		{Kind: types.KindClusterAuthPreference},
-		{Kind: types.KindSessionRecordingConfig},
-		{Kind: types.KindUser},
-		{Kind: types.KindRole},
-		{Kind: types.KindNamespace, Name: apidefaults.Namespace},
-		{Kind: types.KindKubeService},
-	}
-	cfg.QueueSize = defaults.KubernetesQueueSize
-	return cfg
-}
-
-// ForApps sets up watch configuration for apps.
-func ForApps(cfg Config) Config {
-	cfg.target = "apps"
-	cfg.Watches = []types.WatchKind{
-		{Kind: types.KindCertAuthority, LoadSecrets: false},
-		{Kind: types.KindClusterName},
-		{Kind: types.KindClusterAuditConfig},
-		{Kind: types.KindClusterNetworkingConfig},
-		{Kind: types.KindClusterAuthPreference},
-		{Kind: types.KindSessionRecordingConfig},
-		{Kind: types.KindUser},
-		{Kind: types.KindRole},
-		{Kind: types.KindProxy},
-		// Applications only need to "know" about default namespace events to avoid
-		// matching too much data about other namespaces or events.
-		{Kind: types.KindNamespace, Name: apidefaults.Namespace},
-		{Kind: types.KindApp},
-	}
-	cfg.QueueSize = defaults.AppsQueueSize
-	return cfg
-}
-
-// ForDatabases sets up watch configuration for database proxy servers.
-func ForDatabases(cfg Config) Config {
-	cfg.target = "db"
-	cfg.Watches = []types.WatchKind{
-		{Kind: types.KindCertAuthority, LoadSecrets: false},
-		{Kind: types.KindClusterName},
-		{Kind: types.KindClusterAuditConfig},
-		{Kind: types.KindClusterNetworkingConfig},
-		{Kind: types.KindClusterAuthPreference},
-		{Kind: types.KindSessionRecordingConfig},
-		{Kind: types.KindUser},
-		{Kind: types.KindRole},
-		{Kind: types.KindProxy},
-		// Databases only need to "know" about default namespace events to
-		// avoid matching too much data about other namespaces or events.
-		{Kind: types.KindNamespace, Name: apidefaults.Namespace},
-		{Kind: types.KindDatabase},
-	}
-	cfg.QueueSize = defaults.DatabasesQueueSize
-	return cfg
-}
-
-// ForWindowsDesktop sets up watch configuration for a Windows desktop service.
-func ForWindowsDesktop(cfg Config) Config {
-	cfg.target = "windows_desktop"
-	cfg.Watches = []types.WatchKind{
-		{Kind: types.KindCertAuthority, LoadSecrets: false},
-		{Kind: types.KindClusterName},
-		{Kind: types.KindClusterAuditConfig},
-		{Kind: types.KindClusterNetworkingConfig},
-		{Kind: types.KindClusterAuthPreference},
-		{Kind: types.KindSessionRecordingConfig},
-		{Kind: types.KindUser},
-		{Kind: types.KindRole},
-		{Kind: types.KindNamespace, Name: apidefaults.Namespace},
-		{Kind: types.KindWindowsDesktopService},
-		{Kind: types.KindWindowsDesktop},
-	}
-	cfg.QueueSize = defaults.WindowsDesktopQueueSize
 	return cfg
 }
 
@@ -544,8 +327,6 @@ type Config struct {
 	Clock clockwork.Clock
 	// Component is a component used in logs
 	Component string
-	// MetricComponent is a component used in metrics
-	MetricComponent string
 	// QueueSize is a desired queue Size
 	QueueSize int
 	// neverOK is used in tests to create a cache that appears to never
@@ -826,10 +607,9 @@ func (c *Cache) notify(ctx context.Context, event Event) {
 //	potentially lagging behind the state of the database.
 func (c *Cache) fetchAndWatch(ctx context.Context, retry utils.Retry, timer *time.Timer) error {
 	watcher, err := c.Events.NewWatcher(c.ctx, types.Watch{
-		QueueSize:       c.QueueSize,
-		Name:            c.Component,
-		Kinds:           c.watchKinds(),
-		MetricComponent: c.MetricComponent,
+		QueueSize: c.QueueSize,
+		Name:      c.Component,
+		Kinds:     c.watchKinds(),
 	})
 	if err != nil {
 		c.notify(c.ctx, Event{Type: WatcherFailed})
