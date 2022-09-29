@@ -360,10 +360,6 @@ type TeleportProcess struct {
 	// authSubjectiveAddr is the peer address of this process as seen by the auth
 	// server during the most recent ping (may be empty).
 	authSubjectiveAddr string
-
-	// TracingProvider is the provider to be used for exporting traces. In the event
-	// that tracing is disabled this will be a no-op provider that drops all spans.
-	TracingProvider *tracing.Provider
 }
 
 type keyPairKey struct {
@@ -890,7 +886,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		id:                  processID,
 		log:                 cfg.Log,
 		keyPairs:            make(map[keyPairKey]KeyPair),
-		TracingProvider:     tracing.NoopProvider(),
 	}
 
 	process.registerExpectedServices(cfg)
@@ -1778,7 +1773,6 @@ func (process *TeleportProcess) newAccessCache(cfg accessCacheConfig) (*cache.Ca
 	reporter, err := backend.NewReporter(backend.ReporterConfig{
 		Component: teleport.ComponentCache,
 		Backend:   mem,
-		Tracer:    process.TracingProvider.Tracer(teleport.ComponentCache),
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -1805,7 +1799,6 @@ func (process *TeleportProcess) newAccessCache(cfg accessCacheConfig) (*cache.Ca
 		WebToken:         cfg.services.WebTokens(),
 		Component:        teleport.Component(append(cfg.cacheName, process.id, teleport.ComponentCache)...),
 		MetricComponent:  teleport.Component(append(cfg.cacheName, teleport.ComponentCache)...),
-		Tracer:           process.TracingProvider.Tracer(teleport.ComponentCache),
 		Unstarted:        cfg.unstarted,
 	}))
 }
@@ -2600,7 +2593,6 @@ func (process *TeleportProcess) initTracingService() error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	process.TracingProvider = provider
 
 	process.OnExit("tracing.shutdown", func(payload interface{}) {
 		if payload == nil {
@@ -4274,7 +4266,6 @@ func (process *TeleportProcess) initAuthStorage() (bk backend.Backend, err error
 	reporter, err := backend.NewReporter(backend.ReporterConfig{
 		Component: teleport.ComponentBackend,
 		Backend:   backend.NewSanitizer(bk),
-		Tracer:    process.TracingProvider.Tracer(teleport.ComponentBackend),
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
