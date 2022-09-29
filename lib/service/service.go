@@ -22,7 +22,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -32,7 +31,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
-	"net/http/pprof"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -43,12 +41,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/gravitational/roundtrip"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc"
 
@@ -79,8 +74,6 @@ import (
 	"github.com/gravitational/teleport/lib/events/s3sessions"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/inventory"
-	"github.com/gravitational/teleport/lib/joinserver"
-	kubeproxy "github.com/gravitational/teleport/lib/kube/proxy"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/multiplexer"
@@ -95,11 +88,7 @@ import (
 	"github.com/gravitational/teleport/lib/session"
 	"github.com/gravitational/teleport/lib/srv"
 	"github.com/gravitational/teleport/lib/srv/alpnproxy"
-	alpnproxyauth "github.com/gravitational/teleport/lib/srv/alpnproxy/auth"
-	alpncommon "github.com/gravitational/teleport/lib/srv/alpnproxy/common"
 	"github.com/gravitational/teleport/lib/srv/app"
-	"github.com/gravitational/teleport/lib/srv/db"
-	"github.com/gravitational/teleport/lib/srv/desktop"
 	"github.com/gravitational/teleport/lib/srv/regular"
 	"github.com/gravitational/teleport/lib/system"
 	"github.com/gravitational/teleport/lib/utils"
@@ -2258,210 +2247,6 @@ func (process *TeleportProcess) initUploaderService(uploaderCfg filesessions.Upl
 	return nil
 }
 
-// initMetricsService starts the metrics service currently serving metrics for
-// prometheus consumption
-func (process *TeleportProcess) initMetricsService() error {
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-
-	log := process.log.WithFields(logrus.Fields{
-		trace.Component: teleport.Component(teleport.ComponentMetrics, process.id),
-	})
-
-	listener, err := process.importOrCreateListener(listenerMetrics, process.Config.Metrics.ListenAddr.Addr)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	warnOnErr(process.closeImportedDescriptors(teleport.ComponentMetrics), log)
-
-	tlsConfig := &tls.Config{}
-	if process.Config.Metrics.MTLS {
-		for _, pair := range process.Config.Metrics.KeyPairs {
-			certificate, err := tls.LoadX509KeyPair(pair.Certificate, pair.PrivateKey)
-			if err != nil {
-				return trace.Wrap(err, "failed to read keypair: %+v", err)
-			}
-			tlsConfig.Certificates = append(tlsConfig.Certificates, certificate)
-		}
-
-		if len(tlsConfig.Certificates) == 0 {
-			return trace.BadParameter("no keypairs were provided for the metrics service with mtls enabled")
-		}
-
-		addedCerts := false
-		pool := x509.NewCertPool()
-		for _, caCertPath := range process.Config.Metrics.CACerts {
-			caCert, err := os.ReadFile(caCertPath)
-			if err != nil {
-				return trace.Wrap(err, "failed to read prometheus CA certificate %+v", caCertPath)
-			}
-
-			if !pool.AppendCertsFromPEM(caCert) {
-				return trace.BadParameter("failed to parse prometheus CA certificate: %+v", caCertPath)
-			}
-			addedCerts = true
-		}
-
-		if !addedCerts {
-			return trace.BadParameter("no prometheus ca certs were provided for the metrics service with mtls enabled")
-		}
-
-		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		tlsConfig.ClientCAs = pool
-		tlsConfig.BuildNameToCertificate()
-
-		listener = tls.NewListener(listener, tlsConfig)
-	}
-
-	server := &http.Server{
-		Handler:           mux,
-		ReadHeaderTimeout: defaults.ReadHeadersTimeout,
-		ErrorLog:          utils.NewStdlogger(log.Error, teleport.ComponentMetrics),
-		TLSConfig:         tlsConfig,
-	}
-
-	log.Infof("Starting metrics service on %v.", process.Config.Metrics.ListenAddr.Addr)
-
-	process.RegisterFunc("metrics.service", func() error {
-		err := server.Serve(listener)
-		if err != nil && err != http.ErrServerClosed {
-			log.Warningf("Metrics server exited with error: %v.", err)
-		}
-		return nil
-	})
-
-	process.OnExit("metrics.shutdown", func(payload interface{}) {
-		if payload == nil {
-			log.Infof("Shutting down immediately.")
-			warnOnErr(server.Close(), log)
-		} else {
-			log.Infof("Shutting down gracefully.")
-			ctx := payloadContext(payload, log)
-			warnOnErr(server.Shutdown(ctx), log)
-		}
-		log.Infof("Exited.")
-	})
-	return nil
-}
-
-// initDiagnosticService starts diagnostic service currently serving healthz
-// and prometheus endpoints
-func (process *TeleportProcess) initDiagnosticService() error {
-	mux := http.NewServeMux()
-
-	// support legacy metrics collection in the diagnostic service.
-	// metrics will otherwise be served by the metrics service if it's enabled
-	// in the config.
-	if !process.Config.Metrics.Enabled {
-		mux.Handle("/metrics", promhttp.Handler())
-	}
-
-	if process.Config.Debug {
-		process.log.Infof("Adding diagnostic debugging handlers. To connect with profiler, use `go tool pprof %v`.", process.Config.DiagnosticAddr.Addr)
-
-		mux.HandleFunc("/debug/pprof/", pprof.Index)
-		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	}
-
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		roundtrip.ReplyJSON(w, http.StatusOK, map[string]interface{}{"status": "ok"})
-	})
-
-	log := process.log.WithFields(logrus.Fields{
-		trace.Component: teleport.Component(teleport.ComponentDiagnostic, process.id),
-	})
-
-	// Create a state machine that will process and update the internal state of
-	// Teleport based off Events. Use this state machine to return return the
-	// status from the /readyz endpoint.
-	ps, err := newProcessState(process)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	process.RegisterFunc("readyz.monitor", func() error {
-		// Start loop to monitor for events that are used to update Teleport state.
-		ctx, cancel := context.WithCancel(process.GracefulExitContext())
-		defer cancel()
-
-		eventCh := make(chan Event, 1024)
-		process.ListenForEvents(ctx, TeleportDegradedEvent, eventCh)
-		process.ListenForEvents(ctx, TeleportOKEvent, eventCh)
-
-		for {
-			select {
-			case e := <-eventCh:
-				ps.update(e)
-			case <-ctx.Done():
-				log.Debugf("Teleport is exiting, returning.")
-				return nil
-			}
-		}
-	})
-	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
-		switch ps.getState() {
-		// 503
-		case stateDegraded:
-			roundtrip.ReplyJSON(w, http.StatusServiceUnavailable, map[string]interface{}{
-				"status": "teleport is in a degraded state, check logs for details",
-			})
-		// 400
-		case stateRecovering:
-			roundtrip.ReplyJSON(w, http.StatusBadRequest, map[string]interface{}{
-				"status": "teleport is recovering from a degraded state, check logs for details",
-			})
-		case stateStarting:
-			roundtrip.ReplyJSON(w, http.StatusBadRequest, map[string]interface{}{
-				"status": "teleport is starting and hasn't joined the cluster yet",
-			})
-		// 200
-		case stateOK:
-			roundtrip.ReplyJSON(w, http.StatusOK, map[string]interface{}{
-				"status": "ok",
-			})
-		}
-	})
-
-	listener, err := process.importOrCreateListener(listenerDiagnostic, process.Config.DiagnosticAddr.Addr)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	warnOnErr(process.closeImportedDescriptors(teleport.ComponentDiagnostic), log)
-
-	server := &http.Server{
-		Handler:           mux,
-		ReadHeaderTimeout: apidefaults.DefaultDialTimeout,
-		ErrorLog:          utils.NewStdlogger(log.Error, teleport.ComponentDiagnostic),
-	}
-
-	log.Infof("Starting diagnostic service on %v.", process.Config.DiagnosticAddr.Addr)
-
-	process.RegisterFunc("diagnostic.service", func() error {
-		err := server.Serve(listener)
-		if err != nil && err != http.ErrServerClosed {
-			log.Warningf("Diagnostic server exited with error: %v.", err)
-		}
-		return nil
-	})
-
-	process.OnExit("diagnostic.shutdown", func(payload interface{}) {
-		if payload == nil {
-			log.Infof("Shutting down immediately.")
-			warnOnErr(server.Close(), log)
-		} else {
-			log.Infof("Shutting down gracefully.")
-			ctx := payloadContext(payload, log)
-			warnOnErr(server.Shutdown(ctx), log)
-		}
-		log.Infof("Exited.")
-	})
-
-	return nil
-}
-
 // getAdditionalPrincipals returns a list of additional principals to add
 // to role's service certificates.
 func (process *TeleportProcess) getAdditionalPrincipals(role types.SystemRole) ([]string, []string, error) {
@@ -2477,36 +2262,6 @@ func (process *TeleportProcess) getAdditionalPrincipals(role types.SystemRole) (
 	dnsNames = append(dnsNames, auth.DefaultDNSNamesForRole(role)...)
 
 	switch role {
-	case types.RoleProxy:
-		addrs = append(process.Config.Proxy.PublicAddrs,
-			process.Config.Proxy.WebAddr,
-			process.Config.Proxy.SSHAddr,
-			process.Config.Proxy.ReverseTunnelListenAddr,
-			process.Config.Proxy.MySQLAddr,
-			utils.NetAddr{Addr: string(teleport.PrincipalLocalhost)},
-			utils.NetAddr{Addr: string(teleport.PrincipalLoopbackV4)},
-			utils.NetAddr{Addr: string(teleport.PrincipalLoopbackV6)},
-			utils.NetAddr{Addr: reversetunnel.LocalKubernetes},
-		)
-		addrs = append(addrs, process.Config.Proxy.SSHPublicAddrs...)
-		addrs = append(addrs, process.Config.Proxy.TunnelPublicAddrs...)
-		addrs = append(addrs, process.Config.Proxy.PostgresPublicAddrs...)
-		addrs = append(addrs, process.Config.Proxy.MySQLPublicAddrs...)
-		addrs = append(addrs, process.Config.Proxy.Kube.PublicAddrs...)
-		// Automatically add wildcards for every proxy public address for k8s SNI routing
-		if process.Config.Proxy.Kube.Enabled {
-			for _, publicAddr := range utils.JoinAddrSlices(process.Config.Proxy.PublicAddrs, process.Config.Proxy.Kube.PublicAddrs) {
-				host, err := utils.Host(publicAddr.Addr)
-				if err != nil {
-					return nil, nil, trace.Wrap(err)
-				}
-				if ip := net.ParseIP(host); ip == nil {
-					dnsNames = append(dnsNames, "*."+host)
-				}
-			}
-		}
-	case types.RoleAuth, types.RoleAdmin:
-		addrs = process.Config.Auth.PublicAddrs
 	case types.RoleNode:
 		// DELETE IN 5.0: We are manually adding HostUUID here in order
 		// to allow UUID based routing to function with older Auth Servers
@@ -2525,25 +2280,6 @@ func (process *TeleportProcess) getAdditionalPrincipals(role types.SystemRole) (
 		} else {
 			addrs = append(addrs, process.Config.SSH.Addr)
 		}
-	case types.RoleKube:
-		addrs = append(addrs,
-			utils.NetAddr{Addr: string(teleport.PrincipalLocalhost)},
-			utils.NetAddr{Addr: string(teleport.PrincipalLoopbackV4)},
-			utils.NetAddr{Addr: string(teleport.PrincipalLoopbackV6)},
-			utils.NetAddr{Addr: reversetunnel.LocalKubernetes},
-		)
-		addrs = append(addrs, process.Config.Kube.PublicAddrs...)
-	case types.RoleApp:
-		principals = append(principals, process.Config.HostUUID)
-	case types.RoleWindowsDesktop:
-		addrs = append(addrs,
-			utils.NetAddr{Addr: string(teleport.PrincipalLocalhost)},
-			utils.NetAddr{Addr: string(teleport.PrincipalLoopbackV4)},
-			utils.NetAddr{Addr: string(teleport.PrincipalLoopbackV6)},
-			utils.NetAddr{Addr: reversetunnel.LocalWindowsDesktop},
-			utils.NetAddr{Addr: desktop.WildcardServiceDNS},
-		)
-		addrs = append(addrs, process.Config.WindowsDesktop.PublicAddrs...)
 	}
 	for _, addr := range addrs {
 		if addr.IsEmpty() {
@@ -2595,48 +2331,12 @@ type proxyListeners struct {
 	mux              *multiplexer.Mux
 	tls              *multiplexer.WebListener
 	ssh              net.Listener
-	web              net.Listener
 	reverseTunnel    net.Listener
-	kube             net.Listener
-	db               dbListeners
 	alpn             net.Listener
 	proxy            net.Listener
 	grpc             net.Listener
 	reverseTunnelMux *multiplexer.Mux
 	minimalTLS       *multiplexer.WebListener
-}
-
-// dbListeners groups database access listeners.
-type dbListeners struct {
-	// postgres serves Postgres clients.
-	postgres net.Listener
-	// mysql serves MySQL clients.
-	mysql net.Listener
-	// mongo serves Mongo clients.
-	mongo net.Listener
-	// tls serves database clients that use plain TLS handshake.
-	tls net.Listener
-}
-
-// Empty returns true if no database access listeners are initialized.
-func (l *dbListeners) Empty() bool {
-	return l.postgres == nil && l.mysql == nil && l.tls == nil && l.mongo == nil
-}
-
-// Close closes all database access listeners.
-func (l *dbListeners) Close() {
-	if l.postgres != nil {
-		l.postgres.Close()
-	}
-	if l.mysql != nil {
-		l.mysql.Close()
-	}
-	if l.tls != nil {
-		l.tls.Close()
-	}
-	if l.mongo != nil {
-		l.mongo.Close()
-	}
 }
 
 // Close closes all proxy listeners.
@@ -2647,17 +2347,8 @@ func (l *proxyListeners) Close() {
 	if l.tls != nil {
 		l.tls.Close()
 	}
-	if l.web != nil {
-		l.web.Close()
-	}
 	if l.reverseTunnel != nil {
 		l.reverseTunnel.Close()
-	}
-	if l.kube != nil {
-		l.kube.Close()
-	}
-	if !l.db.Empty() {
-		l.db.Close()
 	}
 	if l.grpc != nil {
 		l.grpc.Close()
@@ -2707,44 +2398,6 @@ func (process *TeleportProcess) setupProxyListeners(networkingConfig types.Clust
 		}
 	}
 
-	if cfg.Proxy.Kube.Enabled && !cfg.Proxy.Kube.ListenAddr.IsEmpty() {
-		process.log.Debugf("Setup Proxy: turning on Kubernetes proxy.")
-		listener, err := process.importOrCreateListener(listenerProxyKube, cfg.Proxy.Kube.ListenAddr.Addr)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		listeners.kube = listener
-	}
-
-	if !cfg.Proxy.DisableDatabaseProxy {
-		if !cfg.Proxy.MySQLAddr.IsEmpty() {
-			process.log.Debugf("Setup Proxy: MySQL proxy address: %v.", cfg.Proxy.MySQLAddr.Addr)
-			listener, err := process.importOrCreateListener(listenerProxyMySQL, cfg.Proxy.MySQLAddr.Addr)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			listeners.db.mysql = listener
-		}
-
-		if !cfg.Proxy.MongoAddr.IsEmpty() {
-			process.log.Debugf("Setup Proxy: Mongo proxy address: %v.", cfg.Proxy.MongoAddr.Addr)
-			listener, err := process.importOrCreateListener(listenerProxyMongo, cfg.Proxy.MongoAddr.Addr)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			listeners.db.mongo = listener
-		}
-
-		if !cfg.Proxy.PostgresAddr.IsEmpty() {
-			process.log.Debugf("Setup Proxy: Postgres proxy address: %v.", cfg.Proxy.PostgresAddr.Addr)
-			listener, err := process.importOrCreateListener(listenerProxyPostgres, cfg.Proxy.PostgresAddr.Addr)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			listeners.db.postgres = listener
-		}
-	}
-
 	tunnelStrategy, err := networkingConfig.GetTunnelStrategyType()
 	if err != nil {
 		process.log.WithError(err).Warn("Failed to get tunnel strategy. Falling back to agent mesh strategy.")
@@ -2771,68 +2424,6 @@ func (process *TeleportProcess) setupProxyListeners(networkingConfig types.Clust
 	}
 
 	switch {
-	case cfg.Proxy.DisableWebService && cfg.Proxy.DisableReverseTunnel:
-		process.log.Debugf("Setup Proxy: Reverse tunnel proxy and web proxy are disabled.")
-		return &listeners, nil
-	case cfg.Proxy.ReverseTunnelListenAddr == cfg.Proxy.WebAddr && !cfg.Proxy.DisableTLS:
-		process.log.Debugf("Setup Proxy: Reverse tunnel proxy and web proxy listen on the same port, multiplexing is on.")
-		listener, err := process.importOrCreateListener(listenerProxyTunnelAndWeb, cfg.Proxy.WebAddr.Addr)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		listeners.mux, err = multiplexer.New(multiplexer.Config{
-			EnableProxyProtocol: cfg.Proxy.EnableProxyProtocol,
-			Listener:            listener,
-			ID:                  teleport.Component(teleport.ComponentProxy, "tunnel", "web", process.id),
-		})
-		if err != nil {
-			listener.Close()
-			return nil, trace.Wrap(err)
-		}
-		if !cfg.Proxy.DisableWebService {
-			listeners.web = listeners.mux.TLS()
-		}
-		process.muxPostgresOnWebPort(cfg, &listeners)
-		if !cfg.Proxy.DisableReverseTunnel {
-			listeners.reverseTunnel = listeners.mux.SSH()
-		}
-		go func() {
-			if err := listeners.mux.Serve(); err != nil && !utils.IsOKNetworkError(err) {
-				listeners.mux.Entry.WithError(err).Error("Mux encountered err serving")
-			}
-		}()
-		return &listeners, nil
-	case cfg.Proxy.EnableProxyProtocol && !cfg.Proxy.DisableWebService && !cfg.Proxy.DisableTLS:
-		process.log.Debugf("Setup Proxy: Proxy protocol is enabled for web service, multiplexing is on.")
-		listener, err := process.importOrCreateListener(listenerProxyWeb, cfg.Proxy.WebAddr.Addr)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		listeners.mux, err = multiplexer.New(multiplexer.Config{
-			EnableProxyProtocol: cfg.Proxy.EnableProxyProtocol,
-			Listener:            listener,
-			ID:                  teleport.Component(teleport.ComponentProxy, "web", process.id),
-		})
-		if err != nil {
-			listener.Close()
-			return nil, trace.Wrap(err)
-		}
-		listeners.web = listeners.mux.TLS()
-		process.muxPostgresOnWebPort(cfg, &listeners)
-		if !cfg.Proxy.ReverseTunnelListenAddr.IsEmpty() {
-			listeners.reverseTunnel, err = process.importOrCreateListener(listenerProxyTunnel, cfg.Proxy.ReverseTunnelListenAddr.Addr)
-			if err != nil {
-				listener.Close()
-				listeners.Close()
-				return nil, trace.Wrap(err)
-			}
-		}
-		go func() {
-			if err := listeners.mux.Serve(); err != nil && !utils.IsOKNetworkError(err) {
-				listeners.mux.Entry.WithError(err).Error("Mux encountered err serving")
-			}
-		}()
-		return &listeners, nil
 	default:
 		process.log.Debug("Setup Proxy: Proxy and reverse tunnel are listening on separate ports.")
 		if !cfg.Proxy.DisableReverseTunnel && !cfg.Proxy.ReverseTunnelListenAddr.IsEmpty() {
@@ -2849,47 +2440,7 @@ func (process *TeleportProcess) setupProxyListeners(networkingConfig types.Clust
 				}
 			}
 		}
-		if !cfg.Proxy.DisableWebService && !cfg.Proxy.WebAddr.IsEmpty() {
-			listener, err := process.importOrCreateListener(listenerProxyWeb, cfg.Proxy.WebAddr.Addr)
-			if err != nil {
-				listeners.Close()
-				return nil, trace.Wrap(err)
-			}
-			// Unless database proxy is explicitly disabled (which is currently
-			// only done by tests and not exposed via file config), the web
-			// listener is multiplexing both web and db client connections.
-			if !cfg.Proxy.DisableDatabaseProxy && !cfg.Proxy.DisableTLS {
-				process.log.Debug("Setup Proxy: Multiplexing web and database proxy on the same port.")
-				listeners.mux, err = multiplexer.New(multiplexer.Config{
-					EnableProxyProtocol: cfg.Proxy.EnableProxyProtocol,
-					Listener:            listener,
-					ID:                  teleport.Component(teleport.ComponentProxy, "web", process.id),
-				})
-				if err != nil {
-					listener.Close()
-					listeners.Close()
-					return nil, trace.Wrap(err)
-				}
-				listeners.web = listeners.mux.TLS()
-				process.muxPostgresOnWebPort(cfg, &listeners)
-				go func() {
-					if err := listeners.mux.Serve(); err != nil && !utils.IsOKNetworkError(err) {
-						listeners.mux.Entry.WithError(err).Error("Mux encountered err serving")
-					}
-				}()
-			} else {
-				process.log.Debug("Setup Proxy: TLS is disabled, multiplexing is off.")
-				listeners.web = listener
-			}
-		}
 
-		// Even if web service API was disabled create a web listener used for ALPN/SNI service as the master port
-		if cfg.Proxy.DisableWebService && !cfg.Proxy.DisableTLS && listeners.web == nil {
-			listeners.web, err = process.importOrCreateListener(listenerProxyWeb, cfg.Proxy.WebAddr.Addr)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-		}
 		return &listeners, nil
 	}
 }
@@ -2919,14 +2470,6 @@ func (process *TeleportProcess) initMinimalReverseTunnelListener(cfg *Config, li
 	return nil
 }
 
-// muxPostgresOnWebPort starts Postgres proxy listener multiplexed on Teleport Proxy web port,
-// unless postgres_listen_addr was specified.
-func (process *TeleportProcess) muxPostgresOnWebPort(cfg *Config, listeners *proxyListeners) {
-	if !cfg.Proxy.DisableDatabaseProxy && cfg.Proxy.PostgresAddr.IsEmpty() {
-		listeners.db.postgres = listeners.mux.DB()
-	}
-}
-
 func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	// clean up unused descriptors passed for proxy, but not used by it
 	defer func() {
@@ -2936,7 +2479,6 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	}()
 	var err error
 	cfg := process.Config
-	var tlsConfigWeb *tls.Config
 
 	proxyLimiter, err := limiter.NewLimiter(cfg.Proxy.Limiter)
 	if err != nil {
@@ -3041,7 +2583,6 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	alpnRouter := setupALPNRouter(listeners, serverTLSConfig, cfg)
 
 	// register SSH reverse tunnel server that accepts connections
 	// from remote teleport nodes
@@ -3123,15 +2664,6 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	var webHandler *web.APIHandler
 	var minimalWebServer *http.Server
 	var minimalWebHandler *web.APIHandler
-
-	// Register ALPN handler that will be accepting connections for plain
-	// TCP applications.
-	if alpnRouter != nil {
-		alpnRouter.Add(alpnproxy.HandlerDecs{
-			MatchFunc: alpnproxy.MatchByProtocol(alpncommon.ProtocolTCP),
-			Handler:   webHandler.HandleConnection,
-		})
-	}
 
 	var peerAddr string
 	var proxyServer *proxy.Server
@@ -3237,213 +2769,8 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 		return nil
 	})
 
-	var kubeServer *kubeproxy.TLSServer
-	if listeners.kube != nil && !process.Config.Proxy.DisableReverseTunnel {
-		authorizer, err := auth.NewAuthorizer(clusterName, accessPoint, lockWatcher)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		// Register TLS endpoint of the Kube proxy service
-		tlsConfig, err := conn.ServerIdentity.TLSConfig(cfg.CipherSuites)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		component := teleport.Component(teleport.ComponentProxy, teleport.ComponentProxyKube)
-		kubeServiceType := kubeproxy.ProxyService
-		if cfg.Proxy.Kube.LegacyKubeProxy {
-			kubeServiceType = kubeproxy.LegacyProxyService
-		}
-		kubeServer, err = kubeproxy.NewTLSServer(kubeproxy.TLSServerConfig{
-			ForwarderConfig: kubeproxy.ForwarderConfig{
-				Namespace:                     apidefaults.Namespace,
-				Keygen:                        cfg.Keygen,
-				ClusterName:                   clusterName,
-				ReverseTunnelSrv:              tsrv,
-				Authz:                         authorizer,
-				AuthClient:                    conn.Client,
-				StreamEmitter:                 streamEmitter,
-				DataDir:                       cfg.DataDir,
-				CachingAuthClient:             accessPoint,
-				ServerID:                      cfg.HostUUID,
-				ClusterOverride:               cfg.Proxy.Kube.ClusterOverride,
-				KubeconfigPath:                cfg.Proxy.Kube.KubeconfigPath,
-				Component:                     component,
-				KubeServiceType:               kubeServiceType,
-				LockWatcher:                   lockWatcher,
-				CheckImpersonationPermissions: cfg.Kube.CheckImpersonationPermissions,
-			},
-			TLS:           tlsConfig,
-			LimiterConfig: cfg.Proxy.Limiter,
-			AccessPoint:   accessPoint,
-			OnHeartbeat:   process.onHeartbeat(component),
-		})
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		process.RegisterCriticalFunc("proxy.kube", func() error {
-			log := logrus.WithFields(logrus.Fields{
-				trace.Component: component,
-			})
-
-			log.Infof("Starting Kube proxy on %v.", listeners.kube.Addr())
-			err := kubeServer.Serve(listeners.kube)
-			if err != nil && err != http.ErrServerClosed {
-				log.Warningf("Kube TLS server exited with error: %v.", err)
-			}
-			return nil
-		})
-	}
-
-	// Start the database proxy server that will be accepting connections from
-	// the database clients (such as psql or mysql), authenticating them, and
-	// then routing them to a respective database server over the reverse tunnel
-	// framework.
-	if (!listeners.db.Empty() || alpnRouter != nil) && !process.Config.Proxy.DisableReverseTunnel {
-		authorizer, err := auth.NewAuthorizer(clusterName, accessPoint, lockWatcher)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		tlsConfig, err := conn.ServerIdentity.TLSConfig(cfg.CipherSuites)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		connLimiter, err := limiter.NewLimiter(process.Config.Databases.Limiter)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		dbProxyServer, err := db.NewProxyServer(process.ExitContext(),
-			db.ProxyServerConfig{
-				AuthClient:  conn.Client,
-				AccessPoint: accessPoint,
-				Authorizer:  authorizer,
-				Tunnel:      tsrv,
-				TLSConfig:   tlsConfig,
-				Limiter:     connLimiter,
-				Emitter:     asyncEmitter,
-				Clock:       process.Clock,
-				ServerID:    cfg.HostUUID,
-				LockWatcher: lockWatcher,
-			})
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		if alpnRouter != nil && !cfg.Proxy.DisableDatabaseProxy {
-			alpnRouter.Add(alpnproxy.HandlerDecs{
-				MatchFunc:           alpnproxy.MatchByALPNPrefix(string(alpncommon.ProtocolMySQL)),
-				HandlerWithConnInfo: alpnproxy.ExtractMySQLEngineVersion(dbProxyServer.MySQLProxy().HandleConnection),
-			})
-			alpnRouter.Add(alpnproxy.HandlerDecs{
-				MatchFunc: alpnproxy.MatchByProtocolWithPing(alpncommon.ProtocolMySQL),
-				Handler:   dbProxyServer.MySQLProxy().HandleConnection,
-			})
-			alpnRouter.Add(alpnproxy.HandlerDecs{
-				MatchFunc: alpnproxy.MatchByProtocolWithPing(alpncommon.ProtocolPostgres),
-				Handler:   dbProxyServer.PostgresProxy().HandleConnection,
-			})
-			alpnRouter.Add(alpnproxy.HandlerDecs{
-				// For the following protocols ALPN Proxy will handle the
-				// connection internally (terminate wrapped TLS traffic) and
-				// route extracted connection to ALPN Proxy DB TLS Handler.
-				MatchFunc: alpnproxy.MatchByProtocolWithPing(
-					alpncommon.ProtocolMongoDB,
-					alpncommon.ProtocolRedisDB,
-					alpncommon.ProtocolSnowflake,
-					alpncommon.ProtocolSQLServer),
-			})
-		}
-
-		log := process.log.WithField(trace.Component, teleport.Component(teleport.ComponentDatabase))
-		if listeners.db.postgres != nil {
-			process.RegisterCriticalFunc("proxy.db.postgres", func() error {
-				log.Infof("Starting Database Postgres proxy server on %v.", listeners.db.postgres.Addr())
-				if err := dbProxyServer.ServePostgres(listeners.db.postgres); err != nil {
-					log.WithError(err).Warn("Postgres proxy server exited with error.")
-				}
-				return nil
-			})
-		}
-		if listeners.db.mysql != nil {
-			process.RegisterCriticalFunc("proxy.db.mysql", func() error {
-				log.Infof("Starting Database MySQL proxy server on %v.", listeners.db.mysql.Addr())
-				if err := dbProxyServer.ServeMySQL(listeners.db.mysql); err != nil {
-					log.WithError(err).Warn("MySQL proxy server exited with error.")
-				}
-				return nil
-			})
-		}
-		if listeners.db.tls != nil {
-			process.RegisterCriticalFunc("proxy.db.tls", func() error {
-				log.Infof("Starting Database TLS proxy server on %v.", listeners.db.tls.Addr())
-				if err := dbProxyServer.ServeTLS(listeners.db.tls); err != nil {
-					log.WithError(err).Warn("Database TLS proxy server exited with error.")
-				}
-				return nil
-			})
-		}
-
-		if listeners.db.mongo != nil {
-			process.RegisterCriticalFunc("proxy.db.mongo", func() error {
-				log.Infof("Starting Database Mongo proxy server on %v.", listeners.db.mongo.Addr())
-				if err := dbProxyServer.ServeMongo(listeners.db.mongo, tlsConfigWeb.Clone()); err != nil {
-					log.WithError(err).Warn("Database Mongo proxy server exited with error.")
-				}
-				return nil
-			})
-		}
-	}
-
 	var grpcServer *grpc.Server
-	if alpnRouter != nil {
-		grpcServer = grpc.NewServer(
-			grpc.ChainUnaryInterceptor(
-				utils.GRPCServerUnaryErrorInterceptor,
-				proxyLimiter.UnaryServerInterceptor(),
-			),
-			grpc.ChainStreamInterceptor(
-				utils.GRPCServerStreamErrorInterceptor,
-				proxyLimiter.StreamServerInterceptor,
-			),
-		)
-		joinServiceServer := joinserver.NewJoinServiceGRPCServer(conn.Client)
-		proto.RegisterJoinServiceServer(grpcServer, joinServiceServer)
-		process.RegisterCriticalFunc("proxy.grpc", func() error {
-			log.Infof("Starting proxy gRPC server on %v.", listeners.grpc.Addr())
-			return trace.Wrap(grpcServer.Serve(listeners.grpc))
-		})
-	}
-
 	var alpnServer *alpnproxy.Proxy
-	if !cfg.Proxy.DisableTLS && !cfg.Proxy.DisableALPNSNIListener && listeners.web != nil {
-		authDialerService := alpnproxyauth.NewAuthProxyDialerService(tsrv, clusterName, utils.NetAddrsToStrings(process.Config.AuthServers))
-		alpnRouter.Add(alpnproxy.HandlerDecs{
-			MatchFunc:           alpnproxy.MatchByALPNPrefix(string(alpncommon.ProtocolAuth)),
-			HandlerWithConnInfo: authDialerService.HandleConnection,
-			ForwardTLS:          true,
-		})
-		identityTLSConf, err := conn.ServerIdentity.TLSConfig(cfg.CipherSuites)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		alpnServer, err = alpnproxy.New(alpnproxy.ProxyConfig{
-			WebTLSConfig:      tlsConfigWeb.Clone(),
-			IdentityTLSConfig: identityTLSConf,
-			Router:            alpnRouter,
-			Listener:          listeners.alpn,
-			ClusterName:       clusterName,
-			AccessPoint:       accessPoint,
-		})
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		process.RegisterCriticalFunc("proxy.tls.alpn.sni.proxy", func() error {
-			log.Infof("Starting TLS ALPN SNI proxy server on %v.", listeners.alpn.Addr())
-			if err := alpnServer.Serve(process.ExitContext()); err != nil {
-				log.WithError(err).Warn("TLS ALPN SNI proxy proxy server exited with error.")
-			}
-			return nil
-		})
-	}
 
 	// execute this when process is asked to exit:
 	process.OnExit("proxy.shutdown", func(payload interface{}) {
@@ -3476,9 +2803,6 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 				warnOnErr(minimalWebHandler.Close(), log)
 			}
 			warnOnErr(sshProxy.Close(), log)
-			if kubeServer != nil {
-				warnOnErr(kubeServer.Close(), log)
-			}
 			if grpcServer != nil {
 				grpcServer.Stop()
 			}
@@ -3506,9 +2830,6 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 			}
 			if minimalWebServer != nil {
 				warnOnErr(minimalWebServer.Shutdown(ctx), log)
-			}
-			if kubeServer != nil {
-				warnOnErr(kubeServer.Shutdown(ctx), log)
 			}
 			if webHandler != nil {
 				warnOnErr(webHandler.Close(), log)
@@ -3632,65 +2953,6 @@ func peerAddr(addr *utils.NetAddr) (*utils.NetAddr, error) {
 	}
 
 	return addr, nil
-}
-
-func setupALPNRouter(listeners *proxyListeners, serverTLSConf *tls.Config, cfg *Config) *alpnproxy.Router {
-	if listeners.web == nil || cfg.Proxy.DisableTLS || cfg.Proxy.DisableALPNSNIListener {
-		return nil
-	}
-	// ALPN proxy service will use web listener where listener.web will be overwritten by alpn wrapper
-	// that allows to dispatch the http/1.1 and h2 traffic to webService.
-	listeners.alpn = listeners.web
-
-	router := alpnproxy.NewRouter()
-	if cfg.Proxy.Kube.Enabled {
-		kubeListener := alpnproxy.NewMuxListenerWrapper(listeners.kube, listeners.web)
-		router.AddKubeHandler(kubeListener.HandleConnection)
-		listeners.kube = kubeListener
-	}
-	if !cfg.Proxy.DisableReverseTunnel {
-		reverseTunnel := alpnproxy.NewMuxListenerWrapper(listeners.reverseTunnel, listeners.web)
-		router.Add(alpnproxy.HandlerDecs{
-			MatchFunc: alpnproxy.MatchByProtocol(alpncommon.ProtocolReverseTunnel),
-			Handler:   reverseTunnel.HandleConnection,
-		})
-		listeners.reverseTunnel = reverseTunnel
-	}
-
-	if !cfg.Proxy.DisableWebService {
-		webWrapper := alpnproxy.NewMuxListenerWrapper(nil, listeners.web)
-		router.Add(alpnproxy.HandlerDecs{
-			MatchFunc: alpnproxy.MatchByProtocol(
-				alpncommon.ProtocolHTTP,
-				alpncommon.ProtocolHTTP2,
-				acme.ALPNProto,
-			),
-			Handler:    webWrapper.HandleConnection,
-			ForwardTLS: false,
-		})
-		listeners.web = webWrapper
-	}
-
-	grpcListener := alpnproxy.NewMuxListenerWrapper(nil /* serviceListener */, listeners.web)
-	router.Add(alpnproxy.HandlerDecs{
-		MatchFunc: alpnproxy.MatchByALPNPrefix(string(alpncommon.ProtocolProxyGRPC)),
-		Handler:   grpcListener.HandleConnection,
-	})
-	listeners.grpc = grpcListener
-
-	sshProxyListener := alpnproxy.NewMuxListenerWrapper(listeners.ssh, listeners.web)
-	router.Add(alpnproxy.HandlerDecs{
-		MatchFunc: alpnproxy.MatchByProtocol(alpncommon.ProtocolProxySSH),
-		Handler:   sshProxyListener.HandleConnection,
-		TLSConfig: serverTLSConf,
-	})
-	listeners.ssh = sshProxyListener
-
-	webTLSDB := alpnproxy.NewMuxListenerWrapper(nil, listeners.web)
-	router.AddDBTLSHandler(webTLSDB.HandleConnection)
-	listeners.db.tls = webTLSDB
-
-	return router
 }
 
 // waitForAppDepend waits until all dependencies for an application service
