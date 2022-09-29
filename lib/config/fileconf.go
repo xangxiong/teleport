@@ -65,14 +65,6 @@ type FileConfig struct {
 	SSH     SSH   `yaml:"ssh_service,omitempty"`
 	Proxy   Proxy `yaml:"proxy_service,omitempty"`
 
-	// Metrics is the "metrics_service" section in Teleport configuration file
-	// that defines the metrics service configuration
-	Metrics Metrics `yaml:"metrics_service,omitempty"`
-
-	// WindowsDesktop is the "windows_desktop_service" that defines the
-	// configuration for Windows Desktop Access.
-	WindowsDesktop WindowsDesktopService `yaml:"windows_desktop_service,omitempty"`
-
 	// Tracing is the "tracing_service" section in Teleport configuration file
 	Tracing TracingService `yaml:"tracing_service,omitempty"`
 }
@@ -234,11 +226,10 @@ func MakeSampleFileConfig(flags SampleFlags) (fc *FileConfig, err error) {
 	}
 
 	fc = &FileConfig{
-		Version:        flags.Version,
-		Global:         g,
-		Proxy:          p,
-		SSH:            s,
-		WindowsDesktop: d,
+		Version: flags.Version,
+		Global:  g,
+		Proxy:   p,
+		SSH:     s,
 	}
 	return fc, nil
 }
