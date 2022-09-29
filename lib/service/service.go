@@ -65,11 +65,9 @@ import (
 	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/backend/dynamo"
-	"github.com/gravitational/teleport/lib/backend/etcdbk"
 	"github.com/gravitational/teleport/lib/backend/firestore"
 	"github.com/gravitational/teleport/lib/backend/lite"
 	"github.com/gravitational/teleport/lib/backend/memory"
-	"github.com/gravitational/teleport/lib/backend/postgres"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/cache"
 	"github.com/gravitational/teleport/lib/defaults"
@@ -313,9 +311,6 @@ type TeleportProcess struct {
 	keyPairs map[keyPairKey]KeyPair
 	// keyMutex is a mutex to serialize key generation
 	keyMutex sync.Mutex
-
-	// reporter is used to report some in memory stats
-	reporter *backend.Reporter
 
 	// clusterFeatures contain flags for supported and unsupported features.
 	clusterFeatures proto.Features
@@ -3879,18 +3874,6 @@ func (process *TeleportProcess) initAuthStorage() (bk backend.Backend, err error
 	// SQLite backend (or alt name dir).
 	case lite.GetName():
 		bk, err = lite.New(ctx, bc.Params)
-	// Firestore backend:
-	case firestore.GetName():
-		bk, err = firestore.New(ctx, bc.Params, firestore.Options{})
-	// DynamoDB backend.
-	case dynamo.GetName():
-		bk, err = dynamo.New(ctx, bc.Params)
-	// etcd backend.
-	case etcdbk.GetName():
-		bk, err = etcdbk.New(ctx, bc.Params)
-	// PostgreSQL backend
-	case postgres.GetName():
-		bk, err = postgres.New(ctx, bc.Params)
 	default:
 		err = trace.BadParameter("unsupported secrets storage type: %q", bc.Type)
 	}
@@ -3904,14 +3887,8 @@ func (process *TeleportProcess) initAuthStorage() (bk backend.Backend, err error
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	process.setReporter(reporter)
+	//process.setReporter(reporter)
 	return reporter, nil
-}
-
-func (process *TeleportProcess) setReporter(reporter *backend.Reporter) {
-	process.Lock()
-	defer process.Unlock()
-	process.reporter = reporter
 }
 
 // WaitWithContext waits until all internal services stop.
