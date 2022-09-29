@@ -154,29 +154,6 @@ const (
 	// and is ready to start accepting SSH connections.
 	NodeSSHReady = "NodeReady"
 
-	// KubernetesReady is generated when the kubernetes service has been initialized.
-	KubernetesReady = "KubernetesReady"
-
-	// AppsReady is generated when the Teleport app proxy service is ready to
-	// start accepting connections.
-	AppsReady = "AppsReady"
-
-	// DatabasesReady is generated when the Teleport database proxy service
-	// is ready to start accepting connections.
-	DatabasesReady = "DatabasesReady"
-
-	// MetricsReady is generated when the Teleport metrics service is ready to
-	// start accepting connections.
-	MetricsReady = "MetricsReady"
-
-	// WindowsDesktopReady is generated when the Teleport windows desktop
-	// service is ready to start accepting connections.
-	WindowsDesktopReady = "WindowsDesktopReady"
-
-	// TracingReady is generated when the Teleport tracing service is ready to
-	// start exporting spans.
-	TracingReady = "TracingReady"
-
 	// InstanceReady is generated when the teleport instance control handle has
 	// been set up.
 	InstanceReady = "InstanceReady"
