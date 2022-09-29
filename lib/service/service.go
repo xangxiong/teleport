@@ -1635,16 +1635,8 @@ func (process *TeleportProcess) getAdditionalPrincipals(role types.SystemRole) (
 
 // registerExpectedServices sets up the instance role -> identity event mapping.
 func (process *TeleportProcess) registerExpectedServices(cfg *Config) {
-	if cfg.Auth.Enabled {
-		process.setExpectedInstanceRole(types.RoleAuth, AuthIdentityEvent)
-	}
-
 	if cfg.SSH.Enabled {
 		process.setExpectedInstanceRole(types.RoleNode, SSHIdentityEvent)
-	}
-
-	if cfg.Proxy.Enabled {
-		process.setExpectedInstanceRole(types.RoleProxy, ProxyIdentityEvent)
 	}
 }
 
