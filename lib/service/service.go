@@ -125,10 +125,6 @@ const (
 	// with the Auth Server.
 	SSHIdentityEvent = "SSHIdentity"
 
-	// AppsIdentityEvent is generated when the identity of the application proxy
-	// service has been registered with the Auth Server.
-	AppsIdentityEvent = "AppsIdentity"
-
 	// DatabasesIdentityEvent is generated when the identity of the database
 	// proxy service has been registered with the auth server.
 	DatabasesIdentityEvent = "DatabasesIdentity"
@@ -3883,10 +3879,6 @@ func (process *TeleportProcess) registerExpectedServices(cfg *Config) {
 
 	if cfg.Proxy.Enabled {
 		process.setExpectedInstanceRole(types.RoleProxy, ProxyIdentityEvent)
-	}
-
-	if cfg.Apps.Enabled {
-		process.setExpectedInstanceRole(types.RoleApp, AppsIdentityEvent)
 	}
 
 	if cfg.Databases.Enabled {
