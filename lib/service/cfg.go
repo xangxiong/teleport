@@ -17,15 +17,12 @@ limitations under the License.
 package service
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"io"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/breaker"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/auth"
@@ -33,7 +30,6 @@ import (
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/limiter"
-	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/pam"
 	"github.com/gravitational/teleport/lib/plugin"
 	restricted "github.com/gravitational/teleport/lib/restrictedsession"
@@ -45,7 +41,6 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/http/httpguts"
 )
@@ -429,139 +424,6 @@ func (m TLSMode) ToProto() types.DatabaseTLSMode {
 	}
 }
 
-// MetricsConfig specifies configuration for the metrics service
-type MetricsConfig struct {
-	// Enabled turns the metrics service role on or off for this process
-	Enabled bool
-
-	// ListenAddr is the address to listen on for incoming metrics requests.
-	// Optional.
-	ListenAddr *utils.NetAddr
-
-	// MTLS turns mTLS on the metrics service on or off
-	MTLS bool
-
-	// KeyPairs are the key and certificate pairs that the metrics service will
-	// use for mTLS.
-	// Used in conjunction with MTLS = true
-	KeyPairs []KeyPairPath
-
-	// CACerts are prometheus ca certs
-	// use for mTLS.
-	// Used in conjunction with MTLS = true
-	CACerts []string
-
-	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
-	GRPCServerLatency bool
-
-	// GRPCServerLatency enables histogram metrics for each grpc endpoint on the auth server
-	GRPCClientLatency bool
-}
-
-// TracingConfig specifies the configuration for the tracing service
-type TracingConfig struct {
-	// Enabled turns the tracing service role on or off for this process.
-	Enabled bool
-
-	// ExporterURL is the OTLP exporter URL to send spans to.
-	ExporterURL string
-
-	// KeyPairs are the paths for key and certificate pairs that the tracing
-	// service will use for outbound TLS connections.
-	KeyPairs []KeyPairPath
-
-	// CACerts are the paths to the CA certs used to validate the collector.
-	CACerts []string
-
-	// SamplingRate is the sampling rate for the exporter.
-	// 1.0 will record and export all spans and 0.0 won't record any spans.
-	SamplingRate float64
-}
-
-// Config generates a tracing.Config that is populated from the values
-// provided to the tracing_service
-func (t TracingConfig) Config(attrs ...attribute.KeyValue) (*tracing.Config, error) {
-	traceConf := &tracing.Config{
-		Service:      teleport.ComponentTeleport,
-		Attributes:   attrs,
-		ExporterURL:  t.ExporterURL,
-		SamplingRate: t.SamplingRate,
-	}
-
-	tlsConfig := &tls.Config{}
-	// if a custom CA is specified, use a custom cert pool
-	if len(t.CACerts) > 0 {
-		pool := x509.NewCertPool()
-		for _, caCertPath := range t.CACerts {
-			caCert, err := os.ReadFile(caCertPath)
-			if err != nil {
-				return nil, trace.Wrap(err, "failed to read tracing CA certificate %+v", caCertPath)
-			}
-
-			if !pool.AppendCertsFromPEM(caCert) {
-				return nil, trace.BadParameter("failed to parse tracing CA certificate: %+v", caCertPath)
-			}
-		}
-		tlsConfig.ClientCAs = pool
-		tlsConfig.RootCAs = pool
-	}
-
-	// add any custom certificates for mTLS
-	if len(t.KeyPairs) > 0 {
-		for _, pair := range t.KeyPairs {
-			certificate, err := tls.LoadX509KeyPair(pair.Certificate, pair.PrivateKey)
-			if err != nil {
-				return nil, trace.Wrap(err, "failed to read keypair: %+v", err)
-			}
-			tlsConfig.Certificates = append(tlsConfig.Certificates, certificate)
-		}
-	}
-
-	if len(t.CACerts) > 0 || len(t.KeyPairs) > 0 {
-		traceConf.TLSConfig = tlsConfig
-	}
-	return traceConf, nil
-}
-
-// WindowsDesktopConfig specifies the configuration for the Windows Desktop
-// Access service.
-type WindowsDesktopConfig struct {
-	Enabled bool
-	// ListenAddr is the address to listed on for incoming desktop connections.
-	ListenAddr utils.NetAddr
-	// PublicAddrs is a list of advertised public addresses of the service.
-	PublicAddrs []utils.NetAddr
-	// LDAP is the LDAP connection parameters.
-	LDAP LDAPConfig
-
-	// Discovery configures automatic desktop discovery via LDAP.
-	Discovery LDAPDiscoveryConfig
-
-	// Hosts is an optional list of static Windows hosts to expose through this
-	// service.
-	Hosts []utils.NetAddr
-	// ConnLimiter limits the connection and request rates.
-	ConnLimiter limiter.Config
-	// HostLabels specifies rules that are used to apply labels to Windows hosts.
-	HostLabels HostLabelRules
-}
-
-type LDAPDiscoveryConfig struct {
-	// BaseDN is the base DN to search for desktops.
-	// Use the value '*' to search from the root of the domain,
-	// or leave blank to disable desktop discovery.
-	BaseDN string `yaml:"base_dn"`
-	// Filters are additional LDAP filters to apply to the search.
-	// See: https://ldap.com/ldap-filters/
-	Filters []string `yaml:"filters"`
-	// LabelAttributes are LDAP attributes to apply to hosts discovered
-	// via LDAP. Teleport labels hosts by prefixing the attribute with
-	// "ldap/" - for example, a value of "location" here would result in
-	// discovered desktops having a label with key "ldap/location" and
-	// the value being the value of the "location" attribute.
-	LabelAttributes []string `yaml:"label_attributes"`
-}
-
 // HostLabelRules is a collection of rules describing how to apply labels to hosts.
 type HostLabelRules []HostLabelRule
 
@@ -587,20 +449,6 @@ func (h HostLabelRules) LabelsForHost(host string) map[string]string {
 type HostLabelRule struct {
 	Regexp *regexp.Regexp
 	Labels map[string]string
-}
-
-// LDAPConfig is the LDAP connection parameters.
-type LDAPConfig struct {
-	// Addr is the address:port of the LDAP server (typically port 389).
-	Addr string
-	// Domain is the ActiveDirectory domain name.
-	Domain string
-	// Username for LDAP authentication.
-	Username string
-	// InsecureSkipVerify decides whether whether we skip verifying with the LDAP server's CA when making the LDAPS connection.
-	InsecureSkipVerify bool
-	// CA is an optional CA cert to be used for verification if InsecureSkipVerify is set to false.
-	CA *x509.Certificate
 }
 
 // Rewrite is a list of rewriting rules to apply to requests and responses.
@@ -649,12 +497,6 @@ func ParseHeaders(headers []string) (headersOut []Header, err error) {
 		headersOut = append(headersOut, *h)
 	}
 	return headersOut, nil
-}
-
-// AppAWS contains additional options for AWS applications.
-type AppAWS struct {
-	// ExternalID is the AWS External ID used when assuming roles in this app.
-	ExternalID string `yaml:"external_id,omitempty"`
 }
 
 // MakeDefaultConfig creates a new Config structure and populates it with defaults
