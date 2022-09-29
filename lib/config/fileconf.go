@@ -64,9 +64,6 @@ type FileConfig struct {
 	Auth    Auth  `yaml:"auth_service,omitempty"`
 	SSH     SSH   `yaml:"ssh_service,omitempty"`
 	Proxy   Proxy `yaml:"proxy_service,omitempty"`
-
-	// Tracing is the "tracing_service" section in Teleport configuration file
-	Tracing TracingService `yaml:"tracing_service,omitempty"`
 }
 
 // ReadFromFile reads Teleport configuration from a file. Currently only YAML
