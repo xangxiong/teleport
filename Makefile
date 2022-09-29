@@ -826,9 +826,9 @@ update-tag:
 $(ASSETS_BUILDDIR)/webassets: ensure-webassets $(ASSETS_BUILDDIR)
 ifneq ("$(OS)", "windows")
 	@echo "---> Copying OSS web assets."; \
-	rm -rf $(ASSETS_BUILDDIR)/webassets; \
-	mkdir $(ASSETS_BUILDDIR)/webassets; \
-	cd webassets/teleport/ ; cp -r . ../../$@
+	# rm -rf $(ASSETS_BUILDDIR)/webassets; \
+	# mkdir $(ASSETS_BUILDDIR)/webassets; \
+	# cd webassets/teleport/ ; cp -r . ../../$@
 endif
 
 $(ASSETS_BUILDDIR):
@@ -1108,30 +1108,30 @@ test-compat:
 
 .PHONY: ensure-webassets
 ensure-webassets:
-	@if [ ! -d $(shell pwd)/webassets/teleport/ ]; then \
-		$(MAKE) init-webapps-submodules; \
-	fi;
+	#@if [ ! -d $(shell pwd)/webassets/teleport/ ]; then \
+	#	$(MAKE) init-webapps-submodules; \
+	#fi;
 
 .PHONY: ensure-webassets-e
 ensure-webassets-e:
-	@if [ ! -d $(shell pwd)/webassets/e/teleport ]; then \
-		$(MAKE) init-webapps-submodules-e; \
-	fi;
+	#@if [ ! -d $(shell pwd)/webassets/e/teleport ]; then \
+	#	$(MAKE) init-webapps-submodules-e; \
+	#fi;
 
 .PHONY: init-webapps-submodules
 init-webapps-submodules:
 	echo "init webassets submodule"
-	git submodule update --init webassets
+	# git submodule update --init webassets
 
 .PHONY: init-webapps-submodules-e
 init-webapps-submodules-e:
 	echo "init webassets oss and enterprise submodules"
-	git submodule update --init --recursive webassets
+	# git submodule update --init --recursive webassets
 
 .PHONY: init-submodules-e
 init-submodules-e: init-webapps-submodules-e
-	git submodule init e
-	git submodule update
+	# git submodule init e
+	# git submodule update
 
 # update-webassets updates the minified code in the webassets repo using the latest webapps
 # repo and creates a PR in the teleport repo to update webassets submodule.
@@ -1139,7 +1139,7 @@ init-submodules-e: init-webapps-submodules-e
 update-webassets: WEBAPPS_BRANCH ?= 'master'
 update-webassets: TELEPORT_BRANCH ?= 'master'
 update-webassets:
-	build.assets/webapps/update-teleport-webassets.sh -w $(WEBAPPS_BRANCH) -t $(TELEPORT_BRANCH)
+	# build.assets/webapps/update-teleport-webassets.sh -w $(WEBAPPS_BRANCH) -t $(TELEPORT_BRANCH)
 
 # dronegen generates .drone.yml config
 #
