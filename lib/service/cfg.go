@@ -31,12 +31,10 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/breaker"
 	"github.com/gravitational/teleport/api/types"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/kube/proxy"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/pam"
@@ -44,17 +42,13 @@ import (
 	restricted "github.com/gravitational/teleport/lib/restrictedsession"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/srv/app/common"
-	"github.com/gravitational/teleport/lib/srv/db/redis"
 	"github.com/gravitational/teleport/lib/sshca"
 	"github.com/gravitational/teleport/lib/sshutils/x11"
-	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/http/httpguts"
@@ -398,80 +392,6 @@ type SSHConfig struct {
 	DisableCreateHostUser bool
 }
 
-// KubeConfig specifies configuration for kubernetes service
-type KubeConfig struct {
-	// Enabled turns kubernetes service role on or off for this process
-	Enabled bool
-
-	// ListenAddr is the address to listen on for incoming kubernetes requests.
-	// Optional.
-	ListenAddr *utils.NetAddr
-
-	// PublicAddrs is a list of the public addresses the Teleport kubernetes
-	// service can be reached by the proxy service.
-	PublicAddrs []utils.NetAddr
-
-	// KubeClusterName is the name of a kubernetes cluster this proxy is running
-	// in. If empty, defaults to the Teleport cluster name.
-	KubeClusterName string
-
-	// KubeconfigPath is a path to kubeconfig
-	KubeconfigPath string
-
-	// Labels are used for RBAC on clusters.
-	StaticLabels  map[string]string
-	DynamicLabels services.CommandLabels
-
-	// Limiter limits the connection and request rates.
-	Limiter limiter.Config
-
-	// CheckImpersonationPermissions is an optional override to the default
-	// impersonation permissions check, for use in testing.
-	CheckImpersonationPermissions proxy.ImpersonationPermissionsChecker
-}
-
-// DatabasesConfig configures the database proxy service.
-type DatabasesConfig struct {
-	// Enabled enables the database proxy service.
-	Enabled bool
-	// Databases is a list of databases proxied by this service.
-	Databases []Database
-	// ResourceMatchers match cluster database resources.
-	ResourceMatchers []services.ResourceMatcher
-	// AWSMatchers match AWS hosted databases.
-	AWSMatchers []services.AWSMatcher
-	// AzureMatchers match Azure hosted databases.
-	AzureMatchers []services.AzureMatcher
-	// Limiter limits the connection and request rates.
-	Limiter limiter.Config
-}
-
-// Database represents a single database that's being proxied.
-type Database struct {
-	// Name is the database name, used to refer to in CLI.
-	Name string
-	// Description is a free-form database description.
-	Description string
-	// Protocol is the database type, e.g. postgres or mysql.
-	Protocol string
-	// URI is the database endpoint to connect to.
-	URI string
-	// StaticLabels is a map of database static labels.
-	StaticLabels map[string]string
-	// MySQL are additional MySQL database options.
-	MySQL MySQLOptions
-	// DynamicLabels is a list of database dynamic labels.
-	DynamicLabels services.CommandLabels
-	// TLS keeps database connection TLS configuration.
-	TLS DatabaseTLS
-	// AWS contains AWS specific settings for RDS/Aurora/Redshift databases.
-	AWS DatabaseAWS
-	// GCP contains GCP specific settings for Cloud SQL databases.
-	GCP DatabaseGCP
-	// AD contains Active Directory configuration for database.
-	AD DatabaseAD
-}
-
 // TLSMode defines all possible database verification modes.
 type TLSMode string
 
@@ -512,188 +432,6 @@ func (m TLSMode) ToProto() types.DatabaseTLSMode {
 	default: // VerifyFull
 		return types.DatabaseTLSMode_VERIFY_FULL
 	}
-}
-
-// MySQLOptions are additional MySQL options.
-type MySQLOptions struct {
-	// ServerVersion is the version reported by Teleport DB Proxy on initial handshake.
-	ServerVersion string
-}
-
-// DatabaseTLS keeps TLS settings used when connecting to database.
-type DatabaseTLS struct {
-	// Mode is the TLS connection mode. See TLSMode for more details.
-	Mode TLSMode
-	// ServerName allows providing custom server name.
-	// This name will override DNS name when validating certificate presented by the database.
-	ServerName string
-	// CACert is an optional database CA certificate.
-	CACert []byte
-}
-
-// DatabaseAWS contains AWS specific settings for RDS/Aurora databases.
-type DatabaseAWS struct {
-	// Region is the cloud region database is running in when using AWS RDS.
-	Region string
-	// Redshift contains Redshift specific settings.
-	Redshift DatabaseAWSRedshift
-	// RDS contains RDS specific settings.
-	RDS DatabaseAWSRDS
-	// ElastiCache contains ElastiCache specific settings.
-	ElastiCache DatabaseAWSElastiCache
-	// MemoryDB contains MemoryDB specific settings.
-	MemoryDB DatabaseAWSMemoryDB
-	// SecretStore contains settings for managing secrets.
-	SecretStore DatabaseAWSSecretStore
-}
-
-// DatabaseAWSRedshift contains AWS Redshift specific settings.
-type DatabaseAWSRedshift struct {
-	// ClusterID is the Redshift cluster identifier.
-	ClusterID string
-}
-
-// DatabaseAWSRDS contains AWS RDS specific settings.
-type DatabaseAWSRDS struct {
-	// InstanceID is the RDS instance identifier.
-	InstanceID string
-	// ClusterID is the RDS cluster (Aurora) identifier.
-	ClusterID string
-}
-
-// DatabaseAWSElastiCache contains settings for ElastiCache databases.
-type DatabaseAWSElastiCache struct {
-	// ReplicationGroupID is the ElastiCache replication group ID.
-	ReplicationGroupID string
-}
-
-// DatabaseAWSMemoryDB contains settings for MemoryDB databases.
-type DatabaseAWSMemoryDB struct {
-	// ClusterName is the MemoryDB cluster name.
-	ClusterName string
-}
-
-// DatabaseAWSSecretStore contains secret store configurations.
-type DatabaseAWSSecretStore struct {
-	// KeyPrefix specifies the secret key prefix.
-	KeyPrefix string
-	// KMSKeyID specifies the AWS KMS key for encryption.
-	KMSKeyID string
-}
-
-// DatabaseGCP contains GCP specific settings for Cloud SQL databases.
-type DatabaseGCP struct {
-	// ProjectID is the GCP project ID where the database is deployed.
-	ProjectID string
-	// InstanceID is the Cloud SQL instance ID.
-	InstanceID string
-}
-
-// DatabaseAD contains database Active Directory configuration.
-type DatabaseAD struct {
-	// KeytabFile is the path to the Kerberos keytab file.
-	KeytabFile string
-	// Krb5File is the path to the Kerberos configuration file. Defaults to /etc/krb5.conf.
-	Krb5File string
-	// Domain is the Active Directory domain the database resides in.
-	Domain string
-	// SPN is the service principal name for the database.
-	SPN string
-}
-
-// CheckAndSetDefaults validates database Active Directory configuration.
-func (d *DatabaseAD) CheckAndSetDefaults(name string) error {
-	if d.KeytabFile == "" {
-		return trace.BadParameter("missing keytab file path for database %q", name)
-	}
-	if d.Krb5File == "" {
-		d.Krb5File = defaults.Krb5FilePath
-	}
-	if d.Domain == "" {
-		return trace.BadParameter("missing Active Directory domain for database %q", name)
-	}
-	if d.SPN == "" {
-		return trace.BadParameter("missing service principal name for database %q", name)
-	}
-	return nil
-}
-
-// CheckAndSetDefaults validates the database proxy configuration.
-func (d *Database) CheckAndSetDefaults() error {
-	if d.Name == "" {
-		return trace.BadParameter("empty database name")
-	}
-	// Unlike application access proxy, database proxy name doesn't necessarily
-	// need to be a valid subdomain but use the same validation logic for the
-	// simplicity and consistency.
-	if errs := validation.IsDNS1035Label(d.Name); len(errs) > 0 {
-		return trace.BadParameter("invalid database %q name: %v", d.Name, errs)
-	}
-	if !apiutils.SliceContainsStr(defaults.DatabaseProtocols, d.Protocol) {
-		return trace.BadParameter("unsupported database %q protocol %q, supported are: %v",
-			d.Name, d.Protocol, defaults.DatabaseProtocols)
-	}
-	// Mark the database as coming from the static configuration.
-	if d.StaticLabels == nil {
-		d.StaticLabels = make(map[string]string)
-	}
-	d.StaticLabels[types.OriginLabel] = types.OriginConfigFile
-	// For MongoDB we support specifying either server address or connection
-	// string in the URI which is useful when connecting to a replica set.
-	if d.Protocol == defaults.ProtocolMongoDB &&
-		(strings.HasPrefix(d.URI, connstring.SchemeMongoDB+"://") ||
-			strings.HasPrefix(d.URI, connstring.SchemeMongoDBSRV+"://")) {
-		connString, err := connstring.ParseAndValidate(d.URI)
-		if err != nil {
-			return trace.BadParameter("invalid MongoDB database %q connection string %q: %v",
-				d.Name, d.URI, err)
-		}
-		// Validate read preference to catch typos early.
-		if connString.ReadPreference != "" {
-			if _, err := readpref.ModeFromString(connString.ReadPreference); err != nil {
-				return trace.BadParameter("invalid MongoDB database %q read preference %q",
-					d.Name, connString.ReadPreference)
-			}
-		}
-	} else if d.Protocol == defaults.ProtocolRedis {
-		_, err := redis.ParseRedisAddress(d.URI)
-		if err != nil {
-			return trace.BadParameter("invalid Redis database %q address: %q, error: %v", d.Name, d.URI, err)
-		}
-	} else if d.Protocol == defaults.ProtocolSnowflake {
-		if !strings.Contains(d.URI, defaults.SnowflakeURL) {
-			return trace.BadParameter("Snowflake address should contain " + defaults.SnowflakeURL)
-		}
-	} else if _, _, err := net.SplitHostPort(d.URI); err != nil {
-		return trace.BadParameter("invalid database %q address %q: %v",
-			d.Name, d.URI, err)
-	}
-	if len(d.TLS.CACert) != 0 {
-		if _, err := tlsca.ParseCertificatePEM(d.TLS.CACert); err != nil {
-			return trace.BadParameter("provided database %q CA doesn't appear to be a valid x509 certificate: %v",
-				d.Name, err)
-		}
-	}
-	if err := d.TLS.Mode.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// Validate Cloud SQL specific configuration.
-	switch {
-	case d.GCP.ProjectID != "" && d.GCP.InstanceID == "":
-		return trace.BadParameter("missing Cloud SQL instance ID for database %q", d.Name)
-	case d.GCP.ProjectID == "" && d.GCP.InstanceID != "":
-		return trace.BadParameter("missing Cloud SQL project ID for database %q", d.Name)
-	}
-
-	// For SQL Server we only support Kerberos auth with Active Directory at the moment.
-	if d.Protocol == defaults.ProtocolSQLServer {
-		if err := d.AD.CheckAndSetDefaults(d.Name); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-
-	return nil
 }
 
 // AppsConfig configures application proxy service.
