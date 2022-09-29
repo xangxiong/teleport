@@ -20,13 +20,10 @@ package service
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -51,18 +48,15 @@ import (
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/backend/lite"
 	"github.com/gravitational/teleport/lib/backend/memory"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/cache"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/events/filesessions"
-	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/modules"
-	"github.com/gravitational/teleport/lib/multiplexer"
 	"github.com/gravitational/teleport/lib/plugin"
 	restricted "github.com/gravitational/teleport/lib/restrictedsession"
 	"github.com/gravitational/teleport/lib/reversetunnel"
@@ -71,7 +65,6 @@ import (
 	"github.com/gravitational/teleport/lib/srv/regular"
 	"github.com/gravitational/teleport/lib/system"
 	"github.com/gravitational/teleport/lib/utils"
-	"github.com/gravitational/teleport/lib/web"
 )
 
 const (
@@ -1640,149 +1633,6 @@ func (process *TeleportProcess) getAdditionalPrincipals(role types.SystemRole) (
 	return principals, dnsNames, nil
 }
 
-type proxyListeners struct {
-	mux              *multiplexer.Mux
-	tls              *multiplexer.WebListener
-	ssh              net.Listener
-	reverseTunnel    net.Listener
-	alpn             net.Listener
-	proxy            net.Listener
-	grpc             net.Listener
-	reverseTunnelMux *multiplexer.Mux
-	minimalTLS       *multiplexer.WebListener
-}
-
-// Close closes all proxy listeners.
-func (l *proxyListeners) Close() {
-	if l.mux != nil {
-		l.mux.Close()
-	}
-	if l.tls != nil {
-		l.tls.Close()
-	}
-	if l.reverseTunnel != nil {
-		l.reverseTunnel.Close()
-	}
-	if l.grpc != nil {
-		l.grpc.Close()
-	}
-	if l.proxy != nil {
-		l.proxy.Close()
-	}
-	if l.reverseTunnelMux != nil {
-		l.reverseTunnelMux.Close()
-	}
-	if l.minimalTLS != nil {
-		l.minimalTLS.Close()
-	}
-}
-
-// initMinimalReverseTunnelListener starts a listener over a reverse tunnel that multiplexes a minimal subset of the
-// web API.
-func (process *TeleportProcess) initMinimalReverseTunnelListener(cfg *Config, listeners *proxyListeners) error {
-	listener, err := process.importOrCreateListener(listenerProxyTunnel, cfg.Proxy.ReverseTunnelListenAddr.Addr)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	listeners.reverseTunnelMux, err = multiplexer.New(multiplexer.Config{
-		EnableProxyProtocol: cfg.Proxy.EnableProxyProtocol,
-		Listener:            listener,
-		ID:                  teleport.Component(teleport.ComponentProxy, "tunnel", "web", process.id),
-	})
-	if err != nil {
-		listener.Close()
-		return trace.Wrap(err)
-	}
-	listeners.reverseTunnel = listeners.reverseTunnelMux.SSH()
-	go func() {
-		if err := listeners.reverseTunnelMux.Serve(); err != nil {
-			process.log.WithError(err).Debug("Minimal reverse tunnel mux exited with error")
-		}
-	}()
-	return nil
-}
-
-func (process *TeleportProcess) initMinimalReverseTunnel(listeners *proxyListeners, tlsConfigWeb *tls.Config, cfg *Config, webConfig web.Config, log *logrus.Entry) (*http.Server, *web.APIHandler, error) {
-	var minimalWebServer *http.Server
-	var minimalWebHandler *web.APIHandler
-
-	internalListener := listeners.reverseTunnelMux.TLS()
-	if !cfg.Proxy.DisableTLS {
-		internalListener = tls.NewListener(internalListener, tlsConfigWeb)
-	}
-
-	minimalListener, err := multiplexer.NewWebListener(multiplexer.WebListenerConfig{
-		Listener: internalListener,
-	})
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-	listeners.minimalTLS = minimalListener
-
-	minimalProxyLimiter, err := limiter.NewLimiter(cfg.Proxy.Limiter)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-	webConfig.MinimalReverseTunnelRoutesOnly = true
-	minimalWebHandler, err = web.NewHandler(webConfig)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-	minimalProxyLimiter.WrapHandle(minimalWebHandler)
-
-	process.RegisterCriticalFunc("proxy.reversetunnel.tls", func() error {
-		log.Infof("TLS multiplexer is starting on %v.", cfg.Proxy.ReverseTunnelListenAddr.Addr)
-		if err := minimalListener.Serve(); !trace.IsConnectionProblem(err) {
-			log.WithError(err).Warn("TLS multiplexer error.")
-		}
-		log.Info("TLS multiplexer exited.")
-		return nil
-	})
-
-	minimalWebServer = &http.Server{
-		Handler:           httplib.MakeTracingHandler(minimalProxyLimiter, teleport.ComponentProxy),
-		ReadHeaderTimeout: apidefaults.DefaultDialTimeout,
-		ErrorLog:          utils.NewStdlogger(log.Error, teleport.ComponentReverseTunnelServer),
-	}
-	process.RegisterCriticalFunc("proxy.reversetunnel.web", func() error {
-		utils.Consolef(
-			cfg.Console, log, teleport.ComponentProxy,
-			"Minimal web proxy service %s:%s is starting on %v.",
-			teleport.Version, teleport.Gitref, cfg.Proxy.ReverseTunnelListenAddr.Addr)
-		log.Infof("Minimal web proxy service %s:%s is starting on %v.", teleport.Version, teleport.Gitref, cfg.Proxy.ReverseTunnelListenAddr.Addr)
-		defer minimalWebHandler.Close()
-		if err := minimalWebServer.Serve(minimalListener.Web()); err != nil && err != http.ErrServerClosed {
-			log.Warningf("Error while serving web requests: %v", err)
-		}
-		log.Info("Exited.")
-		return nil
-	})
-	return minimalWebServer, minimalWebHandler, nil
-}
-
-func peerAddr(addr *utils.NetAddr) (*utils.NetAddr, error) {
-	if addr.IsEmpty() {
-		addr = defaults.ProxyPeeringListenAddr()
-	}
-
-	if !addr.IsHostUnspecified() {
-		return addr, nil
-	}
-
-	ip, err := utils.GuessHostIP()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	port := addr.Port(defaults.ProxyPeeringListenPort)
-	addr, err = utils.ParseAddr(fmt.Sprintf("%s:%d", ip.String(), port))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return addr, nil
-}
-
 // registerExpectedServices sets up the instance role -> identity event mapping.
 func (process *TeleportProcess) registerExpectedServices(cfg *Config) {
 	if cfg.Auth.Enabled {
@@ -1807,32 +1657,6 @@ func warnOnErr(err error, log logrus.FieldLogger) {
 		}
 		log.WithError(err).Warn("Got error while cleaning up.")
 	}
-}
-
-// initAuthStorage initializes the storage backend for the auth service.
-func (process *TeleportProcess) initAuthStorage() (bk backend.Backend, err error) {
-	ctx := context.TODO()
-	bc := &process.Config.Auth.StorageConfig
-	process.log.Debugf("Using %v backend.", bc.Type)
-	switch bc.Type {
-	// SQLite backend (or alt name dir).
-	case lite.GetName():
-		bk, err = lite.New(ctx, bc.Params)
-	default:
-		err = trace.BadParameter("unsupported secrets storage type: %q", bc.Type)
-	}
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	reporter, err := backend.NewReporter(backend.ReporterConfig{
-		Component: teleport.ComponentBackend,
-		Backend:   backend.NewSanitizer(bk),
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	//process.setReporter(reporter)
-	return reporter, nil
 }
 
 // WaitWithContext waits until all internal services stop.
