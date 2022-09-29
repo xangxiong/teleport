@@ -16,8 +16,8 @@ limitations under the License.
 
 // Package config provides facilities for configuring Teleport daemons
 // including
-//	- parsing YAML configuration
-//	- parsing CLI flags
+//   - parsing YAML configuration
+//   - parsing CLI flags
 package config
 
 import (
@@ -1717,42 +1717,42 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 	// pass the value of --insecure flag to the runtime
 	lib.SetInsecureDevMode(clf.InsecureMode)
 
-	// load /etc/teleport.yaml and apply it's values:
-	fileConf, err := ReadConfigFile(clf.ConfigFile)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	// if configuration is passed as an environment variable,
-	// try to decode it and override the config file
-	if clf.ConfigString != "" {
-		fileConf, err = ReadFromString(clf.ConfigString)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
+	// // load /etc/teleport.yaml and apply it's values:
+	// fileConf, err := ReadConfigFile(clf.ConfigFile)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// // if configuration is passed as an environment variable,
+	// // try to decode it and override the config file
+	// if clf.ConfigString != "" {
+	// 	fileConf, err = ReadFromString(clf.ConfigString)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// }
 
-	if clf.BootstrapFile != "" {
-		resources, err := ReadResources(clf.BootstrapFile)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if len(resources) < 1 {
-			return trace.BadParameter("no resources found: %q", clf.BootstrapFile)
-		}
-		cfg.Auth.Resources = resources
-	}
+	// if clf.BootstrapFile != "" {
+	// 	resources, err := ReadResources(clf.BootstrapFile)
+	// 	if err != nil {
+	// 		return trace.Wrap(err)
+	// 	}
+	// 	if len(resources) < 1 {
+	// 		return trace.BadParameter("no resources found: %q", clf.BootstrapFile)
+	// 	}
+	// 	cfg.Auth.Resources = resources
+	// }
 
 	// Apply command line --debug flag to override logger severity.
 	if clf.Debug {
 		// If debug logging is requested and no file configuration exists, set the
 		// log level right away. Otherwise allow the command line flag to override
 		// logger severity in file configuration.
-		if fileConf == nil {
-			log.SetLevel(log.DebugLevel)
-			cfg.Log.SetLevel(log.DebugLevel)
-		} else {
-			fileConf.Logger.Severity = teleport.DebugLevel
-		}
+		// if fileConf == nil {
+		log.SetLevel(log.DebugLevel)
+		cfg.Log.SetLevel(log.DebugLevel)
+		// } else {
+		// 	fileConf.Logger.Severity = teleport.DebugLevel
+		// }
 	}
 
 	// If this process is trying to join a cluster as an application service,
@@ -1841,15 +1841,15 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 		cfg.Databases.Databases = append(cfg.Databases.Databases, db)
 	}
 
-	if err = ApplyFileConfig(fileConf, cfg); err != nil {
-		return trace.Wrap(err)
-	}
+	// if err = ApplyFileConfig(fileConf, cfg); err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
 	// If FIPS mode is specified, validate Teleport configuration is FedRAMP/FIPS
 	// 140-2 compliant.
 	if clf.FIPS {
 		// Make sure all cryptographic primitives are FIPS compliant.
-		err = utils.UintSliceSubset(defaults.FIPSCipherSuites, cfg.CipherSuites)
+		err := utils.UintSliceSubset(defaults.FIPSCipherSuites, cfg.CipherSuites)
 		if err != nil {
 			return trace.BadParameter("non-FIPS compliant TLS cipher suite selected: %v", err)
 		}
@@ -1954,7 +1954,7 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 	}
 
 	// Apply flags used for the node to validate the Auth Server.
-	if err = cfg.ApplyCAPins(clf.CAPins); err != nil {
+	if err := cfg.ApplyCAPins(clf.CAPins); err != nil {
 		return trace.Wrap(err)
 	}
 

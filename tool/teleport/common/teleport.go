@@ -104,17 +104,15 @@ func Run(options Options) (app *kingpin.Application, executedCommand string, con
 	start.Flag("nodename",
 		"Name of this node, defaults to hostname").
 		StringVar(&ccf.NodeName)
-	start.Flag("config",
-		fmt.Sprintf("Path to a configuration file [%v]", defaults.ConfigFilePath)).
-		Short('c').ExistingFileVar(&ccf.ConfigFile)
-	start.Flag("bootstrap",
-		"Path to bootstrap file (ignored if already initialized)").ExistingFileVar(&ccf.BootstrapFile)
-	start.Flag("config-string",
-		"Base64 encoded configuration string").Hidden().Envar(defaults.ConfigEnvar).
-		StringVar(&ccf.ConfigString)
+	// start.Flag("config",
+	// 	fmt.Sprintf("Path to a configuration file [%v]", defaults.ConfigFilePath)).
+	// 	Short('c').ExistingFileVar(&ccf.ConfigFile)
+	// start.Flag("bootstrap",
+	// 	"Path to bootstrap file (ignored if already initialized)").ExistingFileVar(&ccf.BootstrapFile)
+	// start.Flag("config-string",
+	// 	"Base64 encoded configuration string").Hidden().Envar(defaults.ConfigEnvar).
+	// 	StringVar(&ccf.ConfigString)
 	start.Flag("labels", "Comma-separated list of labels for this node, for example env=dev,app=web").StringVar(&ccf.Labels)
-	start.Flag("diag-addr",
-		"Start diagnostic prometheus and healthz endpoint.").StringVar(&ccf.DiagnosticAddr)
 	start.Flag("permit-user-env",
 		"Enables reading of ~/.tsh/environment when creating a session").BoolVar(&ccf.PermitUserEnvironment)
 	start.Flag("insecure",
