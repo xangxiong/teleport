@@ -47,24 +47,17 @@ import (
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/auditd"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/backend/dynamo"
-	"github.com/gravitational/teleport/lib/backend/firestore"
 	"github.com/gravitational/teleport/lib/backend/lite"
 	"github.com/gravitational/teleport/lib/backend/memory"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/cache"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/events/dynamoevents"
 	"github.com/gravitational/teleport/lib/events/filesessions"
-	"github.com/gravitational/teleport/lib/events/firestoreevents"
-	"github.com/gravitational/teleport/lib/events/gcssessions"
-	"github.com/gravitational/teleport/lib/events/s3sessions"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/limiter"
@@ -967,12 +960,6 @@ func (process *TeleportProcess) notifyParent() {
 	}
 }
 
-func (process *TeleportProcess) setLocalAuth(a *auth.Server) {
-	process.Lock()
-	defer process.Unlock()
-	process.localAuth = a
-}
-
 func (process *TeleportProcess) getLocalAuth() *auth.Server {
 	process.Lock()
 	defer process.Unlock()
@@ -1034,162 +1021,6 @@ func adminCreds() (*int, *int, error) {
 	uid := os.Getuid()
 	gid := teleport.LinuxAdminGID
 	return &uid, &gid, nil
-}
-
-// initUploadHandler initializes upload handler based on the config settings,
-func initUploadHandler(ctx context.Context, auditConfig types.ClusterAuditConfig, dataDir string) (events.MultipartHandler, error) {
-	if !auditConfig.ShouldUploadSessions() {
-		recordsDir := filepath.Join(dataDir, events.RecordsDir)
-		if err := os.MkdirAll(recordsDir, teleport.SharedDirMode); err != nil {
-			return nil, trace.ConvertSystemError(err)
-		}
-		handler, err := filesessions.NewHandler(filesessions.Config{
-			Directory: recordsDir,
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return handler, nil
-	}
-	uri, err := apiutils.ParseSessionsURI(auditConfig.AuditSessionsURI())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	switch uri.Scheme {
-	case teleport.SchemeGCS:
-		config := gcssessions.Config{}
-		if err := config.SetFromURL(uri); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		handler, err := gcssessions.DefaultNewHandler(ctx, config)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return handler, nil
-	case teleport.SchemeS3:
-		config := s3sessions.Config{UseFIPSEndpoint: auditConfig.GetUseFIPSEndpoint()}
-
-		if err := config.SetFromURL(uri, auditConfig.Region()); err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		handler, err := s3sessions.NewHandler(ctx, config)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return handler, nil
-	case teleport.SchemeFile:
-		if err := os.MkdirAll(uri.Path, teleport.SharedDirMode); err != nil {
-			return nil, trace.ConvertSystemError(err)
-		}
-		handler, err := filesessions.NewHandler(filesessions.Config{
-			Directory: uri.Path,
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return handler, nil
-	default:
-		return nil, trace.BadParameter(
-			"unsupported scheme for audit_sesions_uri: %q, currently supported schemes are: %v",
-			uri.Scheme, strings.Join([]string{teleport.SchemeS3, teleport.SchemeGCS, teleport.SchemeFile}, ", "))
-	}
-}
-
-// initExternalLog initializes external storage, if the storage is not
-// setup, returns (nil, nil).
-func initExternalLog(ctx context.Context, auditConfig types.ClusterAuditConfig, log logrus.FieldLogger, backend backend.Backend) (events.IAuditLog, error) {
-	var hasNonFileLog bool
-	var loggers []events.IAuditLog
-	for _, eventsURI := range auditConfig.AuditEventsURIs() {
-		uri, err := apiutils.ParseSessionsURI(eventsURI)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		switch uri.Scheme {
-		case firestore.GetName():
-			hasNonFileLog = true
-			cfg := firestoreevents.EventsConfig{}
-			err = cfg.SetFromURL(uri)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			logger, err := firestoreevents.New(cfg)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			loggers = append(loggers, logger)
-		case dynamo.GetName():
-			hasNonFileLog = true
-
-			cfg := dynamoevents.Config{
-				Tablename:               uri.Host,
-				Region:                  auditConfig.Region(),
-				EnableContinuousBackups: auditConfig.EnableContinuousBackups(),
-				EnableAutoScaling:       auditConfig.EnableAutoScaling(),
-				ReadMinCapacity:         auditConfig.ReadMinCapacity(),
-				ReadMaxCapacity:         auditConfig.ReadMaxCapacity(),
-				ReadTargetValue:         auditConfig.ReadTargetValue(),
-				WriteMinCapacity:        auditConfig.WriteMinCapacity(),
-				WriteMaxCapacity:        auditConfig.WriteMaxCapacity(),
-				WriteTargetValue:        auditConfig.WriteTargetValue(),
-				RetentionPeriod:         auditConfig.RetentionPeriod(),
-				UseFIPSEndpoint:         auditConfig.GetUseFIPSEndpoint(),
-			}
-
-			err = cfg.SetFromURL(uri)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-
-			logger, err := dynamoevents.New(ctx, cfg, backend)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			loggers = append(loggers, logger)
-		case teleport.SchemeFile:
-			if uri.Path == "" {
-				return nil, trace.BadParameter("unsupported audit uri: %q (missing path component)", uri)
-			}
-			if uri.Host != "" && uri.Host != "localhost" {
-				return nil, trace.BadParameter("unsupported audit uri: %q (nonlocal host component: %q)", uri, uri.Host)
-			}
-			if err := os.MkdirAll(uri.Path, teleport.SharedDirMode); err != nil {
-				return nil, trace.ConvertSystemError(err)
-			}
-			logger, err := events.NewFileLog(events.FileLogConfig{
-				Dir: uri.Path,
-			})
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			loggers = append(loggers, logger)
-		case teleport.SchemeStdout:
-			logger := events.NewWriterEmitter(utils.NopWriteCloser(os.Stdout))
-			loggers = append(loggers, logger)
-		default:
-			return nil, trace.BadParameter(
-				"unsupported scheme for audit_events_uri: %q, currently supported schemes are %q and %q",
-				uri.Scheme, dynamo.GetName(), teleport.SchemeFile)
-		}
-	}
-
-	if len(loggers) < 1 {
-		return nil, nil
-	}
-
-	if !auditConfig.ShouldUploadSessions() && hasNonFileLog {
-		// if audit events are being exported, session recordings should
-		// be exported as well.
-		return nil, trace.BadParameter("please specify audit_sessions_uri when using external audit backends")
-	}
-
-	if len(loggers) > 1 {
-		return events.NewMultiLog(loggers...)
-	}
-
-	return loggers[0], nil
 }
 
 func payloadContext(payload interface{}, log logrus.FieldLogger) context.Context {
