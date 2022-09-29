@@ -469,28 +469,14 @@ func (process *TeleportProcess) GetIdentity(role types.SystemRole) (i *auth.Iden
 		if !trace.IsNotFound(err) {
 			return nil, trace.Wrap(err)
 		}
-		if role == types.RoleAdmin {
-			// for admin identity use local auth server
-			// because admin identity is requested by auth server
-			// itself
-			principals, dnsNames, err := process.getAdditionalPrincipals(role)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			i, err = auth.GenerateIdentity(process.localAuth, id, principals, dnsNames)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-		} else {
-			// try to locate static identity provided in the file
-			i, err = process.findStaticIdentity(id)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			process.log.Infof("Found static identity %v in the config file, writing to disk.", &id)
-			if err = process.storage.WriteIdentity(auth.IdentityCurrent, *i); err != nil {
-				return nil, trace.Wrap(err)
-			}
+		// try to locate static identity provided in the file
+		i, err = process.findStaticIdentity(id)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		process.log.Infof("Found static identity %v in the config file, writing to disk.", &id)
+		if err = process.storage.WriteIdentity(auth.IdentityCurrent, *i); err != nil {
+			return nil, trace.Wrap(err)
 		}
 	}
 	process.Identities[role] = i
