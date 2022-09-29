@@ -145,9 +145,6 @@ type Config struct {
 	// the server supports. If omitted the defaults will be used.
 	MACAlgorithms []string
 
-	// DiagnosticAddr is an address for diagnostic and healthz endpoint service
-	DiagnosticAddr utils.NetAddr
-
 	// Debug sets debugging mode, results in diagnostic address
 	// endpoint extended with additional /debug handlers
 	Debug bool
@@ -319,16 +316,6 @@ func (c CachePolicy) String() string {
 		return "no cache"
 	}
 	return "in-memory cache"
-}
-
-// ACME configures ACME automatic certificate renewal
-type ACME struct {
-	// Enabled enables or disables ACME support
-	Enabled bool
-	// Email receives notifications from ACME server
-	Email string
-	// URI is ACME server URI
-	URI string
 }
 
 // KeyPairPath are paths to a key and certificate file.
