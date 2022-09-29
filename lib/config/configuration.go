@@ -104,40 +104,6 @@ type CommandLineFlags struct {
 	// SkipVersionCheck allows Teleport to connect to auth servers that
 	// have an earlier major version number.
 	SkipVersionCheck bool
-
-	// DatabaseName is the name of the database to proxy.
-	DatabaseName string
-	// DatabaseDescription is a free-form database description.
-	DatabaseDescription string
-	// DatabaseProtocol is the type of the proxied database e.g. postgres or mysql.
-	DatabaseProtocol string
-	// DatabaseURI is the address to connect to the proxied database.
-	DatabaseURI string
-	// DatabaseCACertFile is the database CA cert path.
-	DatabaseCACertFile string
-	// DatabaseAWSRegion is an optional database cloud region e.g. when using AWS RDS.
-	DatabaseAWSRegion string
-	// DatabaseAWSRedshiftClusterID is Redshift cluster identifier.
-	DatabaseAWSRedshiftClusterID string
-	// DatabaseAWSRDSInstanceID is RDS instance identifier.
-	DatabaseAWSRDSInstanceID string
-	// DatabaseAWSRDSClusterID is RDS cluster (Aurora) cluster identifier.
-	DatabaseAWSRDSClusterID string
-	// DatabaseGCPProjectID is GCP Cloud SQL project identifier.
-	DatabaseGCPProjectID string
-	// DatabaseGCPInstanceID is GCP Cloud SQL instance identifier.
-	DatabaseGCPInstanceID string
-	// DatabaseADKeytabFile is the path to Kerberos keytab file.
-	DatabaseADKeytabFile string
-	// DatabaseADKrb5File is the path to krb5.conf file.
-	DatabaseADKrb5File string
-	// DatabaseADDomain is the Active Directory domain for authentication.
-	DatabaseADDomain string
-	// DatabaseADSPN is the database Service Principal Name.
-	DatabaseADSPN string
-	// DatabaseMySQLServerVersion is the MySQL server version reported to a client
-	// if the value cannot be obtained from the database.
-	DatabaseMySQLServerVersion string
 }
 
 // ReadConfigFile reads /etc/teleport.yaml (or whatever is passed via --config flag)
@@ -1698,101 +1664,14 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 	// pass the value of --insecure flag to the runtime
 	lib.SetInsecureDevMode(clf.InsecureMode)
 
-	// // load /etc/teleport.yaml and apply it's values:
-	// fileConf, err := ReadConfigFile(clf.ConfigFile)
-	// if err != nil {
-	// 	return trace.Wrap(err)
-	// }
-	// // if configuration is passed as an environment variable,
-	// // try to decode it and override the config file
-	// if clf.ConfigString != "" {
-	// 	fileConf, err = ReadFromString(clf.ConfigString)
-	// 	if err != nil {
-	// 		return trace.Wrap(err)
-	// 	}
-	// }
-
-	// if clf.BootstrapFile != "" {
-	// 	resources, err := ReadResources(clf.BootstrapFile)
-	// 	if err != nil {
-	// 		return trace.Wrap(err)
-	// 	}
-	// 	if len(resources) < 1 {
-	// 		return trace.BadParameter("no resources found: %q", clf.BootstrapFile)
-	// 	}
-	// 	cfg.Auth.Resources = resources
-	// }
-
 	// Apply command line --debug flag to override logger severity.
 	if clf.Debug {
 		// If debug logging is requested and no file configuration exists, set the
 		// log level right away. Otherwise allow the command line flag to override
 		// logger severity in file configuration.
-		// if fileConf == nil {
 		log.SetLevel(log.DebugLevel)
 		cfg.Log.SetLevel(log.DebugLevel)
-		// } else {
-		// 	fileConf.Logger.Severity = teleport.DebugLevel
-		// }
 	}
-
-	// If database name was specified on the command line, add to configuration.
-	if clf.DatabaseName != "" {
-		cfg.Databases.Enabled = true
-		staticLabels, dynamicLabels, err := parseLabels(clf.Labels)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		var caBytes []byte
-		if clf.DatabaseCACertFile != "" {
-			caBytes, err = os.ReadFile(clf.DatabaseCACertFile)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		db := service.Database{
-			Name:         clf.DatabaseName,
-			Description:  clf.DatabaseDescription,
-			Protocol:     clf.DatabaseProtocol,
-			URI:          clf.DatabaseURI,
-			StaticLabels: staticLabels,
-			MySQL: service.MySQLOptions{
-				ServerVersion: clf.DatabaseMySQLServerVersion,
-			},
-			DynamicLabels: dynamicLabels,
-			TLS: service.DatabaseTLS{
-				CACert: caBytes,
-			},
-			AWS: service.DatabaseAWS{
-				Region: clf.DatabaseAWSRegion,
-				Redshift: service.DatabaseAWSRedshift{
-					ClusterID: clf.DatabaseAWSRedshiftClusterID,
-				},
-				RDS: service.DatabaseAWSRDS{
-					InstanceID: clf.DatabaseAWSRDSInstanceID,
-					ClusterID:  clf.DatabaseAWSRDSClusterID,
-				},
-			},
-			GCP: service.DatabaseGCP{
-				ProjectID:  clf.DatabaseGCPProjectID,
-				InstanceID: clf.DatabaseGCPInstanceID,
-			},
-			AD: service.DatabaseAD{
-				KeytabFile: clf.DatabaseADKeytabFile,
-				Krb5File:   clf.DatabaseADKrb5File,
-				Domain:     clf.DatabaseADDomain,
-				SPN:        clf.DatabaseADSPN,
-			},
-		}
-		if err := db.CheckAndSetDefaults(); err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.Databases.Databases = append(cfg.Databases.Databases, db)
-	}
-
-	// if err = ApplyFileConfig(fileConf, cfg); err != nil {
-	// 	return trace.Wrap(err)
-	// }
 
 	// If FIPS mode is specified, validate Teleport configuration is FedRAMP/FIPS
 	// 140-2 compliant.
