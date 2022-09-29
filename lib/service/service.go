@@ -1304,54 +1304,6 @@ func (process *TeleportProcess) newLocalCacheForNode(clt auth.ClientI, cacheName
 	return auth.NewNodeWrapper(clt, cache), nil
 }
 
-// newLocalCacheForProxy returns new instance of access point configured for a local proxy.
-func (process *TeleportProcess) newLocalCacheForProxy(clt auth.ClientI, cacheName []string) (auth.ProxyAccessPoint, error) {
-	// if caching is disabled, return access point
-	if !process.Config.CachePolicy.Enabled {
-		return clt, nil
-	}
-
-	cache, err := process.newLocalCache(clt, cache.ForProxy, cacheName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return auth.NewProxyWrapper(clt, cache), nil
-}
-
-// newLocalCacheForRemoteProxy returns new instance of access point configured for a remote proxy.
-func (process *TeleportProcess) newLocalCacheForRemoteProxy(clt auth.ClientI, cacheName []string) (auth.RemoteProxyAccessPoint, error) {
-	// if caching is disabled, return access point
-	if !process.Config.CachePolicy.Enabled {
-		return clt, nil
-	}
-
-	cache, err := process.newLocalCache(clt, cache.ForRemoteProxy, cacheName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return auth.NewRemoteProxyWrapper(clt, cache), nil
-}
-
-// DELETE IN: 8.0.0
-//
-// newLocalCacheForOldRemoteProxy returns new instance of access point
-// configured for an old remote proxy.
-func (process *TeleportProcess) newLocalCacheForOldRemoteProxy(clt auth.ClientI, cacheName []string) (auth.RemoteProxyAccessPoint, error) {
-	// if caching is disabled, return access point
-	if !process.Config.CachePolicy.Enabled {
-		return clt, nil
-	}
-
-	cache, err := process.newLocalCache(clt, cache.ForOldRemoteProxy, cacheName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return auth.NewRemoteProxyWrapper(clt, cache), nil
-}
-
 // newLocalCache returns new instance of access point
 func (process *TeleportProcess) newLocalCache(clt auth.ClientI, setupConfig cache.SetupConfigFn, cacheName []string) (*cache.Cache, error) {
 	return process.newAccessCache(accessCacheConfig{
