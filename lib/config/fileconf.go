@@ -66,10 +66,6 @@ type FileConfig struct {
 	Proxy   Proxy `yaml:"proxy_service,omitempty"`
 	Kube    Kube  `yaml:"kubernetes_service,omitempty"`
 
-	// Apps is the "app_service" section in Teleport file configuration which
-	// defines application access configuration.
-	Apps Apps `yaml:"app_service,omitempty"`
-
 	// Metrics is the "metrics_service" section in Teleport configuration file
 	// that defines the metrics service configuration
 	Metrics Metrics `yaml:"metrics_service,omitempty"`
@@ -222,12 +218,6 @@ func MakeSampleFileConfig(flags SampleFlags) (fc *FileConfig, err error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// Apps config:
-	apps, err := makeSampleAppsConfig(conf, flags, roles[defaults.RoleApp])
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	// DB config:
 	var dbs Databases
 	if roles[defaults.RoleDatabase] {
@@ -249,7 +239,6 @@ func MakeSampleFileConfig(flags SampleFlags) (fc *FileConfig, err error) {
 		Global:         g,
 		Proxy:          p,
 		SSH:            s,
-		Apps:           apps,
 		WindowsDesktop: d,
 	}
 	return fc, nil
@@ -319,26 +308,6 @@ func makeSampleProxyConfig(conf *service.Config, flags SampleFlags, enabled bool
 	}
 
 	return p, nil
-}
-
-func makeSampleAppsConfig(conf *service.Config, flags SampleFlags, enabled bool) (Apps, error) {
-	var apps Apps
-	// assume users want app role if they added app name and/or uri but didn't add app role
-	if enabled || flags.AppURI != "" || flags.AppName != "" {
-		if flags.AppURI == "" || flags.AppName == "" {
-			return Apps{}, trace.BadParameter("please provide both --app-name and --app-uri")
-		}
-
-		apps.EnabledFlag = "yes"
-		apps.Apps = []*App{
-			{
-				Name: flags.AppName,
-				URI:  flags.AppURI,
-			},
-		}
-	}
-
-	return apps, nil
 }
 
 func roleMapFromFlags(flags SampleFlags) map[string]bool {
