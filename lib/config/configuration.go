@@ -127,11 +127,6 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 		cfg.SkipVersionCheck = clf.SkipVersionCheck
 	}
 
-	// apply --insecure-no-tls flag:
-	if clf.DisableTLS {
-		cfg.Proxy.DisableTLS = clf.DisableTLS
-	}
-
 	// apply --debug flag to config:
 	if clf.Debug {
 		cfg.Console = io.Discard
@@ -144,8 +139,6 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 			return trace.Wrap(err)
 		}
 		cfg.SSH.Enabled = strings.Contains(clf.Roles, defaults.RoleNode)
-		// XXIONG: need proxy enabled to properly hae the log/upload/streaming/default created and available
-		cfg.Proxy.Enabled = strings.Contains(clf.Roles, defaults.RoleProxy)
 	}
 
 	// apply --auth-server flag:
@@ -302,10 +295,7 @@ func isCmdLabelSpec(spec string) (types.CommandLabel, error) {
 // a given IP
 func applyListenIP(ip net.IP, cfg *service.Config) {
 	listeningAddresses := []*utils.NetAddr{
-		&cfg.Proxy.SSHAddr,
-		&cfg.Proxy.WebAddr,
 		&cfg.SSH.Addr,
-		&cfg.Proxy.ReverseTunnelListenAddr,
 	}
 	for _, addr := range listeningAddresses {
 		replaceHost(addr, ip.String())

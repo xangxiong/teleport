@@ -829,9 +829,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 	if cfg.SSH.Enabled {
 		eventMapping.In = append(eventMapping.In, NodeSSHReady)
 	}
-	if cfg.Proxy.Enabled {
-		eventMapping.In = append(eventMapping.In, ProxySSHReady)
-	}
 	process.RegisterEventMapping(eventMapping)
 
 	if cfg.SSH.Enabled {
@@ -1099,10 +1096,7 @@ func (process *TeleportProcess) getRotation(role types.SystemRole) (*types.Rotat
 }
 
 func (process *TeleportProcess) proxyPublicAddr() utils.NetAddr {
-	if len(process.Config.Proxy.PublicAddrs) == 0 {
-		return utils.NetAddr{}
-	}
-	return process.Config.Proxy.PublicAddrs[0]
+	return utils.NetAddr{}
 }
 
 // newAsyncEmitter wraps client and returns emitter that never blocks, logs some events and checks values.
@@ -1329,19 +1323,17 @@ func (process *TeleportProcess) initSSH() error {
 
 		// init uploader service for recording SSH node, if proxy is not
 		// enabled on this node, because proxy stars uploader service as well
-		if !cfg.Proxy.Enabled {
-			uploaderCfg := filesessions.UploaderConfig{
-				Streamer: authClient,
-				AuditLog: conn.Client,
-			}
-			completerCfg := events.UploadCompleterConfig{
-				SessionTracker: conn.Client,
-				GracePeriod:    defaults.UploadGracePeriod,
-				ClusterName:    conn.ServerIdentity.ClusterName,
-			}
-			if err := process.initUploaderService(uploaderCfg, completerCfg); err != nil {
-				return trace.Wrap(err)
-			}
+		uploaderCfg := filesessions.UploaderConfig{
+			Streamer: authClient,
+			AuditLog: conn.Client,
+		}
+		completerCfg := events.UploadCompleterConfig{
+			SessionTracker: conn.Client,
+			GracePeriod:    defaults.UploadGracePeriod,
+			ClusterName:    conn.ServerIdentity.ClusterName,
+		}
+		if err := process.initUploaderService(uploaderCfg, completerCfg); err != nil {
+			return trace.Wrap(err)
 		}
 
 		var agentPool *reversetunnel.AgentPool

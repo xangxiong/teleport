@@ -105,10 +105,6 @@ type Config struct {
 	// in case if they lose connection to auth servers
 	CachePolicy CachePolicy
 
-	// Proxy service configuration. Manages incoming and outbound
-	// connections to the cluster.
-	Proxy ProxyConfig
-
 	// SSH service configuration. Manages SSH servers running within the cluster.
 	SSH SSHConfig
 
@@ -1264,13 +1260,6 @@ func ApplyDefaults(cfg *Config) {
 	cfg.Ciphers = sc.Ciphers
 	cfg.KEXAlgorithms = kex
 	cfg.MACAlgorithms = macs
-
-	cfg.Proxy.WebAddr = *defaults.ProxyWebListenAddr()
-	// Proxy service defaults.
-	cfg.Proxy.Enabled = true
-	cfg.Proxy.Kube.Enabled = false
-
-	defaults.ConfigureLimiter(&cfg.Proxy.Limiter)
 
 	// SSH service defaults.
 	cfg.SSH.Enabled = true
