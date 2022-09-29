@@ -125,9 +125,6 @@ type InitConfig struct {
 	// Restrictions is a service to access network restrictions, etc
 	Restrictions services.Restrictions
 
-	// Databases is a service that manages database resources.
-	Databases services.Databases
-
 	// Status is a service that manages cluster status info.
 	Status services.StatusInternal
 
@@ -167,9 +164,6 @@ type InitConfig struct {
 	// Streamer is events sessionstreamer, used to create continuous
 	// session related streams
 	Streamer events.Streamer
-
-	// WindowsServices is a service that manages Windows desktop resources.
-	WindowsDesktops services.WindowsDesktops
 
 	// SessionTrackerService is a service that manages trackers for all active sessions.
 	SessionTrackerService services.SessionTrackerService

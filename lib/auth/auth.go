@@ -129,9 +129,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Restrictions == nil {
 		cfg.Restrictions = local.NewRestrictionsService(cfg.Backend)
 	}
-	if cfg.Databases == nil {
-		cfg.Databases = local.NewDatabasesService(cfg.Backend)
-	}
 	if cfg.Status == nil {
 		cfg.Status = local.NewStatusService(cfg.Backend)
 	}
@@ -146,9 +143,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	}
 	if cfg.Streamer == nil {
 		cfg.Streamer = events.NewDiscardEmitter()
-	}
-	if cfg.WindowsDesktops == nil {
-		cfg.WindowsDesktops = local.NewWindowsDesktopService(cfg.Backend)
 	}
 	if cfg.ConnectionsDiagnostic == nil {
 		cfg.ConnectionsDiagnostic = local.NewConnectionsDiagnosticService(cfg.Backend)
@@ -194,10 +188,8 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		DynamicAccessExt:      cfg.DynamicAccessExt,
 		ClusterConfiguration:  cfg.ClusterConfiguration,
 		Restrictions:          cfg.Restrictions,
-		Databases:             cfg.Databases,
 		IAuditLog:             cfg.AuditLog,
 		Events:                cfg.Events,
-		WindowsDesktops:       cfg.WindowsDesktops,
 		SessionTrackerService: cfg.SessionTrackerService,
 		ConnectionsDiagnostic: cfg.ConnectionsDiagnostic,
 		StatusInternal:        cfg.Status,
