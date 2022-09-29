@@ -36,7 +36,6 @@ import (
 	insecurerand "math/rand"
 	"net"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -83,8 +82,6 @@ import (
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/teleport/lib/utils/interval"
-	vc "github.com/gravitational/teleport/lib/versioncontrol"
-	"github.com/gravitational/teleport/lib/versioncontrol/github"
 )
 
 const (
@@ -458,23 +455,6 @@ func (a *Server) runPeriodicOperations() {
 	defer heartbeatCheckTicker.Stop()
 	defer promTicker.Stop()
 
-	firstReleaseCheck := utils.FullJitter(time.Hour * 6)
-
-	// this environment variable is "unstable" since it will be deprecated
-	// by an upcoming tctl command. currently exists for testing purposes only.
-	if os.Getenv("TELEPORT_UNSTABLE_VC_SYNC_ON_START") == "yes" {
-		firstReleaseCheck = utils.HalfJitter(time.Second * 10)
-	}
-
-	// note the use of FullJitter for the releases check interval. this lets us ensure
-	// that frequent restarts don't prevent checks from happening despite the infrequent
-	// effective check rate.
-	releaseCheck := interval.New(interval.Config{
-		Duration:      time.Hour * 24,
-		FirstDuration: firstReleaseCheck,
-		Jitter:        utils.NewFullJitter(),
-	})
-	defer releaseCheck.Stop()
 	for {
 		select {
 		case <-a.closeCtx.Done():
@@ -502,66 +482,6 @@ func (a *Server) runPeriodicOperations() {
 			heartbeatsMissedByAuth.Set(float64(missedKeepAliveCount))
 		case <-promTicker.C:
 			a.updateVersionMetrics()
-		case <-releaseCheck.Next():
-			a.checkForReleases(ctx)
-		}
-	}
-}
-
-// checkForReleases loads latest github releases and generates an alert if
-// an appropriate upgrade is available.
-func (a *Server) checkForReleases(ctx context.Context) {
-	const alertID = "upgrade-suggestion"
-	log.Debug("Checking for new teleport releases via github api.")
-
-	// NOTE: essentially everything in this function is going to be
-	// scrapped/replaced once the inventory and version-control systems
-	// are a bit further along.
-
-	var loadFailed bool
-	current := vc.Normalize(teleport.Version)
-
-	latest, err := github.LatestStable()
-	if err != nil {
-		log.Warnf("Failed to load github releases: %v (this will not impact teleport functionality)", err)
-		loadFailed = true
-		latest = current
-	}
-
-	// use visitor to find the oldest version among connected instances
-	// TODO(fspmarshall): replace this check as soon as we have a backend inventory repr. using
-	// connected instances is a poor approximation and may lead to missed notifications if auth
-	// server is up to date, but instances not connected to this auth need update.
-	var instanceVisitor vc.Visitor
-	a.inventory.Iter(func(handle inventory.UpstreamHandle) {
-		instanceVisitor.Visit(vc.Normalize(handle.Hello().Version))
-	})
-
-	msg := makeUpgradeSuggestionMsg(current, latest, instanceVisitor.Oldest())
-
-	if msg != "" {
-		alert, err := types.NewClusterAlert(
-			alertID,
-			msg,
-			// Defaulting to "low" severity level. We may want to make this dynamic
-			// in the future depending on the distance from up-to-date.
-			types.WithAlertSeverity(types.AlertSeverity_LOW),
-			types.WithAlertLabel(types.AlertOnLogin, "yes"),
-			types.WithAlertLabel(types.AlertPermitAll, "yes"),
-		)
-		if err != nil {
-			log.Warnf("Failed to build %s alert: %v (this is a bug)", alertID, err)
-			return
-		}
-		if err := a.UpsertClusterAlert(ctx, alert); err != nil {
-			log.Warnf("Failed to set %s alert: %v", alertID, err)
-			return
-		}
-	} else if !loadFailed {
-		log.Debugf("Cluster appears up to date, clearing %s alert.", alertID)
-		err := a.DeleteClusterAlert(ctx, alertID)
-		if err != nil && !trace.IsNotFound(err) {
-			log.Warnf("Failed to delete %s alert: %v", alertID, err)
 		}
 	}
 }
