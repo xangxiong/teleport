@@ -26,7 +26,6 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/google/uuid"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/trace/trail"
 	"github.com/prometheus/client_golang/prometheus"
@@ -127,22 +126,22 @@ func (g *GRPCServer) GetServer() (*grpc.Server, error) {
 	return g.server, nil
 }
 
-// EmitAuditEvent emits audit event
-func (g *GRPCServer) EmitAuditEvent(ctx context.Context, req *apievents.OneOf) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	event, err := apievents.FromOneOf(*req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = auth.EmitAuditEvent(ctx, event)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
+// // EmitAuditEvent emits audit event
+// func (g *GRPCServer) EmitAuditEvent(ctx context.Context, req *apievents.OneOf) (*empty.Empty, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	event, err := apievents.FromOneOf(*req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	// err = auth.EmitAuditEvent(ctx, event)
+// 	// if err != nil {
+// 	// 	return nil, trace.Wrap(err)
+// 	// }
+// 	return &empty.Empty{}, nil
+// }
 
 // SendKeepAlives allows node to send a stream of keep alive requests
 func (g *GRPCServer) SendKeepAlives(stream proto.AuthService_SendKeepAlivesServer) error {
@@ -185,7 +184,7 @@ func (g *GRPCServer) CreateAuditStream(stream proto.AuthService_CreateAuditStrea
 	}
 
 	var eventStream apievents.Stream
-	var sessionID session.ID
+	// var sessionID session.ID
 	g.Debugf("CreateAuditStream connection from %v.", auth.User.GetName())
 	streamStart := time.Now()
 	processed := int64(0)
@@ -228,7 +227,7 @@ func (g *GRPCServer) CreateAuditStream(stream proto.AuthService_CreateAuditStrea
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			sessionID = session.ID(create.SessionID)
+			// sessionID = session.ID(create.SessionID)
 			g.Debugf("Created stream: %v.", err)
 			go forwardEvents(eventStream)
 			defer closeStream(eventStream)
@@ -253,28 +252,28 @@ func (g *GRPCServer) CreateAuditStream(stream proto.AuthService_CreateAuditStrea
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			clusterName, err := auth.GetClusterName()
-			if err != nil {
-				return trace.Wrap(err)
-			}
+			// clusterName, err := auth.GetClusterName()
+			// if err != nil {
+			// 	return trace.Wrap(err)
+			// }
 			if g.APIConfig.MetadataGetter != nil {
-				sessionData := g.APIConfig.MetadataGetter.GetUploadMetadata(sessionID)
-				event := &apievents.SessionUpload{
-					Metadata: apievents.Metadata{
-						Type:        events.SessionUploadEvent,
-						Code:        events.SessionUploadCode,
-						ID:          uuid.New().String(),
-						Index:       events.SessionUploadIndex,
-						ClusterName: clusterName.GetClusterName(),
-					},
-					SessionMetadata: apievents.SessionMetadata{
-						SessionID: string(sessionData.SessionID),
-					},
-					SessionURL: sessionData.URL,
-				}
-				if err := g.Emitter.EmitAuditEvent(auth.CloseContext(), event); err != nil {
-					return trace.Wrap(err)
-				}
+				// sessionData := g.APIConfig.MetadataGetter.GetUploadMetadata(sessionID)
+				// event := &apievents.SessionUpload{
+				// 	Metadata: apievents.Metadata{
+				// 		Type:        events.SessionUploadEvent,
+				// 		Code:        events.SessionUploadCode,
+				// 		ID:          uuid.New().String(),
+				// 		Index:       events.SessionUploadIndex,
+				// 		ClusterName: clusterName.GetClusterName(),
+				// 	},
+				// 	SessionMetadata: apievents.SessionMetadata{
+				// 		SessionID: string(sessionData.SessionID),
+				// 	},
+				// 	SessionURL: sessionData.URL,
+				// }
+				// if err := g.Emitter.EmitAuditEvent(auth.CloseContext(), event); err != nil {
+				// 	return trace.Wrap(err)
+				// }
 			}
 			g.Debugf("Completed stream: %v.", err)
 			if err != nil {
@@ -2100,21 +2099,21 @@ func (g *GRPCServer) AddMFADevice(stream proto.AuthService_AddMFADeviceServer) e
 		return trace.Wrap(err)
 	}
 
-	clusterName, err := actx.GetClusterName()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if err := g.Emitter.EmitAuditEvent(g.serverContext(), &apievents.MFADeviceAdd{
-		Metadata: apievents.Metadata{
-			Type:        events.MFADeviceAddEvent,
-			Code:        events.MFADeviceAddEventCode,
-			ClusterName: clusterName.GetClusterName(),
-		},
-		UserMetadata:      actx.Identity.GetIdentity().GetUserMetadata(),
-		MFADeviceMetadata: mfaDeviceEventMetadata(dev),
-	}); err != nil {
-		return trace.Wrap(err)
-	}
+	// clusterName, err := actx.GetClusterName()
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// if err := g.Emitter.EmitAuditEvent(g.serverContext(), &apievents.MFADeviceAdd{
+	// 	Metadata: apievents.Metadata{
+	// 		Type:        events.MFADeviceAddEvent,
+	// 		Code:        events.MFADeviceAddEventCode,
+	// 		ClusterName: clusterName.GetClusterName(),
+	// 	},
+	// 	UserMetadata:      actx.Identity.GetIdentity().GetUserMetadata(),
+	// 	MFADeviceMetadata: mfaDeviceEventMetadata(dev),
+	// }); err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
 	// 6. send Ack
 	if err := stream.Send(&proto.AddMFADeviceResponse{
@@ -3179,37 +3178,37 @@ func (g *GRPCServer) ResetAuthPreference(ctx context.Context, _ *empty.Empty) (*
 	return &empty.Empty{}, nil
 }
 
-// StreamSessionEvents streams all events from a given session recording. An error is returned on the first
-// channel if one is encountered. Otherwise the event channel is closed when the stream ends.
-// The event channel is not closed on error to prevent race conditions in downstream select statements.
-func (g *GRPCServer) StreamSessionEvents(req *proto.StreamSessionEventsRequest, stream proto.AuthService_StreamSessionEventsServer) error {
-	auth, err := g.authenticate(stream.Context())
-	if err != nil {
-		return trace.Wrap(err)
-	}
+// // StreamSessionEvents streams all events from a given session recording. An error is returned on the first
+// // channel if one is encountered. Otherwise the event channel is closed when the stream ends.
+// // The event channel is not closed on error to prevent race conditions in downstream select statements.
+// func (g *GRPCServer) StreamSessionEvents(req *proto.StreamSessionEventsRequest, stream proto.AuthService_StreamSessionEventsServer) error {
+// 	auth, err := g.authenticate(stream.Context())
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
 
-	c, e := auth.ServerWithRoles.StreamSessionEvents(stream.Context(), session.ID(req.SessionID), int64(req.StartIndex))
+// 	c, e := auth.ServerWithRoles.StreamSessionEvents(stream.Context(), session.ID(req.SessionID), int64(req.StartIndex))
 
-	for {
-		select {
-		case event, more := <-c:
-			if !more {
-				return nil
-			}
+// 	for {
+// 		select {
+// 		case event, more := <-c:
+// 			if !more {
+// 				return nil
+// 			}
 
-			oneOf, err := apievents.ToOneOf(event)
-			if err != nil {
-				return trail.ToGRPC(trace.Wrap(err))
-			}
+// 			oneOf, err := apievents.ToOneOf(event)
+// 			if err != nil {
+// 				return trail.ToGRPC(trace.Wrap(err))
+// 			}
 
-			if err := stream.Send(oneOf); err != nil {
-				return trail.ToGRPC(trace.Wrap(err))
-			}
-		case err := <-e:
-			return trail.ToGRPC(trace.Wrap(err))
-		}
-	}
-}
+// 			if err := stream.Send(oneOf); err != nil {
+// 				return trail.ToGRPC(trace.Wrap(err))
+// 			}
+// 		case err := <-e:
+// 			return trail.ToGRPC(trace.Wrap(err))
+// 		}
+// 	}
+// }
 
 // GetNetworkRestrictions retrieves all the network restrictions (allow/deny lists).
 func (g *GRPCServer) GetNetworkRestrictions(ctx context.Context, _ *empty.Empty) (*types.NetworkRestrictionsV4, error) {

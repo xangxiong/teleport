@@ -16,32 +16,32 @@ limitations under the License.
 
 package eventstest
 
-import (
-	"context"
-	"time"
+// import (
+// 	"context"
+// 	"time"
 
-	"github.com/gravitational/teleport/api/types/events"
-)
+// 	"github.com/gravitational/teleport/api/types/events"
+// )
 
-// NewSlowEmitter creates an emitter that introduces an artificial
-// delay before "emitting" (discarding) an audit event.
-func NewSlowEmitter(delay time.Duration) events.Emitter {
-	return &slowEmitter{
-		delay: delay,
-	}
-}
+// // NewSlowEmitter creates an emitter that introduces an artificial
+// // delay before "emitting" (discarding) an audit event.
+// func NewSlowEmitter(delay time.Duration) events.Emitter {
+// 	return &slowEmitter{
+// 		delay: delay,
+// 	}
+// }
 
-// slowEmitter is an events.Emitter that introduces an artificial
-// delay before emitting an event.
-type slowEmitter struct {
-	delay time.Duration
-}
+// // slowEmitter is an events.Emitter that introduces an artificial
+// // delay before emitting an event.
+// type slowEmitter struct {
+// 	delay time.Duration
+// }
 
-func (s *slowEmitter) EmitAuditEvent(ctx context.Context, event events.AuditEvent) error {
-	select {
-	case <-time.After(s.delay):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
+// func (s *slowEmitter) EmitAuditEvent(ctx context.Context, event events.AuditEvent) error {
+// 	select {
+// 	case <-time.After(s.delay):
+// 		return nil
+// 	case <-ctx.Done():
+// 		return ctx.Err()
+// 	}
+// }

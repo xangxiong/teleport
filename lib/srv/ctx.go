@@ -110,9 +110,9 @@ type AccessPoint interface {
 
 // Server is regular or forwarding SSH server.
 type Server interface {
-	// StreamEmitter allows server to emit audit events and create
-	// event streams for recording sessions
-	events.StreamEmitter
+	// // StreamEmitter allows server to emit audit events and create
+	// // event streams for recording sessions
+	// events.StreamEmitter
 
 	// ID is the unique ID of the server.
 	ID() string
@@ -455,7 +455,7 @@ func NewServerContext(ctx context.Context, parent *sshutils.ConnectionContext, s
 		Login:                 child.Identity.Login,
 		ServerID:              child.srv.ID(),
 		Entry:                 child.Entry,
-		Emitter:               child.srv,
+		// Emitter:               child.srv,
 	}
 	for _, opt := range monitorOpts {
 		opt(&monitorConfig)
@@ -858,9 +858,9 @@ func (c *ServerContext) reportStats(conn utils.Stater) {
 	if !c.srv.UseTunnel() {
 		sessionDataEvent.ConnectionMetadata.LocalAddr = c.ServerConn.LocalAddr().String()
 	}
-	if err := c.GetServer().EmitAuditEvent(c.GetServer().Context(), sessionDataEvent); err != nil {
-		c.WithError(err).Warn("Failed to emit session data event.")
-	}
+	// if err := c.GetServer().EmitAuditEvent(c.GetServer().Context(), sessionDataEvent); err != nil {
+	// 	c.WithError(err).Warn("Failed to emit session data event.")
+	// }
 
 	// Emit TX and RX bytes to their respective Prometheus counters.
 	serverTX.Add(float64(txBytes))

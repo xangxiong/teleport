@@ -553,7 +553,7 @@ func (p *AgentPool) transport(ctx context.Context, channel ssh.Channel, requests
 		// authClient:          p.Client,
 		reverseTunnelServer: p.ReverseTunnelServer,
 		server:              p.Server,
-		emitter:             p.Client,
+		// emitter:             p.Client,
 		sconn:               conn,
 		channel:             channel,
 		requestCh:           requests,

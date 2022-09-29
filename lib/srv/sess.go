@@ -34,7 +34,6 @@ import (
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/events/filesessions"
 	"github.com/gravitational/teleport/lib/services"
 	rsession "github.com/gravitational/teleport/lib/session"
 	"github.com/gravitational/teleport/lib/sshutils"
@@ -595,10 +594,10 @@ func newSession(ctx context.Context, id rsession.ID, r *SessionRegistry, scx *Se
 		return nil, trace.Wrap(err)
 	}
 
-	sess.recorder, err = newRecorder(sess, scx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// sess.recorder, err = newRecorder(sess, scx)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	return sess, nil
 }
@@ -984,9 +983,9 @@ func (s *session) startInteractive(ctx context.Context, ch ssh.Channel, scx *Ser
 	// Open a BPF recording session. If BPF was not configured, not available,
 	// or running in a recording proxy, OpenSession is a NOP.
 	sessionContext := &bpf.SessionContext{
-		Context:   scx.srv.Context(),
-		PID:       s.term.PID(),
-		Emitter:   s.Recorder(),
+		Context: scx.srv.Context(),
+		PID:     s.term.PID(),
+		// Emitter:   s.Recorder(),
 		Namespace: scx.srv.GetNamespace(),
 		SessionID: s.id.String(),
 		ServerID:  scx.srv.HostUUID(),
@@ -1092,50 +1091,50 @@ func (s *session) startTerminal(ctx context.Context, scx *ServerContext) error {
 	return nil
 }
 
-// newRecorder creates a new events.StreamWriter to be used as the recorder
-// of the passed in session.
-func newRecorder(s *session, ctx *ServerContext) (events.StreamWriter, error) {
-	// Nodes discard events in cases when proxies are already recording them.
-	if s.registry.Srv.Component() == teleport.ComponentNode &&
-		services.IsRecordAtProxy(ctx.SessionRecordingConfig.GetMode()) {
-		return &events.DiscardStream{}, nil
-	}
+// // newRecorder creates a new events.StreamWriter to be used as the recorder
+// // of the passed in session.
+// func newRecorder(s *session, ctx *ServerContext) (events.StreamWriter, error) {
+// 	// Nodes discard events in cases when proxies are already recording them.
+// 	if s.registry.Srv.Component() == teleport.ComponentNode &&
+// 		services.IsRecordAtProxy(ctx.SessionRecordingConfig.GetMode()) {
+// 		return &events.DiscardStream{}, nil
+// 	}
 
-	streamer, err := s.newStreamer(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	rec, err := events.NewAuditWriter(events.AuditWriterConfig{
-		// Audit stream is using server context, not session context,
-		// to make sure that session is uploaded even after it is closed
-		Context:      ctx.srv.Context(),
-		Streamer:     streamer,
-		SessionID:    s.id,
-		Clock:        s.registry.clock,
-		Namespace:    s.serverMeta.ServerNamespace,
-		ServerID:     s.serverMeta.ServerID,
-		RecordOutput: ctx.SessionRecordingConfig.GetMode() != types.RecordOff,
-		Component:    teleport.Component(teleport.ComponentSession, ctx.srv.Component()),
-		ClusterName:  ctx.ClusterName,
-	})
-	if err != nil {
-		switch ctx.Identity.AccessChecker.SessionRecordingMode(constants.SessionRecordingServiceSSH) {
-		case constants.SessionRecordingModeBestEffort:
-			s.log.WithError(err).Warning("Failed to initialize session recording, disabling it for this session.")
-			eventOnlyRec, err := newEventOnlyRecorder(s, ctx)
-			if err != nil {
-				return nil, trace.ConnectionProblem(err, sessionRecordingErrorMessage)
-			}
+// 	streamer, err := s.newStreamer(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	rec, err := events.NewAuditWriter(events.AuditWriterConfig{
+// 		// Audit stream is using server context, not session context,
+// 		// to make sure that session is uploaded even after it is closed
+// 		Context:      ctx.srv.Context(),
+// 		Streamer:     streamer,
+// 		SessionID:    s.id,
+// 		Clock:        s.registry.clock,
+// 		Namespace:    s.serverMeta.ServerNamespace,
+// 		ServerID:     s.serverMeta.ServerID,
+// 		RecordOutput: ctx.SessionRecordingConfig.GetMode() != types.RecordOff,
+// 		Component:    teleport.Component(teleport.ComponentSession, ctx.srv.Component()),
+// 		ClusterName:  ctx.ClusterName,
+// 	})
+// 	if err != nil {
+// 		switch ctx.Identity.AccessChecker.SessionRecordingMode(constants.SessionRecordingServiceSSH) {
+// 		case constants.SessionRecordingModeBestEffort:
+// 			s.log.WithError(err).Warning("Failed to initialize session recording, disabling it for this session.")
+// 			eventOnlyRec, err := newEventOnlyRecorder(s, ctx)
+// 			if err != nil {
+// 				return nil, trace.ConnectionProblem(err, sessionRecordingErrorMessage)
+// 			}
 
-			s.BroadcastSystemMessage(sessionRecordingWarningMessage)
-			return eventOnlyRec, nil
-		}
+// 			s.BroadcastSystemMessage(sessionRecordingWarningMessage)
+// 			return eventOnlyRec, nil
+// 		}
 
-		return nil, trace.ConnectionProblem(err, sessionRecordingErrorMessage)
-	}
+// 		return nil, trace.ConnectionProblem(err, sessionRecordingErrorMessage)
+// 	}
 
-	return rec, nil
-}
+// 	return rec, nil
+// }
 
 // newEventOnlyRecorder creates a StreamWriter that doesn't record session
 // contents. It is used in scenarios where it is not possible to record those
@@ -1148,7 +1147,7 @@ func newEventOnlyRecorder(s *session, ctx *ServerContext) (events.StreamWriter, 
 		// It will use a TeeStreamer where the streamer is a discard, and the
 		// emitter is the auth server. The TeeStreamer is used to filter events
 		// that usually are not sent to auth server.
-		Streamer:     events.NewTeeStreamer(events.NewDiscardEmitter(), ctx.srv),
+		// Streamer:     events.NewTeeStreamer(events.NewDiscardEmitter(), ctx.srv),
 		SessionID:    s.id,
 		Clock:        s.registry.clock,
 		Namespace:    ctx.srv.GetNamespace(),
@@ -1183,9 +1182,9 @@ func (s *session) startExec(ctx context.Context, channel ssh.Channel, scx *Serve
 	// Open a BPF recording session. If BPF was not configured, not available,
 	// or running in a recording proxy, OpenSession is a NOP.
 	sessionContext := &bpf.SessionContext{
-		Context:   scx.srv.Context(),
-		PID:       scx.ExecRequest.PID(),
-		Emitter:   s.Recorder(),
+		Context: scx.srv.Context(),
+		PID:     scx.ExecRequest.PID(),
+		// Emitter:   s.Recorder(),
 		Namespace: scx.srv.GetNamespace(),
 		SessionID: string(s.id),
 		ServerID:  scx.srv.HostUUID(),
@@ -1246,32 +1245,32 @@ func (s *session) startExec(ctx context.Context, channel ssh.Channel, scx *Serve
 	return nil
 }
 
-// newStreamer returns sync or async streamer based on the configuration
-// of the server and the session, sync streamer sends the events
-// directly to the auth server and blocks if the events can not be received,
-// async streamer buffers the events to disk and uploads the events later
-func (s *session) newStreamer(ctx *ServerContext) (events.Streamer, error) {
-	mode := ctx.SessionRecordingConfig.GetMode()
-	if services.IsRecordSync(mode) {
-		s.log.Debugf("Using sync streamer for session %v.", s.id)
-		return ctx.srv, nil
-	}
+// // newStreamer returns sync or async streamer based on the configuration
+// // of the server and the session, sync streamer sends the events
+// // directly to the auth server and blocks if the events can not be received,
+// // async streamer buffers the events to disk and uploads the events later
+// func (s *session) newStreamer(ctx *ServerContext) (events.Streamer, error) {
+// 	mode := ctx.SessionRecordingConfig.GetMode()
+// 	if services.IsRecordSync(mode) {
+// 		s.log.Debugf("Using sync streamer for session %v.", s.id)
+// 		return ctx.srv, nil
+// 	}
 
-	if ctx.IsTestStub {
-		s.log.Debugf("Using discard streamer for test")
-		return events.NewTeeStreamer(events.NewDiscardEmitter(), ctx.srv), nil
-	}
+// 	if ctx.IsTestStub {
+// 		s.log.Debugf("Using discard streamer for test")
+// 		return events.NewTeeStreamer(events.NewDiscardEmitter(), ctx.srv), nil
+// 	}
 
-	s.log.Debugf("Using async streamer for session %v.", s.id)
-	fileStreamer, err := filesessions.NewStreamer(sessionsStreamingUploadDir(ctx))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// TeeStreamer sends non-print and non disk events
-	// to the audit log in async mode, while buffering all
-	// events on disk for further upload at the end of the session.
-	return events.NewTeeStreamer(fileStreamer, ctx.srv), nil
-}
+// 	s.log.Debugf("Using async streamer for session %v.", s.id)
+// 	fileStreamer, err := filesessions.NewStreamer(sessionsStreamingUploadDir(ctx))
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	// TeeStreamer sends non-print and non disk events
+// 	// to the audit log in async mode, while buffering all
+// 	// events on disk for further upload at the end of the session.
+// 	return events.NewTeeStreamer(fileStreamer, ctx.srv), nil
+// }
 
 func sessionsStreamingUploadDir(ctx *ServerContext) string {
 	return filepath.Join(
@@ -1767,19 +1766,20 @@ func (s *session) trackSession(teleportUser string, policySet []*types.SessionTr
 
 // emitAuditEvent emits audit events.
 func (s *session) emitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
-	rec := s.Recorder()
-	select {
-	case <-rec.Done():
-		newRecorder, err := newEventOnlyRecorder(s, s.scx)
-		if err != nil {
-			return trace.ConnectionProblem(err, "failed to recreate audit events recorder")
-		}
-		s.setRecorder(newRecorder)
+	// rec := s.Recorder()
+	// select {
+	// case <-rec.Done():
+	// 	newRecorder, err := newEventOnlyRecorder(s, s.scx)
+	// 	if err != nil {
+	// 		return trace.ConnectionProblem(err, "failed to recreate audit events recorder")
+	// 	}
+	// 	s.setRecorder(newRecorder)
 
-		return trace.Wrap(newRecorder.EmitAuditEvent(ctx, event))
-	default:
-		return trace.Wrap(rec.EmitAuditEvent(ctx, event))
-	}
+	// 	return trace.Wrap(newRecorder.EmitAuditEvent(ctx, event))
+	// default:
+	// 	return trace.Wrap(rec.EmitAuditEvent(ctx, event))
+	// }
+	return nil
 }
 
 // onWriteError defines the `OnWriteError` `TermManager` callback.

@@ -28,7 +28,6 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/httplib"
@@ -48,7 +47,7 @@ type APIConfig struct {
 	SessionService session.Service
 	AuditLog       events.IAuditLog
 	Authorizer     Authorizer
-	Emitter        apievents.Emitter
+	// Emitter        apievents.Emitter
 	// KeepAlivePeriod defines period between keep alives
 	KeepAlivePeriod time.Duration
 	// KeepAliveCount specifies amount of missed keep alives

@@ -1669,7 +1669,7 @@ type ClientI interface {
 	services.Trust
 	events.IAuditLog
 	events.Streamer
-	apievents.Emitter
+	// apievents.Emitter
 	services.Presence
 	services.Access
 	services.DynamicAccess

@@ -28,9 +28,7 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
 )
@@ -131,17 +129,17 @@ func (s *Server) ChangePassword(req services.ChangePasswordReq) error {
 		return trace.Wrap(err)
 	}
 
-	if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.UserPasswordChange{
-		Metadata: apievents.Metadata{
-			Type: events.UserPasswordChangeEvent,
-			Code: events.UserPasswordChangeCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: user,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit password change event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.UserPasswordChange{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.UserPasswordChangeEvent,
+	// 		Code: events.UserPasswordChangeCode,
+	// 	},
+	// 	UserMetadata: apievents.UserMetadata{
+	// 		User: user,
+	// 	},
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit password change event.")
+	// }
 	return nil
 }
 

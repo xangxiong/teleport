@@ -29,17 +29,17 @@ import (
 
 // NewMultiLog returns a new instance of a multi logger
 func NewMultiLog(loggers ...IAuditLog) (*MultiLog, error) {
-	emitters := make([]apievents.Emitter, 0, len(loggers))
-	for _, logger := range loggers {
-		emitter, ok := logger.(apievents.Emitter)
-		if !ok {
-			return nil, trace.BadParameter("expected emitter, got %T", logger)
-		}
-		emitters = append(emitters, emitter)
-	}
+	// emitters := make([]apievents.Emitter, 0, len(loggers))
+	// for _, logger := range loggers {
+	// 	emitter, ok := logger.(apievents.Emitter)
+	// 	if !ok {
+	// 		return nil, trace.BadParameter("expected emitter, got %T", logger)
+	// 	}
+	// 	emitters = append(emitters, emitter)
+	// }
 	return &MultiLog{
-		MultiEmitter: NewMultiEmitter(emitters...),
-		loggers:      loggers,
+		// MultiEmitter: NewMultiEmitter(emitters...),
+		loggers: loggers,
 	}, nil
 }
 
@@ -48,7 +48,7 @@ func NewMultiLog(loggers ...IAuditLog) (*MultiLog, error) {
 // on the first logger that implements the operation
 type MultiLog struct {
 	loggers []IAuditLog
-	*MultiEmitter
+	// *MultiEmitter
 }
 
 // Close releases connections and resources associated with logs if any

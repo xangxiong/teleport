@@ -132,7 +132,7 @@ func (r *remoteSubsystem) Wait() error {
 }
 
 func (r *remoteSubsystem) emitAuditEvent(err error) {
-	srv := r.serverContext.GetServer()
+	// srv := r.serverContext.GetServer()
 	subsystemEvent := &apievents.Subsystem{
 		Metadata: apievents.Metadata{
 			Type: events.SubsystemEvent,
@@ -152,7 +152,7 @@ func (r *remoteSubsystem) emitAuditEvent(err error) {
 		subsystemEvent.Code = events.SubsystemCode
 	}
 
-	if err := srv.EmitAuditEvent(srv.Context(), subsystemEvent); err != nil {
-		r.log.WithError(err).Warn("Failed to emit subsystem audit event.")
-	}
+	// if err := srv.EmitAuditEvent(srv.Context(), subsystemEvent); err != nil {
+	// 	r.log.WithError(err).Warn("Failed to emit subsystem audit event.")
+	// }
 }

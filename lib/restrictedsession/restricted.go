@@ -291,9 +291,9 @@ func (l *auditEventLoop) loop() {
 			continue
 		}
 
-		if err = ctx.Emitter.EmitAuditEvent(ctx.Context, event); err != nil {
-			log.WithError(err).Warn("Failed to emit network event.")
-		}
+		// if err = ctx.Emitter.EmitAuditEvent(ctx.Context, event); err != nil {
+		// 	log.WithError(err).Warn("Failed to emit network event.")
+		// }
 	}
 }
 

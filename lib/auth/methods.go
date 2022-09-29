@@ -130,9 +130,9 @@ func (s *Server) AuthenticateUser(req AuthenticateUserRequest) (string, error) {
 		event.Code = events.UserLocalLoginCode
 		event.Status.Success = true
 	}
-	if err := s.emitter.EmitAuditEvent(s.closeCtx, event); err != nil {
-		log.WithError(err).Warn("Failed to emit login event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(s.closeCtx, event); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit login event.")
+	// }
 	return user, trace.Wrap(err)
 }
 
@@ -514,21 +514,21 @@ func (s *Server) AuthenticateSSHUser(ctx context.Context, req AuthenticateSSHReq
 
 // emitNoLocalAuthEvent creates and emits a local authentication is disabled message.
 func (s *Server) emitNoLocalAuthEvent(username string) {
-	if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.AuthAttempt{
-		Metadata: apievents.Metadata{
-			Type: events.AuthAttemptEvent,
-			Code: events.AuthAttemptFailureCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: username,
-		},
-		Status: apievents.Status{
-			Success: false,
-			Error:   noLocalAuth,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit no local auth event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.AuthAttempt{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.AuthAttemptEvent,
+	// 		Code: events.AuthAttemptFailureCode,
+	// 	},
+	// 	UserMetadata: apievents.UserMetadata{
+	// 		User: username,
+	// 	},
+	// 	Status: apievents.Status{
+	// 		Success: false,
+	// 		Error:   noLocalAuth,
+	// 	},
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit no local auth event.")
+	// }
 }
 
 func (s *Server) createUserWebSession(ctx context.Context, user types.User) (types.WebSession, error) {

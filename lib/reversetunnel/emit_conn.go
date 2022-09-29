@@ -24,7 +24,6 @@ import (
 
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/api/utils/sshutils"
-	"github.com/gravitational/teleport/lib/events"
 )
 
 func min(a, b int) int {
@@ -37,18 +36,18 @@ func min(a, b int) int {
 // emitConn is a wrapper for a net.Conn that emits an audit event for non-Teleport connections.
 type emitConn struct {
 	net.Conn
-	mu       sync.RWMutex
-	buffer   bytes.Buffer
-	emitter  apievents.Emitter
+	mu     sync.RWMutex
+	buffer bytes.Buffer
+	// emitter  apievents.Emitter
 	ctx      context.Context
 	serverID string
-	emitted  bool
+	// emitted  bool
 }
 
 func newEmitConn(ctx context.Context, conn net.Conn, emitter apievents.Emitter, serverID string) *emitConn {
 	return &emitConn{
-		Conn:     conn,
-		emitter:  emitter,
+		Conn: conn,
+		// emitter:  emitter,
 		ctx:      ctx,
 		serverID: serverID,
 	}
@@ -77,22 +76,22 @@ func (conn *emitConn) Read(p []byte) (int, error) {
 	// Only emit when we don't see the proxy hello signature in the first few bytes.
 	if conn.buffer.Len() == len(sshutils.ProxyHelloSignature) &&
 		!bytes.HasPrefix(conn.buffer.Bytes(), []byte(sshutils.ProxyHelloSignature)) {
-		event := &apievents.SessionConnect{
-			Metadata: apievents.Metadata{
-				Type: events.SessionConnectEvent,
-				Code: events.SessionConnectCode,
-			},
-			ServerMetadata: apievents.ServerMetadata{
-				ServerID:   conn.serverID,
-				ServerAddr: conn.LocalAddr().String(),
-			},
-			ConnectionMetadata: apievents.ConnectionMetadata{
-				LocalAddr:  conn.LocalAddr().String(),
-				RemoteAddr: conn.RemoteAddr().String(),
-			},
-		}
-		conn.emitted = true
-		go conn.emitter.EmitAuditEvent(conn.ctx, event)
+		// event := &apievents.SessionConnect{
+		// 	Metadata: apievents.Metadata{
+		// 		Type: events.SessionConnectEvent,
+		// 		Code: events.SessionConnectCode,
+		// 	},
+		// 	ServerMetadata: apievents.ServerMetadata{
+		// 		ServerID:   conn.serverID,
+		// 		ServerAddr: conn.LocalAddr().String(),
+		// 	},
+		// 	ConnectionMetadata: apievents.ConnectionMetadata{
+		// 		LocalAddr:  conn.LocalAddr().String(),
+		// 		RemoteAddr: conn.RemoteAddr().String(),
+		// 	},
+		// }
+		// conn.emitted = true
+		// go conn.emitter.EmitAuditEvent(conn.ctx, event)
 	}
 
 	return n, err

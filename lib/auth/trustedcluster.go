@@ -32,10 +32,8 @@ import (
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/observability/tracing"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib"
 	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/tlsca"
@@ -147,18 +145,18 @@ func (a *Server) UpsertTrustedCluster(ctx context.Context, trustedCluster types.
 		return nil, trace.Wrap(err)
 	}
 
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.TrustedClusterCreate{
-		Metadata: apievents.Metadata{
-			Type: events.TrustedClusterCreateEvent,
-			Code: events.TrustedClusterCreateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: trustedCluster.GetName(),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit trusted cluster create event.")
-	}
+	// if err := a.emitter.EmitAuditEvent(ctx, &apievents.TrustedClusterCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.TrustedClusterCreateEvent,
+	// 		Code: events.TrustedClusterCreateCode,
+	// 	},
+	// 	UserMetadata: ClientUserMetadata(ctx),
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name: trustedCluster.GetName(),
+	// 	},
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit trusted cluster create event.")
+	// }
 
 	return tc, nil
 }
@@ -215,18 +213,18 @@ func (a *Server) DeleteTrustedCluster(ctx context.Context, name string) error {
 		return trace.Wrap(err)
 	}
 
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.TrustedClusterDelete{
-		Metadata: apievents.Metadata{
-			Type: events.TrustedClusterDeleteEvent,
-			Code: events.TrustedClusterDeleteCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: name,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit trusted cluster delete event.")
-	}
+	// if err := a.emitter.EmitAuditEvent(ctx, &apievents.TrustedClusterDelete{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.TrustedClusterDeleteEvent,
+	// 		Code: events.TrustedClusterDeleteCode,
+	// 	},
+	// 	UserMetadata: ClientUserMetadata(ctx),
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name: name,
+	// 	},
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit trusted cluster delete event.")
+	// }
 
 	return nil
 }

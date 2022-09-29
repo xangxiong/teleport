@@ -698,12 +698,12 @@ type StreamWriter interface {
 	apievents.Stream
 }
 
-// StreamEmitter supports submitting single events and streaming
-// session events
-type StreamEmitter interface {
-	apievents.Emitter
-	Streamer
-}
+// // StreamEmitter supports submitting single events and streaming
+// // session events
+// type StreamEmitter interface {
+// 	apievents.Emitter
+// 	Streamer
+// }
 
 // IAuditLog is the primary (and the only external-facing) interface for AuditLogger.
 // If you wish to implement a different kind of logger (not filesystem-based), you

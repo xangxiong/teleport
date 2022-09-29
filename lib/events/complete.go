@@ -345,12 +345,12 @@ loop:
 
 	u.log.Infof("emitting %T event for completed session %v", sessionEndEvent, uploadData.SessionID)
 
-	// Check and set event fields
-	if err := checkAndSetEventFields(sessionEndEvent, u.cfg.Clock, utils.NewRealUID(), sessionEndEvent.GetClusterName()); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := u.cfg.AuditLog.EmitAuditEvent(ctx, sessionEndEvent); err != nil {
-		return trace.Wrap(err)
-	}
+	// // Check and set event fields
+	// if err := checkAndSetEventFields(sessionEndEvent, u.cfg.Clock, utils.NewRealUID(), sessionEndEvent.GetClusterName()); err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// if err := u.cfg.AuditLog.EmitAuditEvent(ctx, sessionEndEvent); err != nil {
+	// 	return trace.Wrap(err)
+	// }
 	return nil
 }

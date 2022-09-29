@@ -23,7 +23,6 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/sethvargo/go-diceware/diceware"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/gravitational/teleport/api/client/proto"
@@ -207,16 +206,16 @@ func (s *Server) verifyRecoveryCode(ctx context.Context, user string, givenCode 
 		event.Status.Error = traceErr.Error()
 		event.Status.UserMessage = traceErr.Error()
 
-		if err := s.emitter.EmitAuditEvent(s.closeCtx, event); err != nil {
-			log.WithFields(logrus.Fields{"user": user}).Warn("Failed to emit account recovery code used failed event.")
-		}
+		// if err := s.emitter.EmitAuditEvent(s.closeCtx, event); err != nil {
+		// 	log.WithFields(logrus.Fields{"user": user}).Warn("Failed to emit account recovery code used failed event.")
+		// }
 
 		return trace.AccessDenied(startRecoveryBadAuthnErrMsg)
 	}
 
-	if err := s.emitter.EmitAuditEvent(s.closeCtx, event); err != nil {
-		log.WithFields(logrus.Fields{"user": user}).Warn("Failed to emit account recovery code used event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(s.closeCtx, event); err != nil {
+	// 	log.WithFields(logrus.Fields{"user": user}).Warn("Failed to emit account recovery code used event.")
+	// }
 
 	return nil
 }
@@ -549,17 +548,17 @@ func (s *Server) generateAndUpsertRecoveryCodes(ctx context.Context, username st
 		return nil, trace.Wrap(err)
 	}
 
-	if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.RecoveryCodeGenerate{
-		Metadata: apievents.Metadata{
-			Type: events.RecoveryCodeGeneratedEvent,
-			Code: events.RecoveryCodesGenerateCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: username,
-		},
-	}); err != nil {
-		log.WithError(err).WithFields(logrus.Fields{"user": username}).Warn("Failed to emit recovery tokens generate event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.RecoveryCodeGenerate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.RecoveryCodeGeneratedEvent,
+	// 		Code: events.RecoveryCodesGenerateCode,
+	// 	},
+	// 	UserMetadata: apievents.UserMetadata{
+	// 		User: username,
+	// 	},
+	// }); err != nil {
+	// 	log.WithError(err).WithFields(logrus.Fields{"user": username}).Warn("Failed to emit recovery tokens generate event.")
+	// }
 
 	return &proto.RecoveryCodes{
 		Codes:   codes,

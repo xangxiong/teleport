@@ -53,15 +53,15 @@ type Query struct {
 
 // AuditConfig is the audit events emitter configuration.
 type AuditConfig struct {
-	// Emitter is used to emit audit events.
-	Emitter events.Emitter
+	// // Emitter is used to emit audit events.
+	// Emitter events.Emitter
 }
 
 // Check validates the config.
 func (c *AuditConfig) Check() error {
-	if c.Emitter == nil {
-		return trace.BadParameter("missing Emitter")
-	}
+	// if c.Emitter == nil {
+	// 	return trace.BadParameter("missing Emitter")
+	// }
 	return nil
 }
 
@@ -152,9 +152,9 @@ func (a *audit) OnQuery(ctx context.Context, session *Session, query Query) {
 
 // EmitEvent emits the provided audit event using configured emitter.
 func (a *audit) EmitEvent(ctx context.Context, event events.AuditEvent) {
-	if err := a.cfg.Emitter.EmitAuditEvent(ctx, event); err != nil {
-		a.log.WithError(err).Errorf("Failed to emit audit event: %v.", event)
-	}
+	// if err := a.cfg.Emitter.EmitAuditEvent(ctx, event); err != nil {
+	// 	a.log.WithError(err).Errorf("Failed to emit audit event: %v.", event)
+	// }
 }
 
 // MakeEventMetadata returns common event metadata for database session.

@@ -60,19 +60,19 @@ import (
 //
 // To create a forwarding server and serve a single SSH connection on it:
 //
-//   serverConfig := forward.ServerConfig{
-//      ...
-//   }
-//   remoteServer, err := forward.New(serverConfig)
-//   if err != nil {
-//   	return nil, trace.Wrap(err)
-//   }
-//   go remoteServer.Serve()
+//	serverConfig := forward.ServerConfig{
+//	   ...
+//	}
+//	remoteServer, err := forward.New(serverConfig)
+//	if err != nil {
+//		return nil, trace.Wrap(err)
+//	}
+//	go remoteServer.Serve()
 //
-//   conn, err := remoteServer.Dial()
-//   if err != nil {
-//   	return nil, trace.Wrap(err)
-//   }
+//	conn, err := remoteServer.Dial()
+//	if err != nil {
+//		return nil, trace.Wrap(err)
+//	}
 type Server struct {
 	log *logrus.Entry
 
@@ -111,8 +111,8 @@ type Server struct {
 	// to the client.
 	hostCertificate ssh.Signer
 
-	// StreamEmitter points to the auth service and emits audit events
-	events.StreamEmitter
+	// // StreamEmitter points to the auth service and emits audit events
+	// events.StreamEmitter
 
 	// authHandlers are common authorization and authentication handlers shared
 	// by the regular and forwarding server.
@@ -208,8 +208,8 @@ type ServerConfig struct {
 	// is running in.
 	HostUUID string
 
-	// Emitter is audit events emitter
-	Emitter events.StreamEmitter
+	// // Emitter is audit events emitter
+	// Emitter events.StreamEmitter
 
 	// ParentContext is a parent context, used to signal global
 	// closure
@@ -251,9 +251,9 @@ func (s *ServerConfig) CheckDefaults() error {
 	if s.Clock == nil {
 		s.Clock = clockwork.NewRealClock()
 	}
-	if s.Emitter == nil {
-		return trace.BadParameter("missing parameter Emitter")
-	}
+	// if s.Emitter == nil {
+	// 	return trace.BadParameter("missing parameter Emitter")
+	// }
 	if s.ParentContext == nil {
 		s.ParentContext = context.TODO()
 	}
@@ -304,13 +304,13 @@ func New(c ServerConfig) (*Server, error) {
 		dataDir:         c.DataDir,
 		clock:           c.Clock,
 		hostUUID:        c.HostUUID,
-		StreamEmitter:   c.Emitter,
-		parentContext:   c.ParentContext,
-		lockWatcher:     c.LockWatcher,
-		tracerProvider:  c.TracerProvider,
-		targetID:        c.TargetID,
-		targetAddr:      c.TargetAddr,
-		targetHostname:  c.TargetHostname,
+		// StreamEmitter:   c.Emitter,
+		parentContext:  c.ParentContext,
+		lockWatcher:    c.LockWatcher,
+		tracerProvider: c.TracerProvider,
+		targetID:       c.TargetID,
+		targetAddr:     c.TargetAddr,
+		targetHostname: c.TargetHostname,
 	}
 
 	// Set the ciphers, KEX, and MACs that the in-memory server will send to the
@@ -329,9 +329,9 @@ func New(c ServerConfig) (*Server, error) {
 
 	// Common auth handlers.
 	authHandlerConfig := srv.AuthHandlerConfig{
-		Server:      s,
-		Component:   teleport.ComponentForwardingNode,
-		Emitter:     c.Emitter,
+		Server:    s,
+		Component: teleport.ComponentForwardingNode,
+		// Emitter:     c.Emitter,
 		AccessPoint: c.AuthClient,
 		FIPS:        c.FIPS,
 		Clock:       c.Clock,
@@ -828,23 +828,23 @@ func (s *Server) handleDirectTCPIPRequest(ctx context.Context, ch ssh.Channel, r
 	}
 	defer conn.Close()
 
-	if err := s.EmitAuditEvent(s.closeContext, &apievents.PortForward{
-		Metadata: apievents.Metadata{
-			Type: events.PortForwardEvent,
-			Code: events.PortForwardCode,
-		},
-		UserMetadata: s.identityContext.GetUserMetadata(),
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			LocalAddr:  s.sconn.LocalAddr().String(),
-			RemoteAddr: s.sconn.RemoteAddr().String(),
-		},
-		Addr: scx.DstAddr,
-		Status: apievents.Status{
-			Success: true,
-		},
-	}); err != nil {
-		scx.WithError(err).Warn("Failed to emit port forward event.")
-	}
+	// if err := s.EmitAuditEvent(s.closeContext, &apievents.PortForward{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.PortForwardEvent,
+	// 		Code: events.PortForwardCode,
+	// 	},
+	// 	UserMetadata: s.identityContext.GetUserMetadata(),
+	// 	ConnectionMetadata: apievents.ConnectionMetadata{
+	// 		LocalAddr:  s.sconn.LocalAddr().String(),
+	// 		RemoteAddr: s.sconn.RemoteAddr().String(),
+	// 	},
+	// 	Addr: scx.DstAddr,
+	// 	Status: apievents.Status{
+	// 		Success: true,
+	// 	},
+	// }); err != nil {
+	// 	scx.WithError(err).Warn("Failed to emit port forward event.")
+	// }
 
 	var wg sync.WaitGroup
 	wch := make(chan struct{})
@@ -1164,9 +1164,9 @@ func (s *Server) handleX11Forward(ctx context.Context, ch ssh.Channel, req *ssh.
 			s.replyError(ch, req, err)
 			err = nil
 		}
-		if err := s.EmitAuditEvent(ctx, event); err != nil {
-			s.log.WithError(err).Warn("Failed to emit x11-forward event.")
-		}
+		// if err := s.EmitAuditEvent(ctx, event); err != nil {
+		// 	s.log.WithError(err).Warn("Failed to emit x11-forward event.")
+		// }
 	}()
 
 	// Check if the user's RBAC role allows X11 forwarding.

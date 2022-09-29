@@ -45,7 +45,6 @@ import (
 	"github.com/gravitational/teleport/api/constants"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/backend"
@@ -1714,11 +1713,11 @@ func (process *TeleportProcess) newAccessCache(cfg accessCacheConfig) (*cache.Ca
 		DynamicAccess: cfg.services,
 		Presence:      cfg.services,
 		Restrictions:  cfg.services,
-		Databases:     cfg.services,
-		WebSession:    cfg.services.WebSessions(),
-		WebToken:      cfg.services.WebTokens(),
-		Component:     teleport.Component(append(cfg.cacheName, process.id, teleport.ComponentCache)...),
-		Unstarted:     cfg.unstarted,
+		// Databases:     cfg.services,
+		// WebSession:    cfg.services.WebSessions(),
+		WebToken:  cfg.services.WebTokens(),
+		Component: teleport.Component(append(cfg.cacheName, process.id, teleport.ComponentCache)...),
+		Unstarted: cfg.unstarted,
 	}))
 }
 
@@ -1839,23 +1838,23 @@ func (process *TeleportProcess) proxyPublicAddr() utils.NetAddr {
 	return process.Config.Proxy.PublicAddrs[0]
 }
 
-// newAsyncEmitter wraps client and returns emitter that never blocks, logs some events and checks values.
-// It is caller's responsibility to call Close on the emitter once done.
-func (process *TeleportProcess) newAsyncEmitter(clt apievents.Emitter) (*events.AsyncEmitter, error) {
-	emitter, err := events.NewCheckingEmitter(events.CheckingEmitterConfig{
-		Inner: events.NewMultiEmitter(events.NewLoggingEmitter(), clt),
-		Clock: process.Clock,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // newAsyncEmitter wraps client and returns emitter that never blocks, logs some events and checks values.
+// // It is caller's responsibility to call Close on the emitter once done.
+// func (process *TeleportProcess) newAsyncEmitter(clt apievents.Emitter) (*events.AsyncEmitter, error) {
+// 	emitter, err := events.NewCheckingEmitter(events.CheckingEmitterConfig{
+// 		Inner: events.NewMultiEmitter(events.NewLoggingEmitter(), clt),
+// 		Clock: process.Clock,
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	// asyncEmitter makes sure that sessions do not block
-	// in case if connections are slow
-	return events.NewAsyncEmitter(events.AsyncEmitterConfig{
-		Inner: emitter,
-	})
-}
+// 	// asyncEmitter makes sure that sessions do not block
+// 	// in case if connections are slow
+// 	return events.NewAsyncEmitter(events.AsyncEmitterConfig{
+// 		Inner: emitter,
+// 	})
+// }
 
 // initInstance initializes the pseudo-service "Instance" that is active on all teleport instances.
 func (process *TeleportProcess) initInstance() error {
@@ -1997,27 +1996,27 @@ func (process *TeleportProcess) initSSH() error {
 			cfg.SSH.Addr = *defaults.SSHServerListenAddr()
 		}
 
-		// asyncEmitter makes sure that sessions do not block
-		// in case if connections are slow
-		asyncEmitter, err := process.newAsyncEmitter(conn.Client)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		defer func() { warnOnErr(asyncEmitter.Close(), log) }()
+		// // asyncEmitter makes sure that sessions do not block
+		// // in case if connections are slow
+		// asyncEmitter, err := process.newAsyncEmitter(conn.Client)
+		// if err != nil {
+		// 	return trace.Wrap(err)
+		// }
+		// defer func() { warnOnErr(asyncEmitter.Close(), log) }()
 
-		clusterName, err := authClient.GetClusterName()
-		if err != nil {
-			return trace.Wrap(err)
-		}
+		// clusterName, err := authClient.GetClusterName()
+		// if err != nil {
+		// 	return trace.Wrap(err)
+		// }
 
-		streamer, err := events.NewCheckingStreamer(events.CheckingStreamerConfig{
-			Inner:       conn.Client,
-			Clock:       process.Clock,
-			ClusterName: clusterName.GetClusterName(),
-		})
-		if err != nil {
-			return trace.Wrap(err)
-		}
+		// streamer, err := events.NewCheckingStreamer(events.CheckingStreamerConfig{
+		// 	Inner:       conn.Client,
+		// 	Clock:       process.Clock,
+		// 	ClusterName: clusterName.GetClusterName(),
+		// })
+		// if err != nil {
+		// 	return trace.Wrap(err)
+		// }
 
 		lockWatcher, err := services.NewLockWatcher(process.ExitContext(), services.LockWatcherConfig{
 			ResourceWatcherConfig: services.ResourceWatcherConfig{
@@ -2042,7 +2041,7 @@ func (process *TeleportProcess) initSSH() error {
 			conn.Client,
 			regular.SetLimiter(limiter),
 			regular.SetShell(cfg.SSH.Shell),
-			regular.SetEmitter(&events.StreamerAndEmitter{Emitter: asyncEmitter, Streamer: streamer}),
+			// regular.SetEmitter(&events.StreamerAndEmitter{Emitter: asyncEmitter, Streamer: streamer}),
 			regular.SetSessionServer(conn.Client),
 			// regular.SetLabels(cfg.SSH.Labels, cfg.SSH.CmdLabels, process.cloudLabels),
 			regular.SetLabels(cfg.SSH.Labels, cfg.SSH.CmdLabels, nil),

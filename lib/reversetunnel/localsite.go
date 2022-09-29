@@ -287,12 +287,12 @@ func (s *localSite) dialWithAgent(params DialParams) (net.Conn, error) {
 		Address:         params.Address,
 		UseTunnel:       useTunnel,
 		HostUUID:        s.srv.ID,
-		Emitter:         s.srv.Config.Emitter,
-		ParentContext:   s.srv.Context,
-		LockWatcher:     s.srv.LockWatcher,
-		TargetID:        params.ServerID,
-		TargetAddr:      params.To.String(),
-		TargetHostname:  params.Address,
+		// Emitter:         s.srv.Config.Emitter,
+		ParentContext:  s.srv.Context,
+		LockWatcher:    s.srv.LockWatcher,
+		TargetID:       params.ServerID,
+		TargetAddr:     params.To.String(),
+		TargetHostname: params.Address,
 	}
 	remoteServer, err := forward.New(serverConfig)
 	if err != nil {

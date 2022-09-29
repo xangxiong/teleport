@@ -1191,19 +1191,19 @@ func (a *ServerWithRoles) ListResources(ctx context.Context, req proto.ListResou
 		if err := a.context.UseSearchAsRoles(services.RoleGetter(a.authServer), clusterName.GetClusterName()); err != nil {
 			return nil, trace.Wrap(err)
 		}
-		a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.AccessRequestResourceSearch{
-			Metadata: apievents.Metadata{
-				Type: events.AccessRequestResourceSearch,
-				Code: events.AccessRequestResourceSearchCode,
-			},
-			UserMetadata:        ClientUserMetadata(ctx),
-			SearchAsRoles:       a.context.Checker.RoleNames(),
-			ResourceType:        req.ResourceType,
-			Namespace:           req.Namespace,
-			Labels:              req.Labels,
-			PredicateExpression: req.PredicateExpression,
-			SearchKeywords:      req.SearchKeywords,
-		})
+		// a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.AccessRequestResourceSearch{
+		// 	Metadata: apievents.Metadata{
+		// 		Type: events.AccessRequestResourceSearch,
+		// 		Code: events.AccessRequestResourceSearchCode,
+		// 	},
+		// 	UserMetadata:        ClientUserMetadata(ctx),
+		// 	SearchAsRoles:       a.context.Checker.RoleNames(),
+		// 	ResourceType:        req.ResourceType,
+		// 	Namespace:           req.Namespace,
+		// 	Labels:              req.Labels,
+		// 	PredicateExpression: req.PredicateExpression,
+		// 	SearchKeywords:      req.SearchKeywords,
+		// })
 	}
 
 	// ListResources request coming through this auth layer gets request filters
@@ -2039,20 +2039,20 @@ func (a *ServerWithRoles) GetUsers(withSecrets bool) ([]types.User, error) {
 		if !a.hasBuiltinRole(types.RoleAdmin) {
 			err := trace.AccessDenied("user %q requested access to all users with secrets", a.context.User.GetName())
 			log.Warning(err)
-			if err := a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.UserLogin{
-				Metadata: apievents.Metadata{
-					Type: events.UserLoginEvent,
-					Code: events.UserLocalLoginFailureCode,
-				},
-				Method: events.LoginMethodClientCert,
-				Status: apievents.Status{
-					Success:     false,
-					Error:       trace.Unwrap(err).Error(),
-					UserMessage: err.Error(),
-				},
-			}); err != nil {
-				log.WithError(err).Warn("Failed to emit local login failure event.")
-			}
+			// if err := a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.UserLogin{
+			// 	Metadata: apievents.Metadata{
+			// 		Type: events.UserLoginEvent,
+			// 		Code: events.UserLocalLoginFailureCode,
+			// 	},
+			// 	Method: events.LoginMethodClientCert,
+			// 	Status: apievents.Status{
+			// 		Success:     false,
+			// 		Error:       trace.Unwrap(err).Error(),
+			// 		UserMessage: err.Error(),
+			// 	},
+			// }); err != nil {
+			// 	log.WithError(err).Warn("Failed to emit local login failure event.")
+			// }
 			return nil, trace.AccessDenied("this request can be only executed by an admin")
 		}
 	} else {
@@ -2070,20 +2070,20 @@ func (a *ServerWithRoles) GetUser(name string, withSecrets bool) (types.User, er
 		if !a.hasBuiltinRole(types.RoleAdmin) {
 			err := trace.AccessDenied("user %q requested access to user %q with secrets", a.context.User.GetName(), name)
 			log.Warning(err)
-			if err := a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.UserLogin{
-				Metadata: apievents.Metadata{
-					Type: events.UserLoginEvent,
-					Code: events.UserLocalLoginFailureCode,
-				},
-				Method: events.LoginMethodClientCert,
-				Status: apievents.Status{
-					Success:     false,
-					Error:       trace.Unwrap(err).Error(),
-					UserMessage: err.Error(),
-				},
-			}); err != nil {
-				log.WithError(err).Warn("Failed to emit local login failure event.")
-			}
+			// if err := a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.UserLogin{
+			// 	Metadata: apievents.Metadata{
+			// 		Type: events.UserLoginEvent,
+			// 		Code: events.UserLocalLoginFailureCode,
+			// 	},
+			// 	Method: events.LoginMethodClientCert,
+			// 	Status: apievents.Status{
+			// 		Success:     false,
+			// 		Error:       trace.Unwrap(err).Error(),
+			// 		UserMessage: err.Error(),
+			// 	},
+			// }); err != nil {
+			// 	log.WithError(err).Warn("Failed to emit local login failure event.")
+			// }
 			return nil, trace.AccessDenied("this request can be only executed by an admin")
 		}
 	} else {
@@ -2449,20 +2449,20 @@ func (a *ServerWithRoles) generateUserCerts(ctx context.Context, req proto.UserC
 			if err != nil {
 				log.Warning(err)
 				err := trace.AccessDenied("user %q has requested role impersonation for %q", a.context.User.GetName(), accessInfo.Roles)
-				if err := a.authServer.emitter.EmitAuditEvent(a.CloseContext(), &apievents.UserLogin{
-					Metadata: apievents.Metadata{
-						Type: events.UserLoginEvent,
-						Code: events.UserLocalLoginFailureCode,
-					},
-					Method: events.LoginMethodClientCert,
-					Status: apievents.Status{
-						Success:     false,
-						Error:       trace.Unwrap(err).Error(),
-						UserMessage: err.Error(),
-					},
-				}); err != nil {
-					log.WithError(err).Warn("Failed to emit local login failure event.")
-				}
+				// if err := a.authServer.emitter.EmitAuditEvent(a.CloseContext(), &apievents.UserLogin{
+				// 	Metadata: apievents.Metadata{
+				// 		Type: events.UserLoginEvent,
+				// 		Code: events.UserLocalLoginFailureCode,
+				// 	},
+				// 	Method: events.LoginMethodClientCert,
+				// 	Status: apievents.Status{
+				// 		Success:     false,
+				// 		Error:       trace.Unwrap(err).Error(),
+				// 		UserMessage: err.Error(),
+				// 	},
+				// }); err != nil {
+				// 	log.WithError(err).Warn("Failed to emit local login failure event.")
+				// }
 				return nil, trace.Wrap(err)
 			}
 		}
@@ -2476,20 +2476,20 @@ func (a *ServerWithRoles) generateUserCerts(ctx context.Context, req proto.UserC
 		if err != nil {
 			log.Warning(err)
 			err := trace.AccessDenied("user %q has requested to generate certs for %q.", a.context.User.GetName(), accessInfo.Roles)
-			if err := a.authServer.emitter.EmitAuditEvent(a.CloseContext(), &apievents.UserLogin{
-				Metadata: apievents.Metadata{
-					Type: events.UserLoginEvent,
-					Code: events.UserLocalLoginFailureCode,
-				},
-				Method: events.LoginMethodClientCert,
-				Status: apievents.Status{
-					Success:     false,
-					Error:       trace.Unwrap(err).Error(),
-					UserMessage: err.Error(),
-				},
-			}); err != nil {
-				log.WithError(err).Warn("Failed to emit local login failure event.")
-			}
+			// if err := a.authServer.emitter.EmitAuditEvent(a.CloseContext(), &apievents.UserLogin{
+			// 	Metadata: apievents.Metadata{
+			// 		Type: events.UserLoginEvent,
+			// 		Code: events.UserLocalLoginFailureCode,
+			// 	},
+			// 	Method: events.LoginMethodClientCert,
+			// 	Status: apievents.Status{
+			// 		Success:     false,
+			// 		Error:       trace.Unwrap(err).Error(),
+			// 		UserMessage: err.Error(),
+			// 	},
+			// }); err != nil {
+			// 	log.WithError(err).Warn("Failed to emit local login failure event.")
+			// }
 			return nil, trace.Wrap(err)
 		}
 	}
@@ -2984,27 +2984,27 @@ func (a *ServerWithRoles) GetGithubAuthRequest(ctx context.Context, stateToken s
 // 	return a.authServer.ValidateGithubAuthCallback(ctx, q)
 // }
 
-// EmitAuditEvent emits a single audit event
-func (a *ServerWithRoles) EmitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
-	if err := a.action(apidefaults.Namespace, types.KindEvent, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	role, ok := a.context.Identity.(BuiltinRole)
-	if !ok || !role.IsServer() {
-		return trace.AccessDenied("this request can be only executed by a teleport built-in server")
-	}
-	err := events.ValidateServerMetadata(event, role.GetServerID(), a.hasBuiltinRole(types.RoleProxy))
-	if err != nil {
-		// TODO: this should be a proper audit event
-		// notifying about access violation
-		log.Warningf("Rejecting audit event %v(%q) from %q: %v. The client is attempting to "+
-			"submit events for an identity other than the one on its x509 certificate.",
-			event.GetType(), event.GetID(), role.GetServerID(), err)
-		// this message is sparse on purpose to avoid conveying extra data to an attacker
-		return trace.AccessDenied("failed to validate event metadata")
-	}
-	return a.authServer.emitter.EmitAuditEvent(ctx, event)
-}
+// // EmitAuditEvent emits a single audit event
+// func (a *ServerWithRoles) EmitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindEvent, types.VerbCreate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	role, ok := a.context.Identity.(BuiltinRole)
+// 	if !ok || !role.IsServer() {
+// 		return trace.AccessDenied("this request can be only executed by a teleport built-in server")
+// 	}
+// 	err := events.ValidateServerMetadata(event, role.GetServerID(), a.hasBuiltinRole(types.RoleProxy))
+// 	if err != nil {
+// 		// TODO: this should be a proper audit event
+// 		// notifying about access violation
+// 		log.Warningf("Rejecting audit event %v(%q) from %q: %v. The client is attempting to "+
+// 			"submit events for an identity other than the one on its x509 certificate.",
+// 			event.GetType(), event.GetID(), role.GetServerID(), err)
+// 		// this message is sparse on purpose to avoid conveying extra data to an attacker
+// 		return trace.AccessDenied("failed to validate event metadata")
+// 	}
+// 	return a.authServer.emitter.EmitAuditEvent(ctx, event)
+// }
 
 // CreateAuditStream creates audit event stream
 func (a *ServerWithRoles) CreateAuditStream(ctx context.Context, sid session.ID) (apievents.Stream, error) {
@@ -3015,12 +3015,12 @@ func (a *ServerWithRoles) CreateAuditStream(ctx context.Context, sid session.ID)
 	if !ok || !role.IsServer() {
 		return nil, trace.AccessDenied("this request can be only executed by proxy, node or auth")
 	}
-	stream, err := a.authServer.CreateAuditStream(ctx, sid)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// stream, err := a.authServer.CreateAuditStream(ctx, sid)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 	return &streamWithRoles{
-		stream:   stream,
+		// stream:   stream,
 		a:        a,
 		serverID: role.GetServerID(),
 	}, nil
@@ -3035,12 +3035,12 @@ func (a *ServerWithRoles) ResumeAuditStream(ctx context.Context, sid session.ID,
 	if !ok || !role.IsServer() {
 		return nil, trace.AccessDenied("this request can be only executed by proxy, node or auth")
 	}
-	stream, err := a.authServer.ResumeAuditStream(ctx, sid, uploadID)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// stream, err := a.authServer.ResumeAuditStream(ctx, sid, uploadID)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 	return &streamWithRoles{
-		stream:   stream,
+		// stream:   stream,
 		a:        a,
 		serverID: role.GetServerID(),
 	}, nil
@@ -3102,17 +3102,17 @@ func (a *ServerWithRoles) GetSessionEvents(namespace string, sid session.ID, aft
 		return nil, trace.Wrap(err)
 	}
 
-	// emit a session recording view event for the audit log
-	if err := a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.SessionRecordingAccess{
-		Metadata: apievents.Metadata{
-			Type: events.SessionRecordingAccessEvent,
-			Code: events.SessionRecordingAccessCode,
-		},
-		SessionID:    sid.String(),
-		UserMetadata: a.context.Identity.GetIdentity().GetUserMetadata(),
-	}); err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// // emit a session recording view event for the audit log
+	// if err := a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.SessionRecordingAccess{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.SessionRecordingAccessEvent,
+	// 		Code: events.SessionRecordingAccessCode,
+	// 	},
+	// 	SessionID:    sid.String(),
+	// 	UserMetadata: a.context.Identity.GetIdentity().GetUserMetadata(),
+	// }); err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	return a.alog.GetSessionEvents(namespace, sid, afterN, includePrintEvents)
 }
@@ -4408,43 +4408,43 @@ func (a *ServerWithRoles) ReplaceRemoteLocks(ctx context.Context, clusterName st
 	return a.authServer.ReplaceRemoteLocks(ctx, clusterName, locks)
 }
 
-// StreamSessionEvents streams all events from a given session recording. An error is returned on the first
-// channel if one is encountered. Otherwise the event channel is closed when the stream ends.
-// The event channel is not closed on error to prevent race conditions in downstream select statements.
-func (a *ServerWithRoles) StreamSessionEvents(ctx context.Context, sessionID session.ID, startIndex int64) (chan apievents.AuditEvent, chan error) {
-	createErrorChannel := func(err error) (chan apievents.AuditEvent, chan error) {
-		e := make(chan error, 1)
-		e <- trace.Wrap(err)
-		return nil, e
-	}
+// // StreamSessionEvents streams all events from a given session recording. An error is returned on the first
+// // channel if one is encountered. Otherwise the event channel is closed when the stream ends.
+// // The event channel is not closed on error to prevent race conditions in downstream select statements.
+// func (a *ServerWithRoles) StreamSessionEvents(ctx context.Context, sessionID session.ID, startIndex int64) (chan apievents.AuditEvent, chan error) {
+// 	createErrorChannel := func(err error) (chan apievents.AuditEvent, chan error) {
+// 		e := make(chan error, 1)
+// 		e <- trace.Wrap(err)
+// 		return nil, e
+// 	}
 
-	if err := a.actionForKindSession(apidefaults.Namespace, types.VerbList, sessionID); err != nil {
-		return createErrorChannel(err)
-	}
+// 	if err := a.actionForKindSession(apidefaults.Namespace, types.VerbList, sessionID); err != nil {
+// 		return createErrorChannel(err)
+// 	}
 
-	// StreamSessionEvents can be called internally, and when that happens we don't want to emit an event.
-	shouldEmitAuditEvent := true
-	if role, ok := a.context.Identity.(BuiltinRole); ok {
-		if role.IsServer() {
-			shouldEmitAuditEvent = false
-		}
-	}
+// 	// StreamSessionEvents can be called internally, and when that happens we don't want to emit an event.
+// 	shouldEmitAuditEvent := true
+// 	if role, ok := a.context.Identity.(BuiltinRole); ok {
+// 		if role.IsServer() {
+// 			shouldEmitAuditEvent = false
+// 		}
+// 	}
 
-	if shouldEmitAuditEvent {
-		if err := a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.SessionRecordingAccess{
-			Metadata: apievents.Metadata{
-				Type: events.SessionRecordingAccessEvent,
-				Code: events.SessionRecordingAccessCode,
-			},
-			SessionID:    sessionID.String(),
-			UserMetadata: a.context.Identity.GetIdentity().GetUserMetadata(),
-		}); err != nil {
-			return createErrorChannel(err)
-		}
-	}
+// 	// if shouldEmitAuditEvent {
+// 	// 	if err := a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.SessionRecordingAccess{
+// 	// 		Metadata: apievents.Metadata{
+// 	// 			Type: events.SessionRecordingAccessEvent,
+// 	// 			Code: events.SessionRecordingAccessCode,
+// 	// 		},
+// 	// 		SessionID:    sessionID.String(),
+// 	// 		UserMetadata: a.context.Identity.GetIdentity().GetUserMetadata(),
+// 	// 	}); err != nil {
+// 	// 		return createErrorChannel(err)
+// 	// 	}
+// 	// }
 
-	return a.alog.StreamSessionEvents(ctx, sessionID, startIndex)
-}
+// 	return a.alog.StreamSessionEvents(ctx, sessionID, startIndex)
+// }
 
 // // CreateApp creates a new application resource.
 // func (a *ServerWithRoles) CreateApp(ctx context.Context, app types.Application) error {
@@ -5025,29 +5025,29 @@ func (a *ServerWithRoles) MaintainSessionPresence(ctx context.Context) (proto.Au
 // 	}, nil
 // }
 
-func emitSSOLoginFailureEvent(ctx context.Context, emitter apievents.Emitter, method string, err error, testFlow bool) {
-	code := events.UserSSOLoginFailureCode
-	if testFlow {
-		code = events.UserSSOTestFlowLoginFailureCode
-	}
+// func emitSSOLoginFailureEvent(ctx context.Context, emitter apievents.Emitter, method string, err error, testFlow bool) {
+// 	code := events.UserSSOLoginFailureCode
+// 	if testFlow {
+// 		code = events.UserSSOTestFlowLoginFailureCode
+// 	}
 
-	emitErr := emitter.EmitAuditEvent(ctx, &apievents.UserLogin{
-		Metadata: apievents.Metadata{
-			Type: events.UserLoginEvent,
-			Code: code,
-		},
-		Method: method,
-		Status: apievents.Status{
-			Success:     false,
-			Error:       trace.Unwrap(err).Error(),
-			UserMessage: err.Error(),
-		},
-	})
+// 	emitErr := emitter.EmitAuditEvent(ctx, &apievents.UserLogin{
+// 		Metadata: apievents.Metadata{
+// 			Type: events.UserLoginEvent,
+// 			Code: code,
+// 		},
+// 		Method: method,
+// 		Status: apievents.Status{
+// 			Success:     false,
+// 			Error:       trace.Unwrap(err).Error(),
+// 			UserMessage: err.Error(),
+// 		},
+// 	})
 
-	if emitErr != nil {
-		log.WithError(err).Warnf("Failed to emit %v login failure event.", method)
-	}
-}
+// 	if emitErr != nil {
+// 		log.WithError(err).Warnf("Failed to emit %v login failure event.", method)
+// 	}
+// }
 
 // verbsToReplaceResourceWithOrigin determines the verbs/actions required of a role
 // to replace the resource currently stored in the backend.

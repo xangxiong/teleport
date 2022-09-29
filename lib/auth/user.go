@@ -20,7 +20,6 @@ limitations under the License.
 // * Authority server itself that implements signing and acl logic
 // * HTTP server wrapper for authority server
 // * HTTP client wrapper
-//
 package auth
 
 import (
@@ -28,10 +27,7 @@ import (
 
 	"github.com/gravitational/trace"
 
-	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 )
 
@@ -51,28 +47,28 @@ func (s *Server) CreateUser(ctx context.Context, user types.User) error {
 		return trace.Wrap(err)
 	}
 
-	var connectorName string
-	if user.GetCreatedBy().Connector == nil {
-		connectorName = constants.LocalConnector
-	} else {
-		connectorName = user.GetCreatedBy().Connector.ID
-	}
+	// var connectorName string
+	// if user.GetCreatedBy().Connector == nil {
+	// 	connectorName = constants.LocalConnector
+	// } else {
+	// 	connectorName = user.GetCreatedBy().Connector.ID
+	// }
 
-	if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserCreate{
-		Metadata: apievents.Metadata{
-			Type: events.UserCreateEvent,
-			Code: events.UserCreateCode,
-		},
-		UserMetadata: ClientUserMetadataWithUser(ctx, user.GetCreatedBy().User.Name),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    user.GetName(),
-			Expires: user.Expiry(),
-		},
-		Connector: connectorName,
-		Roles:     user.GetRoles(),
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit user create event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.UserCreateEvent,
+	// 		Code: events.UserCreateCode,
+	// 	},
+	// 	UserMetadata: ClientUserMetadataWithUser(ctx, user.GetCreatedBy().User.Name),
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name:    user.GetName(),
+	// 		Expires: user.Expiry(),
+	// 	},
+	// 	Connector: connectorName,
+	// 	Roles:     user.GetRoles(),
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit user create event.")
+	// }
 
 	return nil
 }
@@ -83,28 +79,28 @@ func (s *Server) UpdateUser(ctx context.Context, user types.User) error {
 		return trace.Wrap(err)
 	}
 
-	var connectorName string
-	if user.GetCreatedBy().Connector == nil {
-		connectorName = constants.LocalConnector
-	} else {
-		connectorName = user.GetCreatedBy().Connector.ID
-	}
+	// var connectorName string
+	// if user.GetCreatedBy().Connector == nil {
+	// 	connectorName = constants.LocalConnector
+	// } else {
+	// 	connectorName = user.GetCreatedBy().Connector.ID
+	// }
 
-	if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserCreate{
-		Metadata: apievents.Metadata{
-			Type: events.UserUpdatedEvent,
-			Code: events.UserUpdateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    user.GetName(),
-			Expires: user.Expiry(),
-		},
-		Connector: connectorName,
-		Roles:     user.GetRoles(),
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit user update event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.UserUpdatedEvent,
+	// 		Code: events.UserUpdateCode,
+	// 	},
+	// 	UserMetadata: ClientUserMetadata(ctx),
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name:    user.GetName(),
+	// 		Expires: user.Expiry(),
+	// 	},
+	// 	Connector: connectorName,
+	// 	Roles:     user.GetRoles(),
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit user update event.")
+	// }
 
 	return nil
 }
@@ -116,30 +112,30 @@ func (s *Server) UpsertUser(user types.User) error {
 		return trace.Wrap(err)
 	}
 
-	var connectorName string
-	if user.GetCreatedBy().Connector == nil {
-		connectorName = constants.LocalConnector
-	} else {
-		connectorName = user.GetCreatedBy().Connector.ID
-	}
+	// var connectorName string
+	// if user.GetCreatedBy().Connector == nil {
+	// 	connectorName = constants.LocalConnector
+	// } else {
+	// 	connectorName = user.GetCreatedBy().Connector.ID
+	// }
 
-	if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.UserCreate{
-		Metadata: apievents.Metadata{
-			Type: events.UserCreateEvent,
-			Code: events.UserCreateCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: user.GetName(),
-		},
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    user.GetName(),
-			Expires: user.Expiry(),
-		},
-		Connector: connectorName,
-		Roles:     user.GetRoles(),
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit user upsert event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.UserCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.UserCreateEvent,
+	// 		Code: events.UserCreateCode,
+	// 	},
+	// 	UserMetadata: apievents.UserMetadata{
+	// 		User: user.GetName(),
+	// 	},
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name:    user.GetName(),
+	// 		Expires: user.Expiry(),
+	// 	},
+	// 	Connector: connectorName,
+	// 	Roles:     user.GetRoles(),
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit user upsert event.")
+	// }
 
 	return nil
 }
@@ -152,31 +148,31 @@ func (s *Server) CompareAndSwapUser(ctx context.Context, new, existing types.Use
 		return trace.Wrap(err)
 	}
 
-	var connectorName string
-	if new.GetCreatedBy().Connector == nil {
-		connectorName = constants.LocalConnector
-	} else {
-		connectorName = new.GetCreatedBy().Connector.ID
-	}
+	// var connectorName string
+	// if new.GetCreatedBy().Connector == nil {
+	// 	connectorName = constants.LocalConnector
+	// } else {
+	// 	connectorName = new.GetCreatedBy().Connector.ID
+	// }
 
-	if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserCreate{
-		Metadata: apievents.Metadata{
-			Type: events.UserUpdatedEvent,
-			Code: events.UserUpdateCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User:         ClientUsername(ctx),
-			Impersonator: ClientImpersonator(ctx),
-		},
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    new.GetName(),
-			Expires: new.Expiry(),
-		},
-		Connector: connectorName,
-		Roles:     new.GetRoles(),
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit user update event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.UserUpdatedEvent,
+	// 		Code: events.UserUpdateCode,
+	// 	},
+	// 	UserMetadata: apievents.UserMetadata{
+	// 		User:         ClientUsername(ctx),
+	// 		Impersonator: ClientImpersonator(ctx),
+	// 	},
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name:    new.GetName(),
+	// 		Expires: new.Expiry(),
+	// 	},
+	// 	Connector: connectorName,
+	// 	Roles:     new.GetRoles(),
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit user update event.")
+	// }
 
 	return nil
 }
@@ -201,19 +197,19 @@ func (s *Server) DeleteUser(ctx context.Context, user string) error {
 		return trace.Wrap(err)
 	}
 
-	// If the user was successfully deleted, emit an event.
-	if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.UserDelete{
-		Metadata: apievents.Metadata{
-			Type: events.UserDeleteEvent,
-			Code: events.UserDeleteCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: user,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit user delete event.")
-	}
+	// // If the user was successfully deleted, emit an event.
+	// if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.UserDelete{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.UserDeleteEvent,
+	// 		Code: events.UserDeleteCode,
+	// 	},
+	// 	UserMetadata: ClientUserMetadata(ctx),
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name: user,
+	// 	},
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit user delete event.")
+	// }
 
 	return nil
 }

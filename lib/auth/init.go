@@ -33,7 +33,6 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/api/utils/keys"
 	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
@@ -164,15 +163,15 @@ type InitConfig struct {
 	// CipherSuites is a list of ciphersuites that the auth server supports.
 	CipherSuites []uint16
 
-	// Emitter is events emitter, used to submit discrete events
-	Emitter apievents.Emitter
+	// // Emitter is events emitter, used to submit discrete events
+	// Emitter apievents.Emitter
 
-	// Streamer is events sessionstreamer, used to create continuous
-	// session related streams
-	Streamer events.Streamer
+	// // Streamer is events sessionstreamer, used to create continuous
+	// // session related streams
+	// Streamer events.Streamer
 
-	// WindowsServices is a service that manages Windows desktop resources.
-	WindowsDesktops services.WindowsDesktops
+	// // WindowsServices is a service that manages Windows desktop resources.
+	// WindowsDesktops services.WindowsDesktops
 
 	// SessionTrackerService is a service that manages trackers for all active sessions.
 	SessionTrackerService services.SessionTrackerService

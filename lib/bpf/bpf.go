@@ -352,9 +352,9 @@ func (s *Service) emitCommandEvent(eventBytes []byte) {
 			Path:       argv[0],
 			Argv:       argv[1:],
 		}
-		if err := ctx.Emitter.EmitAuditEvent(ctx.Context, sessionCommandEvent); err != nil {
-			log.WithError(err).Warn("Failed to emit command event.")
-		}
+		// if err := ctx.Emitter.EmitAuditEvent(ctx.Context, sessionCommandEvent); err != nil {
+		// 	log.WithError(err).Warn("Failed to emit command event.")
+		// }
 
 		// Now that the event has been processed, remove from cache.
 		s.argsCache.Remove(strconv.FormatUint(event.PID, 10))
@@ -408,8 +408,8 @@ func (s *Service) emitDiskEvent(eventBytes []byte) {
 		Path:       ConvertString(unsafe.Pointer(&event.Path)),
 		ReturnCode: event.ReturnCode,
 	}
-	// Logs can be DoS by event failures here
-	_ = ctx.Emitter.EmitAuditEvent(ctx.Context, sessionDiskEvent)
+	// // Logs can be DoS by event failures here
+	// _ = ctx.Emitter.EmitAuditEvent(ctx.Context, sessionDiskEvent)
 }
 
 // emit4NetworkEvent will parse and emit IPv4 events to the Audit Log.
@@ -470,9 +470,9 @@ func (s *Service) emit4NetworkEvent(eventBytes []byte) {
 		SrcAddr:    srcAddr.String(),
 		TCPVersion: 4,
 	}
-	if err := ctx.Emitter.EmitAuditEvent(ctx.Context, sessionNetworkEvent); err != nil {
-		log.WithError(err).Warn("Failed to emit network event.")
-	}
+	// if err := ctx.Emitter.EmitAuditEvent(ctx.Context, sessionNetworkEvent); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit network event.")
+	// }
 }
 
 // emit6NetworkEvent will parse and emit IPv6 events to the Audit Log.
@@ -539,9 +539,9 @@ func (s *Service) emit6NetworkEvent(eventBytes []byte) {
 		SrcAddr:    srcAddr.String(),
 		TCPVersion: 6,
 	}
-	if err := ctx.Emitter.EmitAuditEvent(ctx.Context, sessionNetworkEvent); err != nil {
-		log.WithError(err).Warn("Failed to emit network event.")
-	}
+	// if err := ctx.Emitter.EmitAuditEvent(ctx.Context, sessionNetworkEvent); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit network event.")
+	// }
 }
 
 // unmarshalEvent will unmarshal the perf event.

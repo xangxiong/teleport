@@ -58,7 +58,6 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -72,12 +71,12 @@ var (
 		trace.Component: teleport.ComponentNode,
 	})
 
-	userSessionLimitHitCount = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: teleport.MetricUserMaxConcurrentSessionsHit,
-			Help: "Number of times a user exceeded their max concurrent ssh connections",
-		},
-	)
+	// userSessionLimitHitCount = prometheus.NewCounter(
+	// 	prometheus.CounterOpts{
+	// 		Name: teleport.MetricUserMaxConcurrentSessionsHit,
+	// 		Help: "Number of times a user exceeded their max concurrent ssh connections",
+	// 	},
+	// )
 )
 
 // Server implements SSH server that uses configuration backend and
@@ -130,8 +129,8 @@ type Server struct {
 	// ctx is broadcasting context closure
 	ctx context.Context
 
-	// StreamEmitter points to the auth service and emits audit events
-	events.StreamEmitter
+	// // StreamEmitter points to the auth service and emits audit events
+	// events.StreamEmitter
 
 	// clock is a system clock
 	clock clockwork.Clock
@@ -195,8 +194,8 @@ type Server struct {
 	// TCP port forwarding.
 	allowTCPForwarding bool
 
-	// x11 is the X11 forwarding configuration for the server
-	x11 *x11.ServerConfig
+	// // x11 is the X11 forwarding configuration for the server
+	// x11 *x11.ServerConfig
 
 	// allowFileCopying indicates whether the ssh server is allowed to handle
 	// remote file operations via SCP or SFTP.
@@ -509,13 +508,13 @@ func SetLimiter(limiter *limiter.Limiter) ServerOption {
 	}
 }
 
-// SetEmitter assigns an audit event emitter for this server
-func SetEmitter(emitter events.StreamEmitter) ServerOption {
-	return func(s *Server) error {
-		s.StreamEmitter = emitter
-		return nil
-	}
-}
+// // SetEmitter assigns an audit event emitter for this server
+// func SetEmitter(emitter events.StreamEmitter) ServerOption {
+// 	return func(s *Server) error {
+// 		s.StreamEmitter = emitter
+// 		return nil
+// 	}
+// }
 
 // SetUUID sets server unique ID
 func SetUUID(uuid string) ServerOption {
@@ -645,13 +644,13 @@ func SetNodeWatcher(nodeWatcher *services.NodeWatcher) ServerOption {
 	}
 }
 
-// SetX11ForwardingConfig sets the server's X11 forwarding configuration
-func SetX11ForwardingConfig(xc *x11.ServerConfig) ServerOption {
-	return func(s *Server) error {
-		s.x11 = xc
-		return nil
-	}
-}
+// // SetX11ForwardingConfig sets the server's X11 forwarding configuration
+// func SetX11ForwardingConfig(xc *x11.ServerConfig) ServerOption {
+// 	return func(s *Server) error {
+// 		s.x11 = xc
+// 		return nil
+// 	}
+// }
 
 // SetAllowFileCopying sets whether the server is allowed to handle
 // SCP/SFTP requests.
@@ -739,10 +738,10 @@ func New(addr utils.NetAddr,
 		}
 	}
 
-	// TODO(klizhentas): replace function arguments with struct
-	if s.StreamEmitter == nil {
-		return nil, trace.BadParameter("setup valid Emitter parameter using SetEmitter")
-	}
+	// // TODO(klizhentas): replace function arguments with struct
+	// if s.StreamEmitter == nil {
+	// 	return nil, trace.BadParameter("setup valid Emitter parameter using SetEmitter")
+	// }
 
 	if s.namespace == "" {
 		return nil, trace.BadParameter("setup valid namespace parameter using SetNamespace")
@@ -794,8 +793,8 @@ func New(addr utils.NetAddr,
 		Component:   component,
 		AccessPoint: s.authService,
 		FIPS:        s.fips,
-		Emitter:     s.StreamEmitter,
-		Clock:       s.clock,
+		//Emitter:     s.StreamEmitter,
+		Clock: s.clock,
 	}
 
 	s.authHandlers, err = srv.NewAuthHandlers(&authHandlerConfig)
@@ -1125,9 +1124,9 @@ func (s *Server) HandleNewConn(ctx context.Context, ccx *sshutils.ConnectionCont
 	}
 	if lockErr := s.lockWatcher.CheckLockInForce(lockingMode, lockTargets...); lockErr != nil {
 		event.Reason = lockErr.Error()
-		if err := s.EmitAuditEvent(s.ctx, event); err != nil {
-			s.Logger.WithError(err).Warn("Failed to emit session reject event.")
-		}
+		// if err := s.EmitAuditEvent(s.ctx, event); err != nil {
+		// 	s.Logger.WithError(err).Warn("Failed to emit session reject event.")
+		// }
 		return ctx, trace.Wrap(lockErr)
 	}
 
@@ -1161,12 +1160,12 @@ func (s *Server) HandleNewConn(ctx context.Context, ccx *sshutils.ConnectionCont
 	if err != nil {
 		if strings.Contains(err.Error(), teleport.MaxLeases) {
 			// user has exceeded their max concurrent ssh connections.
-			userSessionLimitHitCount.Inc()
+			// userSessionLimitHitCount.Inc()
 			event.Reason = events.SessionRejectedEvent
 			event.Maximum = maxConnections
-			if err := s.EmitAuditEvent(s.ctx, event); err != nil {
-				s.Logger.WithError(err).Warn("Failed to emit session reject event.")
-			}
+			// if err := s.EmitAuditEvent(s.ctx, event); err != nil {
+			// 	s.Logger.WithError(err).Warn("Failed to emit session reject event.")
+			// }
 			err = trace.AccessDenied("too many concurrent ssh connections for user %q (max=%d)",
 				identityContext.TeleportUser,
 				maxConnections,
@@ -1274,27 +1273,27 @@ func (s *Server) HandleNewChan(ctx context.Context, ccx *sshutils.ConnectionCont
 		if max := identityContext.AccessChecker.MaxSessions(); max != 0 {
 			d, ok := ccx.IncrSessions(max)
 			if !ok {
-				// user has exceeded their max concurrent ssh sessions.
-				if err := s.EmitAuditEvent(s.ctx, &apievents.SessionReject{
-					Metadata: apievents.Metadata{
-						Type: events.SessionRejectedEvent,
-						Code: events.SessionRejectedCode,
-					},
-					UserMetadata: identityContext.GetUserMetadata(),
-					ConnectionMetadata: apievents.ConnectionMetadata{
-						Protocol:   events.EventProtocolSSH,
-						LocalAddr:  ccx.ServerConn.LocalAddr().String(),
-						RemoteAddr: ccx.ServerConn.RemoteAddr().String(),
-					},
-					ServerMetadata: apievents.ServerMetadata{
-						ServerID:        s.uuid,
-						ServerNamespace: s.GetNamespace(),
-					},
-					Reason:  events.SessionRejectedReasonMaxSessions,
-					Maximum: max,
-				}); err != nil {
-					s.Logger.WithError(err).Warn("Failed to emit session reject event.")
-				}
+				// // user has exceeded their max concurrent ssh sessions.
+				// if err := s.EmitAuditEvent(s.ctx, &apievents.SessionReject{
+				// 	Metadata: apievents.Metadata{
+				// 		Type: events.SessionRejectedEvent,
+				// 		Code: events.SessionRejectedCode,
+				// 	},
+				// 	UserMetadata: identityContext.GetUserMetadata(),
+				// 	ConnectionMetadata: apievents.ConnectionMetadata{
+				// 		Protocol:   events.EventProtocolSSH,
+				// 		LocalAddr:  ccx.ServerConn.LocalAddr().String(),
+				// 		RemoteAddr: ccx.ServerConn.RemoteAddr().String(),
+				// 	},
+				// 	ServerMetadata: apievents.ServerMetadata{
+				// 		ServerID:        s.uuid,
+				// 		ServerNamespace: s.GetNamespace(),
+				// 	},
+				// 	Reason:  events.SessionRejectedReasonMaxSessions,
+				// 	Maximum: max,
+				// }); err != nil {
+				// 	s.Logger.WithError(err).Warn("Failed to emit session reject event.")
+				// }
 				rejectChannel(nch, ssh.Prohibited, fmt.Sprintf("too many session channels for user %q (max=%d)", identityContext.TeleportUser, max))
 				return
 			}
@@ -1471,24 +1470,24 @@ Loop:
 		return
 	}
 
-	// Emit a port forwarding event.
-	if err := s.EmitAuditEvent(s.ctx, &apievents.PortForward{
-		Metadata: apievents.Metadata{
-			Type: events.PortForwardEvent,
-			Code: events.PortForwardCode,
-		},
-		UserMetadata: scx.Identity.GetUserMetadata(),
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			LocalAddr:  scx.ServerConn.LocalAddr().String(),
-			RemoteAddr: scx.ServerConn.RemoteAddr().String(),
-		},
-		Addr: scx.DstAddr,
-		Status: apievents.Status{
-			Success: true,
-		},
-	}); err != nil {
-		s.Logger.WithError(err).Warn("Failed to emit port forward event.")
-	}
+	// // Emit a port forwarding event.
+	// if err := s.EmitAuditEvent(s.ctx, &apievents.PortForward{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.PortForwardEvent,
+	// 		Code: events.PortForwardCode,
+	// 	},
+	// 	UserMetadata: scx.Identity.GetUserMetadata(),
+	// 	ConnectionMetadata: apievents.ConnectionMetadata{
+	// 		LocalAddr:  scx.ServerConn.LocalAddr().String(),
+	// 		RemoteAddr: scx.ServerConn.RemoteAddr().String(),
+	// 	},
+	// 	Addr: scx.DstAddr,
+	// 	Status: apievents.Status{
+	// 		Success: true,
+	// 	},
+	// }); err != nil {
+	// 	s.Logger.WithError(err).Warn("Failed to emit port forward event.")
+	// }
 }
 
 // handleSessionRequests handles out of band session requests once the session
@@ -1808,15 +1807,15 @@ func (s *Server) handleX11Forward(ch ssh.Channel, req *ssh.Request, ctx *srv.Ser
 			s.replyError(ch, req, err)
 			err = nil
 		}
-		if err := s.EmitAuditEvent(s.ctx, event); err != nil {
-			s.Logger.WithError(err).Warn("Failed to emit x11-forward event.")
-		}
+		// if err := s.EmitAuditEvent(s.ctx, event); err != nil {
+		// 	s.Logger.WithError(err).Warn("Failed to emit x11-forward event.")
+		// }
 	}()
 
-	// check if X11 forwarding is disabled, or if xauth can't be handled.
-	if !s.x11.Enabled || x11.CheckXAuthPath() != nil {
-		return trace.AccessDenied("X11 forwarding is not enabled")
-	}
+	// // check if X11 forwarding is disabled, or if xauth can't be handled.
+	// if !s.x11.Enabled || x11.CheckXAuthPath() != nil {
+	// 	return trace.AccessDenied("X11 forwarding is not enabled")
+	// }
 
 	// Check if the user's RBAC role allows X11 forwarding.
 	if err := s.authHandlers.CheckX11Forward(ctx); err != nil {
@@ -1828,12 +1827,12 @@ func (s *Server) handleX11Forward(ch ssh.Channel, req *ssh.Request, ctx *srv.Ser
 		return trace.Wrap(err)
 	}
 
-	if err := ctx.OpenXServerListener(x11Req, s.x11.DisplayOffset, s.x11.MaxDisplay); err != nil {
-		if trace.IsLimitExceeded(err) {
-			return trace.AccessDenied("The server cannot support any more X11 forwarding sessions at this time")
-		}
-		return trace.Wrap(err)
-	}
+	// if err := ctx.OpenXServerListener(x11Req, s.x11.DisplayOffset, s.x11.MaxDisplay); err != nil {
+	// 	if trace.IsLimitExceeded(err) {
+	// 		return trace.AccessDenied("The server cannot support any more X11 forwarding sessions at this time")
+	// 	}
+	// 	return trace.Wrap(err)
+	// }
 
 	return nil
 }

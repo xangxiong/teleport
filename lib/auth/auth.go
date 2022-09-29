@@ -73,7 +73,6 @@ import (
 	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
-	"github.com/gravitational/teleport/lib/session"
 	"github.com/gravitational/teleport/lib/srv/db/common/role"
 	"github.com/gravitational/teleport/lib/sshca"
 	"github.com/gravitational/teleport/lib/sshutils"
@@ -143,12 +142,12 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.AuditLog == nil {
 		cfg.AuditLog = events.NewDiscardAuditLog()
 	}
-	if cfg.Emitter == nil {
-		cfg.Emitter = events.NewDiscardEmitter()
-	}
-	if cfg.Streamer == nil {
-		cfg.Streamer = events.NewDiscardEmitter()
-	}
+	// if cfg.Emitter == nil {
+	// 	cfg.Emitter = events.NewDiscardEmitter()
+	// }
+	// if cfg.Streamer == nil {
+	// 	cfg.Streamer = events.NewDiscardEmitter()
+	// }
 	// if cfg.WindowsDesktops == nil {
 	// 	cfg.WindowsDesktops = local.NewWindowsDesktopService(cfg.Backend)
 	// }
@@ -218,10 +217,10 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		githubClients:   make(map[string]*githubClient),
 		cancelFunc:      cancelFunc,
 		closeCtx:        closeCtx,
-		emitter:         cfg.Emitter,
-		streamer:        cfg.Streamer,
-		unstable:        local.NewUnstableService(cfg.Backend, cfg.AssertionReplayService),
-		Services:        services,
+		// emitter:         cfg.Emitter,
+		// streamer:        cfg.Streamer,
+		unstable: local.NewUnstableService(cfg.Backend, cfg.AssertionReplayService),
+		Services: services,
 		// Cache:           services,
 		keyStore: keyStore,
 		// getClaimsFun:    getClaims,
@@ -385,12 +384,12 @@ type Server struct {
 	// limiter limits the number of active connections per client IP.
 	limiter *limiter.ConnectionsLimiter
 
-	// Emitter is events emitter, used to submit discrete events
-	emitter apievents.Emitter
+	// // Emitter is events emitter, used to submit discrete events
+	// emitter apievents.Emitter
 
-	// streamer is events sessionstreamer, used to create continuous
-	// session related streams
-	streamer events.Streamer
+	// // streamer is events sessionstreamer, used to create continuous
+	// // session related streams
+	// streamer events.Streamer
 
 	// keyStore is an interface for interacting with private keys in CAs which
 	// may be backed by HSMs
@@ -1314,16 +1313,16 @@ func (a *Server) generateUserCert(req certRequest) (*proto.Certs, error) {
 
 	eventIdentity := identity.GetEventIdentity()
 	eventIdentity.Expires = certRequest.NotAfter
-	if a.emitter.EmitAuditEvent(a.closeCtx, &apievents.CertificateCreate{
-		Metadata: apievents.Metadata{
-			Type: events.CertificateCreateEvent,
-			Code: events.CertificateCreateCode,
-		},
-		CertificateType: events.CertificateTypeUser,
-		Identity:        &eventIdentity,
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit certificate create event.")
-	}
+	// if a.emitter.EmitAuditEvent(a.closeCtx, &apievents.CertificateCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.CertificateCreateEvent,
+	// 		Code: events.CertificateCreateCode,
+	// 	},
+	// 	CertificateType: events.CertificateTypeUser,
+	// 	Identity:        &eventIdentity,
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit certificate create event.")
+	// }
 
 	// create certs struct to return to user
 	certs := &proto.Certs{
@@ -1742,24 +1741,24 @@ func (a *Server) deleteMFADeviceSafely(ctx context.Context, user, deviceName str
 		return nil, trace.Wrap(err)
 	}
 
-	// Emit deleted event.
-	clusterName, err := a.GetClusterName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.MFADeviceDelete{
-		Metadata: apievents.Metadata{
-			Type:        events.MFADeviceDeleteEvent,
-			Code:        events.MFADeviceDeleteEventCode,
-			ClusterName: clusterName.GetClusterName(),
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: user,
-		},
-		MFADeviceMetadata: mfaDeviceEventMetadata(deviceToDelete),
-	}); err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// // Emit deleted event.
+	// clusterName, err := a.GetClusterName()
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
+	// if err := a.emitter.EmitAuditEvent(ctx, &apievents.MFADeviceDelete{
+	// 	Metadata: apievents.Metadata{
+	// 		Type:        events.MFADeviceDeleteEvent,
+	// 		Code:        events.MFADeviceDeleteEventCode,
+	// 		ClusterName: clusterName.GetClusterName(),
+	// 	},
+	// 	UserMetadata: apievents.UserMetadata{
+	// 		User: user,
+	// 	},
+	// 	MFADeviceMetadata: mfaDeviceEventMetadata(deviceToDelete),
+	// }); err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 	return deviceToDelete, nil
 }
 
@@ -1842,23 +1841,23 @@ func (a *Server) verifyMFARespAndAddDevice(ctx context.Context, req *newMFADevic
 		return nil, trace.BadParameter("MFARegisterResponse is an unknown response type %T", req.deviceResp.Response)
 	}
 
-	clusterName, err := a.GetClusterName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.MFADeviceAdd{
-		Metadata: apievents.Metadata{
-			Type:        events.MFADeviceAddEvent,
-			Code:        events.MFADeviceAddEventCode,
-			ClusterName: clusterName.GetClusterName(),
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: req.username,
-		},
-		MFADeviceMetadata: mfaDeviceEventMetadata(dev),
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit add mfa device event.")
-	}
+	// clusterName, err := a.GetClusterName()
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
+	// if err := a.emitter.EmitAuditEvent(ctx, &apievents.MFADeviceAdd{
+	// 	Metadata: apievents.Metadata{
+	// 		Type:        events.MFADeviceAddEvent,
+	// 		Code:        events.MFADeviceAddEventCode,
+	// 		ClusterName: clusterName.GetClusterName(),
+	// 	},
+	// 	UserMetadata: apievents.UserMetadata{
+	// 		User: req.username,
+	// 	},
+	// 	MFADeviceMetadata: mfaDeviceEventMetadata(dev),
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit add mfa device event.")
+	// }
 
 	return dev, nil
 }
@@ -2151,20 +2150,20 @@ func (a *Server) GenerateToken(ctx context.Context, req *proto.GenerateTokenRequ
 		return "", trace.Wrap(err)
 	}
 
-	userMetadata := ClientUserMetadata(ctx)
-	for _, role := range req.Roles {
-		if role == types.RoleTrustedCluster {
-			if err := a.emitter.EmitAuditEvent(ctx, &apievents.TrustedClusterTokenCreate{
-				Metadata: apievents.Metadata{
-					Type: events.TrustedClusterTokenCreateEvent,
-					Code: events.TrustedClusterTokenCreateCode,
-				},
-				UserMetadata: userMetadata,
-			}); err != nil {
-				log.WithError(err).Warn("Failed to emit trusted cluster token create event.")
-			}
-		}
-	}
+	// userMetadata := ClientUserMetadata(ctx)
+	// for _, role := range req.Roles {
+	// 	if role == types.RoleTrustedCluster {
+	// 		// if err := a.emitter.EmitAuditEvent(ctx, &apievents.TrustedClusterTokenCreate{
+	// 		// 	Metadata: apievents.Metadata{
+	// 		// 		Type: events.TrustedClusterTokenCreateEvent,
+	// 		// 		Code: events.TrustedClusterTokenCreateCode,
+	// 		// 	},
+	// 		// 	UserMetadata: userMetadata,
+	// 		// }); err != nil {
+	// 		// 	log.WithError(err).Warn("Failed to emit trusted cluster token create event.")
+	// 		// }
+	// 	}
+	// }
 
 	return req.Token, nil
 }
@@ -2694,24 +2693,24 @@ func (a *Server) CreateAccessRequest(ctx context.Context, req types.AccessReques
 	if err := a.Services.CreateAccessRequest(ctx, req); err != nil {
 		return trace.Wrap(err)
 	}
-	err = a.emitter.EmitAuditEvent(a.closeCtx, &apievents.AccessRequestCreate{
-		Metadata: apievents.Metadata{
-			Type: events.AccessRequestCreateEvent,
-			Code: events.AccessRequestCreateCode,
-		},
-		UserMetadata: ClientUserMetadataWithUser(ctx, req.GetUser()),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Expires: req.GetAccessExpiry(),
-		},
-		Roles:                req.GetRoles(),
-		RequestedResourceIDs: apievents.ResourceIDs(req.GetRequestedResourceIDs()),
-		RequestID:            req.GetName(),
-		RequestState:         req.GetState().String(),
-		Reason:               req.GetRequestReason(),
-	})
-	if err != nil {
-		log.WithError(err).Warn("Failed to emit access request create event.")
-	}
+	// err = a.emitter.EmitAuditEvent(a.closeCtx, &apievents.AccessRequestCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.AccessRequestCreateEvent,
+	// 		Code: events.AccessRequestCreateCode,
+	// 	},
+	// 	UserMetadata: ClientUserMetadataWithUser(ctx, req.GetUser()),
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Expires: req.GetAccessExpiry(),
+	// 	},
+	// 	Roles:                req.GetRoles(),
+	// 	RequestedResourceIDs: apievents.ResourceIDs(req.GetRequestedResourceIDs()),
+	// 	RequestID:            req.GetName(),
+	// 	RequestState:         req.GetState().String(),
+	// 	Reason:               req.GetRequestReason(),
+	// })
+	// if err != nil {
+	// 	log.WithError(err).Warn("Failed to emit access request create event.")
+	// }
 	return nil
 }
 
@@ -2719,16 +2718,16 @@ func (a *Server) DeleteAccessRequest(ctx context.Context, name string) error {
 	if err := a.Services.DeleteAccessRequest(ctx, name); err != nil {
 		return trace.Wrap(err)
 	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AccessRequestDelete{
-		Metadata: apievents.Metadata{
-			Type: events.AccessRequestDeleteEvent,
-			Code: events.AccessRequestDeleteCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		RequestID:    name,
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit access request delete event.")
-	}
+	// if err := a.emitter.EmitAuditEvent(ctx, &apievents.AccessRequestDelete{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.AccessRequestDeleteEvent,
+	// 		Code: events.AccessRequestDeleteCode,
+	// 	},
+	// 	UserMetadata: ClientUserMetadata(ctx),
+	// 	RequestID:    name,
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit access request delete event.")
+	// }
 	return nil
 }
 
@@ -2764,10 +2763,10 @@ func (a *Server) SetAccessRequestState(ctx context.Context, params types.AccessR
 			event.Annotations = annotations
 		}
 	}
-	err = a.emitter.EmitAuditEvent(a.closeCtx, event)
-	if err != nil {
-		log.WithError(err).Warn("Failed to emit access request update event.")
-	}
+	// err = a.emitter.EmitAuditEvent(a.closeCtx, event)
+	// if err != nil {
+	// 	log.WithError(err).Warn("Failed to emit access request update event.")
+	// }
 	return trace.Wrap(err)
 }
 
@@ -2819,9 +2818,9 @@ func (a *Server) SubmitAccessReview(ctx context.Context, params types.AccessRevi
 			event.Annotations = annotations
 		}
 	}
-	if err := a.emitter.EmitAuditEvent(a.closeCtx, event); err != nil {
-		log.WithError(err).Warn("Failed to emit access request update event.")
-	}
+	// if err := a.emitter.EmitAuditEvent(a.closeCtx, event); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit access request update event.")
+	// }
 
 	return req, nil
 }
@@ -2945,41 +2944,41 @@ func (a *Server) IterateResources(ctx context.Context, req proto.ListResourcesRe
 	}
 }
 
-// CreateAuditStream creates audit event stream
-func (a *Server) CreateAuditStream(ctx context.Context, sid session.ID) (apievents.Stream, error) {
-	streamer, err := a.modeStreamer(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return streamer.CreateAuditStream(ctx, sid)
-}
+// // CreateAuditStream creates audit event stream
+// func (a *Server) CreateAuditStream(ctx context.Context, sid session.ID) (apievents.Stream, error) {
+// 	streamer, err := a.modeStreamer(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return streamer.CreateAuditStream(ctx, sid)
+// }
 
-// ResumeAuditStream resumes the stream that has been created
-func (a *Server) ResumeAuditStream(ctx context.Context, sid session.ID, uploadID string) (apievents.Stream, error) {
-	streamer, err := a.modeStreamer(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return streamer.ResumeAuditStream(ctx, sid, uploadID)
-}
+// // ResumeAuditStream resumes the stream that has been created
+// func (a *Server) ResumeAuditStream(ctx context.Context, sid session.ID, uploadID string) (apievents.Stream, error) {
+// 	streamer, err := a.modeStreamer(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return streamer.ResumeAuditStream(ctx, sid, uploadID)
+// }
 
-// modeStreamer creates streamer based on the event mode
-func (a *Server) modeStreamer(ctx context.Context) (events.Streamer, error) {
-	recConfig, err := a.GetSessionRecordingConfig(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// In sync mode, auth server forwards session control to the event log
-	// in addition to sending them and data events to the record storage.
-	if services.IsRecordSync(recConfig.GetMode()) {
-		return events.NewTeeStreamer(a.streamer, a.emitter), nil
-	}
-	// In async mode, clients submit session control events
-	// during the session in addition to writing a local
-	// session recording to be uploaded at the end of the session,
-	// so forwarding events here will result in duplicate events.
-	return a.streamer, nil
-}
+// // modeStreamer creates streamer based on the event mode
+// func (a *Server) modeStreamer(ctx context.Context) (events.Streamer, error) {
+// 	recConfig, err := a.GetSessionRecordingConfig(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	// In sync mode, auth server forwards session control to the event log
+// 	// in addition to sending them and data events to the record storage.
+// 	// if services.IsRecordSync(recConfig.GetMode()) {
+// 	// 	return events.NewTeeStreamer(a.streamer, a.emitter), nil
+// 	// }
+// 	// In async mode, clients submit session control events
+// 	// during the session in addition to writing a local
+// 	// session recording to be uploaded at the end of the session,
+// 	// so forwarding events here will result in duplicate events.
+// 	return a.streamer, nil
+// }
 
 // // CreateApp creates a new application resource.
 // func (a *Server) CreateApp(ctx context.Context, app types.Application) error {

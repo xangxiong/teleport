@@ -28,10 +28,8 @@ import (
 
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/api/types/wrappers"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
@@ -407,17 +405,17 @@ func (s *Server) validateGenerationLabel(ctx context.Context, user types.User, c
 			return trace.Wrap(err)
 		}
 
-		// Emit an audit event.
-		userMetadata := ClientUserMetadata(ctx)
-		if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.RenewableCertificateGenerationMismatch{
-			Metadata: apievents.Metadata{
-				Type: events.RenewableCertificateGenerationMismatchEvent,
-				Code: events.RenewableCertificateGenerationMismatchCode,
-			},
-			UserMetadata: userMetadata,
-		}); err != nil {
-			log.WithError(err).Warn("Failed to emit renewable cert generation mismatch event")
-		}
+		// // Emit an audit event.
+		// userMetadata := ClientUserMetadata(ctx)
+		// if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.RenewableCertificateGenerationMismatch{
+		// 	Metadata: apievents.Metadata{
+		// 		Type: events.RenewableCertificateGenerationMismatchEvent,
+		// 		Code: events.RenewableCertificateGenerationMismatchCode,
+		// 	},
+		// 	UserMetadata: userMetadata,
+		// }); err != nil {
+		// 	log.WithError(err).Warn("Failed to emit renewable cert generation mismatch event")
+		// }
 
 		return trace.AccessDenied(
 			"renewable cert generation mismatch: stored=%v, presented=%v",

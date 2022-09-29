@@ -237,24 +237,24 @@ func NewTestAuthServer(cfg TestAuthServerConfig) (*TestAuthServer, error) {
 	access := local.NewAccessService(srv.Backend)
 	// identity := local.NewIdentityService(srv.Backend)
 
-	emitter, err := events.NewCheckingEmitter(events.CheckingEmitterConfig{
-		Inner: srv.AuditLog,
-		Clock: cfg.Clock,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// emitter, err := events.NewCheckingEmitter(events.CheckingEmitterConfig{
+	// 	Inner: srv.AuditLog,
+	// 	Clock: cfg.Clock,
+	// })
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	srv.AuthServer, err = NewServer(&InitConfig{
 		Backend:   srv.Backend,
 		Authority: authority.NewWithClock(cfg.Clock),
 		Access:    access,
 		// Identity:               identity,
-		AuditLog:               srv.AuditLog,
-		Streamer:               cfg.Streamer,
+		AuditLog: srv.AuditLog,
+		// Streamer:               cfg.Streamer,
 		SkipPeriodicOperations: true,
-		Emitter:                emitter,
-		TraceClient:            cfg.TraceClient,
+		// Emitter:                emitter,
+		TraceClient: cfg.TraceClient,
 	}, WithClock(cfg.Clock))
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -545,7 +545,7 @@ func (a *TestAuthServer) NewTestTLSServer() (*TestTLSServer, error) {
 		Authorizer:     a.Authorizer,
 		SessionService: a.SessionServer,
 		AuditLog:       a.AuditLog,
-		Emitter:        a.AuthServer.emitter,
+		// Emitter:        a.AuthServer.emitter,
 	}
 	srv, err := NewTestTLSServer(TestTLSServerConfig{
 		APIConfig:     apiConfig,

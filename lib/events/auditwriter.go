@@ -41,16 +41,16 @@ func NewAuditWriter(cfg AuditWriterConfig) (*AuditWriter, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	stream, err := cfg.Streamer.CreateAuditStream(cfg.Context, cfg.SessionID)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// stream, err := cfg.Streamer.CreateAuditStream(cfg.Context, cfg.SessionID)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	ctx, cancel := context.WithCancel(cfg.Context)
 	writer := &AuditWriter{
-		mtx:    sync.Mutex{},
-		cfg:    cfg,
-		stream: NewCheckingStream(stream, cfg.Clock, cfg.ClusterName),
+		mtx: sync.Mutex{},
+		cfg: cfg,
+		// stream: NewCheckingStream(stream, cfg.Clock, cfg.ClusterName),
 		log: logrus.WithFields(logrus.Fields{
 			trace.Component: cfg.Component,
 		}),
@@ -628,9 +628,9 @@ func (a *AuditWriter) setupEvent(event apievents.AuditEvent) error {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 
-	if err := checkAndSetEventFields(event, a.cfg.Clock, a.cfg.UID, a.cfg.ClusterName); err != nil {
-		return trace.Wrap(err)
-	}
+	// if err := checkAndSetEventFields(event, a.cfg.Clock, a.cfg.UID, a.cfg.ClusterName); err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
 	sess, ok := event.(SessionMetadataSetter)
 	if ok {

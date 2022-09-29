@@ -31,9 +31,7 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
 )
@@ -168,20 +166,20 @@ func (s *Server) CreateResetPasswordToken(ctx context.Context, req CreateUserTok
 		return nil, trace.Wrap(err)
 	}
 
-	if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserTokenCreate{
-		Metadata: apievents.Metadata{
-			Type: events.ResetPasswordTokenCreateEvent,
-			Code: events.ResetPasswordTokenCreateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    req.Name,
-			TTL:     req.TTL.String(),
-			Expires: s.GetClock().Now().UTC().Add(req.TTL),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit create reset password token event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserTokenCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.ResetPasswordTokenCreateEvent,
+	// 		Code: events.ResetPasswordTokenCreateCode,
+	// 	},
+	// 	UserMetadata: ClientUserMetadata(ctx),
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name:    req.Name,
+	// 		TTL:     req.TTL.String(),
+	// 		Expires: s.GetClock().Now().UTC().Add(req.TTL),
+	// 	},
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit create reset password token event.")
+	// }
 
 	return s.GetUserToken(ctx, token.GetName())
 }
@@ -451,22 +449,22 @@ func (s *Server) createRecoveryToken(ctx context.Context, username, tokenType st
 		return nil, trace.Wrap(err)
 	}
 
-	if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserTokenCreate{
-		Metadata: apievents.Metadata{
-			Type: events.RecoveryTokenCreateEvent,
-			Code: events.RecoveryTokenCreateCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: username,
-		},
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    req.Name,
-			TTL:     req.TTL.String(),
-			Expires: s.GetClock().Now().UTC().Add(req.TTL),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit create recovery token event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserTokenCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.RecoveryTokenCreateEvent,
+	// 		Code: events.RecoveryTokenCreateCode,
+	// 	},
+	// 	UserMetadata: apievents.UserMetadata{
+	// 		User: username,
+	// 	},
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name:    req.Name,
+	// 		TTL:     req.TTL.String(),
+	// 		Expires: s.GetClock().Now().UTC().Add(req.TTL),
+	// 	},
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit create recovery token event.")
+	// }
 
 	return newToken, nil
 }
@@ -548,22 +546,22 @@ func (s *Server) createPrivilegeToken(ctx context.Context, username, tokenKind s
 		return nil, trace.Wrap(err)
 	}
 
-	if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserTokenCreate{
-		Metadata: apievents.Metadata{
-			Type: events.PrivilegeTokenCreateEvent,
-			Code: events.PrivilegeTokenCreateCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: username,
-		},
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    req.Name,
-			TTL:     req.TTL.String(),
-			Expires: s.GetClock().Now().UTC().Add(req.TTL),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit create privilege token event.")
-	}
+	// if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserTokenCreate{
+	// 	Metadata: apievents.Metadata{
+	// 		Type: events.PrivilegeTokenCreateEvent,
+	// 		Code: events.PrivilegeTokenCreateCode,
+	// 	},
+	// 	UserMetadata: apievents.UserMetadata{
+	// 		User: username,
+	// 	},
+	// 	ResourceMetadata: apievents.ResourceMetadata{
+	// 		Name:    req.Name,
+	// 		TTL:     req.TTL.String(),
+	// 		Expires: s.GetClock().Now().UTC().Add(req.TTL),
+	// 	},
+	// }); err != nil {
+	// 	log.WithError(err).Warn("Failed to emit create privilege token event.")
+	// }
 
 	convertedToken, ok := token.(*types.UserTokenV3)
 	if !ok {
