@@ -33,10 +33,6 @@ const (
 	// JoinMethodToken is the default join method, nodes join the cluster by
 	// presenting a secret token.
 	JoinMethodToken JoinMethod = "token"
-	// JoinMethodEC2 indicates that the node will join with the EC2 join method.
-	JoinMethodEC2 JoinMethod = "ec2"
-	// JoinMethodIAM indicates that the node will join with the IAM join method.
-	JoinMethodIAM JoinMethod = "iam"
 )
 
 // ProvisionToken is a provisioning token
@@ -128,55 +124,8 @@ func (p *ProvisionTokenV2) CheckAndSetDefaults() error {
 		return trace.BadParameter("can only set bot_name on token with role %q", RoleBot)
 	}
 
-	hasAllowRules := len(p.Spec.Allow) > 0
 	if p.Spec.JoinMethod == JoinMethodUnspecified {
-		// Default to the ec2 join method if any allow rules were specified,
-		// else default to the token method. These defaults are necessary for
-		// backwards compatibility.
-		if hasAllowRules {
-			p.Spec.JoinMethod = JoinMethodEC2
-		} else {
-			p.Spec.JoinMethod = JoinMethodToken
-		}
-	}
-	switch p.Spec.JoinMethod {
-	case JoinMethodToken:
-		if hasAllowRules {
-			return trace.BadParameter("allow rules are not compatible with the %q join method", JoinMethodToken)
-		}
-	case JoinMethodEC2:
-		if !hasAllowRules {
-			return trace.BadParameter("the %q join method requires defined token allow rules", JoinMethodEC2)
-		}
-		for _, allowRule := range p.Spec.Allow {
-			if allowRule.AWSARN != "" {
-				return trace.BadParameter(`the %q join method does not support the "aws_arn" parameter`, JoinMethodEC2)
-			}
-			if allowRule.AWSAccount == "" && allowRule.AWSRole == "" {
-				return trace.BadParameter(`allow rule for %q join method must set "aws_account" or "aws_role"`, JoinMethodEC2)
-			}
-		}
-		if p.Spec.AWSIIDTTL == 0 {
-			// default to 5 minute ttl if unspecified
-			p.Spec.AWSIIDTTL = Duration(5 * time.Minute)
-		}
-	case JoinMethodIAM:
-		if !hasAllowRules {
-			return trace.BadParameter("the %q join method requires defined token allow rules", JoinMethodIAM)
-		}
-		for _, allowRule := range p.Spec.Allow {
-			if allowRule.AWSRole != "" {
-				return trace.BadParameter(`the %q join method does not support the "aws_role" parameter`, JoinMethodIAM)
-			}
-			if len(allowRule.AWSRegions) != 0 {
-				return trace.BadParameter(`the %q join method does not support the "aws_regions" parameter`, JoinMethodIAM)
-			}
-			if allowRule.AWSAccount == "" && allowRule.AWSARN == "" {
-				return trace.BadParameter(`allow rule for %q join method must set "aws_account" or "aws_arn"`, JoinMethodEC2)
-			}
-		}
-	default:
-		return trace.BadParameter("unknown join method %q", p.Spec.JoinMethod)
+		p.Spec.JoinMethod = JoinMethodToken
 	}
 
 	return nil

@@ -694,8 +694,7 @@ func (a *ServerWithRoles) RegisterNewAuthServer(ctx context.Context, token strin
 // This wrapper does not do any extra authz checks, as the register method has
 // its own authz mechanism.
 func (a *ServerWithRoles) RegisterUsingIAMMethod(ctx context.Context, challengeResponse client.RegisterChallengeResponseFunc) (*proto.Certs, error) {
-	certs, err := a.authServer.RegisterUsingIAMMethod(ctx, challengeResponse)
-	return certs, trace.Wrap(err)
+	return nil, nil
 }
 
 // GenerateHostCerts generates new host certificates (signed

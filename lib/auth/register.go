@@ -148,22 +148,6 @@ func Register(params RegisterParams) (*proto.Certs, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// add EC2 Identity Document to params if required for given join method
-	if params.JoinMethod == types.JoinMethodEC2 {
-		if !utils.IsEC2NodeID(params.ID.HostUUID) {
-			return nil, trace.BadParameter(
-				`Host ID %q is not valid when using the EC2 join method, `+
-					`try removing the "host_uuid" file in your teleport data dir `+
-					`(e.g. /var/lib/teleport/host_uuid)`,
-				params.ID.HostUUID)
-		}
-
-		params.ec2IdentityDocument, err = utils.GetEC2IdentityDocument()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
 	log.WithField("auth-servers", params.Servers).Debugf("Registering node to the cluster.")
 
 	type registerMethod struct {
@@ -214,37 +198,25 @@ func registerThroughProxy(token string, params RegisterParams) (*proto.Certs, er
 	}
 
 	var certs *proto.Certs
-	if params.JoinMethod == types.JoinMethodIAM {
-		// IAM join method requires gRPC client
-		client, err := proxyJoinServiceClient(params)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		certs, err = registerUsingIAMMethod(client, token, params)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	} else {
-		// non-IAM join methods use GetHostCredentials function passed through
-		// params to call proxy HTTP endpoint
-		var err error
-		certs, err = params.GetHostCredentials(context.Background(),
-			params.Servers[0].String(),
-			lib.IsInsecureDevMode(),
-			types.RegisterUsingTokenRequest{
-				Token:                token,
-				HostID:               params.ID.HostUUID,
-				NodeName:             params.ID.NodeName,
-				Role:                 params.ID.Role,
-				AdditionalPrincipals: params.AdditionalPrincipals,
-				DNSNames:             params.DNSNames,
-				PublicTLSKey:         params.PublicTLSKey,
-				PublicSSHKey:         params.PublicSSHKey,
-				EC2IdentityDocument:  params.ec2IdentityDocument,
-			})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
+	// non-IAM join methods use GetHostCredentials function passed through
+	// params to call proxy HTTP endpoint
+	var err error
+	certs, err = params.GetHostCredentials(context.Background(),
+		params.Servers[0].String(),
+		lib.IsInsecureDevMode(),
+		types.RegisterUsingTokenRequest{
+			Token:                token,
+			HostID:               params.ID.HostUUID,
+			NodeName:             params.ID.NodeName,
+			Role:                 params.ID.Role,
+			AdditionalPrincipals: params.AdditionalPrincipals,
+			DNSNames:             params.DNSNames,
+			PublicTLSKey:         params.PublicTLSKey,
+			PublicSSHKey:         params.PublicSSHKey,
+			EC2IdentityDocument:  params.ec2IdentityDocument,
+		})
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
 	return certs, nil
 }
@@ -269,26 +241,21 @@ func registerThroughAuth(token string, params RegisterParams) (*proto.Certs, err
 	defer client.Close()
 
 	var certs *proto.Certs
-	if params.JoinMethod == types.JoinMethodIAM {
-		// IAM method uses unique gRPC endpoint
-		certs, err = registerUsingIAMMethod(client, token, params)
-	} else {
-		// non-IAM join methods use HTTP endpoint
-		// Get the SSH and X509 certificates for a node.
-		certs, err = client.RegisterUsingToken(
-			context.Background(),
-			&types.RegisterUsingTokenRequest{
-				Token:                token,
-				HostID:               params.ID.HostUUID,
-				NodeName:             params.ID.NodeName,
-				Role:                 params.ID.Role,
-				AdditionalPrincipals: params.AdditionalPrincipals,
-				DNSNames:             params.DNSNames,
-				PublicTLSKey:         params.PublicTLSKey,
-				PublicSSHKey:         params.PublicSSHKey,
-				EC2IdentityDocument:  params.ec2IdentityDocument,
-			})
-	}
+	// non-IAM join methods use HTTP endpoint
+	// Get the SSH and X509 certificates for a node.
+	certs, err = client.RegisterUsingToken(
+		context.Background(),
+		&types.RegisterUsingTokenRequest{
+			Token:                token,
+			HostID:               params.ID.HostUUID,
+			NodeName:             params.ID.NodeName,
+			Role:                 params.ID.Role,
+			AdditionalPrincipals: params.AdditionalPrincipals,
+			DNSNames:             params.DNSNames,
+			PublicTLSKey:         params.PublicTLSKey,
+			PublicSSHKey:         params.PublicSSHKey,
+			EC2IdentityDocument:  params.ec2IdentityDocument,
+		})
 	return certs, trace.Wrap(err)
 }
 
@@ -459,74 +426,6 @@ func pinRegisterClient(params RegisterParams) (*Client, error) {
 
 type joinServiceClient interface {
 	RegisterUsingIAMMethod(ctx context.Context, challengeResponse client.RegisterChallengeResponseFunc) (*proto.Certs, error)
-}
-
-// registerUsingIAMMethod is used to register using the IAM join method. It is
-// able to register through a proxy or through the auth server directly.
-func registerUsingIAMMethod(joinServiceClient joinServiceClient, token string, params RegisterParams) (*proto.Certs, error) {
-	ctx := context.Background()
-
-	// Attempt to use the regional STS endpoint, fall back to using the global
-	// endpoint. The regional endpoint may fail if Auth is on an older version
-	// which does not support regional endpoints, the STS service is not
-	// enabled in the current region, or an unknown AWS region is configured.
-	var errs []error
-	for _, s := range []struct {
-		desc string
-		opts []stsIdentityRequestOption
-	}{
-		{
-			desc: "regional",
-			opts: []stsIdentityRequestOption{
-				withFIPSEndpoint(params.FIPS),
-				withRegionalEndpoint(true),
-			},
-		},
-		{
-			desc: "global",
-			opts: []stsIdentityRequestOption{
-				// Global endpoint does not support FIPS, this is a fallback
-				// when joining a cluster with an auth server on an older
-				// version which does not yet support regional endpoints.
-				withFIPSEndpoint(false),
-				withRegionalEndpoint(false),
-			},
-		},
-	} {
-		log.Infof("Attempting to register %s with IAM method using %s STS endpoint", params.ID.Role, s.desc)
-		// Call RegisterUsingIAMMethod and pass a callback to respond to the challenge with a signed join request.
-		certs, err := joinServiceClient.RegisterUsingIAMMethod(ctx, func(challenge string) (*proto.RegisterUsingIAMMethodRequest, error) {
-			// create the signed sts:GetCallerIdentity request and include the challenge
-			signedRequest, err := createSignedSTSIdentityRequest(ctx, challenge, s.opts...)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-
-			// send the register request including the challenge response
-			return &proto.RegisterUsingIAMMethodRequest{
-				RegisterUsingTokenRequest: &types.RegisterUsingTokenRequest{
-					Token:                token,
-					HostID:               params.ID.HostUUID,
-					NodeName:             params.ID.NodeName,
-					Role:                 params.ID.Role,
-					AdditionalPrincipals: params.AdditionalPrincipals,
-					DNSNames:             params.DNSNames,
-					PublicTLSKey:         params.PublicTLSKey,
-					PublicSSHKey:         params.PublicSSHKey,
-				},
-				StsIdentityRequest: signedRequest,
-			}, nil
-		})
-		if err != nil {
-			log.WithError(err).Infof("Failed to register %s using %s STS endpoint", params.ID.Role, s.desc)
-			errs = append(errs, err)
-		} else {
-			log.Infof("Successfully registered %s with IAM method using %s STS endpoint", params.ID.Role, s.desc)
-			return certs, nil
-		}
-	}
-
-	return nil, trace.NewAggregate(errs...)
 }
 
 // ReRegisterParams specifies parameters for re-registering

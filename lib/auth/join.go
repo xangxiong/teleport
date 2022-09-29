@@ -99,15 +99,6 @@ func (a *Server) RegisterUsingToken(ctx context.Context, req *types.RegisterUsin
 	}
 
 	switch a.tokenJoinMethod(ctx, req.Token) {
-	case types.JoinMethodEC2:
-		if err := a.checkEC2JoinRequest(ctx, req); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	case types.JoinMethodIAM:
-		// IAM join method must use the gRPC RegisterUsingIAMMethod
-		return nil, trace.AccessDenied("this token is only valid for the IAM " +
-			"join method but the node has connected to the wrong endpoint, make " +
-			"sure your node is configured to use the IAM join method")
 	case types.JoinMethodToken:
 		// carry on to common token checking logic
 	default:
@@ -144,8 +135,6 @@ func (a *Server) generateCerts(ctx context.Context, provisionToken types.Provisi
 		switch joinMethod {
 		case types.JoinMethodToken:
 			renewable = true
-		case types.JoinMethodIAM:
-			renewable = false
 		default:
 			return nil, trace.BadParameter("unsupported join method %q for bot", joinMethod)
 		}
@@ -161,8 +150,6 @@ func (a *Server) generateCerts(ctx context.Context, provisionToken types.Provisi
 				log.WithError(err).Warnf("Could not delete bot provision token %q after generating certs",
 					string(backend.MaskKeyName(provisionToken.GetName())))
 			}
-		case types.JoinMethodIAM:
-			// don't delete long-lived IAM join tokens
 		default:
 			return nil, trace.BadParameter("unsupported join method %q for bot", joinMethod)
 		}

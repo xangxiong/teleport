@@ -28,15 +28,12 @@ import (
 type listenerType string
 
 var (
-	listenerAuthSSH    = listenerType(teleport.ComponentAuth)
-	listenerNodeSSH    = listenerType(teleport.ComponentNode)
-	listenerProxySSH   = listenerType(teleport.Component(teleport.ComponentProxy, "ssh"))
-	listenerDiagnostic = listenerType(teleport.ComponentDiagnostic)
-	listenerProxyKube  = listenerType(teleport.Component(teleport.ComponentProxy, "kube"))
+	listenerAuthSSH  = listenerType(teleport.ComponentAuth)
+	listenerNodeSSH  = listenerType(teleport.ComponentNode)
+	listenerProxySSH = listenerType(teleport.Component(teleport.ComponentProxy, "ssh"))
 	// Proxy can use the same listener for tunnels and web interface
 	// (multiplexing the requests).
 	listenerProxyTunnelAndWeb = listenerType(teleport.Component(teleport.ComponentProxy, "tunnel", "web"))
-	listenerProxyWeb          = listenerType(teleport.Component(teleport.ComponentProxy, "web"))
 	listenerProxyTunnel       = listenerType(teleport.Component(teleport.ComponentProxy, "tunnel"))
 	listenerProxyPeer         = listenerType(teleport.Component(teleport.ComponentProxy, "peer"))
 )
@@ -54,27 +51,6 @@ func (process *TeleportProcess) NodeSSHAddr() (*utils.NetAddr, error) {
 // ProxySSHAddr returns the proxy SSH endpoint, if configured and started.
 func (process *TeleportProcess) ProxySSHAddr() (*utils.NetAddr, error) {
 	return process.registeredListenerAddr(listenerProxySSH)
-}
-
-// DiagnosticAddr returns the diagnostic endpoint, if configured and started.
-func (process *TeleportProcess) DiagnosticAddr() (*utils.NetAddr, error) {
-	return process.registeredListenerAddr(listenerDiagnostic)
-}
-
-// ProxyKubeAddr returns the proxy kubernetes endpoint, if configured and
-// started.
-func (process *TeleportProcess) ProxyKubeAddr() (*utils.NetAddr, error) {
-	return process.registeredListenerAddr(listenerProxyKube)
-}
-
-// ProxyWebAddr returns the proxy web interface endpoint, if configured and
-// started.
-func (process *TeleportProcess) ProxyWebAddr() (*utils.NetAddr, error) {
-	addr, err := process.registeredListenerAddr(listenerProxyTunnelAndWeb)
-	if err == nil {
-		return addr, nil
-	}
-	return process.registeredListenerAddr(listenerProxyWeb)
 }
 
 // ProxyTunnelAddr returns the proxy reverse tunnel endpoint, if configured and
