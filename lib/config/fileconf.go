@@ -18,13 +18,11 @@ package config
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"net"
 	"net/url"
 	"os"
 	"strings"
@@ -33,7 +31,6 @@ import (
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
@@ -61,9 +58,8 @@ import (
 type FileConfig struct {
 	Version string `yaml:"version,omitempty"`
 	Global  `yaml:"teleport,omitempty"`
-	Auth    Auth  `yaml:"auth_service,omitempty"`
-	SSH     SSH   `yaml:"ssh_service,omitempty"`
-	Proxy   Proxy `yaml:"proxy_service,omitempty"`
+	Auth    Auth `yaml:"auth_service,omitempty"`
+	SSH     SSH  `yaml:"ssh_service,omitempty"`
 }
 
 // ReadFromFile reads Teleport configuration from a file. Currently only YAML
@@ -200,12 +196,6 @@ func MakeSampleFileConfig(flags SampleFlags) (fc *FileConfig, err error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// sample proxy config:
-	p, err := makeSampleProxyConfig(conf, flags, roles[defaults.RoleProxy])
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	// DB config:
 	var dbs Databases
 	if roles[defaults.RoleDatabase] {
@@ -225,7 +215,6 @@ func MakeSampleFileConfig(flags SampleFlags) (fc *FileConfig, err error) {
 	fc = &FileConfig{
 		Version: flags.Version,
 		Global:  g,
-		Proxy:   p,
 		SSH:     s,
 	}
 	return fc, nil
@@ -253,48 +242,6 @@ func makeSampleSSHConfig(conf *service.Config, flags SampleFlags, enabled bool) 
 	}
 
 	return s, nil
-}
-
-func makeSampleProxyConfig(conf *service.Config, flags SampleFlags, enabled bool) (Proxy, error) {
-	var p Proxy
-	if enabled {
-		p.EnabledFlag = "yes"
-		p.ListenAddress = conf.Proxy.SSHAddr.Addr
-		if flags.ACMEEnabled {
-			p.ACME.EnabledFlag = "yes"
-			p.ACME.Email = flags.ACMEEmail
-			// ACME uses TLS-ALPN-01 challenge that requires port 443
-			// https://letsencrypt.org/docs/challenge-types/#tls-alpn-01
-			p.PublicAddr = apiutils.Strings{net.JoinHostPort(flags.ClusterName, fmt.Sprintf("%d", teleport.StandardHTTPSPort))}
-			p.WebAddr = net.JoinHostPort(defaults.BindIP, fmt.Sprintf("%d", teleport.StandardHTTPSPort))
-		}
-		if flags.PublicAddr != "" {
-			// default to 443 if port is not specified
-			publicAddr, err := utils.ParseHostPortAddr(flags.PublicAddr, teleport.StandardHTTPSPort)
-			if err != nil {
-				return Proxy{}, trace.Wrap(err)
-			}
-			p.PublicAddr = apiutils.Strings{publicAddr.String()}
-
-			// use same port for web addr
-			webPort := publicAddr.Port(teleport.StandardHTTPSPort)
-			p.WebAddr = net.JoinHostPort(defaults.BindIP, fmt.Sprintf("%d", webPort))
-		}
-		if flags.KeyFile != "" && flags.CertFile != "" {
-			if _, err := tls.LoadX509KeyPair(flags.CertFile, flags.KeyFile); err != nil {
-				return Proxy{}, trace.Wrap(err, "failed to load x509 key pair from --key-file and --cert-file")
-			}
-
-			p.KeyPairs = append(p.KeyPairs, KeyPair{
-				PrivateKey:  flags.KeyFile,
-				Certificate: flags.CertFile,
-			})
-		}
-	} else {
-		p.EnabledFlag = "no"
-	}
-
-	return p, nil
 }
 
 func roleMapFromFlags(flags SampleFlags) map[string]bool {
@@ -330,7 +277,6 @@ func (conf *FileConfig) DebugDumpToYAML() string {
 // This ensures we don't start Teleport with invalid configuration.
 func (conf *FileConfig) CheckAndSetDefaults() error {
 	conf.Auth.defaultEnabled = true
-	conf.Proxy.defaultEnabled = true
 	conf.SSH.defaultEnabled = true
 	if conf.Version == "" {
 		conf.Version = defaults.TeleportConfigVersionV1
