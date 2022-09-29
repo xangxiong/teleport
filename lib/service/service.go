@@ -20,24 +20,19 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/tls"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/gravitational/trace"
@@ -83,7 +78,6 @@ import (
 	"github.com/gravitational/teleport/lib/services/local"
 	"github.com/gravitational/teleport/lib/session"
 	"github.com/gravitational/teleport/lib/srv"
-	"github.com/gravitational/teleport/lib/srv/app"
 	"github.com/gravitational/teleport/lib/srv/regular"
 	"github.com/gravitational/teleport/lib/system"
 	"github.com/gravitational/teleport/lib/utils"
@@ -2513,18 +2507,6 @@ func peerAddr(addr *utils.NetAddr) (*utils.NetAddr, error) {
 	return addr, nil
 }
 
-// waitForAppDepend waits until all dependencies for an application service
-// are ready.
-func (process *TeleportProcess) waitForAppDepend() {
-	for _, event := range appDependEvents {
-		_, err := process.WaitForEvent(process.ExitContext(), event)
-		if err != nil {
-			process.log.Debugf("Process is exiting.")
-			break
-		}
-	}
-}
-
 // registerExpectedServices sets up the instance role -> identity event mapping.
 func (process *TeleportProcess) registerExpectedServices(cfg *Config) {
 	if cfg.Auth.Enabled {
@@ -2538,15 +2520,6 @@ func (process *TeleportProcess) registerExpectedServices(cfg *Config) {
 	if cfg.Proxy.Enabled {
 		process.setExpectedInstanceRole(types.RoleProxy, ProxyIdentityEvent)
 	}
-}
-
-// appDependEvents is a list of events that the application service depends on.
-var appDependEvents = []string{
-	AuthTLSReady,
-	AuthIdentityEvent,
-	ProxySSHReady,
-	ProxyWebServerReady,
-	ProxyReverseTunnelReady,
 }
 
 func warnOnErr(err error, log logrus.FieldLogger) {
@@ -2709,120 +2682,4 @@ func validateConfig(cfg *Config) error {
 	cfg.SSH.Namespace = types.ProcessNamespace(cfg.SSH.Namespace)
 
 	return nil
-}
-
-// singleProcessModeResolver returns the reversetunnel.Resolver that should be used when running all components needed
-// within the same process. It's used for development and demo purposes.
-func (process *TeleportProcess) singleProcessModeResolver(mode types.ProxyListenerMode) reversetunnel.Resolver {
-	return func(context.Context) (*utils.NetAddr, error) {
-		addr, ok := process.singleProcessMode(mode)
-		if !ok {
-			return nil, trace.BadParameter(`failed to find reverse tunnel address, if running in single process mode, make sure "auth_service", "proxy_service", and "app_service" are all enabled`)
-		}
-		return addr, nil
-	}
-}
-
-// singleProcessMode returns true when running all components needed within
-// the same process. It's used for development and demo purposes.
-func (process *TeleportProcess) singleProcessMode(mode types.ProxyListenerMode) (*utils.NetAddr, bool) {
-	if !process.Config.Proxy.Enabled || !process.Config.Auth.Enabled {
-		return nil, false
-	}
-	if process.Config.Proxy.DisableReverseTunnel {
-		return nil, false
-	}
-
-	if !process.Config.Proxy.DisableTLS && !process.Config.Proxy.DisableALPNSNIListener && mode == types.ProxyListenerMode_Multiplex {
-		if len(process.Config.Proxy.PublicAddrs) != 0 {
-			return &process.Config.Proxy.PublicAddrs[0], true
-		}
-		// If WebAddress is unspecified "0.0.0.0" replace 0.0.0.0 with localhost since 0.0.0.0 is never a valid
-		// principal (auth server explicitly removes it when issuing host certs) and when WebPort is used
-		// in the single process mode to establish SSH reverse tunnel connection the host is validated against
-		// the valid principal list.
-		addr := process.Config.Proxy.WebAddr
-		addr.Addr = utils.ReplaceUnspecifiedHost(&addr, defaults.HTTPListenPort)
-		return &addr, true
-	}
-
-	if len(process.Config.Proxy.TunnelPublicAddrs) == 0 {
-		addr, err := utils.ParseHostPortAddr(string(teleport.PrincipalLocalhost), defaults.SSHProxyTunnelListenPort)
-		if err != nil {
-			return nil, false
-		}
-		return addr, true
-	}
-	return &process.Config.Proxy.TunnelPublicAddrs[0], true
-}
-
-// dumperHandler is an Application Access debugging application that will
-// dump the headers of a request.
-func dumperHandler(w http.ResponseWriter, r *http.Request) {
-	requestDump, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	randomBytes := make([]byte, 8)
-	rand.Reader.Read(randomBytes)
-	cookieValue := hex.EncodeToString(randomBytes)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "dumper.session.cookie",
-		Value:    cookieValue,
-		SameSite: http.SameSiteLaxMode,
-	})
-
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprint(w, string(requestDump))
-}
-
-// getPublicAddr waits for a proxy to be registered with Teleport.
-func getPublicAddr(authClient auth.ReadAppsAccessPoint, a App) (string, error) {
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-	timeout := time.NewTimer(5 * time.Second)
-	defer timeout.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			publicAddr, err := app.FindPublicAddr(authClient, a.PublicAddr, a.Name)
-
-			if err == nil {
-				return publicAddr, nil
-			}
-		case <-timeout.C:
-			return "", trace.BadParameter("timed out waiting for proxy with public address")
-		}
-	}
-}
-
-// newHTTPFileSystem creates a new HTTP file system for the web handler.
-// It uses external configuration to make the decision
-func newHTTPFileSystem() (http.FileSystem, error) {
-	if !isDebugMode() {
-		fs, err := web.NewStaticFileSystem() //nolint:staticcheck
-		if err != nil {                      //nolint:staticcheck
-			return nil, trace.Wrap(err)
-		}
-		return fs, nil
-	}
-
-	// Use the supplied HTTP filesystem path (defaults to the current dir).
-	assetsPath := os.Getenv(teleport.DebugAssetsPath)
-	fs, err := web.NewDebugFileSystem(assetsPath)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return fs, nil
-}
-
-// isDebugMode determines if teleport is running in a "debug" mode.
-// It looks at DEBUG environment variable
-func isDebugMode() bool {
-	v, _ := strconv.ParseBool(os.Getenv(teleport.DebugEnvVar))
-	return v
 }
