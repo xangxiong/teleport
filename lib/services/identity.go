@@ -32,25 +32,25 @@ import (
 
 // Identity is responsible for managing user entries and external identities
 type Identity interface {
-	// UpsertWebauthnSessionData creates or updates WebAuthn session data in
-	// storage, for the purpose of later verifying an authentication or
-	// registration challenge.
-	// Session data is expected to expire according to backend settings.
-	UpsertWebauthnSessionData(ctx context.Context, user, sessionID string, sd *wantypes.SessionData) error
+	// // UpsertWebauthnSessionData creates or updates WebAuthn session data in
+	// // storage, for the purpose of later verifying an authentication or
+	// // registration challenge.
+	// // Session data is expected to expire according to backend settings.
+	// UpsertWebauthnSessionData(ctx context.Context, user, sessionID string, sd *wantypes.SessionData) error
 
-	// GetWebauthnSessionData retrieves a previously-stored session data by ID,
-	// if it exists and has not expired.
-	GetWebauthnSessionData(ctx context.Context, user, sessionID string) (*wantypes.SessionData, error)
+	// // GetWebauthnSessionData retrieves a previously-stored session data by ID,
+	// // if it exists and has not expired.
+	// GetWebauthnSessionData(ctx context.Context, user, sessionID string) (*wantypes.SessionData, error)
 
-	// DeleteWebauthnSessionData deletes session data by ID, if it exists and has
-	// not expired.
-	DeleteWebauthnSessionData(ctx context.Context, user, sessionID string) error
+	// // DeleteWebauthnSessionData deletes session data by ID, if it exists and has
+	// // not expired.
+	// DeleteWebauthnSessionData(ctx context.Context, user, sessionID string) error
 
-	// UpsertGlobalWebauthnSessionData creates or updates WebAuthn session data in
-	// storage, for the purpose of later verifying an authentication challenge.
-	// Session data is expected to expire according to backend settings.
-	// Used for passwordless challenges.
-	UpsertGlobalWebauthnSessionData(ctx context.Context, scope, id string, sd *wantypes.SessionData) error
+	// // UpsertGlobalWebauthnSessionData creates or updates WebAuthn session data in
+	// // storage, for the purpose of later verifying an authentication challenge.
+	// // Session data is expected to expire according to backend settings.
+	// // Used for passwordless challenges.
+	// UpsertGlobalWebauthnSessionData(ctx context.Context, scope, id string, sd *wantypes.SessionData) error
 
 	// GetGlobalWebauthnSessionData retrieves previously-stored session data by ID,
 	// if it exists and has not expired.
