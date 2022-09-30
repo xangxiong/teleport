@@ -116,30 +116,6 @@ type TestServerConfig struct {
 	TLS *TestTLSServerConfig
 }
 
-// NewTestServer creates a new test server configuration
-func NewTestServer(cfg TestServerConfig) (*TestServer, error) {
-	authServer, err := NewTestAuthServer(cfg.Auth)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var tlsServer *TestTLSServer
-	if cfg.TLS != nil {
-		tlsServer, err = NewTestTLSServer(*cfg.TLS)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	} else {
-		tlsServer, err = authServer.NewTestTLSServer()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return &TestServer{
-		AuthServer: authServer,
-		TLS:        tlsServer,
-	}, nil
-}
-
 // Auth returns the underlying auth server instance
 func (a *TestServer) Auth() *Server {
 	return a.AuthServer.AuthServer
@@ -534,25 +510,25 @@ func (a *TestAuthServer) Trust(ctx context.Context, remote *TestAuthServer, role
 	return nil
 }
 
-// NewTestTLSServer returns new test TLS server
-func (a *TestAuthServer) NewTestTLSServer() (*TestTLSServer, error) {
-	apiConfig := &APIConfig{
-		AuthServer:     a.AuthServer,
-		Authorizer:     a.Authorizer,
-		SessionService: a.SessionServer,
-		AuditLog:       a.AuditLog,
-		Emitter:        a.AuthServer.emitter,
-	}
-	srv, err := NewTestTLSServer(TestTLSServerConfig{
-		APIConfig:     apiConfig,
-		AuthServer:    a,
-		AcceptedUsage: a.AcceptedUsage,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return srv, nil
-}
+// // NewTestTLSServer returns new test TLS server
+// func (a *TestAuthServer) NewTestTLSServer() (*TestTLSServer, error) {
+// 	apiConfig := &APIConfig{
+// 		AuthServer:     a.AuthServer,
+// 		Authorizer:     a.Authorizer,
+// 		SessionService: a.SessionServer,
+// 		AuditLog:       a.AuditLog,
+// 		Emitter:        a.AuthServer.emitter,
+// 	}
+// 	srv, err := NewTestTLSServer(TestTLSServerConfig{
+// 		APIConfig:     apiConfig,
+// 		AuthServer:    a,
+// 		AcceptedUsage: a.AcceptedUsage,
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return srv, nil
+// }
 
 // NewRemoteClient creates new client to the remote server using identity
 // generated for this certificate authority
@@ -633,53 +609,53 @@ func (cfg *TestTLSServerConfig) CheckAndSetDefaults() error {
 	return nil
 }
 
-// NewTestTLSServer returns new test TLS server that is started and is listening
-// on 127.0.0.1 loopback on any available port
-func NewTestTLSServer(cfg TestTLSServerConfig) (*TestTLSServer, error) {
-	err := cfg.CheckAndSetDefaults()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	srv := &TestTLSServer{
-		TestTLSServerConfig: cfg,
-	}
-	srv.Identity, err = NewServerIdentity(srv.AuthServer.AuthServer, "test-tls-server", types.RoleAuth)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Register TLS endpoint of the auth service
-	tlsConfig, err := srv.Identity.TLSConfig(srv.AuthServer.CipherSuites)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	tlsConfig.Time = cfg.AuthServer.Clock().Now
+// // NewTestTLSServer returns new test TLS server that is started and is listening
+// // on 127.0.0.1 loopback on any available port
+// func NewTestTLSServer(cfg TestTLSServerConfig) (*TestTLSServer, error) {
+// 	err := cfg.CheckAndSetDefaults()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	srv := &TestTLSServer{
+// 		TestTLSServerConfig: cfg,
+// 	}
+// 	srv.Identity, err = NewServerIdentity(srv.AuthServer.AuthServer, "test-tls-server", types.RoleAuth)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	// Register TLS endpoint of the auth service
+// 	tlsConfig, err := srv.Identity.TLSConfig(srv.AuthServer.CipherSuites)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	tlsConfig.Time = cfg.AuthServer.Clock().Now
 
-	accessPoint, err := NewAdminAuthServer(srv.AuthServer.AuthServer, srv.AuthServer.SessionServer, srv.AuthServer.AuditLog)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	accessPoint, err := NewAdminAuthServer(srv.AuthServer.AuthServer, srv.AuthServer.SessionServer, srv.AuthServer.AuditLog)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	srv.Listener, err = net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	srv.Listener, err = net.Listen("tcp", "127.0.0.1:0")
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	srv.TLSServer, err = NewTLSServer(TLSServerConfig{
-		Listener:      srv.Listener,
-		AccessPoint:   accessPoint,
-		TLS:           tlsConfig,
-		APIConfig:     *srv.APIConfig,
-		LimiterConfig: *srv.Limiter,
-		AcceptedUsage: cfg.AcceptedUsage,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := srv.Start(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return srv, nil
-}
+// 	srv.TLSServer, err = NewTLSServer(TLSServerConfig{
+// 		Listener:      srv.Listener,
+// 		AccessPoint:   accessPoint,
+// 		TLS:           tlsConfig,
+// 		APIConfig:     *srv.APIConfig,
+// 		LimiterConfig: *srv.Limiter,
+// 		AcceptedUsage: cfg.AcceptedUsage,
+// 	})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	if err := srv.Start(); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return srv, nil
+// }
 
 // TestIdentity is test identity spec used to generate identities in tests
 type TestIdentity struct {

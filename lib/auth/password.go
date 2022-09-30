@@ -17,7 +17,6 @@ package auth
 import (
 	"context"
 	"crypto/subtle"
-	"net/mail"
 
 	"github.com/gravitational/trace"
 	"github.com/pquerna/otp"
@@ -37,44 +36,6 @@ import (
 
 // This is bcrypt hash for password "barbaz".
 var fakePasswordHash = []byte(`$2a$10$Yy.e6BmS2SrGbBDsyDLVkOANZmvjjMR890nUGSXFJHBXWzxe7T44m`)
-
-// ChangeUserAuthentication implements AuthService.ChangeUserAuthentication.
-func (s *Server) ChangeUserAuthentication(ctx context.Context, req *proto.ChangeUserAuthenticationRequest) (*proto.ChangeUserAuthenticationResponse, error) {
-	user, err := s.changeUserAuthentication(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Check if a user can receive new recovery codes.
-	_, emailErr := mail.ParseAddress(user.GetName())
-	hasEmail := emailErr == nil
-	hasMFA := req.GetNewMFARegisterResponse() != nil
-	recoveryAllowed := s.isAccountRecoveryAllowed(ctx) == nil
-	createRecoveryCodes := hasEmail && hasMFA && recoveryAllowed
-
-	var newRecovery *proto.RecoveryCodes
-	if createRecoveryCodes {
-		newRecovery, err = s.generateAndUpsertRecoveryCodes(ctx, user.GetName())
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	webSession, err := s.createUserWebSession(ctx, user)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	sess, ok := webSession.(*types.WebSessionV2)
-	if !ok {
-		return nil, trace.BadParameter("unexpected WebSessionV2 type %T", sess)
-	}
-
-	return &proto.ChangeUserAuthenticationResponse{
-		WebSession: sess,
-		Recovery:   newRecovery,
-	}, nil
-}
 
 // ResetPassword securely generates a new random password and assigns it to user.
 // This method is used to invalidate existing user password during password

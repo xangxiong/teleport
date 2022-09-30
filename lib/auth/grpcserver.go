@@ -3778,114 +3778,6 @@ func (g *GRPCServer) GenerateWindowsDesktopCert(ctx context.Context, req *proto.
 	return response, nil
 }
 
-// ChangeUserAuthentication implements AuthService.ChangeUserAuthentication.
-func (g *GRPCServer) ChangeUserAuthentication(ctx context.Context, req *proto.ChangeUserAuthenticationRequest) (*proto.ChangeUserAuthenticationResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	res, err := auth.ServerWithRoles.ChangeUserAuthentication(ctx, req)
-	return res, trace.Wrap(err)
-}
-
-// StartAccountRecovery is implemented by AuthService.StartAccountRecovery.
-func (g *GRPCServer) StartAccountRecovery(ctx context.Context, req *proto.StartAccountRecoveryRequest) (*types.UserTokenV3, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	resetToken, err := auth.ServerWithRoles.StartAccountRecovery(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	r, ok := resetToken.(*types.UserTokenV3)
-	if !ok {
-		return nil, trace.BadParameter("unexpected UserToken type %T", resetToken)
-	}
-
-	return r, nil
-}
-
-// VerifyAccountRecovery is implemented by AuthService.VerifyAccountRecovery.
-func (g *GRPCServer) VerifyAccountRecovery(ctx context.Context, req *proto.VerifyAccountRecoveryRequest) (*types.UserTokenV3, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	approvedToken, err := auth.ServerWithRoles.VerifyAccountRecovery(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	r, ok := approvedToken.(*types.UserTokenV3)
-	if !ok {
-		return nil, trace.BadParameter("unexpected UserToken type %T", approvedToken)
-	}
-
-	return r, nil
-}
-
-// CompleteAccountRecovery is implemented by AuthService.CompleteAccountRecovery.
-func (g *GRPCServer) CompleteAccountRecovery(ctx context.Context, req *proto.CompleteAccountRecoveryRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	err = auth.ServerWithRoles.CompleteAccountRecovery(ctx, req)
-	return &empty.Empty{}, trace.Wrap(err)
-}
-
-// CreateAccountRecoveryCodes is implemented by AuthService.CreateAccountRecoveryCodes.
-func (g *GRPCServer) CreateAccountRecoveryCodes(ctx context.Context, req *proto.CreateAccountRecoveryCodesRequest) (*proto.RecoveryCodes, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	res, err := auth.ServerWithRoles.CreateAccountRecoveryCodes(ctx, req)
-	return res, trace.Wrap(err)
-}
-
-// GetAccountRecoveryToken is implemented by AuthService.GetAccountRecoveryToken.
-func (g *GRPCServer) GetAccountRecoveryToken(ctx context.Context, req *proto.GetAccountRecoveryTokenRequest) (*types.UserTokenV3, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	approvedToken, err := auth.ServerWithRoles.GetAccountRecoveryToken(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	r, ok := approvedToken.(*types.UserTokenV3)
-	if !ok {
-		return nil, trace.BadParameter("unexpected UserToken type %T", approvedToken)
-	}
-
-	return r, nil
-}
-
-// GetAccountRecoveryCodes is implemented by AuthService.GetAccountRecoveryCodes.
-func (g *GRPCServer) GetAccountRecoveryCodes(ctx context.Context, req *proto.GetAccountRecoveryCodesRequest) (*proto.RecoveryCodes, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	rc, err := auth.ServerWithRoles.GetAccountRecoveryCodes(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return rc, nil
-}
-
 // CreateAuthenticateChallenge is implemented by AuthService.CreateAuthenticateChallenge.
 func (g *GRPCServer) CreateAuthenticateChallenge(ctx context.Context, req *proto.CreateAuthenticateChallengeRequest) (*proto.MFAAuthenticateChallenge, error) {
 	actx, err := g.authenticate(ctx)
@@ -4292,7 +4184,7 @@ func NewGRPCServer(cfg GRPCServerConfig) (*GRPCServer, error) {
 		}),
 		server: server,
 	}
-	proto.RegisterAuthServiceServer(server, authServer)
+	//proto.RegisterAuthServiceServer(server, authServer)
 	collectortracepb.RegisterTraceServiceServer(server, authServer)
 
 	// create server with no-op role to pass to JoinService server

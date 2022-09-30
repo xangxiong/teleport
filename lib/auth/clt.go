@@ -932,7 +932,7 @@ func (c *Client) DeleteWebSession(ctx context.Context, user string, sid string) 
 	return trace.Wrap(err)
 }
 
-// GenerateHostCert takes the public key in the Open SSH ``authorized_keys``
+// GenerateHostCert takes the public key in the Open SSH “authorized_keys“
 // plain text format, signs it using Host Certificate Authority private key and returns the
 // resulting certificate.
 func (c *Client) GenerateHostCert(
@@ -1581,10 +1581,6 @@ type IdentityService interface {
 	// GetBotUsers gets all bot users.
 	GetBotUsers(ctx context.Context) ([]types.User, error)
 
-	// ChangeUserAuthentication allows a user with a reset or invite token to change their password and if enabled also adds a new mfa device.
-	// Upon success, creates new web session and creates new set of recovery codes (if user meets requirements).
-	ChangeUserAuthentication(ctx context.Context, req *proto.ChangeUserAuthenticationRequest) (*proto.ChangeUserAuthenticationResponse, error)
-
 	// GetResetPasswordToken returns a reset password token.
 	GetResetPasswordToken(ctx context.Context, username string) (types.UserToken, error)
 
@@ -1605,27 +1601,6 @@ type IdentityService interface {
 
 	// MaintainSessionPresence establishes a channel used to continuously verify the presence for a session.
 	MaintainSessionPresence(ctx context.Context) (proto.AuthService_MaintainSessionPresenceClient, error)
-
-	// StartAccountRecovery creates a recovery start token for a user who successfully verified their username and their recovery code.
-	// This token is used as part of a URL that will be emailed to the user (not done in this request).
-	// Represents step 1 of the account recovery process.
-	StartAccountRecovery(ctx context.Context, req *proto.StartAccountRecoveryRequest) (types.UserToken, error)
-	// VerifyAccountRecovery creates a recovery approved token after successful verification of users password or second factor
-	// (authn depending on what user needed to recover). This token will allow users to perform protected actions while not logged in.
-	// Represents step 2 of the account recovery process after RPC StartAccountRecovery.
-	VerifyAccountRecovery(ctx context.Context, req *proto.VerifyAccountRecoveryRequest) (types.UserToken, error)
-	// CompleteAccountRecovery sets a new password or adds a new mfa device,
-	// allowing user to regain access to their account using the new credentials.
-	// Represents the last step in the account recovery process after RPC's StartAccountRecovery and VerifyAccountRecovery.
-	CompleteAccountRecovery(ctx context.Context, req *proto.CompleteAccountRecoveryRequest) error
-
-	// CreateAccountRecoveryCodes creates new set of recovery codes for a user, replacing and invalidating any previously owned codes.
-	CreateAccountRecoveryCodes(ctx context.Context, req *proto.CreateAccountRecoveryCodesRequest) (*proto.RecoveryCodes, error)
-	// GetAccountRecoveryToken returns a user token resource after verifying the token in
-	// request is not expired and is of the correct recovery type.
-	GetAccountRecoveryToken(ctx context.Context, req *proto.GetAccountRecoveryTokenRequest) (types.UserToken, error)
-	// GetAccountRecoveryCodes returns the user in context their recovery codes resource without any secrets.
-	GetAccountRecoveryCodes(ctx context.Context, req *proto.GetAccountRecoveryCodesRequest) (*proto.RecoveryCodes, error)
 
 	// CreatePrivilegeToken creates a privilege token for the logged in user who has successfully re-authenticated with their second factor.
 	// A privilege token allows users to perform privileged action eg: add/delete their MFA device.

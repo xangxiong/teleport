@@ -2627,12 +2627,6 @@ func (a *ServerWithRoles) RotateUserTokenSecrets(ctx context.Context, tokenID st
 	return a.authServer.RotateUserTokenSecrets(ctx, tokenID)
 }
 
-// ChangeUserAuthentication is implemented by AuthService.ChangeUserAuthentication.
-func (a *ServerWithRoles) ChangeUserAuthentication(ctx context.Context, req *proto.ChangeUserAuthenticationRequest) (*proto.ChangeUserAuthenticationResponse, error) {
-	// Token is it's own authentication, no need to double check.
-	return a.authServer.ChangeUserAuthentication(ctx, req)
-}
-
 // CreateUser inserts a new user entry in a backend.
 func (a *ServerWithRoles) CreateUser(ctx context.Context, user types.User) error {
 	if err := a.action(apidefaults.Namespace, types.KindUser, types.VerbCreate); err != nil {
@@ -4917,32 +4911,32 @@ func (a *ServerWithRoles) AppendDiagnosticTrace(ctx context.Context, name string
 	return a.authServer.AppendDiagnosticTrace(ctx, name, t)
 }
 
-// StartAccountRecovery is implemented by AuthService.StartAccountRecovery.
-func (a *ServerWithRoles) StartAccountRecovery(ctx context.Context, req *proto.StartAccountRecoveryRequest) (types.UserToken, error) {
-	return a.authServer.StartAccountRecovery(ctx, req)
-}
+// // StartAccountRecovery is implemented by AuthService.StartAccountRecovery.
+// func (a *ServerWithRoles) StartAccountRecovery(ctx context.Context, req *proto.StartAccountRecoveryRequest) (types.UserToken, error) {
+// 	return a.authServer.StartAccountRecovery(ctx, req)
+// }
 
-// VerifyAccountRecovery is implemented by AuthService.VerifyAccountRecovery.
-func (a *ServerWithRoles) VerifyAccountRecovery(ctx context.Context, req *proto.VerifyAccountRecoveryRequest) (types.UserToken, error) {
-	// The token provides its own authorization and authentication.
-	return a.authServer.VerifyAccountRecovery(ctx, req)
-}
+// // VerifyAccountRecovery is implemented by AuthService.VerifyAccountRecovery.
+// func (a *ServerWithRoles) VerifyAccountRecovery(ctx context.Context, req *proto.VerifyAccountRecoveryRequest) (types.UserToken, error) {
+// 	// The token provides its own authorization and authentication.
+// 	return a.authServer.VerifyAccountRecovery(ctx, req)
+// }
 
-// CompleteAccountRecovery is implemented by AuthService.CompleteAccountRecovery.
-func (a *ServerWithRoles) CompleteAccountRecovery(ctx context.Context, req *proto.CompleteAccountRecoveryRequest) error {
-	// The token provides its own authorization and authentication.
-	return a.authServer.CompleteAccountRecovery(ctx, req)
-}
+// // CompleteAccountRecovery is implemented by AuthService.CompleteAccountRecovery.
+// func (a *ServerWithRoles) CompleteAccountRecovery(ctx context.Context, req *proto.CompleteAccountRecoveryRequest) error {
+// 	// The token provides its own authorization and authentication.
+// 	return a.authServer.CompleteAccountRecovery(ctx, req)
+// }
 
-// CreateAccountRecoveryCodes is implemented by AuthService.CreateAccountRecoveryCodes.
-func (a *ServerWithRoles) CreateAccountRecoveryCodes(ctx context.Context, req *proto.CreateAccountRecoveryCodesRequest) (*proto.RecoveryCodes, error) {
-	return a.authServer.CreateAccountRecoveryCodes(ctx, req)
-}
+// // CreateAccountRecoveryCodes is implemented by AuthService.CreateAccountRecoveryCodes.
+// func (a *ServerWithRoles) CreateAccountRecoveryCodes(ctx context.Context, req *proto.CreateAccountRecoveryCodesRequest) (*proto.RecoveryCodes, error) {
+// 	return a.authServer.CreateAccountRecoveryCodes(ctx, req)
+// }
 
-// GetAccountRecoveryToken is implemented by AuthService.GetAccountRecoveryToken.
-func (a *ServerWithRoles) GetAccountRecoveryToken(ctx context.Context, req *proto.GetAccountRecoveryTokenRequest) (types.UserToken, error) {
-	return a.authServer.GetAccountRecoveryToken(ctx, req)
-}
+// // GetAccountRecoveryToken is implemented by AuthService.GetAccountRecoveryToken.
+// func (a *ServerWithRoles) GetAccountRecoveryToken(ctx context.Context, req *proto.GetAccountRecoveryTokenRequest) (types.UserToken, error) {
+// 	return a.authServer.GetAccountRecoveryToken(ctx, req)
+// }
 
 // CreateAuthenticateChallenge is implemented by AuthService.CreateAuthenticateChallenge.
 func (a *ServerWithRoles) CreateAuthenticateChallenge(ctx context.Context, req *proto.CreateAuthenticateChallengeRequest) (*proto.MFAAuthenticateChallenge, error) {
@@ -4964,11 +4958,11 @@ func (a *ServerWithRoles) CreateRegisterChallenge(ctx context.Context, req *prot
 	return a.authServer.CreateRegisterChallenge(ctx, req)
 }
 
-// GetAccountRecoveryCodes is implemented by AuthService.GetAccountRecoveryCodes.
-func (a *ServerWithRoles) GetAccountRecoveryCodes(ctx context.Context, req *proto.GetAccountRecoveryCodesRequest) (*proto.RecoveryCodes, error) {
-	// User in context can retrieve their own recovery codes.
-	return a.authServer.GetAccountRecoveryCodes(ctx, req)
-}
+// // GetAccountRecoveryCodes is implemented by AuthService.GetAccountRecoveryCodes.
+// func (a *ServerWithRoles) GetAccountRecoveryCodes(ctx context.Context, req *proto.GetAccountRecoveryCodesRequest) (*proto.RecoveryCodes, error) {
+// 	// User in context can retrieve their own recovery codes.
+// 	return a.authServer.GetAccountRecoveryCodes(ctx, req)
+// }
 
 // GenerateCertAuthorityCRL generates an empty CRL for a CA.
 func (a *ServerWithRoles) GenerateCertAuthorityCRL(ctx context.Context, caType types.CertAuthType) ([]byte, error) {
@@ -4995,20 +4989,20 @@ func (a *ServerWithRoles) MaintainSessionPresence(ctx context.Context) (proto.Au
 	return nil, trace.NotImplemented(notImplementedMessage)
 }
 
-// NewAdminAuthServer returns auth server authorized as admin,
-// used for auth server cached access
-func NewAdminAuthServer(authServer *Server, sessions session.Service, alog events.IAuditLog) (ClientI, error) {
-	ctx, err := NewAdminContext()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &ServerWithRoles{
-		authServer: authServer,
-		context:    *ctx,
-		alog:       alog,
-		sessions:   sessions,
-	}, nil
-}
+// // NewAdminAuthServer returns auth server authorized as admin,
+// // used for auth server cached access
+// func NewAdminAuthServer(authServer *Server, sessions session.Service, alog events.IAuditLog) (ClientI, error) {
+// 	ctx, err := NewAdminContext()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &ServerWithRoles{
+// 		authServer: authServer,
+// 		context:    *ctx,
+// 		alog:       alog,
+// 		sessions:   sessions,
+// 	}, nil
+// }
 
 func emitSSOLoginFailureEvent(ctx context.Context, emitter apievents.Emitter, method string, err error, testFlow bool) {
 	code := events.UserSSOLoginFailureCode
