@@ -2735,26 +2735,6 @@ func (a *Server) DeleteDatabase(ctx context.Context, name string) error {
 
 // ListResources returns paginated resources depending on the resource type..
 func (a *Server) ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	// Because WindowsDesktopService does not contain the desktop resources,
-	// this is not implemented at the cache level and requires the workaround
-	// here in order to support KindWindowsDesktop for ListResources.
-	if req.ResourceType == types.KindWindowsDesktop {
-		wResp, err := a.ListWindowsDesktops(ctx, types.ListWindowsDesktopsRequest{
-			WindowsDesktopFilter: req.WindowsDesktopFilter,
-			Limit:                int(req.Limit),
-			StartKey:             req.StartKey,
-			PredicateExpression:  req.PredicateExpression,
-			Labels:               req.Labels,
-			SearchKeywords:       req.SearchKeywords,
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return &types.ListResourcesResponse{
-			Resources: types.WindowsDesktops(wResp.Desktops).AsResources(),
-			NextKey:   wResp.NextKey,
-		}, nil
-	}
 	return a.Cache.ListResources(ctx, req)
 }
 
