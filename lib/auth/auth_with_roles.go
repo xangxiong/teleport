@@ -1487,54 +1487,10 @@ func (a *ServerWithRoles) CreateToken(ctx context.Context, token types.Provision
 	return a.authServer.CreateToken(ctx, token)
 }
 
-// Get returns the web session specified with req.
-func (r *webSessionsWithRoles) Get(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
-	if err := r.c.currentUserAction(req.User); err != nil {
-		if err := r.c.action(apidefaults.Namespace, types.KindWebSession, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return r.ws.Get(ctx, req)
-}
-
-// List returns the list of all web sessions.
-func (r *webSessionsWithRoles) List(ctx context.Context) ([]types.WebSession, error) {
-	if err := r.c.action(apidefaults.Namespace, types.KindWebSession, types.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := r.c.action(apidefaults.Namespace, types.KindWebSession, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return r.ws.List(ctx)
-}
-
-// Upsert creates a new or updates the existing web session from the specified session.
-// TODO(dmitri): this is currently only implemented for local invocations. This needs to be
-// moved into a more appropriate API
-func (*webSessionsWithRoles) Upsert(ctx context.Context, session types.WebSession) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeleteAll removes all web sessions.
-func (r *webSessionsWithRoles) DeleteAll(ctx context.Context) error {
-	if err := r.c.action(apidefaults.Namespace, types.KindWebSession, types.VerbList); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := r.c.action(apidefaults.Namespace, types.KindWebSession, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return r.ws.DeleteAll(ctx)
-}
-
 // GetWebToken returns the web token specified with req.
 // Implements auth.ReadAccessPoint.
 func (a *ServerWithRoles) GetWebToken(ctx context.Context, req types.GetWebTokenRequest) (types.WebToken, error) {
 	return a.WebTokens().Get(ctx, req)
-}
-
-type webSessionsWithRoles struct {
-	c  accessChecker
-	ws types.WebSessionInterface
 }
 
 // WebTokens returns the web token manager.
