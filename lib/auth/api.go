@@ -358,16 +358,6 @@ type ReadKubernetesAccessPoint interface {
 	GetNamespace(name string) (*types.Namespace, error)
 }
 
-// KubernetesAccessPoint is an API interface implemented by a certificate authority (CA) to be
-// used by a teleport.ComponentKube.
-type KubernetesAccessPoint interface {
-	// ReadKubernetesAccessPoint provides methods to read data
-	ReadKubernetesAccessPoint
-
-	// accessPoint provides common access point functionality
-	accessPoint
-}
-
 // ReadAppsAccessPoint is a read only API interface implemented by a certificate authority (CA) to be
 // used by a teleport.ComponentApp.
 //
