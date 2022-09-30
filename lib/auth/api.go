@@ -807,69 +807,6 @@ func (w *RemoteProxyWrapper) Close() error {
 	return trace.NewAggregate(err, err2)
 }
 
-type KubernetesWrapper struct {
-	ReadKubernetesAccessPoint
-	accessPoint
-	NoCache KubernetesAccessPoint
-}
-
-func NewKubernetesWrapper(base KubernetesAccessPoint, cache ReadKubernetesAccessPoint) KubernetesAccessPoint {
-	return &KubernetesWrapper{
-		NoCache:                   base,
-		accessPoint:               base,
-		ReadKubernetesAccessPoint: cache,
-	}
-}
-
-// Close closes all associated resources
-func (w *KubernetesWrapper) Close() error {
-	err := w.NoCache.Close()
-	err2 := w.ReadKubernetesAccessPoint.Close()
-	return trace.NewAggregate(err, err2)
-}
-
-type DatabaseWrapper struct {
-	ReadDatabaseAccessPoint
-	accessPoint
-	NoCache DatabaseAccessPoint
-}
-
-func NewDatabaseWrapper(base DatabaseAccessPoint, cache ReadDatabaseAccessPoint) DatabaseAccessPoint {
-	return &DatabaseWrapper{
-		NoCache:                 base,
-		accessPoint:             base,
-		ReadDatabaseAccessPoint: cache,
-	}
-}
-
-// Close closes all associated resources
-func (w *DatabaseWrapper) Close() error {
-	err := w.NoCache.Close()
-	err2 := w.ReadDatabaseAccessPoint.Close()
-	return trace.NewAggregate(err, err2)
-}
-
-type AppsWrapper struct {
-	ReadAppsAccessPoint
-	accessPoint
-	NoCache AppsAccessPoint
-}
-
-func NewAppsWrapper(base AppsAccessPoint, cache ReadAppsAccessPoint) AppsAccessPoint {
-	return &AppsWrapper{
-		NoCache:             base,
-		accessPoint:         base,
-		ReadAppsAccessPoint: cache,
-	}
-}
-
-// Close closes all associated resources
-func (w *AppsWrapper) Close() error {
-	err := w.NoCache.Close()
-	err2 := w.ReadAppsAccessPoint.Close()
-	return trace.NewAggregate(err, err2)
-}
-
 // NewRemoteProxyCachingAccessPoint returns new caching access point using
 // access point policy
 type NewRemoteProxyCachingAccessPoint func(clt ClientI, cacheName []string) (RemoteProxyAccessPoint, error)
