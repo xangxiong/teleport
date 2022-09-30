@@ -53,9 +53,6 @@ type AccessChecker interface {
 	// returns a combined list of allowed logins.
 	CheckLoginDuration(ttl time.Duration) ([]string, error)
 
-	// CheckAWSRoleARNs returns a list of AWS role ARNs role is allowed to assume.
-	CheckAWSRoleARNs(ttl time.Duration, overrideTTL bool) ([]string, error)
-
 	// AdjustSessionTTL will reduce the requested ttl to lowest max allowed TTL
 	// for this role set, otherwise it returns ttl unchanged
 	AdjustSessionTTL(ttl time.Duration) time.Duration
@@ -80,18 +77,6 @@ type AccessChecker interface {
 	// CanPortForward returns true if this RoleSet can forward ports.
 	CanPortForward() bool
 
-	// DesktopClipboard returns true if the role set has enabled shared
-	// clipboard for desktop sessions. Clipboard sharing is disabled if
-	// one or more of the roles in the set has disabled it.
-	DesktopClipboard() bool
-	// RecordDesktopSession returns true if a role in the role set has enabled
-	// desktop session recoring.
-	RecordDesktopSession() bool
-	// DesktopDirectorySharing returns true if the role set has directory sharing
-	// enabled. This setting is enabled if one or more of the roles in the set has
-	// enabled it.
-	DesktopDirectorySharing() bool
-
 	// MaybeCanReviewRequests attempts to guess if this RoleSet belongs
 	// to a user who should be submitting access reviews. Because not all rolesets
 	// are derived from statically assigned roles, this may return false positives.
@@ -112,10 +97,6 @@ type AccessChecker interface {
 	// EnhancedRecordingSet returns a set of events that will be recorded
 	// for enhanced session recording.
 	EnhancedRecordingSet() map[string]bool
-
-	// CheckDatabaseNamesAndUsers returns database names and users this role
-	// is allowed to use.
-	CheckDatabaseNamesAndUsers(ttl time.Duration, overrideTTL bool) (names []string, users []string, err error)
 
 	// CheckImpersonate checks whether current user is allowed to impersonate
 	// users and roles

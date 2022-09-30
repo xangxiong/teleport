@@ -54,14 +54,7 @@ var DefaultImplicitRules = []types.Rule{
 	types.NewRule(types.KindClusterAuthPreference, RO()),
 	types.NewRule(types.KindClusterName, RO()),
 	types.NewRule(types.KindSSHSession, RO()),
-	types.NewRule(types.KindAppServer, RO()),
 	types.NewRule(types.KindRemoteCluster, RO()),
-	types.NewRule(types.KindKubeService, RO()),
-	types.NewRule(types.KindDatabaseServer, RO()),
-	types.NewRule(types.KindDatabase, RO()),
-	types.NewRule(types.KindApp, RO()),
-	types.NewRule(types.KindWindowsDesktopService, RO()),
-	types.NewRule(types.KindWindowsDesktop, RO()),
 }
 
 // DefaultCertAuthorityRules provides access the minimal set of resources
@@ -130,11 +123,8 @@ func RoleForUser(u types.User) types.Role {
 			BPF:               defaults.EnhancedEvents(),
 		},
 		Allow: types.RoleConditions{
-			Namespaces:       []string{defaults.Namespace},
-			NodeLabels:       types.Labels{types.Wildcard: []string{types.Wildcard}},
-			AppLabels:        types.Labels{types.Wildcard: []string{types.Wildcard}},
-			KubernetesLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
-			DatabaseLabels:   types.Labels{types.Wildcard: []string{types.Wildcard}},
+			Namespaces: []string{defaults.Namespace},
+			NodeLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
 			Rules: []types.Rule{
 				types.NewRule(types.KindRole, RW()),
 				types.NewRule(types.KindAuthConnector, RW()),
@@ -144,11 +134,8 @@ func RoleForUser(u types.User) types.Role {
 				types.NewRule(types.KindClusterAuthPreference, RW()),
 				types.NewRule(types.KindClusterNetworkingConfig, RW()),
 				types.NewRule(types.KindSessionRecordingConfig, RW()),
-				types.NewRule(types.KindApp, RW()),
-				types.NewRule(types.KindDatabase, RW()),
 				types.NewRule(types.KindLock, RW()),
 				types.NewRule(types.KindToken, RW()),
-				types.NewRule(types.KindConnectionDiagnostic, RW()),
 			},
 			JoinSessions: []*types.SessionJoinPolicy{
 				{
@@ -170,12 +157,9 @@ func RoleForCertAuthority(ca types.CertAuthority) types.Role {
 			MaxSessionTTL: types.NewDuration(defaults.MaxCertDuration),
 		},
 		Allow: types.RoleConditions{
-			Namespaces:       []string{defaults.Namespace},
-			NodeLabels:       types.Labels{types.Wildcard: []string{types.Wildcard}},
-			AppLabels:        types.Labels{types.Wildcard: []string{types.Wildcard}},
-			KubernetesLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
-			DatabaseLabels:   types.Labels{types.Wildcard: []string{types.Wildcard}},
-			Rules:            types.CopyRulesSlice(DefaultCertAuthorityRules),
+			Namespaces: []string{defaults.Namespace},
+			NodeLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
+			Rules:      types.CopyRulesSlice(DefaultCertAuthorityRules),
 		},
 	})
 	return role
@@ -294,35 +278,6 @@ func ApplyTraits(r types.Role, traits map[string][]string) types.Role {
 		outLogins = filterInvalidUnixLogins(outLogins)
 		r.SetLogins(condition, apiutils.Deduplicate(outLogins))
 
-		inWindowsLogins := r.GetWindowsLogins(condition)
-		outWindowsLogins := applyValueTraitsSlice(inWindowsLogins, traits, "windows_login")
-		outWindowsLogins = filterInvalidWindowsLogins(outWindowsLogins)
-		r.SetWindowsLogins(condition, apiutils.Deduplicate(outWindowsLogins))
-
-		inRoleARNs := r.GetAWSRoleARNs(condition)
-		outRoleARNs := applyValueTraitsSlice(inRoleARNs, traits, "AWS role ARN")
-		r.SetAWSRoleARNs(condition, apiutils.Deduplicate(outRoleARNs))
-
-		// apply templates to kubernetes groups
-		inKubeGroups := r.GetKubeGroups(condition)
-		outKubeGroups := applyValueTraitsSlice(inKubeGroups, traits, "kube group")
-		r.SetKubeGroups(condition, apiutils.Deduplicate(outKubeGroups))
-
-		// apply templates to kubernetes users
-		inKubeUsers := r.GetKubeUsers(condition)
-		outKubeUsers := applyValueTraitsSlice(inKubeUsers, traits, "kube user")
-		r.SetKubeUsers(condition, apiutils.Deduplicate(outKubeUsers))
-
-		// apply templates to database names
-		inDbNames := r.GetDatabaseNames(condition)
-		outDbNames := applyValueTraitsSlice(inDbNames, traits, "database name")
-		r.SetDatabaseNames(condition, apiutils.Deduplicate(outDbNames))
-
-		// apply templates to database users
-		inDbUsers := r.GetDatabaseUsers(condition)
-		outDbUsers := applyValueTraitsSlice(inDbUsers, traits, "database user")
-		r.SetDatabaseUsers(condition, apiutils.Deduplicate(outDbUsers))
-
 		// apply templates to node labels
 		inLabels := r.GetNodeLabels(condition)
 		if inLabels != nil {
@@ -333,30 +288,6 @@ func ApplyTraits(r types.Role, traits map[string][]string) types.Role {
 		inLabels = r.GetClusterLabels(condition)
 		if inLabels != nil {
 			r.SetClusterLabels(condition, applyLabelsTraits(inLabels, traits))
-		}
-
-		// apply templates to kube labels
-		inLabels = r.GetKubernetesLabels(condition)
-		if inLabels != nil {
-			r.SetKubernetesLabels(condition, applyLabelsTraits(inLabels, traits))
-		}
-
-		// apply templates to app labels
-		inLabels = r.GetAppLabels(condition)
-		if inLabels != nil {
-			r.SetAppLabels(condition, applyLabelsTraits(inLabels, traits))
-		}
-
-		// apply templates to database labels
-		inLabels = r.GetDatabaseLabels(condition)
-		if inLabels != nil {
-			r.SetDatabaseLabels(condition, applyLabelsTraits(inLabels, traits))
-		}
-
-		// apply templates to windows desktop labels
-		inLabels = r.GetWindowsDesktopLabels(condition)
-		if inLabels != nil {
-			r.SetWindowsDesktopLabels(condition, applyLabelsTraits(inLabels, traits))
 		}
 
 		r.SetHostGroups(condition,
@@ -463,10 +394,7 @@ func ApplyValueTraits(val string, traits map[string][]string) ([]string, error) 
 	// verify that internal traits match the supported variables
 	if variable.Namespace() == teleport.TraitInternalPrefix {
 		switch variable.Name() {
-		case constants.TraitLogins, constants.TraitWindowsLogins,
-			constants.TraitKubeGroups, constants.TraitKubeUsers,
-			constants.TraitDBNames, constants.TraitDBUsers,
-			constants.TraitAWSRoleARNs, teleport.TraitJWT:
+		case constants.TraitLogins, teleport.TraitJWT:
 		default:
 			return nil, trace.BadParameter("unsupported variable %q", variable.Name())
 		}
@@ -868,57 +796,6 @@ func NewEnumerationResult() EnumerationResult {
 	}
 }
 
-// EnumerateDatabaseUsers works on a given role set to return a minimal description of allowed set of usernames.
-// It is biased towards *allowed* usernames; It is meant to describe what the user can do, rather than cannot do.
-// For that reason if the user isn't allowed to pick *any* entities, the output will be empty.
-//
-// In cases where * is listed in set of allowed users, it may be hard for users to figure out the expected username.
-// For this reason the parameter extraUsers provides an extra set of users to be checked against RoleSet.
-// This extra set of users may be sourced e.g. from user connection history.
-func (set RoleSet) EnumerateDatabaseUsers(database types.Database, extraUsers ...string) EnumerationResult {
-	result := NewEnumerationResult()
-
-	// gather users for checking from the roles, check wildcards.
-	var users []string
-	for _, role := range set {
-		wildcardAllowed := false
-		wildcardDenied := false
-
-		for _, user := range role.GetDatabaseUsers(types.Allow) {
-			if user == types.Wildcard {
-				wildcardAllowed = true
-			} else {
-				users = append(users, user)
-			}
-		}
-
-		for _, user := range role.GetDatabaseUsers(types.Deny) {
-			if user == types.Wildcard {
-				wildcardDenied = true
-			} else {
-				users = append(users, user)
-			}
-		}
-
-		result.wildcardDenied = result.wildcardDenied || wildcardDenied
-
-		if err := NewRoleSet(role).checkAccess(database, AccessMFAParams{Verified: true}); err == nil {
-			result.wildcardAllowed = result.wildcardAllowed || wildcardAllowed
-		}
-
-	}
-
-	users = apiutils.Deduplicate(append(users, extraUsers...))
-
-	// check each individual user against the database.
-	for _, user := range users {
-		err := set.checkAccess(database, AccessMFAParams{Verified: true}, &DatabaseUserMatcher{User: user})
-		result.allowedDeniedMap[user] = err == nil
-	}
-
-	return result
-}
-
 // EnumerateServerLogins works on a given role set to return a minimal description of allowed set of logins.
 // The wildcard selector is ignored, since it is now allowed for server logins
 func (set RoleSet) EnumerateServerLogins(server types.Server) EnumerationResult {
@@ -1107,19 +984,6 @@ func (set RoleSet) MaxSessions() int64 {
 	return ms
 }
 
-// MaxConnections returns the maximum number of concurrent Kubernetes connections
-// allowed.  If MaxConnections is zero then no maximum was defined
-// and the number of concurrent connections is unconstrained.
-func (set RoleSet) MaxKubernetesConnections() int64 {
-	var mcs int64
-	for _, role := range set {
-		if m := role.GetOptions().MaxKubernetesConnections; m != 0 && (m < mcs || mcs == 0) {
-			mcs = m
-		}
-	}
-	return mcs
-}
-
 // SessionPolicySets returns the list of SessionPolicySets for all roles.
 func (set RoleSet) SessionPolicySets() []*types.SessionTrackerPolicySet {
 	var policySets []*types.SessionTrackerPolicySet
@@ -1165,118 +1029,6 @@ func (set RoleSet) AdjustDisconnectExpiredCert(disconnect bool) bool {
 		}
 	}
 	return disconnect
-}
-
-// CheckKubeGroupsAndUsers check if role can login into kubernetes
-// and returns two lists of allowed groups and users
-func (set RoleSet) CheckKubeGroupsAndUsers(ttl time.Duration, overrideTTL bool, matchers ...RoleMatcher) ([]string, []string, error) {
-	groups := make(map[string]struct{})
-	users := make(map[string]struct{})
-	var matchedTTL bool
-	for _, role := range set {
-		ok, err := RoleMatchers(matchers).MatchAll(role, types.Allow)
-		if err != nil {
-			return nil, nil, trace.Wrap(err)
-		}
-		if !ok {
-			continue
-		}
-
-		maxSessionTTL := role.GetOptions().MaxSessionTTL.Value()
-		if overrideTTL || (ttl <= maxSessionTTL && maxSessionTTL != 0) {
-			matchedTTL = true
-			for _, group := range role.GetKubeGroups(types.Allow) {
-				groups[group] = struct{}{}
-			}
-			for _, user := range role.GetKubeUsers(types.Allow) {
-				users[user] = struct{}{}
-			}
-		}
-	}
-	for _, role := range set {
-		ok, _, err := RoleMatchers(matchers).MatchAny(role, types.Deny)
-		if err != nil {
-			return nil, nil, trace.Wrap(err)
-		}
-		if !ok {
-			continue
-		}
-		for _, group := range role.GetKubeGroups(types.Deny) {
-			delete(groups, group)
-		}
-		for _, user := range role.GetKubeUsers(types.Deny) {
-			delete(users, user)
-		}
-	}
-	if !matchedTTL {
-		return nil, nil, trace.AccessDenied("this user cannot request kubernetes access for %v", ttl)
-	}
-	if len(groups) == 0 && len(users) == 0 {
-		return nil, nil, trace.NotFound("this user cannot request kubernetes access, has no assigned groups or users")
-	}
-	return utils.StringsSliceFromSet(groups), utils.StringsSliceFromSet(users), nil
-}
-
-// CheckDatabaseNamesAndUsers checks if the role has any allowed database
-// names or users.
-func (set RoleSet) CheckDatabaseNamesAndUsers(ttl time.Duration, overrideTTL bool) ([]string, []string, error) {
-	names := make(map[string]struct{})
-	users := make(map[string]struct{})
-	var matchedTTL bool
-	for _, role := range set {
-		maxSessionTTL := role.GetOptions().MaxSessionTTL.Value()
-		if overrideTTL || (ttl <= maxSessionTTL && maxSessionTTL != 0) {
-			matchedTTL = true
-			for _, name := range role.GetDatabaseNames(types.Allow) {
-				names[name] = struct{}{}
-			}
-			for _, user := range role.GetDatabaseUsers(types.Allow) {
-				users[user] = struct{}{}
-			}
-		}
-	}
-	for _, role := range set {
-		for _, name := range role.GetDatabaseNames(types.Deny) {
-			delete(names, name)
-		}
-		for _, user := range role.GetDatabaseUsers(types.Deny) {
-			delete(users, user)
-		}
-	}
-	if !matchedTTL {
-		return nil, nil, trace.AccessDenied("this user cannot request database access for %v", ttl)
-	}
-	if len(names) == 0 && len(users) == 0 {
-		return nil, nil, trace.NotFound("this user cannot request database access, has no assigned database names or users")
-	}
-	return utils.StringsSliceFromSet(names), utils.StringsSliceFromSet(users), nil
-}
-
-// CheckAWSRoleARNs returns a list of AWS role ARNs this role set is allowed to assume.
-func (set RoleSet) CheckAWSRoleARNs(ttl time.Duration, overrideTTL bool) ([]string, error) {
-	arns := make(map[string]struct{})
-	var matchedTTL bool
-	for _, role := range set {
-		maxSessionTTL := role.GetOptions().MaxSessionTTL.Value()
-		if overrideTTL || (ttl <= maxSessionTTL && maxSessionTTL != 0) {
-			matchedTTL = true
-			for _, arn := range role.GetAWSRoleARNs(types.Allow) {
-				arns[arn] = struct{}{}
-			}
-		}
-	}
-	for _, role := range set {
-		for _, arn := range role.GetAWSRoleARNs(types.Deny) {
-			delete(arns, arn)
-		}
-	}
-	if !matchedTTL {
-		return nil, trace.AccessDenied("this user cannot request AWS management console access for %v", ttl)
-	}
-	if len(arns) == 0 {
-		return nil, trace.NotFound("this user cannot request AWS management console, has no assigned role ARNs")
-	}
-	return utils.StringsSliceFromSet(arns), nil
 }
 
 // CheckLoginDuration checks if role set can login up to given duration and
@@ -1402,22 +1154,6 @@ func (set RoleSet) hasPossibleLogins() bool {
 		}
 	}
 	return false
-}
-
-// AWSRoleARNMatcher matches a role against AWS role ARN.
-type AWSRoleARNMatcher struct {
-	RoleARN string
-}
-
-// Match matches database account name against provided role and condition.
-func (m *AWSRoleARNMatcher) Match(role types.Role, condition types.RoleConditionType) (bool, error) {
-	match, _ := MatchAWSRoleARN(role.GetAWSRoleARNs(condition), m.RoleARN)
-	return match, nil
-}
-
-// String returns the matcher's string representation.
-func (m *AWSRoleARNMatcher) String() string {
-	return fmt.Sprintf("AWSRoleARNMatcher(RoleARN=%v)", m.RoleARN)
 }
 
 // CanImpersonateSomeone returns true if this checker has any impersonation rules
@@ -1772,38 +1508,6 @@ func (m RoleMatchers) MatchAny(role types.Role, condition types.RoleConditionTyp
 	return false, nil, nil
 }
 
-// DatabaseUserMatcher matches a role against database account name.
-type DatabaseUserMatcher struct {
-	User string
-}
-
-// Match matches database account name against provided role and condition.
-func (m *DatabaseUserMatcher) Match(role types.Role, condition types.RoleConditionType) (bool, error) {
-	match, _ := MatchDatabaseUser(role.GetDatabaseUsers(condition), m.User)
-	return match, nil
-}
-
-// String returns the matcher's string representation.
-func (m *DatabaseUserMatcher) String() string {
-	return fmt.Sprintf("DatabaseUserMatcher(User=%v)", m.User)
-}
-
-// DatabaseNameMatcher matches a role against database name.
-type DatabaseNameMatcher struct {
-	Name string
-}
-
-// Match matches database name against provided role and condition.
-func (m *DatabaseNameMatcher) Match(role types.Role, condition types.RoleConditionType) (bool, error) {
-	match, _ := MatchDatabaseName(role.GetDatabaseNames(condition), m.Name)
-	return match, nil
-}
-
-// String returns the matcher's string representation.
-func (m *DatabaseNameMatcher) String() string {
-	return fmt.Sprintf("DatabaseNameMatcher(Name=%v)", m.Name)
-}
-
 type loginMatcher struct {
 	login string
 }
@@ -1823,60 +1527,6 @@ func (l *loginMatcher) Match(role types.Role, typ types.RoleConditionType) (bool
 		}
 	}
 	return false, nil
-}
-
-type windowsLoginMatcher struct {
-	login string
-}
-
-// NewWindowsLoginMatcher creates a RoleMatcher that checks whether the role's
-// Windows desktop logins match the specified condition.
-func NewWindowsLoginMatcher(login string) RoleMatcher {
-	return &windowsLoginMatcher{login: login}
-}
-
-// Match matches a Windows Desktop login against a role.
-func (l *windowsLoginMatcher) Match(role types.Role, typ types.RoleConditionType) (bool, error) {
-	logins := role.GetWindowsLogins(typ)
-	for _, login := range logins {
-		if l.login == login {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-type kubernetesClusterLabelMatcher struct {
-	clusterLabels map[string]string
-}
-
-// NewKubernetesClusterLabelMatcher creates a RoleMatcher that checks whether a role's
-// Kubernetes service labels match.
-func NewKubernetesClusterLabelMatcher(clustersLabels map[string]string) RoleMatcher {
-	return &kubernetesClusterLabelMatcher{clusterLabels: clustersLabels}
-}
-
-// Match matches a Kubernetes cluster labels against a role.
-func (l *kubernetesClusterLabelMatcher) Match(role types.Role, typ types.RoleConditionType) (bool, error) {
-	ok, _, err := MatchLabels(l.getKubeLabels(role, typ), l.clusterLabels)
-	return ok, trace.Wrap(err)
-}
-
-// getKubeLabels returns kubernetes_labels based on resource version and role type.
-func (l kubernetesClusterLabelMatcher) getKubeLabels(role types.Role, typ types.RoleConditionType) types.Labels {
-	labels := role.GetKubernetesLabels(typ)
-
-	// After the introduction of https://github.com/gravitational/teleport/pull/9759 the
-	// kubernetes_labels started to be respected. Former role behavior evaluated deny rules
-	// even if the kubernetes_labels was empty. To preserve this behavior after respecting kubernetes label the label
-	// logic needs to be aligned.
-	// Default wildcard rules should be added to  deny.kubernetes_labels if
-	// deny.kubernetes_labels is empty to ensure that deny rule will be evaluated
-	// even if kubernetes_labels are empty.
-	if len(labels) == 0 && typ == types.Deny {
-		return map[string]apiutils.Strings{types.Wildcard: []string{types.Wildcard}}
-	}
-	return labels
 }
 
 // AccessCheckable is the subset of types.Resource required for the RBAC checks.
@@ -1918,20 +1568,9 @@ func (set RoleSet) checkAccess(r AccessCheckable, mfa AccessMFAParams, matchers 
 
 	var getRoleLabels func(types.Role, types.RoleConditionType) types.Labels
 	switch r.GetKind() {
-	case types.KindDatabase:
-		getRoleLabels = types.Role.GetDatabaseLabels
-		additionalDeniedMessage = "Confirm database user and name."
-	case types.KindApp:
-		getRoleLabels = types.Role.GetAppLabels
 	case types.KindNode:
 		getRoleLabels = types.Role.GetNodeLabels
 		additionalDeniedMessage = "Confirm SSH login."
-	case types.KindKubernetesCluster:
-		getRoleLabels = types.Role.GetKubernetesLabels
-		additionalDeniedMessage = "Confirm Kubernetes user or group."
-	case types.KindWindowsDesktop:
-		getRoleLabels = types.Role.GetWindowsDesktopLabels
-		additionalDeniedMessage = "Confirm Windows user."
 	default:
 		return trace.BadParameter("cannot match labels for kind %v", r.GetKind())
 	}
@@ -2054,46 +1693,6 @@ func (set RoleSet) CanPortForward() bool {
 		}
 	}
 	return false
-}
-
-// RecordDesktopSession returns true if the role set has enabled desktop
-// session recording. Recording is considered enabled if at least one
-// role in the set has enabled it.
-func (set RoleSet) RecordDesktopSession() bool {
-	for _, role := range set {
-		var bo *types.BoolOption
-		if role.GetOptions().RecordSession != nil {
-			bo = role.GetOptions().RecordSession.Desktop
-		}
-		if types.BoolDefaultTrue(bo) {
-			return true
-		}
-	}
-	return false
-}
-
-// DesktopClipboard returns true if the role set has enabled shared
-// clipboard for desktop sessions. Clipboard sharing is disabled if
-// one or more of the roles in the set has disabled it.
-func (set RoleSet) DesktopClipboard() bool {
-	for _, role := range set {
-		if !types.BoolDefaultTrue(role.GetOptions().DesktopClipboard) {
-			return false
-		}
-	}
-	return true
-}
-
-// DesktopDirectorySharing returns true if the role set has directory sharing
-// enabled. This setting is disabled if one or more of the roles in the set has
-// disabled it.
-func (set RoleSet) DesktopDirectorySharing() bool {
-	for _, role := range set {
-		if !types.BoolDefaultTrue(role.GetOptions().DesktopDirectorySharing) {
-			return false
-		}
-	}
-	return true
 }
 
 // MaybeCanReviewRequests attempts to guess if this RoleSet belongs
