@@ -2662,8 +2662,6 @@ func (a *ServerWithRoles) GetSSODiagnosticInfo(ctx context.Context, authKind str
 	var resource string
 
 	switch authKind {
-	case types.KindGithub:
-		resource = types.KindGithubRequest
 	case types.KindOIDC:
 		resource = types.KindOIDCRequest
 	default:
@@ -2675,108 +2673,6 @@ func (a *ServerWithRoles) GetSSODiagnosticInfo(ctx context.Context, authKind str
 	}
 
 	return a.authServer.GetSSODiagnosticInfo(ctx, authKind, authRequestID)
-}
-
-func (a *ServerWithRoles) checkGithubConnector(connector types.GithubConnector) error {
-	mapping := connector.GetTeamsToLogins()
-	for _, team := range mapping {
-		if len(team.KubeUsers) != 0 || len(team.KubeGroups) != 0 {
-			return trace.BadParameter("since 6.0 teleport uses teams_to_logins to reference a role, use it instead of local kubernetes_users and kubernetes_groups ")
-		}
-		for _, localRole := range team.Logins {
-			_, err := a.GetRole(context.TODO(), localRole)
-			if err != nil {
-				if trace.IsNotFound(err) {
-					return trace.BadParameter("since 6.0 teleport uses teams_to_logins to reference a role, role %q referenced in mapping for organization %q is not found", localRole, team.Organization)
-				}
-				return trace.Wrap(err)
-			}
-		}
-	}
-	return nil
-}
-
-// UpsertGithubConnector creates or updates a Github connector.
-func (a *ServerWithRoles) UpsertGithubConnector(ctx context.Context, connector types.GithubConnector) error {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.checkGithubConnector(connector); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.upsertGithubConnector(ctx, connector)
-}
-
-func (a *ServerWithRoles) GetGithubConnector(ctx context.Context, id string, withSecrets bool) (types.GithubConnector, error) {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbReadNoSecrets); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if withSecrets {
-		if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return a.authServer.GetGithubConnector(ctx, id, withSecrets)
-}
-
-func (a *ServerWithRoles) GetGithubConnectors(ctx context.Context, withSecrets bool) ([]types.GithubConnector, error) {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbReadNoSecrets); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if withSecrets {
-		if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return a.authServer.GetGithubConnectors(ctx, withSecrets)
-}
-
-// DeleteGithubConnector deletes a Github connector by name.
-func (a *ServerWithRoles) DeleteGithubConnector(ctx context.Context, connectorID string) error {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.deleteGithubConnector(ctx, connectorID)
-}
-
-func (a *ServerWithRoles) CreateGithubAuthRequest(ctx context.Context, req types.GithubAuthRequest) (*types.GithubAuthRequest, error) {
-	if err := a.action(apidefaults.Namespace, types.KindGithubRequest, types.VerbCreate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// require additional permissions for executing SSO test flow.
-	if req.SSOTestFlow {
-		if err := a.authConnectorAction(apidefaults.Namespace, types.KindGithub, types.VerbCreate); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	githubReq, err := a.authServer.CreateGithubAuthRequest(ctx, req)
-	if err != nil {
-		emitSSOLoginFailureEvent(a.authServer.closeCtx, a.authServer.emitter, events.LoginMethodGithub, err, req.SSOTestFlow)
-		return nil, trace.Wrap(err)
-	}
-
-	return githubReq, nil
-}
-
-// GetGithubAuthRequest returns Github auth request if found.
-func (a *ServerWithRoles) GetGithubAuthRequest(ctx context.Context, stateToken string) (*types.GithubAuthRequest, error) {
-	if err := a.action(apidefaults.Namespace, types.KindGithubRequest, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return a.authServer.GetGithubAuthRequest(ctx, stateToken)
-}
-
-func (a *ServerWithRoles) ValidateGithubAuthCallback(ctx context.Context, q url.Values) (*GithubAuthResponse, error) {
-	return a.authServer.ValidateGithubAuthCallback(ctx, q)
 }
 
 // EmitAuditEvent emits a single audit event

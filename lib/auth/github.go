@@ -33,7 +33,6 @@ import (
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
@@ -41,70 +40,6 @@ import (
 
 // ErrGithubNoTeams results from a github user not beloging to any teams.
 var ErrGithubNoTeams = trace.BadParameter("user does not belong to any teams configured in connector; the configuration may have typos.")
-
-// CreateGithubAuthRequest creates a new request for Github OAuth2 flow
-func (a *Server) CreateGithubAuthRequest(ctx context.Context, req types.GithubAuthRequest) (*types.GithubAuthRequest, error) {
-	_, client, err := a.getGithubConnectorAndClient(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	req.StateToken, err = utils.CryptoRandomHex(TokenLenBytes)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	req.RedirectURL = client.AuthCodeURL(req.StateToken, "", "")
-	log.WithFields(logrus.Fields{trace.Component: "github"}).Debugf(
-		"Redirect URL: %v.", req.RedirectURL)
-	req.SetExpiry(a.GetClock().Now().UTC().Add(defaults.GithubAuthRequestTTL))
-	err = a.Services.CreateGithubAuthRequest(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &req, nil
-}
-
-// upsertGithubConnector creates or updates a Github connector.
-func (a *Server) upsertGithubConnector(ctx context.Context, connector types.GithubConnector) error {
-	if err := a.UpsertGithubConnector(ctx, connector); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(a.closeCtx, &apievents.GithubConnectorCreate{
-		Metadata: apievents.Metadata{
-			Type: events.GithubConnectorCreatedEvent,
-			Code: events.GithubConnectorCreatedCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: connector.GetName(),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit GitHub connector create event.")
-	}
-
-	return nil
-}
-
-// deleteGithubConnector deletes a Github connector by name.
-func (a *Server) deleteGithubConnector(ctx context.Context, connectorName string) error {
-	if err := a.DeleteGithubConnector(ctx, connectorName); err != nil {
-		return trace.Wrap(err)
-	}
-
-	if err := a.emitter.EmitAuditEvent(a.closeCtx, &apievents.GithubConnectorDelete{
-		Metadata: apievents.Metadata{
-			Type: events.GithubConnectorDeletedEvent,
-			Code: events.GithubConnectorDeletedCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: connectorName,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit GitHub connector delete event.")
-	}
-
-	return nil
-}
 
 // GithubAuthResponse represents Github auth callback validation response
 type GithubAuthResponse struct {

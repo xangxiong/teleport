@@ -962,43 +962,6 @@ func (c *Client) ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*O
 	return &response, nil
 }
 
-// ValidateGithubAuthCallback validates Github auth callback returned from redirect
-func (c *Client) ValidateGithubAuthCallback(ctx context.Context, q url.Values) (*GithubAuthResponse, error) {
-	out, err := c.PostJSON(ctx, c.Endpoint("github", "requests", "validate"),
-		validateGithubAuthCallbackReq{Query: q})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var rawResponse githubAuthRawResponse
-	if err := json.Unmarshal(out.Bytes(), &rawResponse); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response := GithubAuthResponse{
-		Username: rawResponse.Username,
-		Identity: rawResponse.Identity,
-		Cert:     rawResponse.Cert,
-		Req:      rawResponse.Req,
-		TLSCert:  rawResponse.TLSCert,
-	}
-	if len(rawResponse.Session) != 0 {
-		session, err := services.UnmarshalWebSession(
-			rawResponse.Session)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		response.Session = session
-	}
-	response.HostSigners = make([]types.CertAuthority, len(rawResponse.HostSigners))
-	for i, raw := range rawResponse.HostSigners {
-		ca, err := services.UnmarshalCertAuthority(raw)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		response.HostSigners[i] = ca
-	}
-	return &response, nil
-}
-
 // GetSessionChunk allows clients to receive a byte array (chunk) from a recorded
 // session stream, starting from 'offset', up to 'max' in length. The upper bound
 // of 'max' is set to events.MaxChunkBytes
@@ -1382,21 +1345,6 @@ type IdentityService interface {
 	GetOIDCAuthRequest(ctx context.Context, id string) (*types.OIDCAuthRequest, error)
 	// ValidateOIDCAuthCallback validates OIDC auth callback returned from redirect
 	ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error)
-
-	// UpsertGithubConnector creates or updates a Github connector
-	UpsertGithubConnector(ctx context.Context, connector types.GithubConnector) error
-	// GetGithubConnectors returns all configured Github connectors
-	GetGithubConnectors(ctx context.Context, withSecrets bool) ([]types.GithubConnector, error)
-	// GetGithubConnector returns the specified Github connector
-	GetGithubConnector(ctx context.Context, id string, withSecrets bool) (types.GithubConnector, error)
-	// DeleteGithubConnector deletes the specified Github connector
-	DeleteGithubConnector(ctx context.Context, id string) error
-	// CreateGithubAuthRequest creates a new request for Github OAuth2 flow
-	CreateGithubAuthRequest(ctx context.Context, req types.GithubAuthRequest) (*types.GithubAuthRequest, error)
-	// GetGithubAuthRequest returns Github auth request if found
-	GetGithubAuthRequest(ctx context.Context, id string) (*types.GithubAuthRequest, error)
-	// ValidateGithubAuthCallback validates Github auth callback
-	ValidateGithubAuthCallback(ctx context.Context, q url.Values) (*GithubAuthResponse, error)
 
 	// GetSSODiagnosticInfo returns SSO diagnostic info records.
 	GetSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string) (*types.SSODiagnosticInfo, error)

@@ -122,26 +122,3 @@ func (c *Client) CreateOIDCAuthRequest(ctx context.Context, req types.OIDCAuthRe
 	}
 	return response, nil
 }
-
-// CreateGithubAuthRequest creates GithubAuthRequest.
-// DELETE IN 11.0.0
-func (c *Client) CreateGithubAuthRequest(ctx context.Context, req types.GithubAuthRequest) (*types.GithubAuthRequest, error) {
-	if resp, err := c.APIClient.CreateGithubAuthRequest(ctx, req); err != nil {
-		if !trace.IsNotImplemented(err) {
-			return nil, trace.Wrap(err)
-		}
-	} else {
-		return resp, nil
-	}
-
-	out, err := c.PostJSON(ctx, c.Endpoint("github", "requests", "create"),
-		createGithubAuthRequestReq{Req: req})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var response types.GithubAuthRequest
-	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &response, nil
-}
