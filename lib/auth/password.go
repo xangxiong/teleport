@@ -21,7 +21,6 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client/proto"
@@ -57,40 +56,40 @@ func (s *Server) ResetPassword(username string) (string, error) {
 	return password, nil
 }
 
-// checkPasswordWOToken checks just password without checking OTP tokens
-// used in case of SSH authentication, when token has been validated.
-func (s *Server) checkPasswordWOToken(user string, password []byte) error {
-	const errMsg = "invalid username or password"
+// // checkPasswordWOToken checks just password without checking OTP tokens
+// // used in case of SSH authentication, when token has been validated.
+// func (s *Server) checkPasswordWOToken(user string, password []byte) error {
+// 	const errMsg = "invalid username or password"
 
-	err := services.VerifyPassword(password)
-	if err != nil {
-		return trace.BadParameter(errMsg)
-	}
+// 	err := services.VerifyPassword(password)
+// 	if err != nil {
+// 		return trace.BadParameter(errMsg)
+// 	}
 
-	hash, err := s.GetPasswordHash(user)
-	if err != nil && !trace.IsNotFound(err) {
-		return trace.Wrap(err)
-	}
-	userFound := true
-	if trace.IsNotFound(err) {
-		userFound = false
-		log.Debugf("Username %q not found, using fake hash to mitigate timing attacks.", user)
-		hash = fakePasswordHash
-	}
+// 	hash, err := s.GetPasswordHash(user)
+// 	if err != nil && !trace.IsNotFound(err) {
+// 		return trace.Wrap(err)
+// 	}
+// 	userFound := true
+// 	if trace.IsNotFound(err) {
+// 		userFound = false
+// 		log.Debugf("Username %q not found, using fake hash to mitigate timing attacks.", user)
+// 		hash = fakePasswordHash
+// 	}
 
-	if err = bcrypt.CompareHashAndPassword(hash, password); err != nil {
-		log.Debugf("Password for %q does not match", user)
-		return trace.BadParameter(errMsg)
-	}
+// 	if err = bcrypt.CompareHashAndPassword(hash, password); err != nil {
+// 		log.Debugf("Password for %q does not match", user)
+// 		return trace.BadParameter(errMsg)
+// 	}
 
-	// Careful! The bcrypt check above may succeed for an unknown user when the
-	// provided password is "barbaz", which is what fakePasswordHash hashes to.
-	if !userFound {
-		return trace.BadParameter(errMsg)
-	}
+// 	// Careful! The bcrypt check above may succeed for an unknown user when the
+// 	// provided password is "barbaz", which is what fakePasswordHash hashes to.
+// 	if !userFound {
+// 		return trace.BadParameter(errMsg)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 type checkPasswordResult struct {
 	mfaDev *types.MFADevice

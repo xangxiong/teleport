@@ -24,7 +24,6 @@ import (
 	"github.com/gravitational/trace"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
@@ -105,79 +104,6 @@ var (
 func IsInvalidLocalCredentialError(err error) bool {
 	return errors.Is(err, invalidUserPassError) || errors.Is(err, invalidUserPass2FError)
 }
-
-func (s *Server) authenticatePasswordless(ctx context.Context, req AuthenticateUserRequest) (*types.MFADevice, string, error) {
-	mfaResponse := &proto.MFAAuthenticateResponse{
-		Response: &proto.MFAAuthenticateResponse_Webauthn{
-			Webauthn: wanlib.CredentialAssertionResponseToProto(req.Webauthn),
-		},
-	}
-	dev, user, err := s.validateMFAAuthResponse(ctx, mfaResponse, "", true /* passwordless */)
-	if err != nil {
-		log.Debugf("Passwordless authentication failed: %v", err)
-		return nil, "", trace.Wrap(authenticateWebauthnError)
-	}
-
-	// A distinction between passwordless and "plain" MFA is that we can't
-	// acquire the user lock beforehand (or at all on failures!)
-	// We do grab it here so successful logins go through the regular process.
-	if err := s.WithUserLock(user, func() error { return nil }); err != nil {
-		log.Debugf("WithUserLock for user %q failed during passwordless authentication: %v", user, err)
-		return nil, user, trace.Wrap(authenticateWebauthnError)
-	}
-
-	return dev, user, nil
-}
-
-// // AuthenticateWebUser authenticates web user, creates and returns a web session
-// // if authentication is successful. In case the existing session ID is used to authenticate,
-// // returns the existing session instead of creating a new one
-// func (s *Server) AuthenticateWebUser(ctx context.Context, req AuthenticateUserRequest) (types.WebSession, error) {
-// 	username := req.Username // Empty if passwordless.
-
-// 	authPref, err := s.GetAuthPreference(ctx)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	// Disable all local auth requests,
-// 	// except session ID renewal requests that are using the same method.
-// 	// This condition uses Session as a blanket check, because any new method added
-// 	// to the local auth will be disabled by default.
-// 	if !authPref.GetAllowLocalAuth() && req.Session == nil {
-// 		s.emitNoLocalAuthEvent(username)
-// 		return nil, trace.AccessDenied(noLocalAuth)
-// 	}
-
-// 	if req.Session != nil {
-// 		session, err := s.GetWebSession(context.TODO(), types.GetWebSessionRequest{
-// 			User:      username,
-// 			SessionID: req.Session.ID,
-// 		})
-// 		if err != nil {
-// 			return nil, trace.AccessDenied("session is invalid or has expired")
-// 		}
-// 		return session, nil
-// 	}
-
-// 	actualUser, err := s.AuthenticateUser(req)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	username = actualUser
-
-// 	user, err := s.GetUser(username, false /* withSecrets */)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	sess, err := s.createUserWebSession(context.TODO(), user)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	return sess, nil
-// }
 
 // AuthenticateSSHRequest is a request to authenticate SSH client user via CLI
 type AuthenticateSSHRequest struct {

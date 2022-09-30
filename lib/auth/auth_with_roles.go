@@ -4908,14 +4908,14 @@ func (a *ServerWithRoles) AppendDiagnosticTrace(ctx context.Context, name string
 // 	return a.authServer.GetAccountRecoveryToken(ctx, req)
 // }
 
-// CreateAuthenticateChallenge is implemented by AuthService.CreateAuthenticateChallenge.
-func (a *ServerWithRoles) CreateAuthenticateChallenge(ctx context.Context, req *proto.CreateAuthenticateChallengeRequest) (*proto.MFAAuthenticateChallenge, error) {
-	// No permission check is required b/c this request verifies request by one of the following:
-	//   - username + password, anyone who has user's password can generate a sign request
-	//   - token provide its own auth
-	//   - the user extracted from context can retrieve their own challenges
-	return a.authServer.CreateAuthenticateChallenge(ctx, req)
-}
+// // CreateAuthenticateChallenge is implemented by AuthService.CreateAuthenticateChallenge.
+// func (a *ServerWithRoles) CreateAuthenticateChallenge(ctx context.Context, req *proto.CreateAuthenticateChallengeRequest) (*proto.MFAAuthenticateChallenge, error) {
+// 	// No permission check is required b/c this request verifies request by one of the following:
+// 	//   - username + password, anyone who has user's password can generate a sign request
+// 	//   - token provide its own auth
+// 	//   - the user extracted from context can retrieve their own challenges
+// 	return a.authServer.CreateAuthenticateChallenge(ctx, req)
+// }
 
 // CreatePrivilegeToken is implemented by AuthService.CreatePrivilegeToken.
 func (a *ServerWithRoles) CreatePrivilegeToken(ctx context.Context, req *proto.CreatePrivilegeTokenRequest) (*types.UserTokenV3, error) {
