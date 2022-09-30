@@ -72,7 +72,6 @@ import (
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
 	"github.com/gravitational/teleport/lib/session"
-	"github.com/gravitational/teleport/lib/srv/db/common/role"
 	"github.com/gravitational/teleport/lib/sshca"
 	"github.com/gravitational/teleport/lib/sshutils"
 	"github.com/gravitational/teleport/lib/tlsca"
@@ -2747,7 +2746,8 @@ func (a *Server) isMFARequired(ctx context.Context, checker services.AccessCheck
 		// Cluster always requires MFA, regardless of roles.
 		return &proto.IsMFARequiredResponse{Required: true}, nil
 	}
-	var noMFAAccessErr, notFoundErr error
+	// var noMFAAccessErr, notFoundErr error
+	var noMFAAccessErr error
 	switch t := req.Target.(type) {
 	case *proto.IsMFARequiredRequest_Node:
 		if t.Node.Node == "" {
@@ -2800,37 +2800,6 @@ func (a *Server) isMFARequired(ctx context.Context, checker services.AccessCheck
 				break
 			}
 		}
-
-	case *proto.IsMFARequiredRequest_Database:
-		notFoundErr = trace.NotFound("database service %q not found", t.Database.ServiceName)
-		if t.Database.ServiceName == "" {
-			return nil, trace.BadParameter("missing ServiceName field in a database-only UserCertsRequest")
-		}
-		servers, err := a.GetDatabaseServers(ctx, apidefaults.Namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		var db types.Database
-		for _, server := range servers {
-			if server.GetDatabase().GetName() == t.Database.ServiceName {
-				db = server.GetDatabase()
-				break
-			}
-		}
-		if db == nil {
-			return nil, trace.Wrap(notFoundErr)
-		}
-
-		dbRoleMatchers := role.DatabaseRoleMatchers(
-			db.GetProtocol(),
-			t.Database.Username,
-			t.Database.GetDatabase(),
-		)
-		noMFAAccessErr = checker.CheckAccess(
-			db,
-			services.AccessMFAParams{},
-			dbRoleMatchers...,
-		)
 
 	default:
 		return nil, trace.BadParameter("unknown Target %T", req.Target)

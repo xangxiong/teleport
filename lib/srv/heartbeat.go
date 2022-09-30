@@ -102,16 +102,6 @@ func (h HeartbeatMode) String() string {
 		return "Proxy"
 	case HeartbeatModeAuth:
 		return "Auth"
-	case HeartbeatModeKube:
-		return "Kube"
-	case HeartbeatModeApp:
-		return "App"
-	case HeartbeatModeDB:
-		return "Database"
-	case HeartbeatModeWindowsDesktopService:
-		return "WindowsDesktopService"
-	case HeartbeatModeWindowsDesktop:
-		return "WindowsDesktop"
 	default:
 		return fmt.Sprintf("<unknown: %v>", int(h))
 	}
@@ -454,27 +444,6 @@ func (h *Heartbeat) announce() error {
 			default:
 				return trace.BadParameter("expected types.AppServer, got %#v", h.current)
 			}
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			h.notifySend()
-			keepAliver, err := h.Announcer.NewKeepAliver(h.cancelCtx)
-			if err != nil {
-				h.reset(HeartbeatStateInit)
-				return trace.Wrap(err)
-			}
-			h.nextAnnounce = h.Clock.Now().UTC().Add(h.AnnouncePeriod)
-			h.nextKeepAlive = h.Clock.Now().UTC().Add(h.KeepAlivePeriod)
-			h.keepAlive = keepAlive
-			h.keepAliver = keepAliver
-			h.setState(HeartbeatStateKeepAliveWait)
-			return nil
-		case HeartbeatModeDB:
-			db, ok := h.current.(types.DatabaseServer)
-			if !ok {
-				return trace.BadParameter("expected services.DatabaseServer, got %#v", h.current)
-			}
-			keepAlive, err := h.Announcer.UpsertDatabaseServer(h.cancelCtx, db)
 			if err != nil {
 				return trace.Wrap(err)
 			}

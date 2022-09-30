@@ -18,7 +18,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -1407,54 +1406,17 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 		}
 		resources = servers.AsResources()
 
-	case types.KindDatabaseServer:
-		dbservers, err := a.GetDatabaseServers(ctx, req.Namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		servers := types.DatabaseServers(dbservers)
-		if err := servers.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = servers.AsResources()
-
-	// case types.KindKubernetesCluster:
-	// 	kubeservices, err := a.GetKubeServices(ctx)
+	// case types.KindDatabaseServer:
+	// 	dbservers, err := a.GetDatabaseServers(ctx, req.Namespace)
 	// 	if err != nil {
 	// 		return nil, trace.Wrap(err)
 	// 	}
 
-	// 	// Extract kube clusters into its own list.
-	// 	var clusters []types.KubeCluster
-	// 	for _, svc := range kubeservices {
-	// 		for _, legacyCluster := range svc.GetKubernetesClusters() {
-	// 			cluster, err := types.NewKubernetesClusterV3FromLegacyCluster(svc.GetNamespace(), legacyCluster)
-	// 			if err != nil {
-	// 				return nil, trace.Wrap(err)
-	// 			}
-	// 			clusters = append(clusters, cluster)
-	// 		}
-	// 	}
-
-	// 	sortedClusters := types.KubeClusters(clusters)
-	// 	if err := sortedClusters.SortByCustom(req.SortBy); err != nil {
+	// 	servers := types.DatabaseServers(dbservers)
+	// 	if err := servers.SortByCustom(req.SortBy); err != nil {
 	// 		return nil, trace.Wrap(err)
 	// 	}
-	// 	resources = sortedClusters.AsResources()
-
-	// case types.KindWindowsDesktop:
-	// 	windowsdesktops, err := a.GetWindowsDesktops(ctx, req.GetWindowsDesktopFilter())
-	// 	if err != nil {
-	// 		return nil, trace.Wrap(err)
-	// 	}
-
-	// 	desktops := types.WindowsDesktops(windowsdesktops)
-	// 	if err := desktops.SortByCustom(req.SortBy); err != nil {
-	// 		return nil, trace.Wrap(err)
-	// 	}
-	// 	resources = desktops.AsResources()
-
+	// 	resources = servers.AsResources()
 	default:
 		return nil, trace.NotImplemented("resource type %q is not supported for listResourcesWithSort", req.ResourceType)
 	}
@@ -3653,110 +3615,6 @@ func (a *ServerWithRoles) DeleteSemaphore(ctx context.Context, filter types.Sema
 		return trace.Wrap(err)
 	}
 	return a.authServer.DeleteSemaphore(ctx, filter)
-}
-
-// // ProcessKubeCSR processes CSR request against Kubernetes CA, returns
-// // signed certificate if successful.
-// func (a *ServerWithRoles) ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error) {
-// 	// limits the requests types to proxies to make it harder to break
-// 	if !a.hasBuiltinRole(types.RoleProxy) {
-// 		return nil, trace.AccessDenied("this request can be only executed by a proxy")
-// 	}
-// 	return a.authServer.ProcessKubeCSR(req)
-// }
-
-// GetDatabaseServers returns all registered database servers.
-func (a *ServerWithRoles) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {
-	if err := a.action(namespace, types.KindDatabaseServer, types.VerbList, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers, err := a.authServer.GetDatabaseServers(ctx, namespace, opts...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Filter out databases the caller doesn't have access to.
-	var filtered []types.DatabaseServer
-	for _, server := range servers {
-		err := a.checkAccessToDatabase(server.GetDatabase())
-		if err != nil && !trace.IsAccessDenied(err) {
-			return nil, trace.Wrap(err)
-		} else if err == nil {
-			filtered = append(filtered, server)
-		}
-	}
-	return filtered, nil
-}
-
-// UpsertDatabaseServer creates or updates a new database proxy server.
-func (a *ServerWithRoles) UpsertDatabaseServer(ctx context.Context, server types.DatabaseServer) (*types.KeepAlive, error) {
-	if err := a.action(server.GetNamespace(), types.KindDatabaseServer, types.VerbCreate, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.UpsertDatabaseServer(ctx, server)
-}
-
-// DeleteDatabaseServer removes the specified database proxy server.
-func (a *ServerWithRoles) DeleteDatabaseServer(ctx context.Context, namespace, hostID, name string) error {
-	if err := a.action(namespace, types.KindDatabaseServer, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteDatabaseServer(ctx, namespace, hostID, name)
-}
-
-// DeleteAllDatabaseServers removes all registered database proxy servers.
-func (a *ServerWithRoles) DeleteAllDatabaseServers(ctx context.Context, namespace string) error {
-	if err := a.action(namespace, types.KindDatabaseServer, types.VerbList, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAllDatabaseServers(ctx, namespace)
-}
-
-// SignDatabaseCSR generates a client certificate used by proxy when talking
-// to a remote database service.
-func (a *ServerWithRoles) SignDatabaseCSR(ctx context.Context, req *proto.DatabaseCSRRequest) (*proto.DatabaseCSRResponse, error) {
-	// Only proxy is allowed to request this certificate when proxying
-	// database client connection to a remote database service.
-	if !a.hasBuiltinRole(types.RoleProxy) {
-		return nil, trace.AccessDenied("this request can only be executed by a proxy service")
-	}
-	return a.authServer.SignDatabaseCSR(ctx, req)
-}
-
-// GenerateDatabaseCert generates a certificate used by a database service
-// to authenticate with the database instance.
-//
-// This certificate can be requested by:
-//
-//   - Cluster administrator using "tctl auth sign --format=db" command locally
-//     on the auth server to produce a certificate for configuring a self-hosted
-//     database.
-//   - Remote user using "tctl auth sign --format=db" command with a remote
-//     proxy (e.g. Teleport Cloud), as long as they can impersonate system
-//     role Db.
-//   - Database service when initiating connection to a database instance to
-//     produce a client certificate.
-//   - Proxy service when generating mTLS files to a database
-func (a *ServerWithRoles) GenerateDatabaseCert(ctx context.Context, req *proto.DatabaseCertRequest) (*proto.DatabaseCertResponse, error) {
-	// Check if the User can `create` DatabaseCertificates
-	err := a.action(apidefaults.Namespace, types.KindDatabaseCertificate, types.VerbCreate)
-	if err != nil {
-		if !trace.IsAccessDenied(err) {
-			return nil, trace.Wrap(err)
-		}
-
-		// Err is access denied, trying the old way
-
-		// Check if this is a local cluster admin, or a database service, or a
-		// user that is allowed to impersonate database service.
-		if !a.hasBuiltinRole(types.RoleDatabase, types.RoleAdmin) {
-			if err := a.canImpersonateBuiltinRole(types.RoleDatabase); err != nil {
-				log.WithError(err).Warnf("User %v tried to generate database certificate but does not have '%s' permission for '%s' kind, nor is allowed to impersonate %q system role",
-					a.context.User.GetName(), types.VerbCreate, types.KindDatabaseCertificate, types.RoleDatabase)
-				return nil, trace.AccessDenied(fmt.Sprintf("access denied. User must have '%s' permission for '%s' kind to generate the certificate ", types.VerbCreate, types.KindDatabaseCertificate))
-			}
-		}
-	}
-	return a.authServer.GenerateDatabaseCert(ctx, req)
 }
 
 // GenerateSnowflakeJWT generates JWT in the Snowflake required format.

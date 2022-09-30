@@ -86,7 +86,6 @@ type NodeClient struct {
 
 // GetSites returns list of the "sites" (AKA teleport clusters) connected to the proxy
 // Each site is returned as an instance of its auth server
-//
 func (proxy *ProxyClient) GetSites(ctx context.Context) ([]types.Site, error) {
 	ctx, span := proxy.Tracer.Start(
 		ctx,
@@ -990,18 +989,6 @@ func (proxy *ProxyClient) FindDatabaseServersByFiltersForCluster(ctx context.Con
 
 	resources, err := client.GetResourcesWithFilters(ctx, authClient, req)
 	if err != nil {
-		// ListResources for db servers not available, provide fallback.
-		// Fallback does not support filters, so if users
-		// provide them, it does nothing.
-		//
-		// DELETE IN 11.0.0
-		if trace.IsNotImplemented(err) {
-			servers, err := authClient.GetDatabaseServers(ctx, req.Namespace)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			return servers, nil
-		}
 		return nil, trace.Wrap(err)
 	}
 

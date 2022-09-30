@@ -194,15 +194,6 @@ type Presence interface {
 	// DeleteAllApplicationServers removes all registered application servers.
 	DeleteAllApplicationServers(context.Context, string) error
 
-	// GetDatabaseServers returns all registered database proxy servers.
-	GetDatabaseServers(context.Context, string, ...MarshalOption) ([]types.DatabaseServer, error)
-	// UpsertDatabaseServer creates or updates a new database proxy server.
-	UpsertDatabaseServer(context.Context, types.DatabaseServer) (*types.KeepAlive, error)
-	// DeleteDatabaseServer removes the specified database proxy server.
-	DeleteDatabaseServer(ctx context.Context, namespace, hostID, name string) error
-	// DeleteAllDatabaseServers removes all database proxy servers.
-	DeleteAllDatabaseServers(context.Context, string) error
-
 	// KeepAliveServer updates TTL of the server resource in the backend.
 	KeepAliveServer(ctx context.Context, h types.KeepAlive) error
 

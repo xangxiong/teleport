@@ -1310,11 +1310,6 @@ func (c *Client) GetAppServers(ctx context.Context, namespace string, opts ...se
 	return c.APIClient.GetAppServers(ctx, namespace)
 }
 
-// GetDatabaseServers returns all registered database proxy servers.
-func (c *Client) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {
-	return c.APIClient.GetDatabaseServers(ctx, namespace)
-}
-
 // UpsertAppSession not implemented: can only be called locally.
 func (c *Client) UpsertAppSession(ctx context.Context, session types.WebSession) error {
 	return trace.NotImplemented(notImplementedMessage)
@@ -1652,10 +1647,6 @@ type ClientI interface {
 	// CreateSnowflakeSession creates a Snowflake web session. Snowflake web
 	// sessions represent Database Access Snowflake session the client holds.
 	CreateSnowflakeSession(context.Context, types.CreateSnowflakeSessionRequest) (types.WebSession, error)
-
-	// GenerateDatabaseCert generates client certificate used by a database
-	// service to authenticate with the database instance.
-	GenerateDatabaseCert(context.Context, *proto.DatabaseCertRequest) (*proto.DatabaseCertResponse, error)
 
 	// GetWebSession queries the existing web session described with req.
 	// Implements ReadAccessPoint.

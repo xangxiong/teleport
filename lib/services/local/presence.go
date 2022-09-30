@@ -994,92 +994,6 @@ func (s *PresenceService) DeleteSemaphore(ctx context.Context, filter types.Sema
 	return trace.Wrap(s.Delete(ctx, backend.Key(semaphoresPrefix, filter.SemaphoreKind, filter.SemaphoreName)))
 }
 
-// GetDatabaseServers returns all registered database proxy servers.
-func (s *PresenceService) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {
-	if namespace == "" {
-		return nil, trace.BadParameter("missing database server namespace")
-	}
-	startKey := backend.Key(dbServersPrefix, namespace)
-	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers := make([]types.DatabaseServer, len(result.Items))
-	for i, item := range result.Items {
-		server, err := services.UnmarshalDatabaseServer(
-			item.Value,
-			services.AddOptions(opts,
-				services.WithResourceID(item.ID),
-				services.WithExpires(item.Expires))...)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		servers[i] = server
-	}
-	return servers, nil
-}
-
-// UpsertDatabaseServer registers new database proxy server.
-func (s *PresenceService) UpsertDatabaseServer(ctx context.Context, server types.DatabaseServer) (*types.KeepAlive, error) {
-	if err := server.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	value, err := services.MarshalDatabaseServer(server)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Because there may be multiple database servers on a single host,
-	// they are stored under the following path in the backend:
-	//   /databaseServers/<namespace>/<host-uuid>/<name>
-	lease, err := s.Put(ctx, backend.Item{
-		Key: backend.Key(dbServersPrefix,
-			server.GetNamespace(),
-			server.GetHostID(),
-			server.GetName()),
-		Value:   value,
-		Expires: server.Expiry(),
-		ID:      server.GetResourceID(),
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if server.Expiry().IsZero() {
-		return &types.KeepAlive{}, nil
-	}
-	return &types.KeepAlive{
-		Type:      types.KeepAlive_DATABASE,
-		LeaseID:   lease.ID,
-		Name:      server.GetName(),
-		Namespace: server.GetNamespace(),
-		HostID:    server.GetHostID(),
-		Expires:   server.Expiry(),
-	}, nil
-}
-
-// DeleteDatabaseServer removes the specified database proxy server.
-func (s *PresenceService) DeleteDatabaseServer(ctx context.Context, namespace, hostID, name string) error {
-	if namespace == "" {
-		return trace.BadParameter("missing database server namespace")
-	}
-	if hostID == "" {
-		return trace.BadParameter("missing database server host ID")
-	}
-	if name == "" {
-		return trace.BadParameter("missing database server name")
-	}
-	key := backend.Key(dbServersPrefix, namespace, hostID, name)
-	return s.Delete(ctx, key)
-}
-
-// DeleteAllDatabaseServers removes all registered database proxy servers.
-func (s *PresenceService) DeleteAllDatabaseServers(ctx context.Context, namespace string) error {
-	if namespace == "" {
-		return trace.BadParameter("missing database servers namespace")
-	}
-	startKey := backend.Key(dbServersPrefix, namespace)
-	return s.DeleteRange(ctx, startKey, backend.RangeEnd(startKey))
-}
-
 // GetApplicationServers returns all registered application servers.
 func (s *PresenceService) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
 	if namespace == "" {
@@ -1446,17 +1360,17 @@ func (s *PresenceService) listResourcesWithSort(ctx context.Context, req proto.L
 		}
 		resources = servers.AsResources()
 
-	case types.KindDatabaseServer:
-		dbservers, err := s.GetDatabaseServers(ctx, req.Namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
+	// case types.KindDatabaseServer:
+	// 	dbservers, err := s.GetDatabaseServers(ctx, req.Namespace)
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
 
-		servers := types.DatabaseServers(dbservers)
-		if err := servers.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = servers.AsResources()
+	// 	servers := types.DatabaseServers(dbservers)
+	// 	if err := servers.SortByCustom(req.SortBy); err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	resources = servers.AsResources()
 
 	default:
 		return nil, trace.NotImplemented("resource type %q is not supported for ListResourcesWithSort", req.ResourceType)
