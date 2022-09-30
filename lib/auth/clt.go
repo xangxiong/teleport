@@ -274,23 +274,6 @@ func (c *Client) Delete(ctx context.Context, u string) (*roundtrip.Response, err
 	return httplib.ConvertResponse(c.Client.Delete(ctx, u))
 }
 
-// GetSessions returns a list of active sessions in the cluster as reported by
-// the auth server.
-func (c *Client) GetSessions(ctx context.Context, namespace string) ([]session.Session, error) {
-	if namespace == "" {
-		return nil, trace.BadParameter(MissingNamespaceError)
-	}
-	out, err := c.Get(ctx, c.Endpoint("namespaces", namespace, "sessions"), url.Values{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var sessions []session.Session
-	if err := json.Unmarshal(out.Bytes(), &sessions); err != nil {
-		return nil, err
-	}
-	return sessions, nil
-}
-
 // GetSession returns a session by ID
 func (c *Client) GetSession(ctx context.Context, namespace string, id session.ID) (*session.Session, error) {
 	if namespace == "" {

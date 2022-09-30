@@ -234,10 +234,6 @@ const MaxSessionSliceLength = 1000
 // Service is a realtime SSH session service that has information about
 // sessions that are in-flight in the cluster at the moment.
 type Service interface {
-	// GetSessions returns a list of currently active sessions matching
-	// the given condition.
-	GetSessions(ctx context.Context, namespace string) ([]Session, error)
-
 	// GetSession returns a session with its parties by ID.
 	GetSession(ctx context.Context, namespace string, id ID) (*Session, error)
 
