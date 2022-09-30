@@ -1621,7 +1621,6 @@ type ClientI interface {
 	services.Restrictions
 	services.Apps
 	services.Databases
-	services.WindowsDesktops
 	WebService
 	session.Service
 	services.Status
@@ -1696,9 +1695,6 @@ type ClientI interface {
 	// ResetSessionRecordingConfig resets session recording configuration to defaults.
 	ResetSessionRecordingConfig(ctx context.Context) error
 
-	// GenerateWindowsDesktopCert generates client smartcard certificate used
-	// by an RDP client to authenticate with Windows.
-	GenerateWindowsDesktopCert(context.Context, *proto.WindowsDesktopCertRequest) (*proto.WindowsDesktopCertResponse, error)
 	// GenerateCertAuthorityCRL generates an empty CRL for a CA.
 	GenerateCertAuthorityCRL(context.Context, types.CertAuthType) ([]byte, error)
 

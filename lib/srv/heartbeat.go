@@ -529,45 +529,6 @@ func (h *Heartbeat) announce() error {
 			h.keepAliver = keepAliver
 			h.setState(HeartbeatStateKeepAliveWait)
 			return nil
-		case HeartbeatModeWindowsDesktopService:
-			wd, ok := h.current.(types.WindowsDesktopService)
-			if !ok {
-				return trace.BadParameter("expected services.WindowsDesktopService, got %#v", h.current)
-			}
-			keepAlive, err := h.Announcer.UpsertWindowsDesktopService(h.cancelCtx, wd)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			h.notifySend()
-			keepAliver, err := h.Announcer.NewKeepAliver(h.cancelCtx)
-			if err != nil {
-				h.reset(HeartbeatStateInit)
-				return trace.Wrap(err)
-			}
-			h.nextAnnounce = h.Clock.Now().UTC().Add(h.AnnouncePeriod)
-			h.nextKeepAlive = h.Clock.Now().UTC().Add(h.KeepAlivePeriod)
-			h.keepAlive = keepAlive
-			h.keepAliver = keepAliver
-			h.setState(HeartbeatStateKeepAliveWait)
-			return nil
-		case HeartbeatModeWindowsDesktop:
-			desktop, ok := h.current.(types.WindowsDesktop)
-			if !ok {
-				return trace.BadParameter("expected types.WindowsDesktop, got %#v", h.current)
-			}
-			err := h.Announcer.CreateWindowsDesktop(h.cancelCtx, desktop)
-			if trace.IsAlreadyExists(err) {
-				err = h.Announcer.UpdateWindowsDesktop(h.cancelCtx, desktop)
-			}
-			if err != nil {
-				h.nextAnnounce = h.Clock.Now().UTC().Add(h.KeepAlivePeriod)
-				h.setState(HeartbeatStateAnnounceWait)
-				return trace.Wrap(err)
-			}
-			h.nextAnnounce = h.Clock.Now().UTC().Add(h.AnnouncePeriod)
-			h.notifySend()
-			h.setState(HeartbeatStateAnnounceWait)
-			return nil
 		default:
 			return trace.BadParameter("unknown mode %q", h.Mode)
 		}

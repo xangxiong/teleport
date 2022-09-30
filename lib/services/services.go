@@ -35,5 +35,4 @@ type Services interface {
 	SnowflakeSession
 	types.WebSessionsGetter
 	types.WebTokensGetter
-	WindowsDesktops
 }

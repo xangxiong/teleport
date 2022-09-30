@@ -1443,17 +1443,17 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 		}
 		resources = sortedClusters.AsResources()
 
-	case types.KindWindowsDesktop:
-		windowsdesktops, err := a.GetWindowsDesktops(ctx, req.GetWindowsDesktopFilter())
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
+	// case types.KindWindowsDesktop:
+	// 	windowsdesktops, err := a.GetWindowsDesktops(ctx, req.GetWindowsDesktopFilter())
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
 
-		desktops := types.WindowsDesktops(windowsdesktops)
-		if err := desktops.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = desktops.AsResources()
+	// 	desktops := types.WindowsDesktops(windowsdesktops)
+	// 	if err := desktops.SortByCustom(req.SortBy); err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	resources = desktops.AsResources()
 
 	default:
 		return nil, trace.NotImplemented("resource type %q is not supported for listResourcesWithSort", req.ResourceType)
@@ -4620,211 +4620,6 @@ func (a *ServerWithRoles) DeleteAllDatabases(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-// GetWindowsDesktopServices returns all registered windows desktop services.
-func (a *ServerWithRoles) GetWindowsDesktopServices(ctx context.Context) ([]types.WindowsDesktopService, error) {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktopService, types.VerbList, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	services, err := a.authServer.GetWindowsDesktopServices(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return services, nil
-}
-
-// GetWindowsDesktopService returns a registered windows desktop service by name.
-func (a *ServerWithRoles) GetWindowsDesktopService(ctx context.Context, name string) (types.WindowsDesktopService, error) {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktopService, types.VerbList, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	service, err := a.authServer.GetWindowsDesktopService(ctx, name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return service, nil
-}
-
-// UpsertWindowsDesktopService creates or updates a new windows desktop service.
-func (a *ServerWithRoles) UpsertWindowsDesktopService(ctx context.Context, s types.WindowsDesktopService) (*types.KeepAlive, error) {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktopService, types.VerbCreate, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.UpsertWindowsDesktopService(ctx, s)
-}
-
-// DeleteWindowsDesktopService removes the specified windows desktop service.
-func (a *ServerWithRoles) DeleteWindowsDesktopService(ctx context.Context, name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktopService, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteWindowsDesktopService(ctx, name)
-}
-
-// DeleteAllWindowsDesktopServices removes all registered windows desktop services.
-func (a *ServerWithRoles) DeleteAllWindowsDesktopServices(ctx context.Context) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktopService, types.VerbList, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAllWindowsDesktopServices(ctx)
-}
-
-// GetWindowsDesktops returns all registered windows desktop hosts.
-func (a *ServerWithRoles) GetWindowsDesktops(ctx context.Context, filter types.WindowsDesktopFilter) ([]types.WindowsDesktop, error) {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbList, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	hosts, err := a.authServer.GetWindowsDesktops(ctx, filter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	filtered, err := a.filterWindowsDesktops(hosts)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return filtered, nil
-}
-
-// CreateWindowsDesktop creates a new windows desktop host.
-func (a *ServerWithRoles) CreateWindowsDesktop(ctx context.Context, s types.WindowsDesktop) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.CreateWindowsDesktop(ctx, s)
-}
-
-// UpdateWindowsDesktop updates an existing windows desktop host.
-func (a *ServerWithRoles) UpdateWindowsDesktop(ctx context.Context, s types.WindowsDesktop) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-
-	existing, err := a.authServer.GetWindowsDesktops(ctx,
-		types.WindowsDesktopFilter{HostID: s.GetHostID(), Name: s.GetName()})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if len(existing) == 0 {
-		return trace.NotFound("no windows desktops with HostID %s and Name %s",
-			s.GetHostID(), s.GetName())
-	}
-
-	if err := a.checkAccessToWindowsDesktop(existing[0]); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.checkAccessToWindowsDesktop(s); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpdateWindowsDesktop(ctx, s)
-}
-
-// UpsertWindowsDesktop updates a windows desktop resource, creating it if it doesn't exist.
-func (a *ServerWithRoles) UpsertWindowsDesktop(ctx context.Context, s types.WindowsDesktop) error {
-	// Ensure caller has both Create and Update permissions.
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-
-	if s.GetHostID() == "" {
-		// dont try to insert desktops with empty hostIDs
-		return nil
-	}
-
-	// If the desktop exists, check access,
-	// if it doesn't, continue.
-	existing, err := a.authServer.GetWindowsDesktops(ctx,
-		types.WindowsDesktopFilter{HostID: s.GetHostID(), Name: s.GetName()})
-	if err == nil && len(existing) != 0 {
-		if err := a.checkAccessToWindowsDesktop(existing[0]); err != nil {
-			return trace.Wrap(err)
-		}
-	} else if err != nil && !trace.IsNotFound(err) {
-		return trace.Wrap(err)
-	}
-
-	if err := a.checkAccessToWindowsDesktop(s); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertWindowsDesktop(ctx, s)
-}
-
-// DeleteWindowsDesktop removes the specified Windows desktop host.
-// Note: unlike GetWindowsDesktops, this will delete at-most one desktop.
-// Passing an empty host ID will not trigger "delete all" behavior. To delete
-// all desktops, use DeleteAllWindowsDesktops.
-func (a *ServerWithRoles) DeleteWindowsDesktop(ctx context.Context, hostID, name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	desktop, err := a.authServer.GetWindowsDesktops(ctx,
-		types.WindowsDesktopFilter{HostID: hostID, Name: name})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if len(desktop) == 0 {
-		return trace.NotFound("no windows desktops with HostID %s and Name %s",
-			hostID, name)
-	}
-	if err := a.checkAccessToWindowsDesktop(desktop[0]); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteWindowsDesktop(ctx, hostID, name)
-}
-
-// DeleteAllWindowsDesktops removes all registered windows desktop hosts.
-func (a *ServerWithRoles) DeleteAllWindowsDesktops(ctx context.Context) error {
-	if err := a.action(apidefaults.Namespace, types.KindWindowsDesktop, types.VerbList, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	// Only delete the desktops the user has access to.
-	desktops, err := a.authServer.GetWindowsDesktops(ctx, types.WindowsDesktopFilter{})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, desktop := range desktops {
-		if err := a.checkAccessToWindowsDesktop(desktop); err == nil {
-			if err := a.authServer.DeleteWindowsDesktop(ctx, desktop.GetHostID(), desktop.GetName()); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-	}
-	return nil
-}
-
-func (a *ServerWithRoles) filterWindowsDesktops(desktops []types.WindowsDesktop) ([]types.WindowsDesktop, error) {
-	// For certain built-in roles allow full access
-	if a.hasBuiltinRole(types.RoleAdmin, types.RoleProxy, types.RoleWindowsDesktop) {
-		return desktops, nil
-	}
-
-	filtered := make([]types.WindowsDesktop, 0, len(desktops))
-	for _, desktop := range desktops {
-		if err := a.checkAccessToWindowsDesktop(desktop); err == nil {
-			filtered = append(filtered, desktop)
-		}
-	}
-
-	return filtered, nil
-}
-
-func (a *ServerWithRoles) checkAccessToWindowsDesktop(w types.WindowsDesktop) error {
-	return a.context.Checker.CheckAccess(w,
-		// MFA is not required for operations on desktop resources
-		services.AccessMFAParams{Verified: true},
-		// Note: we don't use the Windows login matcher here, as we won't know what OS user
-		// the user is trying to log in as until they initiate the connection.
-	)
-}
-
-// GenerateWindowsDesktopCert generates a certificate for Windows RDP
-// authentication.
-func (a *ServerWithRoles) GenerateWindowsDesktopCert(ctx context.Context, req *proto.WindowsDesktopCertRequest) (*proto.WindowsDesktopCertResponse, error) {
-	// Only windows_desktop_service should be requesting Windows certificates.
-	if !a.hasBuiltinRole(types.RoleWindowsDesktop) {
-		return nil, trace.AccessDenied("access denied")
-	}
-	return a.authServer.GenerateWindowsDesktopCert(ctx, req)
 }
 
 // GetConnectionDiagnostic returns the connection diagnostic with the matching name

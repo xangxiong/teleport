@@ -62,14 +62,6 @@ type Announcer interface {
 
 	// UpsertDatabaseServer registers a database proxy server.
 	UpsertDatabaseServer(context.Context, types.DatabaseServer) (*types.KeepAlive, error)
-
-	// UpsertWindowsDesktopService registers a Windows desktop service.
-	UpsertWindowsDesktopService(context.Context, types.WindowsDesktopService) (*types.KeepAlive, error)
-
-	// CreateWindowsDesktop registers a Windows desktop host.
-	CreateWindowsDesktop(context.Context, types.WindowsDesktop) error
-	// UpdateWindowsDesktop updates a Windows desktop host.
-	UpdateWindowsDesktop(context.Context, types.WindowsDesktop) error
 }
 
 // accessPoint is an API interface implemented by a certificate authority (CA)
@@ -264,14 +256,6 @@ type ReadProxyAccessPoint interface {
 
 	// GetDatabase returns the specified database resource.
 	GetDatabase(ctx context.Context, name string) (types.Database, error)
-
-	// GetWindowsDesktops returns windows desktop hosts.
-	GetWindowsDesktops(ctx context.Context, filter types.WindowsDesktopFilter) ([]types.WindowsDesktop, error)
-
-	// GetWindowsDesktopServices returns windows desktop hosts.
-	GetWindowsDesktopServices(ctx context.Context) ([]types.WindowsDesktopService, error)
-	// GetWindowsDesktopService returns a windows desktop host by name.
-	GetWindowsDesktopService(ctx context.Context, name string) (types.WindowsDesktopService, error)
 }
 
 // SnowflakeSessionWatcher is watcher interface used by Snowflake web session watcher.
@@ -629,15 +613,6 @@ type ReadWindowsDesktopAccessPoint interface {
 
 	// GetNamespace returns namespace by name
 	GetNamespace(name string) (*types.Namespace, error)
-
-	// GetWindowsDesktops returns windows desktop hosts.
-	GetWindowsDesktops(ctx context.Context, filter types.WindowsDesktopFilter) ([]types.WindowsDesktop, error)
-
-	// GetWindowsDesktopServices returns windows desktop hosts.
-	GetWindowsDesktopServices(ctx context.Context) ([]types.WindowsDesktopService, error)
-
-	// GetWindowsDesktopService returns a windows desktop host by name.
-	GetWindowsDesktopService(ctx context.Context, name string) (types.WindowsDesktopService, error)
 }
 
 // WindowsDesktopAccessPoint is an API interface implemented by a certificate authority (CA) to be
@@ -786,15 +761,6 @@ type Cache interface {
 
 	// GetNetworkRestrictions returns networking restrictions for restricted shell to enforce
 	GetNetworkRestrictions(ctx context.Context) (types.NetworkRestrictions, error)
-
-	// GetWindowsDesktops returns windows desktop hosts.
-	GetWindowsDesktops(ctx context.Context, filter types.WindowsDesktopFilter) ([]types.WindowsDesktop, error)
-
-	// GetWindowsDesktopServices returns windows desktop hosts.
-	GetWindowsDesktopServices(ctx context.Context) ([]types.WindowsDesktopService, error)
-
-	// GetWindowsDesktopService returns a windows desktop host by name.
-	GetWindowsDesktopService(ctx context.Context, name string) (types.WindowsDesktopService, error)
 
 	// GetStaticTokens gets the list of static tokens used to provision nodes.
 	GetStaticTokens() (types.StaticTokens, error)
