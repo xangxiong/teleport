@@ -97,10 +97,6 @@ func NewAPIServer(config *APIConfig) (http.Handler, error) {
 	// Generating certificates for user and host authorities
 	srv.POST("/:version/ca/host/certs", srv.withAuth(srv.generateHostCert))
 
-	// Passwords and sessions
-	// srv.GET("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.getWebSession))
-	// srv.DELETE("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.deleteWebSession))
-
 	// Servers and presence heartbeat
 	srv.POST("/:version/namespaces/:namespace/nodes/keepalive", srv.withAuth(srv.keepAliveNode))
 	srv.POST("/:version/authservers", srv.withAuth(srv.upsertAuthServer))

@@ -22,7 +22,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -268,32 +267,8 @@ func New(bk backend.Backend) (Service, error) {
 	return s, nil
 }
 
-func activePrefix(namespace string) []byte {
-	return backend.Key("namespaces", namespace, "sessions", "active")
-}
-
 func activeKey(namespace string, key string) []byte {
 	return backend.Key("namespaces", namespace, "sessions", "active", key)
-}
-
-// GetSessions returns a list of active sessions.
-// Returns an empty slice if no sessions are active
-func (s *server) GetSessions(ctx context.Context, namespace string) ([]Session, error) {
-	prefix := activePrefix(namespace)
-	result, err := s.bk.GetRange(ctx, prefix, backend.RangeEnd(prefix), MaxSessionSliceLength)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	sessions := make(Sessions, len(result.Items))
-	for i, item := range result.Items {
-		if err := json.Unmarshal(item.Value, &sessions[i]); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	sort.Stable(sessions)
-	return sessions, nil
 }
 
 // Sessions type is created over []Session to implement sort.Interface to
@@ -457,10 +432,10 @@ func NewDiscardSessionServer() Service {
 	return &discardSessionServer{}
 }
 
-// GetSessions returns an empty list of sessions.
-func (d *discardSessionServer) GetSessions(ctx context.Context, namespace string) ([]Session, error) {
-	return []Session{}, nil
-}
+// // GetSessions returns an empty list of sessions.
+// func (d *discardSessionServer) GetSessions(ctx context.Context, namespace string) ([]Session, error) {
+// 	return []Session{}, nil
+// }
 
 // GetSession always returns a zero session.
 func (d *discardSessionServer) GetSession(ctx context.Context, namespace string, id ID) (*Session, error) {
