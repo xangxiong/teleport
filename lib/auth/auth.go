@@ -43,7 +43,6 @@ import (
 	"github.com/coreos/go-oidc/jose"
 	"github.com/coreos/go-oidc/oauth2"
 	"github.com/coreos/go-oidc/oidc"
-	"github.com/google/uuid"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	"github.com/prometheus/client_golang/prometheus"
@@ -726,118 +725,6 @@ func (a *Server) GenerateUserTestCerts(key []byte, username string, ttl time.Dur
 		return nil, nil, trace.Wrap(err)
 	}
 	return certs.SSH, certs.TLS, nil
-}
-
-// AppTestCertRequest combines parameters for generating a test app access cert.
-type AppTestCertRequest struct {
-	// PublicKey is the public key to sign.
-	PublicKey []byte
-	// Username is the Teleport user name to sign certificate for.
-	Username string
-	// TTL is the test certificate validity period.
-	TTL time.Duration
-	// PublicAddr is the application public address. Used for routing.
-	PublicAddr string
-	// ClusterName is the name of the cluster application resides in. Used for routing.
-	ClusterName string
-	// SessionID is the optional session ID to encode. Used for routing.
-	SessionID string
-	// AWSRoleARN is optional AWS role ARN a user wants to assume to encode.
-	AWSRoleARN string
-}
-
-// GenerateUserAppTestCert generates an application specific certificate, used
-// internally for tests.
-func (a *Server) GenerateUserAppTestCert(req AppTestCertRequest) ([]byte, error) {
-	user, err := a.GetUser(req.Username, false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	accessInfo := services.AccessInfoFromUser(user)
-	clusterName, err := a.GetClusterName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	checker, err := services.NewAccessChecker(accessInfo, clusterName.GetClusterName(), a)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	sessionID := req.SessionID
-	if sessionID == "" {
-		sessionID = uuid.New().String()
-	}
-	certs, err := a.generateUserCert(certRequest{
-		user:      user,
-		publicKey: req.PublicKey,
-		checker:   checker,
-		ttl:       req.TTL,
-		// Set the login to be a random string. Application certificates are never
-		// used to log into servers but SSH certificate generation code requires a
-		// principal be in the certificate.
-		traits: wrappers.Traits(map[string][]string{
-			constants.TraitLogins: {uuid.New().String()},
-		}),
-		// Only allow this certificate to be used for applications.
-		usage: []string{teleport.UsageAppsOnly},
-		// Add in the application routing information.
-		appSessionID:   sessionID,
-		appPublicAddr:  req.PublicAddr,
-		appClusterName: req.ClusterName,
-		awsRoleARN:     req.AWSRoleARN,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return certs.TLS, nil
-}
-
-// DatabaseTestCertRequest combines parameters for generating test database
-// access certificate.
-type DatabaseTestCertRequest struct {
-	// PublicKey is the public key to sign.
-	PublicKey []byte
-	// Cluster is the Teleport cluster name.
-	Cluster string
-	// Username is the Teleport username.
-	Username string
-	// RouteToDatabase contains database routing information.
-	RouteToDatabase tlsca.RouteToDatabase
-}
-
-// GenerateDatabaseTestCert generates a database access certificate for the
-// provided parameters. Used only internally in tests.
-func (a *Server) GenerateDatabaseTestCert(req DatabaseTestCertRequest) ([]byte, error) {
-	user, err := a.GetUser(req.Username, false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	accessInfo := services.AccessInfoFromUser(user)
-	clusterName, err := a.GetClusterName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	checker, err := services.NewAccessChecker(accessInfo, clusterName.GetClusterName(), a)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	certs, err := a.generateUserCert(certRequest{
-		user:      user,
-		publicKey: req.PublicKey,
-		checker:   checker,
-		ttl:       time.Hour,
-		traits: map[string][]string{
-			constants.TraitLogins: {req.Username},
-		},
-		routeToCluster: req.Cluster,
-		dbService:      req.RouteToDatabase.ServiceName,
-		dbProtocol:     req.RouteToDatabase.Protocol,
-		dbUser:         req.RouteToDatabase.Username,
-		dbName:         req.RouteToDatabase.Database,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return certs.TLS, nil
 }
 
 // generateUserCert generates user certificates
