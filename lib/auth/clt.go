@@ -896,23 +896,23 @@ func (c *Client) AuthenticateWebUser(ctx context.Context, req AuthenticateUserRe
 	return services.UnmarshalWebSession(out.Bytes())
 }
 
-// AuthenticateSSHUser authenticates SSH console user, creates and  returns a pair of signed TLS and SSH
-// short lived certificates as a result
-func (c *Client) AuthenticateSSHUser(ctx context.Context, req AuthenticateSSHRequest) (*SSHLoginResponse, error) {
-	out, err := c.PostJSON(
-		ctx,
-		c.Endpoint("users", req.Username, "ssh", "authenticate"),
-		req,
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var re SSHLoginResponse
-	if err := json.Unmarshal(out.Bytes(), &re); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &re, nil
-}
+// // AuthenticateSSHUser authenticates SSH console user, creates and  returns a pair of signed TLS and SSH
+// // short lived certificates as a result
+// func (c *Client) AuthenticateSSHUser(ctx context.Context, req AuthenticateSSHRequest) (*SSHLoginResponse, error) {
+// 	out, err := c.PostJSON(
+// 		ctx,
+// 		c.Endpoint("users", req.Username, "ssh", "authenticate"),
+// 		req,
+// 	)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	var re SSHLoginResponse
+// 	if err := json.Unmarshal(out.Bytes(), &re); err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return &re, nil
+// }
 
 // GetWebSessionInfo checks if a web sesion is valid, returns session id in case if
 // it is valid, or error otherwise.
@@ -1536,8 +1536,8 @@ type IdentityService interface {
 	// // ChangePassword changes user password
 	// ChangePassword(req services.ChangePasswordReq) error
 
-	// CheckPassword checks if the suplied web access password is valid.
-	CheckPassword(user string, password []byte, otpToken string) error
+	// // CheckPassword checks if the suplied web access password is valid.
+	// CheckPassword(user string, password []byte, otpToken string) error
 
 	// GenerateToken creates a special provisioning token for a new SSH server
 	// that is valid for ttl period seconds.
@@ -1690,12 +1690,6 @@ type ClientI interface {
 	// GenerateHostCerts generates new host certificates (signed
 	// by the host certificate authority) for a node
 	GenerateHostCerts(context.Context, *proto.HostCertsRequest) (*proto.Certs, error)
-	// AuthenticateWebUser authenticates web user, creates and  returns web session
-	// in case if authentication is successful
-	AuthenticateWebUser(ctx context.Context, req AuthenticateUserRequest) (types.WebSession, error)
-	// AuthenticateSSHUser authenticates SSH console user, creates and  returns a pair of signed TLS and SSH
-	// short-lived certificates as a result
-	AuthenticateSSHUser(ctx context.Context, req AuthenticateSSHRequest) (*SSHLoginResponse, error)
 
 	// ProcessKubeCSR processes CSR request against Kubernetes CA, returns
 	// signed certificate if successful.

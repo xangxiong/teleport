@@ -96,20 +96,6 @@ type checkPasswordResult struct {
 	mfaDev *types.MFADevice
 }
 
-// checkPassword checks the password and OTP token. Called by tsh or lib/web/*.
-func (s *Server) checkPassword(user string, password []byte, otpToken string) (*checkPasswordResult, error) {
-	err := s.checkPasswordWOToken(user, password)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	mfaDev, err := s.checkOTP(user, otpToken)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &checkPasswordResult{mfaDev: mfaDev}, nil
-}
-
 // checkOTP determines the type of OTP token used (for legacy HOTP support), fetches the
 // appropriate type from the backend, and checks if the token is valid.
 func (s *Server) checkOTP(user string, otpToken string) (*types.MFADevice, error) {
