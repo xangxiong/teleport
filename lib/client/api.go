@@ -266,10 +266,6 @@ type Config struct {
 	// if omitted, first available site will be selected
 	SiteName string
 
-	// DatabaseService specifies name of the database proxy server to issue
-	// certificate for.
-	DatabaseService string
-
 	// LocalForwardPorts are the local ports tsh listens on for port forwarding
 	// (parameters to -L ssh flag).
 	LocalForwardPorts ForwardedPorts
@@ -3173,9 +3169,6 @@ func (tc *TeleportClient) Login(ctx context.Context) (*Key, error) {
 	// extract the new certificate out of the response
 	key.Cert = response.Cert
 	key.TLSCert = response.TLSCert
-	if tc.DatabaseService != "" {
-		key.DBTLSCerts[tc.DatabaseService] = response.TLSCert
-	}
 	key.TrustedCA = response.HostSigners
 
 	// Store the requested cluster name in the key.
