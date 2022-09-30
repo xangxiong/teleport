@@ -1118,19 +1118,6 @@ func (g *GRPCServer) DeleteSemaphore(ctx context.Context, req *types.SemaphoreFi
 	return &empty.Empty{}, nil
 }
 
-// GenerateSnowflakeJWT generates JWT in the format required by Snowflake.
-func (g *GRPCServer) GenerateSnowflakeJWT(ctx context.Context, req *proto.SnowflakeJWTRequest) (*proto.SnowflakeJWTResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response, err := auth.GenerateSnowflakeJWT(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return response, nil
-}
-
 // GetWebSession gets a web session.
 func (g *GRPCServer) GetWebSession(ctx context.Context, req *types.GetWebSessionRequest) (*proto.GetWebSessionResponse, error) {
 	auth, err := g.authenticate(ctx)
