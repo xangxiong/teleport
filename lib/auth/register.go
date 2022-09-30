@@ -24,20 +24,15 @@ import (
 	"github.com/gravitational/teleport/api/breaker"
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/metadata"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib"
 	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/srv/alpnproxy/common"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"golang.org/x/net/http2"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 // LocalRegister is used to generate host keys when a node or proxy is running
@@ -259,37 +254,6 @@ func registerThroughAuth(token string, params RegisterParams) (*proto.Certs, err
 	return certs, trace.Wrap(err)
 }
 
-// proxyJoinServiceClient attempts to connect to the join service running on the
-// proxy. The Proxy's TLS cert will be verified using the host's root CA pool
-// (PKI) unless the --insecure flag was passed.
-func proxyJoinServiceClient(params RegisterParams) (*client.JoinServiceClient, error) {
-	if len(params.Servers) == 0 {
-		return nil, trace.BadParameter("no auth servers set")
-	}
-
-	tlsConfig := utils.TLSConfig(params.CipherSuites)
-	tlsConfig.Time = params.Clock.Now
-	// set NextProtos for TLS routing, the actual protocol will be h2
-	tlsConfig.NextProtos = []string{string(common.ProtocolProxyGRPC), http2.NextProtoTLS}
-
-	if lib.IsInsecureDevMode() {
-		tlsConfig.InsecureSkipVerify = true
-		log.Warnf("Joining cluster without validating the identity of the Proxy Server.")
-	}
-
-	conn, err := grpc.Dial(
-		params.Servers[0].String(),
-		grpc.WithUnaryInterceptor(metadata.UnaryClientInterceptor),
-		grpc.WithStreamInterceptor(metadata.StreamClientInterceptor),
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return client.NewJoinServiceClient(proto.NewJoinServiceClient(conn)), nil
-}
-
 // insecureRegisterClient attempts to connects to the Auth Server using the
 // CA on disk. If no CA is found on disk, Teleport will not verify the Auth
 // Server it is connecting to.
@@ -422,10 +386,6 @@ func pinRegisterClient(params RegisterParams) (*Client, error) {
 	}
 
 	return authClient, nil
-}
-
-type joinServiceClient interface {
-	RegisterUsingIAMMethod(ctx context.Context, challengeResponse client.RegisterChallengeResponseFunc) (*proto.Certs, error)
 }
 
 // ReRegisterParams specifies parameters for re-registering
