@@ -17,27 +17,11 @@ limitations under the License.
 package auth
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/gravitational/trace"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/gravitational/teleport"
-	apidefaults "github.com/gravitational/teleport/api/defaults"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/tlsca"
 )
-
-// CreateUploaderDir creates directory for file uploader service
-func CreateUploaderDir(dir string) error {
-	if err := os.MkdirAll(filepath.Join(dir, teleport.LogsDir, teleport.ComponentUpload,
-		events.StreamingLogsDir, apidefaults.Namespace), teleport.SharedDirMode); err != nil {
-		return trace.ConvertSystemError(err)
-	}
-
-	return nil
-}
 
 // PrivateKeyToPublicKeyTLS gets the TLS public key from a raw private key.
 func PrivateKeyToPublicKeyTLS(privateKey []byte) (tlsPublicKey []byte, err error) {
