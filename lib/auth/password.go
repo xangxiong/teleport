@@ -27,9 +27,7 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
 )
@@ -57,53 +55,6 @@ func (s *Server) ResetPassword(username string) (string, error) {
 	}
 
 	return password, nil
-}
-
-// ChangePassword updates users password based on the old password.
-func (s *Server) ChangePassword(req services.ChangePasswordReq) error {
-	ctx := context.TODO()
-	// validate new password
-	if err := services.VerifyPassword(req.NewPassword); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// Authenticate.
-	user := req.User
-	authReq := AuthenticateUserRequest{
-		Username: user,
-		Webauthn: req.WebauthnResponse,
-	}
-	if len(req.OldPassword) > 0 {
-		authReq.Pass = &PassCreds{
-			Password: req.OldPassword,
-		}
-	}
-	if req.SecondFactorToken != "" {
-		authReq.OTP = &OTPCreds{
-			Password: req.OldPassword,
-			Token:    req.SecondFactorToken,
-		}
-	}
-	if _, _, err := s.authenticateUser(ctx, authReq); err != nil {
-		return trace.Wrap(err)
-	}
-
-	if err := s.UpsertPassword(user, req.NewPassword); err != nil {
-		return trace.Wrap(err)
-	}
-
-	if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.UserPasswordChange{
-		Metadata: apievents.Metadata{
-			Type: events.UserPasswordChangeEvent,
-			Code: events.UserPasswordChangeCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: user,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit password change event.")
-	}
-	return nil
 }
 
 // checkPasswordWOToken checks just password without checking OTP tokens

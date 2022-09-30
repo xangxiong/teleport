@@ -1533,8 +1533,8 @@ type IdentityService interface {
 	// GetUsers returns a list of usernames registered in the system
 	GetUsers(withSecrets bool) ([]types.User, error)
 
-	// ChangePassword changes user password
-	ChangePassword(req services.ChangePasswordReq) error
+	// // ChangePassword changes user password
+	// ChangePassword(req services.ChangePasswordReq) error
 
 	// CheckPassword checks if the suplied web access password is valid.
 	CheckPassword(user string, password []byte, otpToken string) error
