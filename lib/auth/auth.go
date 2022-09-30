@@ -201,8 +201,8 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		Services:        services,
 		Cache:           services,
 		keyStore:        keyStore,
-		getClaimsFun:    getClaims,
-		inventory:       inventory.NewController(cfg.Presence),
+		// getClaimsFun:    getClaims,
+		inventory: inventory.NewController(cfg.Presence),
 	}
 	for _, o := range opts {
 		if err := o(&as); err != nil {
