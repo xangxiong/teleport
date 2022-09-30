@@ -38,7 +38,6 @@ import (
 	"github.com/gravitational/teleport/lib/session"
 	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
 	collectortracev1 "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -887,52 +886,6 @@ func (a *ServerWithRoles) KeepAliveServer(ctx context.Context, handle types.Keep
 		if err := a.action(apidefaults.Namespace, types.KindNode, types.VerbUpdate); err != nil {
 			return trace.Wrap(err)
 		}
-	case constants.KeepAliveApp:
-		if handle.HostID != "" {
-			if serverName != handle.HostID {
-				return trace.AccessDenied("access denied")
-			}
-		} else { // DELETE IN 9.0. Legacy app server is heartbeating back.
-			if serverName != handle.Name {
-				return trace.AccessDenied("access denied")
-			}
-		}
-		if !a.hasBuiltinRole(types.RoleApp) {
-			return trace.AccessDenied("access denied")
-		}
-		if err := a.action(apidefaults.Namespace, types.KindAppServer, types.VerbUpdate); err != nil {
-			return trace.Wrap(err)
-		}
-	case constants.KeepAliveDatabase:
-		// There can be multiple database servers per host so they send their
-		// host ID in a separate field because unlike SSH nodes the resource
-		// name cannot be the host ID.
-		if serverName != handle.HostID {
-			return trace.AccessDenied("access denied")
-		}
-		if !a.hasBuiltinRole(types.RoleDatabase) {
-			return trace.AccessDenied("access denied")
-		}
-		if err := a.action(apidefaults.Namespace, types.KindDatabaseServer, types.VerbUpdate); err != nil {
-			return trace.Wrap(err)
-		}
-	case constants.KeepAliveWindowsDesktopService:
-		if serverName != handle.Name {
-			return trace.AccessDenied("access denied")
-		}
-		if !a.hasBuiltinRole(types.RoleWindowsDesktop) {
-			return trace.AccessDenied("access denied")
-		}
-		if err := a.action(apidefaults.Namespace, types.KindWindowsDesktopService, types.VerbUpdate); err != nil {
-			return trace.Wrap(err)
-		}
-	case constants.KeepAliveKube:
-		if serverName != handle.Name || !a.hasBuiltinRole(types.RoleKube) {
-			return trace.AccessDenied("access denied")
-		}
-		if err := a.action(apidefaults.Namespace, types.KindKubeService, types.VerbUpdate); err != nil {
-			return trace.Wrap(err)
-		}
 	default:
 		return trace.BadParameter("unknown keep alive type %q", handle.Type)
 	}
@@ -1130,8 +1083,6 @@ func (a *ServerWithRoles) ListResources(ctx context.Context, req proto.ListResou
 		//   https://github.com/gravitational/teleport/pull/1224
 		actionVerbs = []string{types.VerbList}
 
-	case types.KindDatabaseServer, types.KindAppServer, types.KindKubeService, types.KindWindowsDesktop:
-
 	default:
 		return nil, trace.NotImplemented("resource type %s does not support pagination", req.ResourceType)
 	}
@@ -1207,14 +1158,6 @@ func (r resourceChecker) CanAccess(resource types.Resource) error {
 	// will be enforced at the connection time.
 	mfaParams := services.AccessMFAParams{Verified: true}
 	switch rr := resource.(type) {
-	case types.AppServer:
-		return r.CheckAccess(rr.GetApp(), mfaParams)
-	case types.DatabaseServer:
-		return r.CheckAccess(rr.GetDatabase(), mfaParams)
-	case types.Database:
-		return r.CheckAccess(rr, mfaParams)
-	case types.WindowsDesktop:
-		return r.CheckAccess(rr, mfaParams)
 	case types.Server:
 		return r.CheckAccess(rr, mfaParams)
 	default:
@@ -1222,79 +1165,11 @@ func (r resourceChecker) CanAccess(resource types.Resource) error {
 	}
 }
 
-// kubeChecker is a resourceAccessChecker that checks for access to kubernetes services
-type kubeChecker struct {
-	checker   services.AccessChecker
-	localUser bool
-}
-
-func newKubeChecker(authContext Context) *kubeChecker {
-	return &kubeChecker{
-		checker:   authContext.Checker,
-		localUser: hasLocalUserRole(authContext),
-	}
-}
-
-// CanAccess checks if a user has access to kubernetes clusters defined
-// in the server. Any clusters which aren't allowed will be removed from the
-// resource instead of an error being returned.
-func (k *kubeChecker) CanAccess(resource types.Resource) error {
-	server, ok := resource.(types.Server)
-	if !ok {
-		return trace.BadParameter("unexpected resource type %T", resource)
-	}
-
-	// Filter out agents that don't have support for moderated sessions access
-	// checking if the user has any roles that require it.
-	if k.localUser {
-		roles := k.checker.Roles()
-		agentVersion, versionErr := semver.NewVersion(server.GetTeleportVersion())
-
-		hasK8SRequirePolicy := func() bool {
-			for _, role := range roles {
-				for _, policy := range role.GetSessionRequirePolicies() {
-					if ContainsSessionKind(policy.Kinds, types.KubernetesSessionKind) {
-						return true
-					}
-				}
-			}
-			return false
-		}
-
-		if hasK8SRequirePolicy() && (versionErr != nil || agentVersion.LessThan(*MinSupportedModeratedSessionsVersion)) {
-			return trace.AccessDenied("cannot use moderated sessions with pre-v9 kubernetes agents")
-		}
-	}
-
-	filtered := make([]*types.KubernetesCluster, 0, len(server.GetKubernetesClusters()))
-	for _, kube := range server.GetKubernetesClusters() {
-		k8sV3, err := types.NewKubernetesClusterV3FromLegacyCluster(server.GetNamespace(), kube)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		if err := k.checker.CheckAccess(k8sV3, services.AccessMFAParams{Verified: true}); err != nil {
-			if trace.IsAccessDenied(err) {
-				continue
-			}
-
-			return trace.Wrap(err)
-		}
-
-		filtered = append(filtered, kube)
-	}
-
-	server.SetKubernetesClusters(filtered)
-	return nil
-}
-
 // newResourceAccessChecker creates a resourceAccessChecker for the provided resource type
 func (a *ServerWithRoles) newResourceAccessChecker(resource string) (resourceAccessChecker, error) {
 	switch resource {
-	case types.KindAppServer, types.KindDatabaseServer, types.KindWindowsDesktop, types.KindNode:
+	case types.KindNode:
 		return &resourceChecker{AccessChecker: a.context.Checker}, nil
-	case types.KindKubeService:
-		return newKubeChecker(a.context), nil
 	default:
 		return nil, trace.BadParameter("could not check access to resource type %s", resource)
 	}
