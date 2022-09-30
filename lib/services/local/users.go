@@ -31,12 +31,10 @@ import (
 	"github.com/gravitational/teleport/lib/services"
 
 	"github.com/gokyle/hotp"
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/bcrypt"
 
 	wantypes "github.com/gravitational/teleport/api/types/webauthn"
 )
@@ -62,40 +60,6 @@ func NewIdentityService(backend backend.Backend) *IdentityService {
 	}
 }
 
-// DeleteAllUsers deletes all users
-func (s *IdentityService) DeleteAllUsers() error {
-	startKey := backend.Key(webPrefix, usersPrefix)
-	return s.DeleteRange(context.TODO(), startKey, backend.RangeEnd(startKey))
-}
-
-// GetUsers returns a list of users registered with the local auth server
-func (s *IdentityService) GetUsers(withSecrets bool) ([]types.User, error) {
-	if withSecrets {
-		return s.getUsersWithSecrets()
-	}
-	startKey := backend.Key(webPrefix, usersPrefix)
-	result, err := s.GetRange(context.TODO(), startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var out []types.User
-	for _, item := range result.Items {
-		if !bytes.HasSuffix(item.Key, []byte(paramsPrefix)) {
-			continue
-		}
-		u, err := services.UnmarshalUser(
-			item.Value, services.WithResourceID(item.ID), services.WithExpires(item.Expires))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if !withSecrets {
-			u.SetLocalAuth(nil)
-		}
-		out = append(out, u)
-	}
-	return out, nil
-}
-
 func (s *IdentityService) getUsersWithSecrets() ([]types.User, error) {
 	startKey := backend.Key(webPrefix, usersPrefix)
 	result, err := s.GetRange(context.TODO(), startKey, backend.RangeEnd(startKey), backend.NoLimit)
@@ -115,158 +79,6 @@ func (s *IdentityService) getUsersWithSecrets() ([]types.User, error) {
 		users = append(users, user)
 	}
 	return users, nil
-}
-
-// CreateUser creates user if it does not exist.
-func (s *IdentityService) CreateUser(user types.User) error {
-	if err := services.ValidateUser(user); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// Confirm user doesn't exist before creating.
-	_, err := s.GetUser(user.GetName(), false)
-	if !trace.IsNotFound(err) {
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		return trace.AlreadyExists("user %q already registered", user.GetName())
-	}
-
-	value, err := services.MarshalUser(user.WithoutSecrets().(types.User))
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	item := backend.Item{
-		Key:     backend.Key(webPrefix, usersPrefix, user.GetName(), paramsPrefix),
-		Value:   value,
-		Expires: user.Expiry(),
-	}
-
-	if _, err = s.Create(context.TODO(), item); err != nil {
-		return trace.Wrap(err)
-	}
-
-	if auth := user.GetLocalAuth(); auth != nil {
-		if err = s.upsertLocalAuthSecrets(user.GetName(), *auth); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-// UpdateUser updates an existing user.
-func (s *IdentityService) UpdateUser(ctx context.Context, user types.User) error {
-	if err := services.ValidateUser(user); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// Confirm user exists before updating.
-	if _, err := s.GetUser(user.GetName(), false); err != nil {
-		return trace.Wrap(err)
-	}
-
-	value, err := services.MarshalUser(user.WithoutSecrets().(types.User))
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(webPrefix, usersPrefix, user.GetName(), paramsPrefix),
-		Value:   value,
-		Expires: user.Expiry(),
-		ID:      user.GetResourceID(),
-	}
-	_, err = s.Update(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if auth := user.GetLocalAuth(); auth != nil {
-		if err = s.upsertLocalAuthSecrets(user.GetName(), *auth); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-// UpsertUser updates parameters about user, or creates an entry if not exist.
-func (s *IdentityService) UpsertUser(user types.User) error {
-	if err := services.ValidateUser(user); err != nil {
-		return trace.Wrap(err)
-	}
-	value, err := services.MarshalUser(user.WithoutSecrets().(types.User))
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(webPrefix, usersPrefix, user.GetName(), paramsPrefix),
-		Value:   value,
-		Expires: user.Expiry(),
-		ID:      user.GetResourceID(),
-	}
-	_, err = s.Put(context.TODO(), item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if auth := user.GetLocalAuth(); auth != nil {
-		if err = s.upsertLocalAuthSecrets(user.GetName(), *auth); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-// CompareAndSwapUser updates a user, but fails if the value (as exists in the
-// backend) differs from the provided `existing` value. If the existing value
-// matches, returns no error, otherwise returns `trace.CompareFailed`.
-func (s *IdentityService) CompareAndSwapUser(ctx context.Context, new, existing types.User) error {
-	if err := services.ValidateUser(new); err != nil {
-		return trace.Wrap(err)
-	}
-
-	newRaw, ok := new.WithoutSecrets().(types.User)
-	if !ok {
-		return trace.BadParameter("Invalid user type %T", new)
-	}
-	newValue, err := services.MarshalUser(newRaw)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	newItem := backend.Item{
-		Key:     backend.Key(webPrefix, usersPrefix, new.GetName(), paramsPrefix),
-		Value:   newValue,
-		Expires: new.Expiry(),
-		ID:      new.GetResourceID(),
-	}
-
-	existingRaw, ok := existing.WithoutSecrets().(types.User)
-	if !ok {
-		return trace.BadParameter("Invalid user type %T", existing)
-	}
-	existingValue, err := services.MarshalUser(existingRaw)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	existingItem := backend.Item{
-		Key:     backend.Key(webPrefix, usersPrefix, existing.GetName(), paramsPrefix),
-		Value:   existingValue,
-		Expires: existing.Expiry(),
-		ID:      existing.GetResourceID(),
-	}
-
-	_, err = s.CompareAndSwap(ctx, existingItem, newItem)
-	if err != nil {
-		if trace.IsCompareFailed(err) {
-			return trace.CompareFailed("user %v did not match expected existing value", new.GetName())
-		}
-		return trace.Wrap(err)
-	}
-
-	if auth := new.GetLocalAuth(); auth != nil {
-		if err = s.upsertLocalAuthSecrets(new.GetName(), *auth); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
 }
 
 // GetUser returns a user by name
@@ -311,112 +123,6 @@ func (s *IdentityService) getUserWithSecrets(user string) (types.User, error) {
 		return nil, trace.Wrap(err)
 	}
 	return u, nil
-}
-
-func (s *IdentityService) upsertLocalAuthSecrets(user string, auth types.LocalAuthSecrets) error {
-	if len(auth.PasswordHash) > 0 {
-		err := s.UpsertPasswordHash(user, auth.PasswordHash)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	for _, d := range auth.MFA {
-		if err := s.UpsertMFADevice(context.TODO(), user, d); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	if auth.Webauthn != nil {
-		if err := s.UpsertWebauthnLocalAuth(context.TODO(), user, auth.Webauthn); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-// GetUserByOIDCIdentity returns a user by it's specified OIDC Identity, returns first
-// user specified with this identity
-func (s *IdentityService) GetUserByOIDCIdentity(id types.ExternalIdentity) (types.User, error) {
-	users, err := s.GetUsers(false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	for _, u := range users {
-		for _, uid := range u.GetOIDCIdentities() {
-			if cmp.Equal(uid, &id) {
-				return u, nil
-			}
-		}
-	}
-	return nil, trace.NotFound("user with identity %q not found", &id)
-}
-
-// GetUserBySAMLIdentity returns a user by it's specified OIDC Identity, returns
-// first user specified with this identity.
-func (s *IdentityService) GetUserBySAMLIdentity(id types.ExternalIdentity) (types.User, error) {
-	users, err := s.GetUsers(false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	for _, u := range users {
-		for _, uid := range u.GetSAMLIdentities() {
-			if cmp.Equal(uid, &id) {
-				return u, nil
-			}
-		}
-	}
-	return nil, trace.NotFound("user with identity %q not found", &id)
-}
-
-// GetUserByGithubIdentity returns the first found user with specified Github identity
-func (s *IdentityService) GetUserByGithubIdentity(id types.ExternalIdentity) (types.User, error) {
-	users, err := s.GetUsers(false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	for _, u := range users {
-		for _, uid := range u.GetGithubIdentities() {
-			if cmp.Equal(uid, &id) {
-				return u, nil
-			}
-		}
-	}
-	return nil, trace.NotFound("user with identity %v not found", &id)
-}
-
-// DeleteUser deletes a user with all the keys from the backend
-func (s *IdentityService) DeleteUser(ctx context.Context, user string) error {
-	_, err := s.GetUser(user, false)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	// each user has multiple related entries in the backend,
-	// so use DeleteRange to make sure we get them all
-	startKey := backend.ExactKey(webPrefix, usersPrefix, user)
-	err = s.DeleteRange(ctx, startKey, backend.RangeEnd(startKey))
-	return trace.Wrap(err)
-}
-
-// UpsertPasswordHash upserts user password hash
-func (s *IdentityService) UpsertPasswordHash(username string, hash []byte) error {
-	userPrototype, err := types.NewUser(username)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	err = s.CreateUser(userPrototype)
-	if err != nil {
-		if !trace.IsAlreadyExists(err) {
-			return trace.Wrap(err)
-		}
-	}
-	item := backend.Item{
-		Key:   backend.Key(webPrefix, usersPrefix, username, pwdPrefix),
-		Value: hash,
-	}
-	_, err = s.Put(context.TODO(), item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
 }
 
 // GetPasswordHash returns the password hash for a given user
@@ -572,28 +278,6 @@ func (s *IdentityService) DeleteUserLoginAttempts(user string) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	return nil
-}
-
-// UpsertPassword upserts new password hash into a backend.
-func (s *IdentityService) UpsertPassword(user string, password []byte) error {
-	if user == "" {
-		return trace.BadParameter("missing username")
-	}
-	err := services.VerifyPassword(password)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	hash, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	err = s.UpsertPasswordHash(user, hash)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
 	return nil
 }
 

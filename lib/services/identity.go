@@ -44,20 +44,6 @@ type Identity interface {
 	// called after successful login.
 	DeleteUserLoginAttempts(user string) error
 
-	// GetUserByOIDCIdentity returns a user by its specified OIDC Identity, returns first
-	// user specified with this identity
-	GetUserByOIDCIdentity(id types.ExternalIdentity) (types.User, error)
-
-	// GetUserBySAMLIdentity returns a user by its specified OIDC Identity, returns first
-	// user specified with this identity
-	GetUserBySAMLIdentity(id types.ExternalIdentity) (types.User, error)
-
-	// GetUserByGithubIdentity returns a user by its specified Github identity
-	GetUserByGithubIdentity(id types.ExternalIdentity) (types.User, error)
-
-	// UpsertPasswordHash upserts user password hash
-	UpsertPasswordHash(user string, hash []byte) error
-
 	// GetPasswordHash returns the password hash for a given user
 	GetPasswordHash(user string) ([]byte, error)
 
@@ -75,9 +61,6 @@ type Identity interface {
 
 	// GetUsedTOTPToken returns the last successfully used TOTP token.
 	GetUsedTOTPToken(user string) (string, error)
-
-	// UpsertPassword upserts new password and OTP token
-	UpsertPassword(user string, password []byte) error
 
 	// UpsertWebauthnLocalAuth creates or updates the local auth configuration for
 	// Webauthn.
