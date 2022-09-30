@@ -86,7 +86,7 @@ type HeartbeatMode int
 // CheckAndSetDefaults checks values and sets defaults
 func (h HeartbeatMode) CheckAndSetDefaults() error {
 	switch h {
-	case HeartbeatModeNode, HeartbeatModeProxy, HeartbeatModeAuth, HeartbeatModeKube, HeartbeatModeApp, HeartbeatModeDB, HeartbeatModeWindowsDesktopService, HeartbeatModeWindowsDesktop:
+	case HeartbeatModeNode, HeartbeatModeProxy, HeartbeatModeAuth:
 		return nil
 	default:
 		return trace.BadParameter("unrecognized mode")
@@ -117,17 +117,6 @@ const (
 	// HeartbeatModeAuth sets heartbeat to auth
 	// that does not support keep alives
 	HeartbeatModeAuth
-	// HeartbeatModeKube is a mode for kubernetes service heartbeats.
-	HeartbeatModeKube
-	// HeartbeatModeApp sets heartbeat to apps and will use keep alives.
-	HeartbeatModeApp
-	// HeartbeatModeDB sets heatbeat to db
-	HeartbeatModeDB
-	// HeartbeatModeWindowsDesktopService sets heatbeat mode to windows desktop
-	// service.
-	HeartbeatModeWindowsDesktopService
-	// HeartbeatModeWindowsDesktop sets heatbeat mode to windows desktop.
-	HeartbeatModeWindowsDesktop
 )
 
 // NewHeartbeat returns a new instance of heartbeat
