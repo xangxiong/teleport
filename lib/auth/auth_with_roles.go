@@ -3304,21 +3304,6 @@ func (a *ServerWithRoles) DeleteSemaphore(ctx context.Context, filter types.Sema
 	return a.authServer.DeleteSemaphore(ctx, filter)
 }
 
-// canImpersonateBuiltinRole checks if the current user can impersonate the
-// provided system role.
-func (a *ServerWithRoles) canImpersonateBuiltinRole(role types.SystemRole) error {
-	roleCtx, err := NewBuiltinRoleContext(role)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	roleSet := services.RoleSet(roleCtx.Checker.Roles())
-	err = a.context.Checker.CheckImpersonate(a.context.User, roleCtx.User, roleSet.WithoutImplicit())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 func (a *ServerWithRoles) checkAccessToApp(app types.Application) error {
 	return a.context.Checker.CheckAccess(
 		app,
