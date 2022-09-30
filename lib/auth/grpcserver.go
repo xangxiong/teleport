@@ -34,11 +34,9 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	_ "google.golang.org/grpc/encoding/gzip" // gzip compressor for gRPC.
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/peer"
-	"google.golang.org/grpc/status"
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client"
@@ -1761,117 +1759,6 @@ func (g *GRPCServer) UpdateRemoteCluster(ctx context.Context, req *types.RemoteC
 	if err := auth.UpdateRemoteCluster(ctx, req); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return &empty.Empty{}, nil
-}
-
-// GetKubeServices gets all kubernetes services.
-func (g *GRPCServer) GetKubeServices(ctx context.Context, req *proto.GetKubeServicesRequest) (*proto.GetKubeServicesResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	kubeServices, err := auth.GetKubeServices(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	var servers []*types.ServerV2
-	for _, s := range kubeServices {
-		server, ok := s.(*types.ServerV2)
-		if !ok {
-			return nil, trace.BadParameter("unexpected type %T", s)
-		}
-		servers = append(servers, server)
-	}
-
-	return &proto.GetKubeServicesResponse{
-		Servers: servers,
-	}, nil
-}
-
-// UpsertKubeService adds a kubernetes service.
-func (g *GRPCServer) UpsertKubeService(ctx context.Context, req *proto.UpsertKubeServiceRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	server := req.GetServer()
-	// If Addr in the server is localhost, replace it with the address we see
-	// from our end.
-	//
-	// Services that listen on "0.0.0.0:12345" will put that exact address in
-	// the server.Addr field. It's not useful for other services that want to
-	// connect to it (like a proxy). Remote address of the gRPC connection is
-	// the closest thing we have to a public IP for the service.
-	clientAddr, ok := ctx.Value(ContextClientAddr).(net.Addr)
-	if !ok {
-		return nil, status.Errorf(codes.FailedPrecondition, "bug: client address not found in request context")
-	}
-	server.SetAddr(utils.ReplaceLocalhost(server.GetAddr(), clientAddr.String()))
-
-	if err := auth.UpsertKubeService(ctx, server); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return new(empty.Empty), nil
-}
-
-// UpsertKubeServiceV2 adds a kubernetes service
-func (g *GRPCServer) UpsertKubeServiceV2(ctx context.Context, req *proto.UpsertKubeServiceRequest) (*types.KeepAlive, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	server := req.GetServer()
-	// If Addr in the server is localhost, replace it with the address we see
-	// from our end.
-	//
-	// Services that listen on "0.0.0.0:12345" will put that exact address in
-	// the server.Addr field. It's not useful for other services that want to
-	// connect to it (like a proxy). Remote address of the gRPC connection is
-	// the closest thing we have to a public IP for the service.
-	clientAddr, ok := ctx.Value(ContextClientAddr).(net.Addr)
-	if !ok {
-		return nil, status.Errorf(codes.FailedPrecondition, "bug: client address not found in request context")
-	}
-	server.SetAddr(utils.ReplaceLocalhost(server.GetAddr(), clientAddr.String()))
-
-	keepAlive, err := auth.UpsertKubeServiceV2(ctx, server)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return keepAlive, nil
-}
-
-// DeleteKubeService removes a kubernetes service.
-func (g *GRPCServer) DeleteKubeService(ctx context.Context, req *proto.DeleteKubeServiceRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	err = auth.DeleteKubeService(ctx, req.GetName())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return &empty.Empty{}, nil
-}
-
-// DeleteAllKubeServices removes all kubernetes services.
-func (g *GRPCServer) DeleteAllKubeServices(ctx context.Context, req *proto.DeleteAllKubeServicesRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	err = auth.DeleteAllKubeServices(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	return &empty.Empty{}, nil
 }
 

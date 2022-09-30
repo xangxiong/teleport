@@ -168,13 +168,6 @@ type Presence interface {
 	// DeleteAllRemoteClusters deletes all remote clusters
 	DeleteAllRemoteClusters() error
 
-	// UpsertKubeService registers kubernetes service presence.
-	// DELETE in 11.0. Deprecated, use UpsertKubeServiceV2
-	UpsertKubeService(context.Context, types.Server) error
-
-	// UpsertKubeServiceV2 registers kubernetes service presence
-	UpsertKubeServiceV2(context.Context, types.Server) (*types.KeepAlive, error)
-
 	// GetAppServers gets all application servers.
 	//
 	// DELETE IN 9.0. Deprecated, use GetApplicationServers.
@@ -212,15 +205,6 @@ type Presence interface {
 
 	// KeepAliveServer updates TTL of the server resource in the backend.
 	KeepAliveServer(ctx context.Context, h types.KeepAlive) error
-
-	// GetKubeServices returns a list of registered kubernetes services.
-	GetKubeServices(context.Context) ([]types.Server, error)
-
-	// DeleteKubeService deletes a named kubernetes service.
-	DeleteKubeService(ctx context.Context, name string) error
-
-	// DeleteAllKubeServices deletes all registered kubernetes services.
-	DeleteAllKubeServices(context.Context) error
 
 	// ListResoures returns a paginated list of resources.
 	ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error)

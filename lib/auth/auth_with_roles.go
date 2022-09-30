@@ -1419,29 +1419,29 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 		}
 		resources = servers.AsResources()
 
-	case types.KindKubernetesCluster:
-		kubeservices, err := a.GetKubeServices(ctx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
+	// case types.KindKubernetesCluster:
+	// 	kubeservices, err := a.GetKubeServices(ctx)
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
 
-		// Extract kube clusters into its own list.
-		var clusters []types.KubeCluster
-		for _, svc := range kubeservices {
-			for _, legacyCluster := range svc.GetKubernetesClusters() {
-				cluster, err := types.NewKubernetesClusterV3FromLegacyCluster(svc.GetNamespace(), legacyCluster)
-				if err != nil {
-					return nil, trace.Wrap(err)
-				}
-				clusters = append(clusters, cluster)
-			}
-		}
+	// 	// Extract kube clusters into its own list.
+	// 	var clusters []types.KubeCluster
+	// 	for _, svc := range kubeservices {
+	// 		for _, legacyCluster := range svc.GetKubernetesClusters() {
+	// 			cluster, err := types.NewKubernetesClusterV3FromLegacyCluster(svc.GetNamespace(), legacyCluster)
+	// 			if err != nil {
+	// 				return nil, trace.Wrap(err)
+	// 			}
+	// 			clusters = append(clusters, cluster)
+	// 		}
+	// 	}
 
-		sortedClusters := types.KubeClusters(clusters)
-		if err := sortedClusters.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = sortedClusters.AsResources()
+	// 	sortedClusters := types.KubeClusters(clusters)
+	// 	if err := sortedClusters.SortByCustom(req.SortBy); err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// 	resources = sortedClusters.AsResources()
 
 	// case types.KindWindowsDesktop:
 	// 	windowsdesktops, err := a.GetWindowsDesktops(ctx, req.GetWindowsDesktopFilter())
@@ -4115,88 +4115,6 @@ func (a *ServerWithRoles) GenerateAppToken(ctx context.Context, req types.Genera
 
 func (a *ServerWithRoles) Close() error {
 	return a.authServer.Close()
-}
-
-// UpsertKubeService creates or updates a Server representing a teleport
-// kubernetes service.
-func (a *ServerWithRoles) UpsertKubeService(ctx context.Context, s types.Server) error {
-	if err := a.action(apidefaults.Namespace, types.KindKubeService, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-
-	ap, err := a.authServer.GetAuthPreference(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	_, isService := a.context.Identity.(BuiltinRole)
-	isMFAVerified := a.context.Identity.GetIdentity().MFAVerified != ""
-	mfaParams := services.AccessMFAParams{
-		// MFA requirement only applies to users.
-		//
-		// Builtin services (like proxy_service and kube_service) are not gated
-		// on MFA and only need to pass the RBAC action check above.
-		Verified:       isService || isMFAVerified,
-		AlwaysRequired: ap.GetRequireSessionMFA(),
-	}
-
-	for _, kube := range s.GetKubernetesClusters() {
-		k8sV3, err := types.NewKubernetesClusterV3FromLegacyCluster(s.GetNamespace(), kube)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if err := a.context.Checker.CheckAccess(k8sV3, mfaParams); err != nil {
-			return utils.OpaqueAccessDenied(err)
-		}
-	}
-	return a.authServer.UpsertKubeService(ctx, s)
-}
-
-// UpsertKubeServiceV2 creates or updates a Server representing a teleport
-// kubernetes service.
-func (a *ServerWithRoles) UpsertKubeServiceV2(ctx context.Context, s types.Server) (*types.KeepAlive, error) {
-	if err := a.action(apidefaults.Namespace, types.KindKubeService, types.VerbCreate, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.UpsertKubeServiceV2(ctx, s)
-}
-
-// GetKubeServices returns all Servers representing teleport kubernetes
-// services.
-func (a *ServerWithRoles) GetKubeServices(ctx context.Context) ([]types.Server, error) {
-	if err := a.action(apidefaults.Namespace, types.KindKubeService, types.VerbList, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers, err := a.authServer.GetKubeServices(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	checker := newKubeChecker(a.context)
-
-	for _, server := range servers {
-		err = checker.CanAccess(server)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	return servers, nil
-}
-
-// DeleteKubeService deletes a named kubernetes service.
-func (a *ServerWithRoles) DeleteKubeService(ctx context.Context, name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindKubeService, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteKubeService(ctx, name)
-}
-
-// DeleteAllKubeService deletes all registered kubernetes services.
-func (a *ServerWithRoles) DeleteAllKubeServices(ctx context.Context) error {
-	if err := a.action(apidefaults.Namespace, types.KindKubeService, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAllKubeServices(ctx)
 }
 
 // GetNetworkRestrictions retrieves all the network restrictions (allow/deny lists).

@@ -994,65 +994,6 @@ func (s *PresenceService) DeleteSemaphore(ctx context.Context, filter types.Sema
 	return trace.Wrap(s.Delete(ctx, backend.Key(semaphoresPrefix, filter.SemaphoreKind, filter.SemaphoreName)))
 }
 
-// UpsertKubeService registers kubernetes service presence.
-// DELETE IN 11.0. Deprecated, use UpsertKubeServiceV2.
-func (s *PresenceService) UpsertKubeService(ctx context.Context, server types.Server) error {
-	// TODO(awly): verify that no other KubeService has the same kubernetes
-	// cluster names with different labels to avoid RBAC check confusion.
-	return s.upsertServer(ctx, kubeServicesPrefix, server)
-}
-
-// UpsertKubeServiceV2 registers kubernetes service presence.
-func (s *PresenceService) UpsertKubeServiceV2(ctx context.Context, server types.Server) (*types.KeepAlive, error) {
-	if err := server.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	value, err := services.MarshalServer(server)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	lease, err := s.Put(ctx, backend.Item{
-		Key: backend.Key(kubeServicesPrefix,
-			server.GetName()),
-		Value:   value,
-		Expires: server.Expiry(),
-		ID:      server.GetResourceID(),
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if server.Expiry().IsZero() {
-		return &types.KeepAlive{}, nil
-	}
-	return &types.KeepAlive{
-		Type:    types.KeepAlive_KUBERNETES,
-		LeaseID: lease.ID,
-		Name:    server.GetName(),
-	}, nil
-}
-
-// GetKubeServices returns a list of registered kubernetes services.
-func (s *PresenceService) GetKubeServices(ctx context.Context) ([]types.Server, error) {
-	return s.getServers(ctx, types.KindKubeService, kubeServicesPrefix)
-}
-
-// DeleteKubeService deletes a named kubernetes service.
-func (s *PresenceService) DeleteKubeService(ctx context.Context, name string) error {
-	if name == "" {
-		return trace.BadParameter("no name specified for kubernetes service deletion")
-	}
-	return trace.Wrap(s.Delete(ctx, backend.Key(kubeServicesPrefix, name)))
-}
-
-// DeleteAllKubeServices deletes all registered kubernetes services.
-func (s *PresenceService) DeleteAllKubeServices(ctx context.Context) error {
-	return trace.Wrap(s.DeleteRange(
-		ctx,
-		backend.Key(kubeServicesPrefix),
-		backend.RangeEnd(backend.Key(kubeServicesPrefix)),
-	))
-}
-
 // GetDatabaseServers returns all registered database proxy servers.
 func (s *PresenceService) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {
 	if namespace == "" {
@@ -1517,30 +1458,6 @@ func (s *PresenceService) listResourcesWithSort(ctx context.Context, req proto.L
 		}
 		resources = servers.AsResources()
 
-	case types.KindKubernetesCluster:
-		kubeservices, err := s.GetKubeServices(ctx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		// Extract kube clusters into its own list.
-		var clusters []types.KubeCluster
-		for _, svc := range kubeservices {
-			for _, legacyCluster := range svc.GetKubernetesClusters() {
-				cluster, err := types.NewKubernetesClusterV3FromLegacyCluster(svc.GetNamespace(), legacyCluster)
-				if err != nil {
-					return nil, trace.Wrap(err)
-				}
-				clusters = append(clusters, cluster)
-			}
-		}
-
-		sortedClusters := types.KubeClusters(clusters)
-		if err := sortedClusters.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = sortedClusters.AsResources()
-
 	default:
 		return nil, trace.NotImplemented("resource type %q is not supported for ListResourcesWithSort", req.ResourceType)
 	}
@@ -1655,6 +1572,5 @@ const (
 	proxiesPrefix           = "proxies"
 	semaphoresPrefix        = "semaphores"
 	kubeServicesPrefix      = "kubeServices"
-	// windowsDesktopServicesPrefix = "windowsDesktopServices"
-	loginTimePrefix = "hostuser_interaction_time"
+	loginTimePrefix         = "hostuser_interaction_time"
 )

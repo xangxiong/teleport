@@ -2801,37 +2801,6 @@ func (a *Server) isMFARequired(ctx context.Context, checker services.AccessCheck
 			}
 		}
 
-	case *proto.IsMFARequiredRequest_KubernetesCluster:
-		notFoundErr = trace.NotFound("kubernetes cluster %q not found", t.KubernetesCluster)
-		if t.KubernetesCluster == "" {
-			return nil, trace.BadParameter("missing KubernetesCluster field in a kubernetes-only UserCertsRequest")
-		}
-		// Find the target cluster and check whether MFA is required.
-		svcs, err := a.GetKubeServices(ctx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		var cluster *types.KubernetesCluster
-		var server types.Server
-	outer:
-		for _, svc := range svcs {
-			for _, c := range svc.GetKubernetesClusters() {
-				if c.Name == t.KubernetesCluster {
-					server = svc
-					cluster = c
-					break outer
-				}
-			}
-		}
-		if cluster == nil || server == nil {
-			return nil, trace.Wrap(notFoundErr)
-		}
-		k8sV3, err := types.NewKubernetesClusterV3FromLegacyCluster(server.GetNamespace(), cluster)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		noMFAAccessErr = checker.CheckAccess(k8sV3, services.AccessMFAParams{})
-
 	case *proto.IsMFARequiredRequest_Database:
 		notFoundErr = trace.NotFound("database service %q not found", t.Database.ServiceName)
 		if t.Database.ServiceName == "" {

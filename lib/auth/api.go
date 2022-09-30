@@ -41,14 +41,6 @@ type Announcer interface {
 	// for the specified duration with second resolution if it's >= 1 second
 	UpsertAuthServer(s types.Server) error
 
-	// UpsertKubeService registers kubernetes presence, permanently if ttl is 0
-	// or for the specified duration with second resolution if it's >= 1 second
-	// DELETE IN 11.0. Deprecated, use UpsertKubeServiceV2
-	UpsertKubeService(context.Context, types.Server) error
-
-	// UpsertKubeServiceV2 registers a kubernetes kubernetes service
-	UpsertKubeServiceV2(context.Context, types.Server) (*types.KeepAlive, error)
-
 	// NewKeepAliver returns a new instance of keep aliver
 	NewKeepAliver(ctx context.Context) (types.KeepAliver, error)
 
@@ -245,9 +237,6 @@ type ReadProxyAccessPoint interface {
 	// GetRemoteCluster returns a remote cluster by name
 	GetRemoteCluster(clusterName string) (types.RemoteCluster, error)
 
-	// GetKubeServices returns a list of kubernetes services registered in the cluster
-	GetKubeServices(context.Context) ([]types.Server, error)
-
 	// GetDatabaseServers returns all registered database proxy servers.
 	GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error)
 
@@ -355,9 +344,6 @@ type ReadRemoteProxyAccessPoint interface {
 	// GetRemoteCluster returns a remote cluster by name
 	GetRemoteCluster(clusterName string) (types.RemoteCluster, error)
 
-	// GetKubeServices returns a list of kubernetes services registered in the cluster
-	GetKubeServices(context.Context) ([]types.Server, error)
-
 	// GetDatabaseServers returns all registered database proxy servers.
 	GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error)
 }
@@ -418,9 +404,6 @@ type ReadKubernetesAccessPoint interface {
 
 	// GetNamespace returns namespace by name
 	GetNamespace(name string) (*types.Namespace, error)
-
-	// GetKubeServices returns a list of kubernetes services registered in the cluster
-	GetKubeServices(context.Context) ([]types.Server, error)
 }
 
 // KubernetesAccessPoint is an API interface implemented by a certificate authority (CA) to be
@@ -746,9 +729,6 @@ type Cache interface {
 
 	// GetRemoteCluster returns a remote cluster by name
 	GetRemoteCluster(clusterName string) (types.RemoteCluster, error)
-
-	// GetKubeServices returns a list of kubernetes services registered in the cluster
-	GetKubeServices(context.Context) ([]types.Server, error)
 
 	// GetDatabaseServers returns all registered database proxy servers.
 	GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error)
