@@ -26,7 +26,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/gravitational/teleport/api/client/proto"
-	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/utils"
@@ -573,52 +572,6 @@ type RequestValidatorGetter interface {
 	GetClusterName(opts ...MarshalOption) (types.ClusterName, error)
 }
 
-// appendRoleMatchers constructs all role matchers for a given
-// AccessRequestConditions instance and appends them to the
-// supplied matcher slice.
-func appendRoleMatchers(matchers []parse.Matcher, roles []string, cms []types.ClaimMapping, traits map[string][]string) ([]parse.Matcher, error) {
-	// build matchers for the role list
-	for _, r := range roles {
-		m, err := parse.NewMatcher(r)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		matchers = append(matchers, m)
-	}
-
-	// build matchers for all role mappings
-	ms, err := TraitsToRoleMatchers(GetTraitMappings(cms), traits)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return append(matchers, ms...), nil
-}
-
-// insertAnnotations constructs all annotations for a given
-// AccessRequestConditions instance and adds them to the
-// supplied annotations mapping.
-func insertAnnotations(annotations map[string][]string, conditions types.AccessRequestConditions, traits map[string][]string) {
-	for key, vals := range conditions.Annotations {
-		// get any previous values at key
-		allVals := annotations[key]
-
-		// iterate through all new values and expand any
-		// variable interpolation syntax they contain.
-	ApplyTraits:
-		for _, v := range vals {
-			applied, err := ApplyValueTraits(v, traits)
-			if err != nil {
-				// skip values that failed variable expansion
-				continue ApplyTraits
-			}
-			allVals = append(allVals, applied...)
-		}
-
-		annotations[key] = allVals
-	}
-}
-
 // ReviewPermissionChecker is a helper for validating whether or not a user
 // is allowed to review specific access requests.
 type ReviewPermissionChecker struct {
@@ -743,25 +696,6 @@ Outer:
 	}
 
 	return len(needsAllow) == 0, nil
-}
-
-func (c *ReviewPermissionChecker) push(role types.Role) error {
-
-	allow, deny := role.GetAccessReviewConditions(types.Allow), role.GetAccessReviewConditions(types.Deny)
-
-	var err error
-
-	c.Roles.DenyReview[deny.Where], err = appendRoleMatchers(c.Roles.DenyReview[deny.Where], deny.Roles, deny.ClaimsToRoles, c.User.GetTraits())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	c.Roles.AllowReview[allow.Where], err = appendRoleMatchers(c.Roles.AllowReview[allow.Where], allow.Roles, allow.ClaimsToRoles, c.User.GetTraits())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
 }
 
 // RequestValidator a helper for validating access requests.
@@ -905,62 +839,6 @@ func (m *RequestValidator) GetRequestableRoles() ([]string, error) {
 		}
 	}
 	return expanded, nil
-}
-
-// push compiles a role's configuration into the request validator.
-// All of the requesting user's statically assigned roles must be pushed
-// before validation begins.
-func (m *RequestValidator) push(role types.Role) error {
-	var err error
-
-	m.requireReason = m.requireReason || role.GetOptions().RequestAccess.RequireReason()
-
-	allow, deny := role.GetAccessRequestConditions(types.Allow), role.GetAccessRequestConditions(types.Deny)
-
-	m.Roles.DenyRequest, err = appendRoleMatchers(m.Roles.DenyRequest, deny.Roles, deny.ClaimsToRoles, m.user.GetTraits())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// record what will be the starting index of the allow
-	// matchers for this role, if it applies any.
-	astart := len(m.Roles.AllowRequest)
-
-	m.Roles.AllowRequest, err = appendRoleMatchers(m.Roles.AllowRequest, allow.Roles, allow.ClaimsToRoles, m.user.GetTraits())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	m.Roles.AllowSearch = apiutils.Deduplicate(append(m.Roles.AllowSearch, allow.SearchAsRoles...))
-	m.Roles.DenySearch = apiutils.Deduplicate(append(m.Roles.DenySearch, deny.SearchAsRoles...))
-
-	if m.opts.expandVars {
-		// if this role added additional allow matchers, then we need to record the relationship
-		// between its matchers and its thresholds.  this information is used later to calculate
-		// the rtm and threshold list.
-		newMatchers := m.Roles.AllowRequest[astart:]
-		for _, searchAsRoleName := range allow.SearchAsRoles {
-			newMatchers = append(newMatchers, literalMatcher{searchAsRoleName})
-		}
-		if len(newMatchers) > 0 {
-			m.ThresholdMatchers = append(m.ThresholdMatchers, struct {
-				Matchers   []parse.Matcher
-				Thresholds []types.AccessReviewThreshold
-			}{
-				Matchers:   newMatchers,
-				Thresholds: allow.Thresholds,
-			})
-		}
-
-		// validation process for incoming access requests requires
-		// generating system annotations to be attached to the request
-		// before it is inserted into the backend.
-		insertAnnotations(m.Annotations.Deny, deny, m.user.GetTraits())
-		insertAnnotations(m.Annotations.Allow, allow, m.user.GetTraits())
-
-		m.SuggestedReviewers = append(m.SuggestedReviewers, allow.SuggestedReviewers...)
-	}
-	return nil
 }
 
 // setRolesForResourceRequest determines if the given access request is
@@ -1389,43 +1267,14 @@ func anyNameMatcher(names []string) string {
 // so you have to list the parent kind. Use MapListResourcesResultToLeafResource to map back
 // to the given kind.
 func MapResourceKindToListResourcesType(kind string) string {
-	switch kind {
-	case types.KindApp:
-		return types.KindAppServer
-	case types.KindDatabase:
-		return types.KindDatabaseServer
-	case types.KindKubernetesCluster:
-		return types.KindKubeService
-	default:
-		return kind
-	}
+	return kind
 }
 
 // MapListResourcesResultToLeafResource is the inverse of
 // MapResourceKindToListResourcesType, after the ListResources call it maps the
 // result back to the kind we really want. `hint` should be the name of the
-// desired resource kind, used to disambiguate normal SSH nodes and kubernetes
+// desired resource kind, used to disambiguate normal SSH nodes
 // services which are both returned as `types.Server`.
 func MapListResourcesResultToLeafResource(resource types.ResourceWithLabels, hint string) (types.ResourcesWithLabels, error) {
-	switch r := resource.(type) {
-	case types.AppServer:
-		return types.ResourcesWithLabels{r.GetApp()}, nil
-	case types.DatabaseServer:
-		return types.ResourcesWithLabels{r.GetDatabase()}, nil
-	case types.Server:
-		if hint == types.KindKubernetesCluster {
-			kubeClusters := r.GetKubernetesClusters()
-			resources := make(types.ResourcesWithLabels, len(kubeClusters))
-			for i := range kubeClusters {
-				resource, err := types.NewKubernetesClusterV3FromLegacyCluster(apidefaults.Namespace, kubeClusters[i])
-				if err != nil {
-					return nil, trace.Wrap(err)
-				}
-				resources[i] = resource
-			}
-			return resources, nil
-		}
-	default:
-	}
 	return types.ResourcesWithLabels{resource}, nil
 }
