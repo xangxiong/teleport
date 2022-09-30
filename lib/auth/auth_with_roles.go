@@ -3973,13 +3973,6 @@ func (a *ServerWithRoles) checkAccessToNode(node types.Server) error {
 		services.AccessMFAParams{Verified: true})
 }
 
-func (a *ServerWithRoles) checkAccessToDatabase(database types.Database) error {
-	return a.context.Checker.CheckAccess(database,
-		// MFA is not required for operations on database resources but
-		// will be enforced at the connection time.
-		services.AccessMFAParams{Verified: true})
-}
-
 // GetConnectionDiagnostic returns the connection diagnostic with the matching name
 func (a *ServerWithRoles) GetConnectionDiagnostic(ctx context.Context, name string) (types.ConnectionDiagnostic, error) {
 	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbRead); err != nil {
