@@ -890,37 +890,37 @@ func CreateRole(ctx context.Context, clt clt, name string, spec types.RoleSpecV5
 	return role, nil
 }
 
-// CreateUserRoleAndRequestable creates two roles for a user, one base role with allowed login
-// matching username, and another role with a login matching rolename that can be requested.
-func CreateUserRoleAndRequestable(clt clt, username string, rolename string) (types.User, error) {
-	ctx := context.TODO()
-	user, err := types.NewUser(username)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	baseRole := services.RoleForUser(user)
-	baseRole.SetAccessRequestConditions(types.Allow, types.AccessRequestConditions{
-		Roles: []string{rolename},
-	})
-	baseRole.SetLogins(types.Allow, nil)
-	err = clt.UpsertRole(ctx, baseRole)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	user.AddRole(baseRole.GetName())
-	err = clt.UpsertUser(user)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	requestableRole := services.RoleForUser(user)
-	requestableRole.SetName(rolename)
-	requestableRole.SetLogins(types.Allow, []string{rolename})
-	err = clt.UpsertRole(ctx, requestableRole)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return user, nil
-}
+// // CreateUserRoleAndRequestable creates two roles for a user, one base role with allowed login
+// // matching username, and another role with a login matching rolename that can be requested.
+// func CreateUserRoleAndRequestable(clt clt, username string, rolename string) (types.User, error) {
+// 	ctx := context.TODO()
+// 	user, err := types.NewUser(username)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	baseRole := services.RoleForUser(user)
+// 	baseRole.SetAccessRequestConditions(types.Allow, types.AccessRequestConditions{
+// 		Roles: []string{rolename},
+// 	})
+// 	baseRole.SetLogins(types.Allow, nil)
+// 	err = clt.UpsertRole(ctx, baseRole)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	user.AddRole(baseRole.GetName())
+// 	err = clt.UpsertUser(user)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	requestableRole := services.RoleForUser(user)
+// 	requestableRole.SetName(rolename)
+// 	requestableRole.SetLogins(types.Allow, []string{rolename})
+// 	err = clt.UpsertRole(ctx, requestableRole)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return user, nil
+// }
 
 // CreateAccessPluginUser creates a user with list/read abilites for access requests, and list/read/update
 // abilities for access plugin data.
