@@ -1402,11 +1402,6 @@ type WebService interface {
 	ExtendWebSession(ctx context.Context, req WebSessionReq) (types.WebSession, error)
 	// CreateWebSession creates a new web session for a user
 	CreateWebSession(ctx context.Context, user string) (types.WebSession, error)
-
-	// AppSession defines application session features.
-	services.AppSession
-	// SnowflakeSession defines Snowflake session features.
-	services.SnowflakeSession
 }
 
 // IdentityService manages identities and users
@@ -1638,14 +1633,6 @@ type ClientI interface {
 
 	// Ping gets basic info about the auth server.
 	Ping(ctx context.Context) (proto.PingResponse, error)
-
-	// CreateAppSession creates an application web session. Application web
-	// sessions represent a browser session the client holds.
-	CreateAppSession(context.Context, types.CreateAppSessionRequest) (types.WebSession, error)
-
-	// CreateSnowflakeSession creates a Snowflake web session. Snowflake web
-	// sessions represent Database Access Snowflake session the client holds.
-	CreateSnowflakeSession(context.Context, types.CreateSnowflakeSessionRequest) (types.WebSession, error)
 
 	// GetWebSession queries the existing web session described with req.
 	// Implements ReadAccessPoint.

@@ -24,7 +24,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/types"
 	wantypes "github.com/gravitational/teleport/api/types/webauthn"
 	"github.com/gravitational/teleport/lib/defaults"
@@ -260,41 +259,6 @@ type Identity interface {
 
 	types.WebSessionsGetter
 	types.WebTokensGetter
-
-	// AppSession defines application session features.
-	AppSession
-	// SnowflakeSession defines Snowflake session features.
-	SnowflakeSession
-}
-
-// AppSession defines application session features.
-type AppSession interface {
-	// GetAppSession gets an application web session.
-	GetAppSession(context.Context, types.GetAppSessionRequest) (types.WebSession, error)
-	// GetAppSessions gets all application web sessions.
-	GetAppSessions(context.Context) ([]types.WebSession, error)
-	// UpsertAppSession upserts an application web session.
-	UpsertAppSession(context.Context, types.WebSession) error
-	// DeleteAppSession removes an application web session.
-	DeleteAppSession(context.Context, types.DeleteAppSessionRequest) error
-	// DeleteAllAppSessions removes all application web sessions.
-	DeleteAllAppSessions(context.Context) error
-	// DeleteUserAppSessions deletes all user’s application sessions.
-	DeleteUserAppSessions(ctx context.Context, req *proto.DeleteUserAppSessionsRequest) error
-}
-
-// SnowflakeSession defines Snowflake session features.
-type SnowflakeSession interface {
-	// GetSnowflakeSession gets a Snowflake web session.
-	GetSnowflakeSession(context.Context, types.GetSnowflakeSessionRequest) (types.WebSession, error)
-	// GetSnowflakeSessions gets all Snowflake web sessions.
-	GetSnowflakeSessions(context.Context) ([]types.WebSession, error)
-	// UpsertSnowflakeSession upserts a Snowflake web session.
-	UpsertSnowflakeSession(context.Context, types.WebSession) error
-	// DeleteSnowflakeSession removes a Snowflake web session.
-	DeleteSnowflakeSession(context.Context, types.DeleteSnowflakeSessionRequest) error
-	// DeleteAllSnowflakeSessions removes all Snowflake web sessions.
-	DeleteAllSnowflakeSessions(context.Context) error
 }
 
 // VerifyPassword makes sure password satisfies our requirements (relaxed),

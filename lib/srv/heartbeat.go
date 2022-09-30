@@ -433,32 +433,6 @@ func (h *Heartbeat) announce() error {
 			h.keepAliver = keepAliver
 			h.setState(HeartbeatStateKeepAliveWait)
 			return nil
-		case HeartbeatModeApp:
-			var keepAlive *types.KeepAlive
-			var err error
-			switch current := h.current.(type) {
-			case types.Server:
-				keepAlive, err = h.Announcer.UpsertAppServer(h.cancelCtx, current)
-			case types.AppServer:
-				keepAlive, err = h.Announcer.UpsertApplicationServer(h.cancelCtx, current)
-			default:
-				return trace.BadParameter("expected types.AppServer, got %#v", h.current)
-			}
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			h.notifySend()
-			keepAliver, err := h.Announcer.NewKeepAliver(h.cancelCtx)
-			if err != nil {
-				h.reset(HeartbeatStateInit)
-				return trace.Wrap(err)
-			}
-			h.nextAnnounce = h.Clock.Now().UTC().Add(h.AnnouncePeriod)
-			h.nextKeepAlive = h.Clock.Now().UTC().Add(h.KeepAlivePeriod)
-			h.keepAlive = keepAlive
-			h.keepAliver = keepAliver
-			h.setState(HeartbeatStateKeepAliveWait)
-			return nil
 		default:
 			return trace.BadParameter("unknown mode %q", h.Mode)
 		}

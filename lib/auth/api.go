@@ -43,14 +43,6 @@ type Announcer interface {
 
 	// NewKeepAliver returns a new instance of keep aliver
 	NewKeepAliver(ctx context.Context) (types.KeepAliver, error)
-
-	// UpsertAppServer adds an application server.
-	//
-	// DELETE IN 9.0. Deprecated, use UpsertApplicationServer.
-	UpsertAppServer(context.Context, types.Server) (*types.KeepAlive, error)
-
-	// UpsertApplicationServer registers an application server.
-	UpsertApplicationServer(context.Context, types.AppServer) (*types.KeepAlive, error)
 }
 
 // accessPoint is an API interface implemented by a certificate authority (CA)
@@ -202,25 +194,8 @@ type ReadProxyAccessPoint interface {
 	// GetTunnelConnections returns tunnel connections for a given cluster
 	GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error)
 
-	// GetApplicationServers returns all registered application servers.
-	GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error)
-
-	// GetAppServers gets all application servers.
-	//
-	// DELETE IN 9.0. Deprecated, use GetApplicationServers.
-	GetAppServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.Server, error)
-
-	// GetApps returns all application resources.
-	GetApps(ctx context.Context) ([]types.Application, error)
-
-	// GetApp returns the specified application resource.
-	GetApp(ctx context.Context, name string) (types.Application, error)
-
 	// GetNetworkRestrictions returns networking restrictions for restricted shell to enforce
 	GetNetworkRestrictions(ctx context.Context) (types.NetworkRestrictions, error)
-
-	// GetAppSession gets an application web session.
-	GetAppSession(context.Context, types.GetAppSessionRequest) (types.WebSession, error)
 
 	// GetWebSession gets a web session for the given request
 	GetWebSession(context.Context, types.GetWebSessionRequest) (types.WebSession, error)
@@ -317,14 +292,6 @@ type ReadRemoteProxyAccessPoint interface {
 
 	// GetTunnelConnections returns tunnel connections for a given cluster
 	GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error)
-
-	// GetAppServers gets all application servers.
-	//
-	// DELETE IN 9.0. Deprecated, use GetApplicationServers.
-	GetAppServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.Server, error)
-
-	// GetApplicationServers returns all registered application servers.
-	GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error)
 
 	// GetRemoteClusters returns a list of remote clusters
 	GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error)

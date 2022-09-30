@@ -281,6 +281,28 @@ func (s *PresenceService) KeepAliveNode(ctx context.Context, h types.KeepAlive) 
 	return trace.Wrap(err)
 }
 
+// KeepAliveServer updates expiry time of a server resource.
+func (s *PresenceService) KeepAliveServer(ctx context.Context, h types.KeepAlive) error {
+	if err := h.CheckAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
+	}
+
+	// Update the prefix off the type information in the keep alive.
+	var key []byte
+	switch h.GetType() {
+	case constants.KeepAliveNode:
+		key = backend.Key(nodesPrefix, h.Namespace, h.Name)
+	default:
+		return trace.BadParameter("unknown keep-alive type %q", h.GetType())
+	}
+
+	err := s.KeepAlive(ctx, backend.Lease{
+		ID:  h.LeaseID,
+		Key: key,
+	}, h.Expires)
+	return trace.Wrap(err)
+}
+
 // GetAuthServers returns a list of registered servers
 func (s *PresenceService) GetAuthServers() ([]types.Server, error) {
 	return s.getServers(context.TODO(), types.KindAuthServer, authServersPrefix)
@@ -994,226 +1016,6 @@ func (s *PresenceService) DeleteSemaphore(ctx context.Context, filter types.Sema
 	return trace.Wrap(s.Delete(ctx, backend.Key(semaphoresPrefix, filter.SemaphoreKind, filter.SemaphoreName)))
 }
 
-// GetApplicationServers returns all registered application servers.
-func (s *PresenceService) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	if namespace == "" {
-		return nil, trace.BadParameter("missing namespace")
-	}
-	servers, err := s.getApplicationServers(ctx, namespace)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	legacyServers, err := s.getApplicationServersLegacy(ctx, namespace)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return append(servers, legacyServers...), nil
-}
-
-func (s *PresenceService) getApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	startKey := backend.Key(appServersPrefix, namespace)
-	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	servers := make([]types.AppServer, len(result.Items))
-	for i, item := range result.Items {
-		server, err := services.UnmarshalAppServer(
-			item.Value,
-			services.WithResourceID(item.ID),
-			services.WithExpires(item.Expires))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		servers[i] = server
-	}
-	return servers, nil
-}
-
-// getApplicationServersLegacy fetches legacy application servers that are
-// represented by types.Server and adapts them to the types.AppServer type.
-//
-// DELETE IN 9.0.
-func (s *PresenceService) getApplicationServersLegacy(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	legacyServers, err := s.GetAppServers(ctx, namespace)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var servers []types.AppServer
-	for _, legacyServer := range legacyServers {
-		appServers, err := types.NewAppServersV3FromServer(legacyServer)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		servers = append(servers, appServers...)
-	}
-	return servers, nil
-}
-
-// UpsertApplicationServer registers an application server.
-func (s *PresenceService) UpsertApplicationServer(ctx context.Context, server types.AppServer) (*types.KeepAlive, error) {
-	if err := server.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	value, err := services.MarshalAppServer(server)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Since an app server represents a single proxied application, there may
-	// be multiple database servers on a single host, so they are stored under
-	// the following path in the backend:
-	//   /appServers/<namespace>/<host-uuid>/<name>
-	lease, err := s.Put(ctx, backend.Item{
-		Key: backend.Key(appServersPrefix,
-			server.GetNamespace(),
-			server.GetHostID(),
-			server.GetName()),
-		Value:   value,
-		Expires: server.Expiry(),
-		ID:      server.GetResourceID(),
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if server.Expiry().IsZero() {
-		return &types.KeepAlive{}, nil
-	}
-	return &types.KeepAlive{
-		Type:      types.KeepAlive_APP,
-		LeaseID:   lease.ID,
-		Name:      server.GetName(),
-		Namespace: server.GetNamespace(),
-		HostID:    server.GetHostID(),
-		Expires:   server.Expiry(),
-	}, nil
-}
-
-// DeleteApplicationServer removes specified application server.
-func (s *PresenceService) DeleteApplicationServer(ctx context.Context, namespace, hostID, name string) error {
-	key := backend.Key(appServersPrefix, namespace, hostID, name)
-	return s.Delete(ctx, key)
-}
-
-// DeleteAllApplicationServers removes all registered application servers.
-func (s *PresenceService) DeleteAllApplicationServers(ctx context.Context, namespace string) error {
-	startKey := backend.Key(appServersPrefix, namespace)
-	return s.DeleteRange(ctx, startKey, backend.RangeEnd(startKey))
-}
-
-// GetAppServers gets all application servers.
-//
-// DELETE IN 9.0. Deprecated, use GetApplicationServers.
-func (s *PresenceService) GetAppServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.Server, error) {
-	if namespace == "" {
-		return nil, trace.BadParameter("missing namespace")
-	}
-
-	// Get all items in the bucket.
-	startKey := backend.Key(appsPrefix, serversPrefix, namespace)
-	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Marshal values into a []services.Server slice.
-	servers := make([]types.Server, len(result.Items))
-	for i, item := range result.Items {
-		server, err := services.UnmarshalServer(
-			item.Value,
-			types.KindAppServer,
-			services.AddOptions(opts,
-				services.WithResourceID(item.ID),
-				services.WithExpires(item.Expires))...)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		servers[i] = server
-	}
-
-	return servers, nil
-}
-
-// UpsertAppServer adds an application server.
-//
-// DELETE IN 9.0. Deprecated, use UpsertApplicationServer.
-func (s *PresenceService) UpsertAppServer(ctx context.Context, server types.Server) (*types.KeepAlive, error) {
-	if err := server.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	value, err := services.MarshalServer(server)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	lease, err := s.Put(ctx, backend.Item{
-		Key:     backend.Key(appsPrefix, serversPrefix, server.GetNamespace(), server.GetName()),
-		Value:   value,
-		Expires: server.Expiry(),
-		ID:      server.GetResourceID(),
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if server.Expiry().IsZero() {
-		return &types.KeepAlive{}, nil
-	}
-	return &types.KeepAlive{
-		Type:    types.KeepAlive_APP,
-		LeaseID: lease.ID,
-		Name:    server.GetName(),
-	}, nil
-}
-
-// DeleteAppServer removes an application server.
-//
-// DELETE IN 9.0. Deprecated, use DeleteApplicationServer.
-func (s *PresenceService) DeleteAppServer(ctx context.Context, namespace string, name string) error {
-	key := backend.Key(appsPrefix, serversPrefix, namespace, name)
-	return s.Delete(ctx, key)
-}
-
-// DeleteAllAppServers removes all application servers.
-//
-// DELETE IN 9.0. Deprecated, use DeleteAllApplicationServers.
-func (s *PresenceService) DeleteAllAppServers(ctx context.Context, namespace string) error {
-	startKey := backend.Key(appsPrefix, serversPrefix, namespace)
-	return s.DeleteRange(ctx, startKey, backend.RangeEnd(startKey))
-}
-
-// KeepAliveServer updates expiry time of a server resource.
-func (s *PresenceService) KeepAliveServer(ctx context.Context, h types.KeepAlive) error {
-	if err := h.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// Update the prefix off the type information in the keep alive.
-	var key []byte
-	switch h.GetType() {
-	case constants.KeepAliveNode:
-		key = backend.Key(nodesPrefix, h.Namespace, h.Name)
-	case constants.KeepAliveApp:
-		if h.HostID != "" {
-			key = backend.Key(appServersPrefix, h.Namespace, h.HostID, h.Name)
-		} else { // DELETE IN 9.0. Legacy app server is heartbeating back.
-			key = backend.Key(appsPrefix, serversPrefix, h.Namespace, h.Name)
-		}
-	case constants.KeepAliveDatabase:
-		key = backend.Key(dbServersPrefix, h.Namespace, h.HostID, h.Name)
-	// case constants.KeepAliveWindowsDesktopService:
-	// 	key = backend.Key(windowsDesktopServicesPrefix, h.Name)
-	case constants.KeepAliveKube:
-		key = backend.Key(kubeServicesPrefix, h.Name)
-	default:
-		return trace.BadParameter("unknown keep-alive type %q", h.GetType())
-	}
-
-	err := s.KeepAlive(ctx, backend.Lease{
-		ID:  h.LeaseID,
-		Key: key,
-	}, h.Expires)
-	return trace.Wrap(err)
-}
-
 // UpsertHostUserInteractionTime upserts a unix user's interaction time
 func (s *PresenceService) UpsertHostUserInteractionTime(ctx context.Context, name string, loginTime time.Time) error {
 	val, err := utils.FastMarshal(loginTime.UTC())
@@ -1347,31 +1149,6 @@ func (s *PresenceService) listResourcesWithSort(ctx context.Context, req proto.L
 			return nil, trace.Wrap(err)
 		}
 		resources = servers.AsResources()
-
-	case types.KindAppServer:
-		appservers, err := s.GetApplicationServers(ctx, req.Namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		servers := types.AppServers(appservers)
-		if err := servers.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = servers.AsResources()
-
-	// case types.KindDatabaseServer:
-	// 	dbservers, err := s.GetDatabaseServers(ctx, req.Namespace)
-	// 	if err != nil {
-	// 		return nil, trace.Wrap(err)
-	// 	}
-
-	// 	servers := types.DatabaseServers(dbservers)
-	// 	if err := servers.SortByCustom(req.SortBy); err != nil {
-	// 		return nil, trace.Wrap(err)
-	// 	}
-	// 	resources = servers.AsResources()
-
 	default:
 		return nil, trace.NotImplemented("resource type %q is not supported for ListResourcesWithSort", req.ResourceType)
 	}

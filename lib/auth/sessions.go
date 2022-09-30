@@ -22,115 +22,13 @@ import (
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/jwt"
-	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
-	"github.com/gravitational/teleport/lib/tlsca"
-	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/google/uuid"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 )
-
-// CreateAppSession creates and inserts a services.WebSession into the
-// backend with the identity of the caller used to generate the certificate.
-// The certificate is used for all access requests, which is where access
-// control is enforced.
-func (s *Server) CreateAppSession(ctx context.Context, req types.CreateAppSessionRequest, user types.User, identity tlsca.Identity, checker services.AccessChecker) (types.WebSession, error) {
-	if !modules.GetModules().Features().App {
-		return nil, trace.AccessDenied(
-			"this Teleport cluster is not licensed for application access, please contact the cluster administrator")
-	}
-
-	// Don't let the app session go longer than the identity expiration,
-	// which matches the parent web session TTL as well.
-	//
-	// When using web-based app access, the browser will send a cookie with
-	// sessionID which will be used to fetch services.WebSession which
-	// contains a certificate whose life matches the life of the session
-	// that will be used to establish the connection.
-	ttl := checker.AdjustSessionTTL(identity.Expires.Sub(s.clock.Now()))
-
-	// Encode user traits in the app access certificate. This will allow to
-	// pass user traits when talking to app servers in leaf clusters.
-	_, traits, err := services.ExtractFromIdentity(s, identity)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Create certificate for this session.
-	privateKey, publicKey, err := native.GenerateKeyPair()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	certs, err := s.generateUserCert(certRequest{
-		user:           user,
-		publicKey:      publicKey,
-		checker:        checker,
-		ttl:            ttl,
-		traits:         traits,
-		activeRequests: services.RequestIDs{AccessRequests: identity.ActiveRequests},
-		// Only allow this certificate to be used for applications.
-		usage: []string{teleport.UsageAppsOnly},
-		// Add in the application routing information.
-		appSessionID:   uuid.New().String(),
-		appPublicAddr:  req.PublicAddr,
-		appClusterName: req.ClusterName,
-		awsRoleARN:     req.AWSRoleARN,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Create services.WebSession for this session.
-	sessionID, err := utils.CryptoRandomHex(SessionTokenBytes)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	session, err := types.NewWebSession(sessionID, types.KindAppSession, types.WebSessionSpecV2{
-		User:    req.Username,
-		Priv:    privateKey,
-		Pub:     certs.SSH,
-		TLSCert: certs.TLS,
-		Expires: s.clock.Now().Add(ttl),
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err = s.UpsertAppSession(ctx, session); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	log.Debugf("Generated application web session for %v with TTL %v.", req.Username, ttl)
-	UserLoginCount.Inc()
-	return session, nil
-}
-
-// WaitForAppSession will block until the requested application session shows up in the
-// cache or a timeout occurs.
-func WaitForAppSession(ctx context.Context, sessionID, user string, ap ReadProxyAccessPoint) error {
-	req := waitForWebSessionReq{
-		newWatcherFn: ap.NewWatcher,
-		getSessionFn: func(ctx context.Context, sessionID string) (types.WebSession, error) {
-			return ap.GetAppSession(ctx, types.GetAppSessionRequest{SessionID: sessionID})
-		},
-	}
-	return trace.Wrap(waitForWebSession(ctx, sessionID, user, types.KindAppSession, req))
-}
-
-// WaitForSnowflakeSession waits until the requested Snowflake session shows up int the cache
-// or a timeout occurs.
-func WaitForSnowflakeSession(ctx context.Context, sessionID, user string, ap SnowflakeSessionWatcher) error {
-	req := waitForWebSessionReq{
-		newWatcherFn: ap.NewWatcher,
-		getSessionFn: func(ctx context.Context, sessionID string) (types.WebSession, error) {
-			return ap.GetSnowflakeSession(ctx, types.GetSnowflakeSessionRequest{SessionID: sessionID})
-		},
-	}
-	return trace.Wrap(waitForWebSession(ctx, sessionID, user, types.KindSnowflakeSession, req))
-}
 
 // waitForWebSessionReq is a request to wait for web session to be populated in the application cache.
 type waitForWebSessionReq struct {
@@ -267,43 +165,4 @@ func (s *Server) createSessionCert(user types.User, sessionTTL time.Duration, pu
 	}
 
 	return certs.SSH, certs.TLS, nil
-}
-
-func (s *Server) CreateSnowflakeSession(ctx context.Context, req types.CreateSnowflakeSessionRequest,
-	identity tlsca.Identity, checker services.AccessChecker,
-) (types.WebSession, error) {
-	if !modules.GetModules().Features().DB {
-		return nil, trace.AccessDenied(
-			"this Teleport cluster is not licensed for database access, please contact the cluster administrator")
-	}
-
-	// Don't let the app session go longer than the identity expiration,
-	// which matches the parent web session TTL as well.
-	//
-	// When using web-based app access, the browser will send a cookie with
-	// sessionID which will be used to fetch services.WebSession which
-	// contains a certificate whose life matches the life of the session
-	// that will be used to establish the connection.
-	ttl := checker.AdjustSessionTTL(identity.Expires.Sub(s.clock.Now()))
-
-	// Create services.WebSession for this session.
-	sessionID, err := utils.CryptoRandomHex(SessionTokenBytes)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	session, err := types.NewWebSession(sessionID, types.KindSnowflakeSession, types.WebSessionSpecV2{
-		User:               req.Username,
-		Expires:            s.clock.Now().Add(ttl),
-		BearerToken:        req.SessionToken,
-		BearerTokenExpires: s.clock.Now().Add(req.TokenTTL),
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err = s.UpsertSnowflakeSession(ctx, session); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	log.Debugf("Generated Snowflake web session for %v with TTL %v.", req.Username, ttl)
-
-	return session, nil
 }

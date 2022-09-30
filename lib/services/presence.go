@@ -168,32 +168,6 @@ type Presence interface {
 	// DeleteAllRemoteClusters deletes all remote clusters
 	DeleteAllRemoteClusters() error
 
-	// GetAppServers gets all application servers.
-	//
-	// DELETE IN 9.0. Deprecated, use GetApplicationServers.
-	GetAppServers(context.Context, string, ...MarshalOption) ([]types.Server, error)
-	// UpsertAppServer adds an application server.
-	//
-	// DELETE IN 9.0. Deprecated, use UpsertApplicationServer.
-	UpsertAppServer(context.Context, types.Server) (*types.KeepAlive, error)
-	// DeleteAppServer removes an application server.
-	//
-	// DELETE IN 9.0. Deprecated, use DeleteApplicationServer.
-	DeleteAppServer(ctx context.Context, namespace, name string) error
-	// DeleteAllAppServers removes all application servers.
-	//
-	// DELETE IN 9.0. Deprecated, use DeleteAllApplicationServers.
-	DeleteAllAppServers(context.Context, string) error
-
-	// GetApplicationServers returns all registered application servers.
-	GetApplicationServers(context.Context, string) ([]types.AppServer, error)
-	// UpsertApplicationServer registers an application server.
-	UpsertApplicationServer(context.Context, types.AppServer) (*types.KeepAlive, error)
-	// DeleteApplicationServer deletes specified application server.
-	DeleteApplicationServer(ctx context.Context, namespace, hostID, name string) error
-	// DeleteAllApplicationServers removes all registered application servers.
-	DeleteAllApplicationServers(context.Context, string) error
-
 	// KeepAliveServer updates TTL of the server resource in the backend.
 	KeepAliveServer(ctx context.Context, h types.KeepAlive) error
 

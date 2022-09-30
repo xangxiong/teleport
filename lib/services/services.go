@@ -29,9 +29,6 @@ type Services interface {
 	DynamicAccessCore
 	Presence
 	Restrictions
-	Apps
-	AppSession
-	SnowflakeSession
 	types.WebSessionsGetter
 	types.WebTokensGetter
 }
