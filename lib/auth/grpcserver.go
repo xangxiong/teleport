@@ -1030,14 +1030,6 @@ func (g *GRPCServer) DeleteRole(ctx context.Context, req *proto.DeleteRoleReques
 	return &empty.Empty{}, nil
 }
 
-func mfaDeviceEventMetadata(d *types.MFADevice) apievents.MFADeviceMetadata {
-	return apievents.MFADeviceMetadata{
-		DeviceName: d.Metadata.Name,
-		DeviceID:   d.Id,
-		DeviceType: d.MFAType(),
-	}
-}
-
 // GetSSODiagnosticInfo gets a SSO diagnostic info for a specific SSO auth request.
 func (g *GRPCServer) GetSSODiagnosticInfo(ctx context.Context, req *proto.GetSSODiagnosticInfoRequest) (*types.SSODiagnosticInfo, error) {
 	auth, err := g.authenticate(ctx)
