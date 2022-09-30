@@ -1598,7 +1598,6 @@ type ClientI interface {
 	services.DynamicAccessOracle
 	services.Restrictions
 	services.Apps
-	services.Databases
 	WebService
 	session.Service
 	services.Status

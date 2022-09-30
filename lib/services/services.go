@@ -30,7 +30,6 @@ type Services interface {
 	Presence
 	Restrictions
 	Apps
-	Databases
 	AppSession
 	SnowflakeSession
 	types.WebSessionsGetter

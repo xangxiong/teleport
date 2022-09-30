@@ -17,7 +17,6 @@ limitations under the License.
 package services
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -39,28 +38,6 @@ import (
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/trace"
 )
-
-// DatabaseGetter defines interface for fetching database resources.
-type DatabaseGetter interface {
-	// GetDatabases returns all database resources.
-	GetDatabases(context.Context) ([]types.Database, error)
-	// GetDatabase returns the specified database resource.
-	GetDatabase(ctx context.Context, name string) (types.Database, error)
-}
-
-// Databases defines an interface for managing database resources.
-type Databases interface {
-	// DatabaseGetter provides methods for fetching database resources.
-	DatabaseGetter
-	// CreateDatabase creates a new database resource.
-	CreateDatabase(context.Context, types.Database) error
-	// UpdateDatabase updates an existing database resource.
-	UpdateDatabase(context.Context, types.Database) error
-	// DeleteDatabase removes the specified database resource.
-	DeleteDatabase(ctx context.Context, name string) error
-	// DeleteAllDatabases removes all database resources.
-	DeleteAllDatabases(context.Context) error
-}
 
 // MarshalDatabase marshals the database resource to JSON.
 func MarshalDatabase(database types.Database, opts ...MarshalOption) ([]byte, error) {

@@ -226,7 +226,6 @@ type Services struct {
 	services.ClusterConfiguration
 	services.Restrictions
 	services.Apps
-	services.Databases
 	services.SessionTrackerService
 	services.ConnectionsDiagnostic
 	services.StatusInternal
@@ -2649,86 +2648,6 @@ func (a *Server) CreateSessionTracker(ctx context.Context, tracker types.Session
 	}
 
 	return a.Services.CreateSessionTracker(ctx, tracker)
-}
-
-// CreateDatabase creates a new database resource.
-func (a *Server) CreateDatabase(ctx context.Context, database types.Database) error {
-	if err := a.Services.CreateDatabase(ctx, database); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.DatabaseCreate{
-		Metadata: apievents.Metadata{
-			Type: events.DatabaseCreateEvent,
-			Code: events.DatabaseCreateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    database.GetName(),
-			Expires: database.Expiry(),
-		},
-		DatabaseMetadata: apievents.DatabaseMetadata{
-			DatabaseProtocol:             database.GetProtocol(),
-			DatabaseURI:                  database.GetURI(),
-			DatabaseLabels:               database.GetStaticLabels(),
-			DatabaseAWSRegion:            database.GetAWS().Region,
-			DatabaseAWSRedshiftClusterID: database.GetAWS().Redshift.ClusterID,
-			DatabaseGCPProjectID:         database.GetGCP().ProjectID,
-			DatabaseGCPInstanceID:        database.GetGCP().InstanceID,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit database create event.")
-	}
-	return nil
-}
-
-// UpdateDatabase updates an existing database resource.
-func (a *Server) UpdateDatabase(ctx context.Context, database types.Database) error {
-	if err := a.Services.UpdateDatabase(ctx, database); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.DatabaseUpdate{
-		Metadata: apievents.Metadata{
-			Type: events.DatabaseUpdateEvent,
-			Code: events.DatabaseUpdateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    database.GetName(),
-			Expires: database.Expiry(),
-		},
-		DatabaseMetadata: apievents.DatabaseMetadata{
-			DatabaseProtocol:             database.GetProtocol(),
-			DatabaseURI:                  database.GetURI(),
-			DatabaseLabels:               database.GetStaticLabels(),
-			DatabaseAWSRegion:            database.GetAWS().Region,
-			DatabaseAWSRedshiftClusterID: database.GetAWS().Redshift.ClusterID,
-			DatabaseGCPProjectID:         database.GetGCP().ProjectID,
-			DatabaseGCPInstanceID:        database.GetGCP().InstanceID,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit database update event.")
-	}
-	return nil
-}
-
-// DeleteDatabase deletes a database resource.
-func (a *Server) DeleteDatabase(ctx context.Context, name string) error {
-	if err := a.Services.DeleteDatabase(ctx, name); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.DatabaseDelete{
-		Metadata: apievents.Metadata{
-			Type: events.DatabaseDeleteEvent,
-			Code: events.DatabaseDeleteCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: name,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit database delete event.")
-	}
-	return nil
 }
 
 // ListResources returns paginated resources depending on the resource type..

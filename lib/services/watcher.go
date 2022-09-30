@@ -647,8 +647,6 @@ func lockMapValues(lockMap map[string]types.Lock) []types.Lock {
 type DatabaseWatcherConfig struct {
 	// ResourceWatcherConfig is the resource watcher configuration.
 	ResourceWatcherConfig
-	// DatabaseGetter is responsible for fetching database resources.
-	DatabaseGetter
 	// DatabasesC receives up-to-date list of all database resources.
 	DatabasesC chan types.Databases
 }
@@ -657,13 +655,6 @@ type DatabaseWatcherConfig struct {
 func (cfg *DatabaseWatcherConfig) CheckAndSetDefaults() error {
 	if err := cfg.ResourceWatcherConfig.CheckAndSetDefaults(); err != nil {
 		return trace.Wrap(err)
-	}
-	if cfg.DatabaseGetter == nil {
-		getter, ok := cfg.Client.(DatabaseGetter)
-		if !ok {
-			return trace.BadParameter("missing parameter DatabaseGetter and Client not usable as DatabaseGetter")
-		}
-		cfg.DatabaseGetter = getter
 	}
 	if cfg.DatabasesC == nil {
 		cfg.DatabasesC = make(chan types.Databases)
@@ -709,24 +700,6 @@ func (p *databaseCollector) resourceKind() string {
 
 // getResourcesAndUpdateCurrent refreshes the list of current resources.
 func (p *databaseCollector) getResourcesAndUpdateCurrent(ctx context.Context) error {
-	databases, err := p.DatabaseGetter.GetDatabases(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	newCurrent := make(map[string]types.Database, len(databases))
-	for _, database := range databases {
-		newCurrent[database.GetName()] = database
-	}
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	p.current = newCurrent
-
-	select {
-	case <-ctx.Done():
-		return trace.Wrap(ctx.Err())
-	case p.DatabasesC <- databases:
-	}
-
 	return nil
 }
 
