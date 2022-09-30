@@ -204,110 +204,6 @@ func (s *IdentityService) DeleteAllSnowflakeSessions(ctx context.Context) error 
 	return nil
 }
 
-// Get returns the web session state described with req.
-func (r *webSessions) Get(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
-	if err := req.Check(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	item, err := r.backend.Get(ctx, webSessionKey(req.SessionID))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	session, err := services.UnmarshalWebSession(item.Value)
-	if err != nil && !trace.IsNotFound(err) {
-		return nil, trace.Wrap(err)
-	}
-
-	return session, trace.Wrap(err)
-}
-
-// List gets all regular web sessions.
-func (r *webSessions) List(ctx context.Context) (out []types.WebSession, err error) {
-	key := backend.Key(webPrefix, sessionsPrefix)
-	result, err := r.backend.GetRange(ctx, key, backend.RangeEnd(key), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	for _, item := range result.Items {
-		session, err := services.UnmarshalWebSession(item.Value)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		out = append(out, session)
-	}
-	// DELETE IN 7.x:
-	// Return web sessions from a legacy path under /web/users/<user>/sessions/<id>
-	legacySessions, err := r.listLegacySessions(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return append(out, legacySessions...), nil
-}
-
-// Upsert updates the existing or inserts a new web session.
-func (r *webSessions) Upsert(ctx context.Context, session types.WebSession) error {
-	value, err := services.MarshalWebSession(session)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	sessionMetadata := session.GetMetadata()
-	item := backend.Item{
-		Key:     webSessionKey(session.GetName()),
-		Value:   value,
-		Expires: backend.EarliestExpiry(session.GetBearerTokenExpiryTime(), sessionMetadata.Expiry()),
-	}
-	_, err = r.backend.Put(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-// Delete deletes the web session specified with req from the storage.
-func (r *webSessions) Delete(ctx context.Context, req types.DeleteWebSessionRequest) error {
-	if err := req.Check(); err != nil {
-		return trace.Wrap(err)
-	}
-	return trace.Wrap(r.backend.Delete(ctx, webSessionKey(req.SessionID)))
-}
-
-// DeleteAll removes all regular web sessions.
-func (r *webSessions) DeleteAll(ctx context.Context) error {
-	startKey := backend.Key(webPrefix, sessionsPrefix)
-	return trace.Wrap(r.backend.DeleteRange(ctx, startKey, backend.RangeEnd(startKey)))
-}
-
-// DELETE IN 7.x.
-// listLegacySessions lists web sessions under a legacy path /web/users/<user>/sessions/<id>
-func (r *webSessions) listLegacySessions(ctx context.Context) ([]types.WebSession, error) {
-	startKey := backend.Key(webPrefix, usersPrefix)
-	result, err := r.backend.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	out := make([]types.WebSession, 0, len(result.Items))
-	for _, item := range result.Items {
-		suffix, _, err := baseTwoKeys(item.Key)
-		if err != nil && trace.IsNotFound(err) {
-			return nil, trace.Wrap(err)
-		}
-		if suffix != sessionsPrefix {
-			continue
-		}
-		session, err := services.UnmarshalWebSession(item.Value)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		out = append(out, session)
-	}
-	return out, nil
-}
-
-type webSessions struct {
-	backend backend.Backend
-	log     logrus.FieldLogger
-}
-
 // WebTokens returns the web token manager.
 func (s *IdentityService) WebTokens() types.WebTokenInterface {
 	return &webTokens{backend: s.Backend, log: s.log}
@@ -385,10 +281,6 @@ func (r *webTokens) DeleteAll(ctx context.Context) error {
 type webTokens struct {
 	backend backend.Backend
 	log     logrus.FieldLogger
-}
-
-func webSessionKey(sessionID string) (key []byte) {
-	return backend.Key(webPrefix, sessionsPrefix, sessionID)
 }
 
 func webTokenKey(token string) (key []byte) {

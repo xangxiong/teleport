@@ -796,42 +796,6 @@ func parseServer(event backend.Event, kind string) (types.Resource, error) {
 	}
 }
 
-func newRemoteClusterParser() *remoteClusterParser {
-	return &remoteClusterParser{
-		matchPrefix: backend.Key(remoteClustersPrefix),
-	}
-}
-
-type remoteClusterParser struct {
-	matchPrefix []byte
-}
-
-func (p *remoteClusterParser) prefixes() [][]byte {
-	return [][]byte{p.matchPrefix}
-}
-
-func (p *remoteClusterParser) match(key []byte) bool {
-	return bytes.HasPrefix(key, p.matchPrefix)
-}
-
-func (p *remoteClusterParser) parse(event backend.Event) (types.Resource, error) {
-	switch event.Type {
-	case types.OpDelete:
-		return resourceHeader(event, types.KindRemoteCluster, types.V3, 0)
-	case types.OpPut:
-		resource, err := services.UnmarshalRemoteCluster(event.Item.Value,
-			services.WithResourceID(event.Item.ID),
-			services.WithExpires(event.Item.Expires),
-		)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return resource, nil
-	default:
-		return nil, trace.BadParameter("event %v is not supported", event.Type)
-	}
-}
-
 func newLockParser() *lockParser {
 	return &lockParser{
 		baseParser: newBaseParser(backend.Key(locksPrefix)),
@@ -901,22 +865,6 @@ func resourceHeader(event backend.Event, kind, version string, offset int) (type
 	return &types.ResourceHeader{
 		Kind:    kind,
 		Version: version,
-		Metadata: types.Metadata{
-			Name:      string(name),
-			Namespace: apidefaults.Namespace,
-		},
-	}, nil
-}
-
-func resourceHeaderWithTemplate(event backend.Event, hdr types.ResourceHeader, offset int) (types.Resource, error) {
-	name, err := base(event.Item.Key, offset)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &types.ResourceHeader{
-		Kind:    hdr.Kind,
-		SubKind: hdr.SubKind,
-		Version: hdr.Version,
 		Metadata: types.Metadata{
 			Name:      string(name),
 			Namespace: apidefaults.Namespace,
