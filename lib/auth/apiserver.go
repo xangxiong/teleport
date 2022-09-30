@@ -919,12 +919,6 @@ func (s *APIServer) validateOIDCAuthCallback(auth ClientI, w http.ResponseWriter
 	return &raw, nil
 }
 
-// validateGithubAuthCallbackReq is a request to validate Github OAuth2 callback
-type validateGithubAuthCallbackReq struct {
-	// Query is the callback query string
-	Query url.Values `json:"query"`
-}
-
 // HTTP GET /:version/events?query
 //
 // Query fields:
