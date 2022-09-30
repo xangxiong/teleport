@@ -176,9 +176,6 @@ type SSHLogin struct {
 	// RouteToCluster is an optional cluster name to route the response
 	// credentials to.
 	RouteToCluster string
-	// KubernetesCluster is an optional k8s cluster name to route the response
-	// credentials to.
-	KubernetesCluster string
 }
 
 // SSHLoginSSO contains SSH login parameters for SSO login.
@@ -361,14 +358,13 @@ func SSHAgentLogin(ctx context.Context, login SSHLoginDirect) (*auth.SSHLoginRes
 	}
 
 	re, err := clt.PostJSON(ctx, clt.Endpoint("webapi", "ssh", "certs"), CreateSSHCertReq{
-		User:              login.User,
-		Password:          login.Password,
-		OTPToken:          login.OTPToken,
-		PubKey:            login.PubKey,
-		TTL:               login.TTL,
-		Compatibility:     login.Compatibility,
-		RouteToCluster:    login.RouteToCluster,
-		KubernetesCluster: login.KubernetesCluster,
+		User:           login.User,
+		Password:       login.Password,
+		OTPToken:       login.OTPToken,
+		PubKey:         login.PubKey,
+		TTL:            login.TTL,
+		Compatibility:  login.Compatibility,
+		RouteToCluster: login.RouteToCluster,
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -441,7 +437,6 @@ func SSHAgentPasswordlessLogin(ctx context.Context, login SSHLoginPasswordless) 
 			TTL:                       login.TTL,
 			Compatibility:             login.Compatibility,
 			RouteToCluster:            login.RouteToCluster,
-			KubernetesCluster:         login.KubernetesCluster,
 		})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -497,13 +492,12 @@ func SSHAgentMFALogin(ctx context.Context, login SSHLoginMFA) (*auth.SSHLoginRes
 	}
 
 	challengeResp := AuthenticateSSHUserRequest{
-		User:              login.User,
-		Password:          login.Password,
-		PubKey:            login.PubKey,
-		TTL:               login.TTL,
-		Compatibility:     login.Compatibility,
-		RouteToCluster:    login.RouteToCluster,
-		KubernetesCluster: login.KubernetesCluster,
+		User:           login.User,
+		Password:       login.Password,
+		PubKey:         login.PubKey,
+		TTL:            login.TTL,
+		Compatibility:  login.Compatibility,
+		RouteToCluster: login.RouteToCluster,
 	}
 	// Convert back from auth gRPC proto response.
 	switch r := respPB.Response.(type) {
