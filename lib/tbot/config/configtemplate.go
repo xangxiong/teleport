@@ -114,7 +114,6 @@ type TemplateConfig struct {
 	TLSCAs      *TemplateTLSCAs      `yaml:"tls_cas,omitempty"`
 	Mongo       *TemplateMongo       `yaml:"mongo,omitempty"`
 	Cockroach   *TemplateCockroach   `yaml:"cockroach,omitempty"`
-	Kubernetes  *TemplateKubernetes  `yaml:"kubernetes,omitempty"`
 	SSHHostCert *TemplateSSHHostCert `yaml:"ssh_host_cert,omitempty"`
 }
 
@@ -140,8 +139,6 @@ func (c *TemplateConfig) UnmarshalYAML(node *yaml.Node) error {
 			c.Mongo = &TemplateMongo{}
 		case TemplateCockroachName:
 			c.Cockroach = &TemplateCockroach{}
-		case TemplateKubernetesName:
-			c.Kubernetes = &TemplateKubernetes{}
 		case TemplateSSHHostCertName:
 			c.SSHHostCert = &TemplateSSHHostCert{}
 		default:
@@ -167,7 +164,6 @@ func (c *TemplateConfig) CheckAndSetDefaults() error {
 		c.TLSCAs,
 		c.Mongo,
 		c.Cockroach,
-		c.Kubernetes,
 		c.SSHHostCert,
 	}
 
@@ -208,7 +204,6 @@ func (c *TemplateConfig) GetConfigTemplate() (Template, error) {
 		c.TLSCAs,
 		c.Mongo,
 		c.Cockroach,
-		c.Kubernetes,
 		c.SSHHostCert,
 	}
 

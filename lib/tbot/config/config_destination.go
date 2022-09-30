@@ -163,13 +163,6 @@ func (dc *DestinationConfig) addRequiredConfigs() {
 			TLSCAs: &TemplateTLSCAs{},
 		})
 	}
-
-	// If a k8s request exists, enable the kubernetes template.
-	if dc.KubernetesCluster != nil && dc.GetConfigByName(TemplateKubernetesName) == nil {
-		dc.Configs = append(dc.Configs, TemplateConfig{
-			Kubernetes: &TemplateKubernetes{},
-		})
-	}
 }
 
 func (dc *DestinationConfig) CheckAndSetDefaults() error {
