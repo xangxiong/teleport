@@ -1242,22 +1242,6 @@ type IdentityService interface {
 	// DeleteAllUsers deletes all users
 	DeleteAllUsers() error
 
-	// GetResetPasswordToken returns a reset password token.
-	GetResetPasswordToken(ctx context.Context, username string) (types.UserToken, error)
-
-	// GetMFADevices fetches all MFA devices registered for the calling user.
-	GetMFADevices(ctx context.Context, in *proto.GetMFADevicesRequest) (*proto.GetMFADevicesResponse, error)
-	// AddMFADevice adds a new MFA device for the calling user.
-	AddMFADevice(ctx context.Context) (proto.AuthService_AddMFADeviceClient, error)
-	// DeleteMFADevice deletes a MFA device for the calling user.
-	DeleteMFADevice(ctx context.Context) (proto.AuthService_DeleteMFADeviceClient, error)
-	// AddMFADeviceSync adds a new MFA device (nonstream).
-	AddMFADeviceSync(ctx context.Context, req *proto.AddMFADeviceSyncRequest) (*proto.AddMFADeviceSyncResponse, error)
-	// DeleteMFADeviceSync deletes a users MFA device (nonstream).
-	DeleteMFADeviceSync(ctx context.Context, req *proto.DeleteMFADeviceSyncRequest) error
-	// CreateRegisterChallenge creates and returns MFA register challenge for a new MFA device.
-	CreateRegisterChallenge(ctx context.Context, req *proto.CreateRegisterChallengeRequest) (*proto.MFARegisterChallenge, error)
-
 	// MaintainSessionPresence establishes a channel used to continuously verify the presence for a session.
 	MaintainSessionPresence(ctx context.Context) (proto.AuthService_MaintainSessionPresenceClient, error)
 }

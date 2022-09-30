@@ -938,36 +938,6 @@ func (a *Server) generateUserCert(req certRequest) (*proto.Certs, error) {
 	return certs, nil
 }
 
-// CreateRegisterChallenge implements AuthService.CreateRegisterChallenge.
-func (a *Server) CreateRegisterChallenge(ctx context.Context, req *proto.CreateRegisterChallengeRequest) (*proto.MFARegisterChallenge, error) {
-	token, err := a.GetUserToken(ctx, req.GetTokenID())
-	if err != nil {
-		log.Error(trace.DebugReport(err))
-		return nil, trace.AccessDenied("invalid token")
-	}
-
-	allowedTokenTypes := []string{
-		UserTokenTypePrivilege,
-		UserTokenTypePrivilegeException,
-		UserTokenTypeResetPassword,
-		UserTokenTypeResetPasswordInvite,
-		UserTokenTypeRecoveryApproved,
-	}
-
-	if err := a.verifyUserToken(token, allowedTokenTypes...); err != nil {
-		return nil, trace.AccessDenied("invalid token")
-	}
-
-	regChal, err := a.createRegisterChallenge(ctx, &newRegisterChallengeRequest{
-		username:    token.GetUser(),
-		token:       token,
-		deviceType:  req.GetDeviceType(),
-		deviceUsage: req.GetDeviceUsage(),
-	})
-
-	return regChal, trace.Wrap(err)
-}
-
 type newRegisterChallengeRequest struct {
 	username    string
 	deviceType  proto.DeviceType
@@ -989,122 +959,6 @@ type newRegisterChallengeRequest struct {
 	// Identity with an in-memory SessionData storage.
 	// Defaults to the Server's IdentityService.
 	webIdentityOverride wanlib.RegistrationIdentity
-}
-
-func (a *Server) createRegisterChallenge(ctx context.Context, req *newRegisterChallengeRequest) (*proto.MFARegisterChallenge, error) {
-	switch req.deviceType {
-	case proto.DeviceType_DEVICE_TYPE_TOTP:
-		otpKey, otpOpts, err := a.newTOTPKey(req.username)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		challenge := &proto.TOTPRegisterChallenge{
-			Secret:        otpKey.Secret(),
-			Issuer:        otpKey.Issuer(),
-			PeriodSeconds: uint32(otpOpts.Period),
-			Algorithm:     otpOpts.Algorithm.String(),
-			Digits:        uint32(otpOpts.Digits.Length()),
-			Account:       otpKey.AccountName(),
-		}
-
-		if req.token != nil {
-			secrets, err := a.createTOTPUserTokenSecrets(ctx, req.token, otpKey)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-
-			challenge.QRCode = secrets.GetQRCode()
-		}
-
-		return &proto.MFARegisterChallenge{Request: &proto.MFARegisterChallenge_TOTP{TOTP: challenge}}, nil
-
-	case proto.DeviceType_DEVICE_TYPE_WEBAUTHN:
-		cap, err := a.GetAuthPreference(ctx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		webConfig, err := cap.GetWebauthn()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		identity := req.webIdentityOverride
-		if identity == nil {
-			identity = a.Services
-		}
-
-		webRegistration := &wanlib.RegistrationFlow{
-			Webauthn: webConfig,
-			Identity: identity,
-		}
-
-		passwordless := req.deviceUsage == proto.DeviceUsage_DEVICE_USAGE_PASSWORDLESS
-		credentialCreation, err := webRegistration.Begin(ctx, req.username, passwordless)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		return &proto.MFARegisterChallenge{Request: &proto.MFARegisterChallenge_Webauthn{
-			Webauthn: wanlib.CredentialCreationToProto(credentialCreation),
-		}}, nil
-
-	default:
-		return nil, trace.BadParameter("MFA device type %q unsupported", req.deviceType.String())
-	}
-}
-
-// GetMFADevices returns all mfa devices for the user defined in the token or the user defined in context.
-func (a *Server) GetMFADevices(ctx context.Context, req *proto.GetMFADevicesRequest) (*proto.GetMFADevicesResponse, error) {
-	var username string
-
-	if req.GetTokenID() != "" {
-		token, err := a.GetUserToken(ctx, req.GetTokenID())
-		if err != nil {
-			log.Error(trace.DebugReport(err))
-			return nil, trace.AccessDenied("invalid token")
-		}
-
-		if err := a.verifyUserToken(token, UserTokenTypeRecoveryApproved); err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		username = token.GetUser()
-	}
-
-	if username == "" {
-		var err error
-		username, err = GetClientUsername(ctx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	devs, err := a.Services.GetMFADevices(ctx, username, false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return &proto.GetMFADevicesResponse{
-		Devices: devs,
-	}, nil
-}
-
-// DeleteMFADeviceSync implements AuthService.DeleteMFADeviceSync.
-func (a *Server) DeleteMFADeviceSync(ctx context.Context, req *proto.DeleteMFADeviceSyncRequest) error {
-	token, err := a.GetUserToken(ctx, req.GetTokenID())
-	if err != nil {
-		log.Error(trace.DebugReport(err))
-		return trace.AccessDenied("invalid token")
-	}
-
-	if err := a.verifyUserToken(token, UserTokenTypeRecoveryApproved, UserTokenTypePrivilege); err != nil {
-		return trace.Wrap(err)
-	}
-
-	_, err = a.deleteMFADeviceSafely(ctx, token.GetUser(), req.GetDeviceName())
-	return trace.Wrap(err)
 }
 
 // deleteMFADeviceSafely deletes the user's mfa device while preventing users from deleting their last device
@@ -1193,32 +1047,6 @@ func (a *Server) deleteMFADeviceSafely(ctx context.Context, user, deviceName str
 		return nil, trace.Wrap(err)
 	}
 	return deviceToDelete, nil
-}
-
-// AddMFADeviceSync implements AuthService.AddMFADeviceSync.
-func (a *Server) AddMFADeviceSync(ctx context.Context, req *proto.AddMFADeviceSyncRequest) (*proto.AddMFADeviceSyncResponse, error) {
-	privilegeToken, err := a.GetUserToken(ctx, req.GetTokenID())
-	if err != nil {
-		log.Error(trace.DebugReport(err))
-		return nil, trace.AccessDenied("invalid token")
-	}
-
-	if err := a.verifyUserToken(privilegeToken, UserTokenTypePrivilege, UserTokenTypePrivilegeException); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	dev, err := a.verifyMFARespAndAddDevice(ctx, &newMFADeviceFields{
-		username:      privilegeToken.GetUser(),
-		newDeviceName: req.GetNewDeviceName(),
-		tokenID:       privilegeToken.GetName(),
-		deviceResp:    req.GetNewMFAResponse(),
-		deviceUsage:   req.DeviceUsage,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return &proto.AddMFADeviceSyncResponse{Device: dev}, nil
 }
 
 type newMFADeviceFields struct {

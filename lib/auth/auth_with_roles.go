@@ -1898,16 +1898,6 @@ func (a *ServerWithRoles) desiredAccessInfoForRoleRequest(req *proto.UserCertsRe
 	}, nil
 }
 
-func (a *ServerWithRoles) GetResetPasswordToken(ctx context.Context, tokenID string) (types.UserToken, error) {
-	// tokens are their own authz mechanism, no need to double check
-	return a.authServer.getResetPasswordToken(ctx, tokenID)
-}
-
-func (a *ServerWithRoles) RotateUserTokenSecrets(ctx context.Context, tokenID string) (types.UserTokenSecrets, error) {
-	// tokens are their own authz mechanism, no need to double check
-	return a.authServer.RotateUserTokenSecrets(ctx, tokenID)
-}
-
 // GetSSODiagnosticInfo returns SSO diagnostic info records.
 func (a *ServerWithRoles) GetSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string) (*types.SSODiagnosticInfo, error) {
 	var resource string
@@ -2701,11 +2691,6 @@ func (a *ServerWithRoles) DeleteNetworkRestrictions(ctx context.Context) error {
 	return a.authServer.DeleteNetworkRestrictions(ctx)
 }
 
-// GetMFADevices returns a list of MFA devices.
-func (a *ServerWithRoles) GetMFADevices(ctx context.Context, req *proto.GetMFADevicesRequest) (*proto.GetMFADevicesResponse, error) {
-	return a.authServer.GetMFADevices(ctx, req)
-}
-
 // TODO(awly): decouple auth.ClientI from auth.ServerWithRoles, they exist on
 // opposite sides of the connection.
 
@@ -2719,19 +2704,6 @@ func (a *ServerWithRoles) AddMFADevice(ctx context.Context) (proto.AuthService_A
 // Use auth.GRPCServer.DeleteMFADevice or client.Client.DeleteMFADevice instead.
 func (a *ServerWithRoles) DeleteMFADevice(ctx context.Context) (proto.AuthService_DeleteMFADeviceClient, error) {
 	return nil, trace.NotImplemented("bug: DeleteMFADevice must not be called on auth.ServerWithRoles")
-}
-
-// AddMFADeviceSync is implemented by AuthService.AddMFADeviceSync.
-func (a *ServerWithRoles) AddMFADeviceSync(ctx context.Context, req *proto.AddMFADeviceSyncRequest) (*proto.AddMFADeviceSyncResponse, error) {
-	// The token provides its own authorization and authentication.
-	res, err := a.authServer.AddMFADeviceSync(ctx, req)
-	return res, trace.Wrap(err)
-}
-
-// DeleteMFADeviceSync is implemented by AuthService.DeleteMFADeviceSync.
-func (a *ServerWithRoles) DeleteMFADeviceSync(ctx context.Context, req *proto.DeleteMFADeviceSyncRequest) error {
-	// The token provides its own authorization and authentication.
-	return a.authServer.DeleteMFADeviceSync(ctx, req)
 }
 
 // GenerateUserSingleUseCerts exists to satisfy auth.ClientI but is not
@@ -3038,12 +3010,6 @@ func (a *ServerWithRoles) AppendDiagnosticTrace(ctx context.Context, name string
 	}
 
 	return a.authServer.AppendDiagnosticTrace(ctx, name, t)
-}
-
-// CreateRegisterChallenge is implemented by AuthService.CreateRegisterChallenge.
-func (a *ServerWithRoles) CreateRegisterChallenge(ctx context.Context, req *proto.CreateRegisterChallengeRequest) (*proto.MFARegisterChallenge, error) {
-	// The token provides its own authorization and authentication.
-	return a.authServer.CreateRegisterChallenge(ctx, req)
 }
 
 // GenerateCertAuthorityCRL generates an empty CRL for a CA.
