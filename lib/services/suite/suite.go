@@ -706,63 +706,6 @@ func (s *ServicesTestSuite) NamespacesCRUD(t *testing.T) {
 	require.True(t, trace.IsNotFound(err))
 }
 
-func (s *ServicesTestSuite) SAMLCRUD(t *testing.T) {
-	ctx := context.Background()
-	connector := &types.SAMLConnectorV2{
-		Kind:    types.KindSAML,
-		Version: types.V2,
-		Metadata: types.Metadata{
-			Name:      "saml1",
-			Namespace: apidefaults.Namespace,
-		},
-		Spec: types.SAMLConnectorSpecV2{
-			Issuer:                   "http://example.com",
-			SSO:                      "https://example.com/saml/sso",
-			AssertionConsumerService: "https://localhost/acs",
-			Audience:                 "https://localhost/aud",
-			ServiceProviderIssuer:    "https://localhost/iss",
-			AttributesToRoles: []types.AttributeMapping{
-				{Name: "groups", Value: "admin", Roles: []string{"admin"}},
-			},
-			Cert: fixtures.TLSCACertPEM,
-			SigningKeyPair: &types.AsymmetricKeyPair{
-				PrivateKey: fixtures.TLSCAKeyPEM,
-				Cert:       fixtures.TLSCACertPEM,
-			},
-		},
-	}
-	err := services.ValidateSAMLConnector(connector)
-	require.NoError(t, err)
-	err = s.WebS.UpsertSAMLConnector(ctx, connector)
-	require.NoError(t, err)
-	out, err := s.WebS.GetSAMLConnector(ctx, connector.GetName(), true)
-	require.NoError(t, err)
-	require.Empty(t, cmp.Diff(out, connector))
-
-	connectors, err := s.WebS.GetSAMLConnectors(ctx, true)
-	require.NoError(t, err)
-	require.Empty(t, cmp.Diff([]types.SAMLConnector{connector}, connectors))
-
-	out2, err := s.WebS.GetSAMLConnector(ctx, connector.GetName(), false)
-	require.NoError(t, err)
-	connectorNoSecrets := *connector
-	connectorNoSecrets.Spec.SigningKeyPair.PrivateKey = ""
-	require.Empty(t, cmp.Diff(out2, &connectorNoSecrets))
-
-	connectorsNoSecrets, err := s.WebS.GetSAMLConnectors(ctx, false)
-	require.NoError(t, err)
-	require.Empty(t, cmp.Diff([]types.SAMLConnector{&connectorNoSecrets}, connectorsNoSecrets))
-
-	err = s.WebS.DeleteSAMLConnector(ctx, connector.GetName())
-	require.NoError(t, err)
-
-	err = s.WebS.DeleteSAMLConnector(ctx, connector.GetName())
-	require.Equal(t, trace.IsNotFound(err), true, fmt.Sprintf("expected not found, got %T", err))
-
-	_, err = s.WebS.GetSAMLConnector(ctx, connector.GetName(), true)
-	require.Equal(t, trace.IsNotFound(err), true, fmt.Sprintf("expected not found, got %T", err))
-}
-
 func (s *ServicesTestSuite) TunnelConnectionsCRUD(t *testing.T) {
 	clusterName := "example.com"
 	out, err := s.PresenceS.GetTunnelConnections(clusterName)
@@ -829,62 +772,6 @@ func (s *ServicesTestSuite) TunnelConnectionsCRUD(t *testing.T) {
 	out, err = s.PresenceS.GetTunnelConnections(clusterName)
 	require.NoError(t, err)
 	require.Equal(t, len(out), 0)
-}
-
-func (s *ServicesTestSuite) GithubConnectorCRUD(t *testing.T) {
-	ctx := context.Background()
-	connector := &types.GithubConnectorV3{
-		Kind:    types.KindGithubConnector,
-		Version: types.V3,
-		Metadata: types.Metadata{
-			Name:      "github",
-			Namespace: apidefaults.Namespace,
-		},
-		Spec: types.GithubConnectorSpecV3{
-			ClientID:     "aaa",
-			ClientSecret: "bbb",
-			RedirectURL:  "https://localhost:3080/v1/webapi/github/callback",
-			Display:      "Github",
-			TeamsToLogins: []types.TeamMapping{
-				{
-					Organization: "gravitational",
-					Team:         "admins",
-					Logins:       []string{"admin"},
-					KubeGroups:   []string{"system:masters"},
-				},
-			},
-		},
-	}
-	err := connector.CheckAndSetDefaults()
-	require.NoError(t, err)
-	err = s.WebS.UpsertGithubConnector(ctx, connector)
-	require.NoError(t, err)
-	out, err := s.WebS.GetGithubConnector(ctx, connector.GetName(), true)
-	require.NoError(t, err)
-	require.Empty(t, cmp.Diff(out, connector))
-
-	connectors, err := s.WebS.GetGithubConnectors(ctx, true)
-	require.NoError(t, err)
-	require.Empty(t, cmp.Diff([]types.GithubConnector{connector}, connectors))
-
-	out2, err := s.WebS.GetGithubConnector(ctx, connector.GetName(), false)
-	require.NoError(t, err)
-	connectorNoSecrets := *connector
-	connectorNoSecrets.Spec.ClientSecret = ""
-	require.Empty(t, cmp.Diff(out2, &connectorNoSecrets))
-
-	connectorsNoSecrets, err := s.WebS.GetGithubConnectors(ctx, false)
-	require.NoError(t, err)
-	require.Empty(t, cmp.Diff([]types.GithubConnector{&connectorNoSecrets}, connectorsNoSecrets))
-
-	err = s.WebS.DeleteGithubConnector(ctx, connector.GetName())
-	require.NoError(t, err)
-
-	err = s.WebS.DeleteGithubConnector(ctx, connector.GetName())
-	require.Equal(t, trace.IsNotFound(err), true, fmt.Sprintf("expected not found, got %T", err))
-
-	_, err = s.WebS.GetGithubConnector(ctx, connector.GetName(), true)
-	require.Equal(t, trace.IsNotFound(err), true, fmt.Sprintf("expected not found, got %T", err))
 }
 
 func (s *ServicesTestSuite) RemoteClustersCRUD(t *testing.T) {

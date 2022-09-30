@@ -18,7 +18,6 @@ package auth
 
 import (
 	"context"
-	"net/url"
 	"strings"
 	"time"
 
@@ -2571,90 +2570,6 @@ func (a *ServerWithRoles) CompareAndSwapUser(ctx context.Context, new, existing 
 	}
 
 	return a.authServer.CompareAndSwapUser(ctx, new, existing)
-}
-
-// UpsertOIDCConnector creates or updates an OIDC connector.
-func (a *ServerWithRoles) UpsertOIDCConnector(ctx context.Context, connector types.OIDCConnector) error {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	if modules.GetModules().Features().OIDC == false {
-		return trace.AccessDenied("OIDC is only available in enterprise subscriptions")
-	}
-
-	return a.authServer.UpsertOIDCConnector(ctx, connector)
-}
-
-func (a *ServerWithRoles) GetOIDCConnector(ctx context.Context, id string, withSecrets bool) (types.OIDCConnector, error) {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbReadNoSecrets); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if withSecrets {
-		if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return a.authServer.GetOIDCConnector(ctx, id, withSecrets)
-}
-
-func (a *ServerWithRoles) GetOIDCConnectors(ctx context.Context, withSecrets bool) ([]types.OIDCConnector, error) {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbReadNoSecrets); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if withSecrets {
-		if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return a.authServer.GetOIDCConnectors(ctx, withSecrets)
-}
-
-func (a *ServerWithRoles) CreateOIDCAuthRequest(ctx context.Context, req types.OIDCAuthRequest) (*types.OIDCAuthRequest, error) {
-	if err := a.action(apidefaults.Namespace, types.KindOIDCRequest, types.VerbCreate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// require additional permissions for executing SSO test flow.
-	if req.SSOTestFlow {
-		if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbCreate); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	oidcReq, err := a.authServer.CreateOIDCAuthRequest(ctx, req)
-	if err != nil {
-		emitSSOLoginFailureEvent(a.CloseContext(), a.authServer.emitter, events.LoginMethodOIDC, err, req.SSOTestFlow)
-		return nil, trace.Wrap(err)
-	}
-
-	return oidcReq, nil
-}
-
-// GetOIDCAuthRequest returns OIDC auth request if found.
-func (a *ServerWithRoles) GetOIDCAuthRequest(ctx context.Context, id string) (*types.OIDCAuthRequest, error) {
-	if err := a.action(apidefaults.Namespace, types.KindOIDCRequest, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return a.authServer.GetOIDCAuthRequest(ctx, id)
-}
-
-func (a *ServerWithRoles) ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error) {
-	// auth callback is it's own authz, no need to check extra permissions
-	return a.authServer.ValidateOIDCAuthCallback(ctx, q)
-}
-
-func (a *ServerWithRoles) DeleteOIDCConnector(ctx context.Context, connectorID string) error {
-	if err := a.authConnectorAction(apidefaults.Namespace, types.KindOIDC, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteOIDCConnector(ctx, connectorID)
 }
 
 // GetSSODiagnosticInfo returns SSO diagnostic info records.

@@ -22,7 +22,6 @@ import (
 	"net/url"
 
 	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/trace"
 )
 
@@ -97,28 +96,4 @@ func (c *Client) GenerateToken(ctx context.Context, req *proto.GenerateTokenRequ
 		return "", trace.Wrap(err)
 	}
 	return token, nil
-}
-
-// CreateOIDCAuthRequest creates OIDCAuthRequest.
-// DELETE IN 11.0.0
-func (c *Client) CreateOIDCAuthRequest(ctx context.Context, req types.OIDCAuthRequest) (*types.OIDCAuthRequest, error) {
-	if resp, err := c.APIClient.CreateOIDCAuthRequest(ctx, req); err != nil {
-		if !trace.IsNotImplemented(err) {
-			return nil, trace.Wrap(err)
-		}
-	} else {
-		return resp, nil
-	}
-
-	out, err := c.PostJSON(ctx, c.Endpoint("oidc", "requests", "create"), createOIDCAuthRequestReq{
-		Req: req,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var response *types.OIDCAuthRequest
-	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return response, nil
 }

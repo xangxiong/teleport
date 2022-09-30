@@ -925,43 +925,6 @@ func (c *Client) GenerateHostCert(
 	return []byte(cert), nil
 }
 
-// ValidateOIDCAuthCallback validates OIDC auth callback returned from redirect
-func (c *Client) ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error) {
-	out, err := c.PostJSON(ctx, c.Endpoint("oidc", "requests", "validate"), validateOIDCAuthCallbackReq{
-		Query: q,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var rawResponse *oidcAuthRawResponse
-	if err := json.Unmarshal(out.Bytes(), &rawResponse); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	response := OIDCAuthResponse{
-		Username: rawResponse.Username,
-		Identity: rawResponse.Identity,
-		Cert:     rawResponse.Cert,
-		Req:      rawResponse.Req,
-		TLSCert:  rawResponse.TLSCert,
-	}
-	if len(rawResponse.Session) != 0 {
-		session, err := services.UnmarshalWebSession(rawResponse.Session)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		response.Session = session
-	}
-	response.HostSigners = make([]types.CertAuthority, len(rawResponse.HostSigners))
-	for i, raw := range rawResponse.HostSigners {
-		ca, err := services.UnmarshalCertAuthority(raw)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		response.HostSigners[i] = ca
-	}
-	return &response, nil
-}
-
 // GetSessionChunk allows clients to receive a byte array (chunk) from a recorded
 // session stream, starting from 'offset', up to 'max' in length. The upper bound
 // of 'max' is set to events.MaxChunkBytes
@@ -1331,21 +1294,6 @@ type WebService interface {
 
 // IdentityService manages identities and users
 type IdentityService interface {
-	// UpsertOIDCConnector updates or creates OIDC connector
-	UpsertOIDCConnector(ctx context.Context, connector types.OIDCConnector) error
-	// GetOIDCConnector returns OIDC connector information by id
-	GetOIDCConnector(ctx context.Context, id string, withSecrets bool) (types.OIDCConnector, error)
-	// GetOIDCConnectors gets OIDC connectors list
-	GetOIDCConnectors(ctx context.Context, withSecrets bool) ([]types.OIDCConnector, error)
-	// DeleteOIDCConnector deletes OIDC connector by ID
-	DeleteOIDCConnector(ctx context.Context, connectorID string) error
-	// CreateOIDCAuthRequest creates OIDCAuthRequest
-	CreateOIDCAuthRequest(ctx context.Context, req types.OIDCAuthRequest) (*types.OIDCAuthRequest, error)
-	// GetOIDCAuthRequest returns OIDC auth request if found
-	GetOIDCAuthRequest(ctx context.Context, id string) (*types.OIDCAuthRequest, error)
-	// ValidateOIDCAuthCallback validates OIDC auth callback returned from redirect
-	ValidateOIDCAuthCallback(ctx context.Context, q url.Values) (*OIDCAuthResponse, error)
-
 	// GetSSODiagnosticInfo returns SSO diagnostic info records.
 	GetSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string) (*types.SSODiagnosticInfo, error)
 

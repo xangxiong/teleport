@@ -164,65 +164,11 @@ type Identity interface {
 	// DeleteMFADevice deletes an MFA device for the user by ID.
 	DeleteMFADevice(ctx context.Context, user, id string) error
 
-	// UpsertOIDCConnector upserts OIDC Connector
-	UpsertOIDCConnector(ctx context.Context, connector types.OIDCConnector) error
-
-	// DeleteOIDCConnector deletes OIDC Connector
-	DeleteOIDCConnector(ctx context.Context, connectorID string) error
-
-	// GetOIDCConnector returns OIDC connector data, withSecrets adds or removes client secret from return results
-	GetOIDCConnector(ctx context.Context, id string, withSecrets bool) (types.OIDCConnector, error)
-
-	// GetOIDCConnectors returns registered connectors, withSecrets adds or removes client secret from return results
-	GetOIDCConnectors(ctx context.Context, withSecrets bool) ([]types.OIDCConnector, error)
-
-	// CreateOIDCAuthRequest creates new auth request
-	CreateOIDCAuthRequest(ctx context.Context, req types.OIDCAuthRequest, ttl time.Duration) error
-
-	// GetOIDCAuthRequest returns OIDC auth request if found
-	GetOIDCAuthRequest(ctx context.Context, stateToken string) (*types.OIDCAuthRequest, error)
-
-	// UpsertSAMLConnector upserts SAML Connector
-	UpsertSAMLConnector(ctx context.Context, connector types.SAMLConnector) error
-
-	// DeleteSAMLConnector deletes OIDC Connector
-	DeleteSAMLConnector(ctx context.Context, connectorID string) error
-
-	// GetSAMLConnector returns OIDC connector data, withSecrets adds or removes secrets from return results
-	GetSAMLConnector(ctx context.Context, id string, withSecrets bool) (types.SAMLConnector, error)
-
-	// GetSAMLConnectors returns registered connectors, withSecrets adds or removes secret from return results
-	GetSAMLConnectors(ctx context.Context, withSecrets bool) ([]types.SAMLConnector, error)
-
-	// CreateSAMLAuthRequest creates new auth request
-	CreateSAMLAuthRequest(ctx context.Context, req types.SAMLAuthRequest, ttl time.Duration) error
-
-	// GetSAMLAuthRequest returns SAML auth request if found
-	GetSAMLAuthRequest(ctx context.Context, id string) (*types.SAMLAuthRequest, error)
-
 	// CreateSSODiagnosticInfo creates new SSO diagnostic info record.
 	CreateSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string, entry types.SSODiagnosticInfo) error
 
 	// GetSSODiagnosticInfo returns SSO diagnostic info records.
 	GetSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string) (*types.SSODiagnosticInfo, error)
-
-	// UpsertGithubConnector creates or updates a new Github connector
-	UpsertGithubConnector(ctx context.Context, connector types.GithubConnector) error
-
-	// GetGithubConnectors returns all configured Github connectors
-	GetGithubConnectors(ctx context.Context, withSecrets bool) ([]types.GithubConnector, error)
-
-	// GetGithubConnector returns a Github connector by its name
-	GetGithubConnector(ctx context.Context, name string, withSecrets bool) (types.GithubConnector, error)
-
-	// DeleteGithubConnector deletes a Github connector by its name
-	DeleteGithubConnector(ctx context.Context, name string) error
-
-	// CreateGithubAuthRequest creates a new auth request for Github OAuth2 flow
-	CreateGithubAuthRequest(ctx context.Context, req types.GithubAuthRequest) error
-
-	// GetGithubAuthRequest retrieves Github auth request by the token
-	GetGithubAuthRequest(ctx context.Context, stateToken string) (*types.GithubAuthRequest, error)
 
 	// CreateUserToken creates a new user token.
 	CreateUserToken(ctx context.Context, token types.UserToken) (types.UserToken, error)
