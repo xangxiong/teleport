@@ -2383,11 +2383,6 @@ func (a *ServerWithRoles) UpsertTrustedCluster(ctx context.Context, tc types.Tru
 	return a.authServer.UpsertTrustedCluster(ctx, tc)
 }
 
-func (a *ServerWithRoles) ValidateTrustedCluster(ctx context.Context, validateRequest *ValidateTrustedClusterRequest) (*ValidateTrustedClusterResponse, error) {
-	// the token provides it's own authorization and authentication
-	return a.authServer.validateTrustedCluster(ctx, validateRequest)
-}
-
 // DeleteTrustedCluster deletes a trusted cluster by name.
 func (a *ServerWithRoles) DeleteTrustedCluster(ctx context.Context, name string) error {
 	if err := a.action(apidefaults.Namespace, types.KindTrustedCluster, types.VerbDelete); err != nil {

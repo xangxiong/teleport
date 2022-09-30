@@ -1074,31 +1074,6 @@ func (c *Client) DeleteAllUsers() error {
 	return trace.NotImplemented(notImplementedMessage)
 }
 
-func (c *Client) ValidateTrustedCluster(ctx context.Context, validateRequest *ValidateTrustedClusterRequest) (*ValidateTrustedClusterResponse, error) {
-	validateRequestRaw, err := validateRequest.ToRaw()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	out, err := c.PostJSON(ctx, c.Endpoint("trustedclusters", "validate"), validateRequestRaw)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	var validateResponseRaw ValidateTrustedClusterResponseRaw
-	err = json.Unmarshal(out.Bytes(), &validateResponseRaw)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	validateResponse, err := validateResponseRaw.ToNative()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return validateResponse, nil
-}
-
 // ResumeAuditStream resumes existing audit stream.
 // This is a wrapper on the grpc endpoint and is deprecated.
 // DELETE IN 7.0.0
@@ -1269,11 +1244,6 @@ type ClientI interface {
 	// this method is used to update only public keys and certificates of the
 	// the certificate authorities of trusted clusters.
 	RotateExternalCertAuthority(ctx context.Context, ca types.CertAuthority) error
-
-	// ValidateTrustedCluster validates trusted cluster token with
-	// main cluster, in case if validation is successful, main cluster
-	// adds remote cluster
-	ValidateTrustedCluster(context.Context, *ValidateTrustedClusterRequest) (*ValidateTrustedClusterResponse, error)
 
 	// GetDomainName returns auth server cluster name
 	GetDomainName(ctx context.Context) (string, error)
