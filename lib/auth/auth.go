@@ -1209,32 +1209,6 @@ func (a *Server) ListResources(ctx context.Context, req proto.ListResourcesReque
 	return a.Cache.ListResources(ctx, req)
 }
 
-type devicesByType struct {
-	TOTP     bool
-	Webauthn []*types.MFADevice
-}
-
-func groupByDeviceType(devs []*types.MFADevice, groupWebauthn bool) devicesByType {
-	res := devicesByType{}
-	for _, dev := range devs {
-		switch dev.Device.(type) {
-		case *types.MFADevice_Totp:
-			res.TOTP = true
-		case *types.MFADevice_U2F:
-			if groupWebauthn {
-				res.Webauthn = append(res.Webauthn, dev)
-			}
-		case *types.MFADevice_Webauthn:
-			if groupWebauthn {
-				res.Webauthn = append(res.Webauthn, dev)
-			}
-		default:
-			log.Warningf("Skipping MFA device of unknown type %T.", dev.Device)
-		}
-	}
-	return res
-}
-
 func mergeKeySets(a, b types.CAKeySet) types.CAKeySet {
 	newKeySet := a.Clone()
 	newKeySet.SSH = append(newKeySet.SSH, b.SSH...)
