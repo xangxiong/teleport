@@ -3782,30 +3782,6 @@ func (a *ServerWithRoles) MaintainSessionPresence(ctx context.Context) (proto.Au
 	return nil, trace.NotImplemented(notImplementedMessage)
 }
 
-func emitSSOLoginFailureEvent(ctx context.Context, emitter apievents.Emitter, method string, err error, testFlow bool) {
-	code := events.UserSSOLoginFailureCode
-	if testFlow {
-		code = events.UserSSOTestFlowLoginFailureCode
-	}
-
-	emitErr := emitter.EmitAuditEvent(ctx, &apievents.UserLogin{
-		Metadata: apievents.Metadata{
-			Type: events.UserLoginEvent,
-			Code: code,
-		},
-		Method: method,
-		Status: apievents.Status{
-			Success:     false,
-			Error:       trace.Unwrap(err).Error(),
-			UserMessage: err.Error(),
-		},
-	})
-
-	if emitErr != nil {
-		log.WithError(err).Warnf("Failed to emit %v login failure event.", method)
-	}
-}
-
 // verbsToReplaceResourceWithOrigin determines the verbs/actions required of a role
 // to replace the resource currently stored in the backend.
 func verbsToReplaceResourceWithOrigin(stored types.ResourceWithOrigin) []string {
