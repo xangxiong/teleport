@@ -207,18 +207,6 @@ type Config struct {
 	// SSHProxyAddr is the host:port the SSH proxy can be accessed at.
 	SSHProxyAddr string
 
-	// KubeProxyAddr is the host:port the Kubernetes proxy can be accessed at.
-	KubeProxyAddr string
-
-	// PostgresProxyAddr is the host:port the Postgres proxy can be accessed at.
-	PostgresProxyAddr string
-
-	// MongoProxyAddr is the host:port the Mongo proxy can be accessed at.
-	MongoProxyAddr string
-
-	// MySQLProxyAddr is the host:port the MySQL proxy can be accessed at.
-	MySQLProxyAddr string
-
 	// KeyTTL is a time to live for the temporary SSH keypair to remain valid:
 	KeyTTL time.Duration
 
@@ -1048,12 +1036,8 @@ func (c *Config) LoadProfile(profileDir string, proxyName string) error {
 
 	c.Username = cp.Username
 	c.SiteName = cp.SiteName
-	c.KubeProxyAddr = cp.KubeProxyAddr
 	c.WebProxyAddr = cp.WebProxyAddr
 	c.SSHProxyAddr = cp.SSHProxyAddr
-	c.PostgresProxyAddr = cp.PostgresProxyAddr
-	c.MySQLProxyAddr = cp.MySQLProxyAddr
-	c.MongoProxyAddr = cp.MongoProxyAddr
 	c.TLSRoutingEnabled = cp.TLSRoutingEnabled
 	c.KeysDir = profileDir
 	c.AuthConnector = cp.AuthConnector
@@ -1084,10 +1068,6 @@ func (c *Config) SaveProfile(dir string, makeCurrent bool) error {
 	cp.Username = c.Username
 	cp.WebProxyAddr = c.WebProxyAddr
 	cp.SSHProxyAddr = c.SSHProxyAddr
-	cp.KubeProxyAddr = c.KubeProxyAddr
-	cp.PostgresProxyAddr = c.PostgresProxyAddr
-	cp.MySQLProxyAddr = c.MySQLProxyAddr
-	cp.MongoProxyAddr = c.MongoProxyAddr
 	cp.ForwardedPorts = c.LocalForwardPorts.String()
 	cp.SiteName = c.SiteName
 	cp.TLSRoutingEnabled = c.TLSRoutingEnabled
@@ -1188,26 +1168,6 @@ func (c *Config) ParseProxyHost(proxyHost string) error {
 	return nil
 }
 
-// KubeProxyHostPort returns the host and port of the Kubernetes proxy.
-func (c *Config) KubeProxyHostPort() (string, int) {
-	if c.KubeProxyAddr != "" {
-		addr, err := utils.ParseAddr(c.KubeProxyAddr)
-		if err == nil {
-			return addr.Host(), addr.Port(defaults.KubeListenPort)
-		}
-	}
-
-	webProxyHost, _ := c.WebProxyHostPort()
-	return webProxyHost, defaults.KubeListenPort
-}
-
-// KubeClusterAddr returns a public HTTPS address of the proxy for use by
-// Kubernetes client.
-func (c *Config) KubeClusterAddr() string {
-	host, port := c.KubeProxyHostPort()
-	return fmt.Sprintf("https://%s:%d", host, port)
-}
-
 // WebProxyHostPort returns the host and port of the web proxy.
 func (c *Config) WebProxyHostPort() (string, int) {
 	if c.WebProxyAddr != "" {
@@ -1242,53 +1202,6 @@ func (c *Config) SSHProxyHostPort() (string, int) {
 
 	webProxyHost, _ := c.WebProxyHostPort()
 	return webProxyHost, defaults.SSHProxyListenPort
-}
-
-// PostgresProxyHostPort returns the host and port of Postgres proxy.
-func (c *Config) PostgresProxyHostPort() (string, int) {
-	if c.PostgresProxyAddr != "" {
-		addr, err := utils.ParseAddr(c.PostgresProxyAddr)
-		if err == nil {
-			return addr.Host(), addr.Port(c.WebProxyPort())
-		}
-	}
-	return c.WebProxyHostPort()
-}
-
-// MongoProxyHostPort returns the host and port of Mongo proxy.
-func (c *Config) MongoProxyHostPort() (string, int) {
-	if c.MongoProxyAddr != "" {
-		addr, err := utils.ParseAddr(c.MongoProxyAddr)
-		if err == nil {
-			return addr.Host(), addr.Port(defaults.MongoListenPort)
-		}
-	}
-	return c.WebProxyHostPort()
-}
-
-// MySQLProxyHostPort returns the host and port of MySQL proxy.
-func (c *Config) MySQLProxyHostPort() (string, int) {
-	if c.MySQLProxyAddr != "" {
-		addr, err := utils.ParseAddr(c.MySQLProxyAddr)
-		if err == nil {
-			return addr.Host(), addr.Port(defaults.MySQLListenPort)
-		}
-	}
-	webProxyHost, _ := c.WebProxyHostPort()
-	return webProxyHost, defaults.MySQLListenPort
-}
-
-// DatabaseProxyHostPort returns proxy connection endpoint for the database.
-func (c *Config) DatabaseProxyHostPort(db tlsca.RouteToDatabase) (string, int) {
-	switch db.Protocol {
-	case defaults.ProtocolPostgres, defaults.ProtocolCockroachDB:
-		return c.PostgresProxyHostPort()
-	case defaults.ProtocolMySQL:
-		return c.MySQLProxyHostPort()
-	case defaults.ProtocolMongoDB:
-		return c.MongoProxyHostPort()
-	}
-	return c.WebProxyHostPort()
 }
 
 // GetKubeTLSServerName returns k8s server name used in KUBECONFIG to leverage TLS Routing.
@@ -3667,45 +3580,6 @@ func (tc *TeleportClient) UpdateTrustedCA(ctx context.Context, clusterName strin
 // applyProxySettings updates configuration changes based on the advertised
 // proxy settings, overriding existing fields in tc.
 func (tc *TeleportClient) applyProxySettings(proxySettings webclient.ProxySettings) error {
-	// Kubernetes proxy settings.
-	if proxySettings.Kube.Enabled {
-		switch {
-		// PublicAddr is the first preference.
-		case proxySettings.Kube.PublicAddr != "":
-			if _, err := utils.ParseAddr(proxySettings.Kube.PublicAddr); err != nil {
-				return trace.BadParameter(
-					"failed to parse value received from the server: %q, contact your administrator for help",
-					proxySettings.Kube.PublicAddr)
-			}
-			tc.KubeProxyAddr = proxySettings.Kube.PublicAddr
-		// ListenAddr is the second preference.
-		case proxySettings.Kube.ListenAddr != "":
-			addr, err := utils.ParseAddr(proxySettings.Kube.ListenAddr)
-			if err != nil {
-				return trace.BadParameter(
-					"failed to parse value received from the server: %q, contact your administrator for help",
-					proxySettings.Kube.ListenAddr)
-			}
-			// If ListenAddr host is 0.0.0.0 or [::], replace it with something
-			// routable from the web endpoint.
-			if net.ParseIP(addr.Host()).IsUnspecified() {
-				webProxyHost, _ := tc.WebProxyHostPort()
-				tc.KubeProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(addr.Port(defaults.KubeListenPort)))
-			} else {
-				tc.KubeProxyAddr = proxySettings.Kube.ListenAddr
-			}
-		// If neither PublicAddr nor TunnelAddr are passed, use the web
-		// interface hostname with default k8s port as a guess.
-		default:
-			webProxyHost, _ := tc.WebProxyHostPort()
-			tc.KubeProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(defaults.KubeListenPort))
-		}
-	} else {
-		// Zero the field, in case there was a previous value set (e.g. loaded
-		// from profile directory).
-		tc.KubeProxyAddr = ""
-	}
-
 	// Read in settings for HTTP endpoint of the proxy.
 	if proxySettings.SSH.PublicAddr != "" {
 		addr, err := utils.ParseAddr(proxySettings.SSH.PublicAddr)
@@ -3747,70 +3621,6 @@ func (tc *TeleportClient) applyProxySettings(proxySettings webclient.ProxySettin
 				proxySettings.SSH.SSHPublicAddr)
 		}
 		tc.SSHProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(defaults.SSHProxyListenPort)))
-	}
-
-	// Read Postgres proxy settings.
-	switch {
-	case proxySettings.DB.PostgresPublicAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.PostgresPublicAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse Postgres public address received from server: %q, contact your administrator for help",
-				proxySettings.DB.PostgresPublicAddr)
-		}
-		tc.PostgresProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(tc.WebProxyPort())))
-	case proxySettings.DB.PostgresListenAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.PostgresListenAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse Postgres listen address received from server: %q, contact your administrator for help",
-				proxySettings.DB.PostgresListenAddr)
-		}
-		tc.PostgresProxyAddr = net.JoinHostPort(tc.WebProxyHost(), strconv.Itoa(addr.Port(defaults.PostgresListenPort)))
-	default:
-		webProxyHost, webProxyPort := tc.WebProxyHostPort()
-		tc.PostgresProxyAddr = net.JoinHostPort(webProxyHost, strconv.Itoa(webProxyPort))
-	}
-
-	// Read Mongo proxy settings.
-	switch {
-	case proxySettings.DB.MongoPublicAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.MongoPublicAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse Mongo public address received from server: %q, contact your administrator for help",
-				proxySettings.DB.MongoPublicAddr)
-		}
-		tc.MongoProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(tc.WebProxyPort())))
-	case proxySettings.DB.MongoListenAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.MongoListenAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse Mongo listen address received from server: %q, contact your administrator for help",
-				proxySettings.DB.MongoListenAddr)
-		}
-		tc.MongoProxyAddr = net.JoinHostPort(tc.WebProxyHost(), strconv.Itoa(addr.Port(defaults.MongoListenPort)))
-	}
-
-	// Read MySQL proxy settings if enabled on the server.
-	switch {
-	case proxySettings.DB.MySQLPublicAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.MySQLPublicAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse MySQL public address received from server: %q, contact your administrator for help",
-				proxySettings.DB.MySQLPublicAddr)
-		}
-		tc.MySQLProxyAddr = net.JoinHostPort(addr.Host(), strconv.Itoa(addr.Port(defaults.MySQLListenPort)))
-	case proxySettings.DB.MySQLListenAddr != "":
-		addr, err := utils.ParseAddr(proxySettings.DB.MySQLListenAddr)
-		if err != nil {
-			return trace.BadParameter("failed to parse MySQL listen address received from server: %q, contact your administrator for help",
-				proxySettings.DB.MySQLListenAddr)
-		}
-		tc.MySQLProxyAddr = net.JoinHostPort(tc.WebProxyHost(), strconv.Itoa(addr.Port(defaults.MySQLListenPort)))
-	}
-
-	tc.TLSRoutingEnabled = proxySettings.TLSRoutingEnabled
-	if tc.TLSRoutingEnabled {
-		// If proxy supports TLS Routing all k8s requests will be sent to the WebProxyAddr where TLS Routing will identify
-		// k8s requests by "kube." SNI prefix and route to the kube proxy service.
-		tc.KubeProxyAddr = tc.WebProxyAddr
 	}
 
 	return nil
