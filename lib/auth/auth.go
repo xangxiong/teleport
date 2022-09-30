@@ -191,8 +191,7 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		Services:        services,
 		Cache:           services,
 		keyStore:        keyStore,
-		// getClaimsFun:    getClaims,
-		inventory: inventory.NewController(cfg.Presence),
+		inventory:       inventory.NewController(cfg.Presence),
 	}
 	for _, o := range opts {
 		if err := o(&as); err != nil {
@@ -215,7 +214,6 @@ type Services struct {
 	services.DynamicAccessExt
 	services.ClusterConfiguration
 	services.Restrictions
-	services.Apps
 	services.SessionTrackerService
 	services.ConnectionsDiagnostic
 	services.StatusInternal
@@ -1280,78 +1278,6 @@ func (a *Server) modeStreamer(ctx context.Context) (events.Streamer, error) {
 	// session recording to be uploaded at the end of the session,
 	// so forwarding events here will result in duplicate events.
 	return a.streamer, nil
-}
-
-// CreateApp creates a new application resource.
-func (a *Server) CreateApp(ctx context.Context, app types.Application) error {
-	if err := a.Services.CreateApp(ctx, app); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AppCreate{
-		Metadata: apievents.Metadata{
-			Type: events.AppCreateEvent,
-			Code: events.AppCreateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    app.GetName(),
-			Expires: app.Expiry(),
-		},
-		AppMetadata: apievents.AppMetadata{
-			AppURI:        app.GetURI(),
-			AppPublicAddr: app.GetPublicAddr(),
-			AppLabels:     app.GetStaticLabels(),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit app create event.")
-	}
-	return nil
-}
-
-// UpdateApp updates an existing application resource.
-func (a *Server) UpdateApp(ctx context.Context, app types.Application) error {
-	if err := a.Services.UpdateApp(ctx, app); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AppUpdate{
-		Metadata: apievents.Metadata{
-			Type: events.AppUpdateEvent,
-			Code: events.AppUpdateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    app.GetName(),
-			Expires: app.Expiry(),
-		},
-		AppMetadata: apievents.AppMetadata{
-			AppURI:        app.GetURI(),
-			AppPublicAddr: app.GetPublicAddr(),
-			AppLabels:     app.GetStaticLabels(),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit app update event.")
-	}
-	return nil
-}
-
-// DeleteApp deletes an application resource.
-func (a *Server) DeleteApp(ctx context.Context, name string) error {
-	if err := a.Services.DeleteApp(ctx, name); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AppDelete{
-		Metadata: apievents.Metadata{
-			Type: events.AppDeleteEvent,
-			Code: events.AppDeleteCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: name,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit app delete event.")
-	}
-	return nil
 }
 
 // CreateSessionTracker creates a tracker resource for an active session.

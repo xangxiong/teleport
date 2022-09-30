@@ -1207,7 +1207,6 @@ type ClientI interface {
 	services.Access
 	services.DynamicAccess
 	services.Restrictions
-	services.Apps
 	session.Service
 	services.Status
 	services.ClusterConfiguration

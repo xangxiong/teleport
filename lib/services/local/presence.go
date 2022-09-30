@@ -1063,18 +1063,9 @@ func (s *PresenceService) listResources(ctx context.Context, req proto.ListResou
 	var unmarshalItemFunc backendItemToResourceFunc
 
 	switch req.ResourceType {
-	case types.KindDatabaseServer:
-		keyPrefix = []string{dbServersPrefix, req.Namespace}
-		unmarshalItemFunc = backendItemToDatabaseServer
-	case types.KindAppServer:
-		keyPrefix = []string{appServersPrefix, req.Namespace}
-		unmarshalItemFunc = backendItemToApplicationServer
 	case types.KindNode:
 		keyPrefix = []string{nodesPrefix, req.Namespace}
 		unmarshalItemFunc = backendItemToServer(types.KindNode)
-	case types.KindKubeService:
-		keyPrefix = []string{kubeServicesPrefix}
-		unmarshalItemFunc = backendItemToServer(types.KindKubeService)
 	default:
 		return nil, trace.NotImplemented("%s not implemented at ListResources", req.ResourceType)
 	}
@@ -1212,26 +1203,6 @@ func FakePaginate(resources []types.ResourceWithLabels, req proto.ListResourcesR
 		NextKey:    nextKey,
 		TotalCount: totalCount,
 	}, nil
-}
-
-// backendItemToDatabaseServer unmarshals `backend.Item` into a
-// `types.DatabaseServer`, returning it as a `types.Resource`.
-func backendItemToDatabaseServer(item backend.Item) (types.ResourceWithLabels, error) {
-	return services.UnmarshalDatabaseServer(
-		item.Value,
-		services.WithResourceID(item.ID),
-		services.WithExpires(item.Expires),
-	)
-}
-
-// backendItemToApplicationServer unmarshals `backend.Item` into a
-// `types.AppServer`, returning it as a `types.Resource`.
-func backendItemToApplicationServer(item backend.Item) (types.ResourceWithLabels, error) {
-	return services.UnmarshalAppServer(
-		item.Value,
-		services.WithResourceID(item.ID),
-		services.WithExpires(item.Expires),
-	)
 }
 
 // backendItemToServer returns `backendItemToResourceFunc` to unmarshal a
