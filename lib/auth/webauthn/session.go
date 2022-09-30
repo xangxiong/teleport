@@ -32,11 +32,6 @@ import (
 // Only one in-flight login is supported for MFA / per-user session data.
 const scopeLogin = "login"
 
-// scopeSession is used as the per-user sessionID for registrations.
-// Only one in-flight registration is supported per-user, baring registrations
-// that use in-memory storage.
-const scopeSession = "registration"
-
 func sessionToPB(sd *wan.SessionData) (*wantypes.SessionData, error) {
 	rawChallenge, err := base64.RawURLEncoding.DecodeString(sd.Challenge)
 	if err != nil {
