@@ -384,11 +384,11 @@ func AccessInfoFromRemoteIdentity(identity tlsca.Identity, roleMap types.RoleMap
 	// passing exact logins, Kubernetes users/groups and database users/names
 	// to the remote cluster.
 	traits := map[string][]string{
-		constants.TraitLogins:     identity.Principals,
-		constants.TraitKubeGroups: identity.KubernetesGroups,
-		constants.TraitKubeUsers:  identity.KubernetesUsers,
-		constants.TraitDBNames:    identity.DatabaseNames,
-		constants.TraitDBUsers:    identity.DatabaseUsers,
+		constants.TraitLogins: identity.Principals,
+		// constants.TraitKubeGroups: identity.KubernetesGroups,
+		// constants.TraitKubeUsers:  identity.KubernetesUsers,
+		constants.TraitDBNames: identity.DatabaseNames,
+		constants.TraitDBUsers: identity.DatabaseUsers,
 	}
 	// Prior to Teleport 6.2 no user traits were passed to remote clusters
 	// except for the internal ones specified above.

@@ -237,13 +237,13 @@ func (a *authorizer) authorizeRemoteUser(ctx context.Context, u RemoteUser) (*Co
 	ttl := time.Until(u.Identity.Expires)
 	ttl = checker.AdjustSessionTTL(ttl)
 
-	kubeUsers, kubeGroups, err := checker.CheckKubeGroupsAndUsers(ttl, false)
-	// IsNotFound means that the user has no k8s users or groups, which is fine
-	// in many cases. The downstream k8s handler will ensure that users/groups
-	// are set if this is a k8s request.
-	if err != nil && !trace.IsNotFound(err) {
-		return nil, trace.Wrap(err)
-	}
+	// kubeUsers, kubeGroups, err := checker.CheckKubeGroupsAndUsers(ttl, false)
+	// // IsNotFound means that the user has no k8s users or groups, which is fine
+	// // in many cases. The downstream k8s handler will ensure that users/groups
+	// // are set if this is a k8s request.
+	// if err != nil && !trace.IsNotFound(err) {
+	// 	return nil, trace.Wrap(err)
+	// }
 	principals, err := checker.CheckLoginDuration(ttl)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -253,24 +253,24 @@ func (a *authorizer) authorizeRemoteUser(ctx context.Context, u RemoteUser) (*Co
 	// This prevents downstream users from accidentally using the unmapped
 	// identity information and confusing who's accessing a resource.
 	identity := tlsca.Identity{
-		Username:         user.GetName(),
-		Groups:           user.GetRoles(),
-		Traits:           accessInfo.Traits,
-		Principals:       principals,
-		KubernetesGroups: kubeGroups,
-		KubernetesUsers:  kubeUsers,
-		TeleportCluster:  a.clusterName,
-		Expires:          time.Now().Add(ttl),
+		Username:   user.GetName(),
+		Groups:     user.GetRoles(),
+		Traits:     accessInfo.Traits,
+		Principals: principals,
+		// KubernetesGroups: kubeGroups,
+		// KubernetesUsers:  kubeUsers,
+		TeleportCluster: a.clusterName,
+		Expires:         time.Now().Add(ttl),
 
 		// These fields are for routing and restrictions, safe to re-use from
 		// unmapped identity.
-		Usage:             u.Identity.Usage,
-		RouteToCluster:    u.Identity.RouteToCluster,
-		KubernetesCluster: u.Identity.KubernetesCluster,
-		RouteToApp:        u.Identity.RouteToApp,
-		RouteToDatabase:   u.Identity.RouteToDatabase,
-		MFAVerified:       u.Identity.MFAVerified,
-		ClientIP:          u.Identity.ClientIP,
+		Usage:          u.Identity.Usage,
+		RouteToCluster: u.Identity.RouteToCluster,
+		// KubernetesCluster: u.Identity.KubernetesCluster,
+		RouteToApp:      u.Identity.RouteToApp,
+		RouteToDatabase: u.Identity.RouteToDatabase,
+		MFAVerified:     u.Identity.MFAVerified,
+		ClientIP:        u.Identity.ClientIP,
 	}
 
 	return &Context{
