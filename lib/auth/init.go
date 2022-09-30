@@ -93,10 +93,6 @@ type InitConfig struct {
 	// in configuration, so auth server will init the tunnels on the first start
 	ReverseTunnels []types.ReverseTunnel
 
-	// OIDCConnectors is a list of trusted OpenID Connect identity providers
-	// in configuration, so auth server will init the tunnels on the first start
-	OIDCConnectors []types.OIDCConnector
-
 	// Trust is a service that manages users and credentials
 	Trust services.Trust
 

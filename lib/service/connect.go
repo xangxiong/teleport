@@ -510,67 +510,50 @@ func (process *TeleportProcess) firstTimeConnect(role types.SystemRole) (*Connec
 		return nil, trace.Wrap(err)
 	}
 	var identity *auth.Identity
-	if process.getLocalAuth() != nil {
-		// Auth service is on the same host, no need to go though the invitation
-		// procedure.
-		process.log.Debugf("This server has local Auth server started, using it to add role to the cluster.")
-		var systemRoles []types.SystemRole
-		if role == types.RoleInstance {
-			// normally this is taken from the join token, but if we're dealing with a local auth server, we
-			// need to determine the roles for the instance cert ourselves.
-			systemRoles = process.getInstanceRoles()
-		}
-
-		identity, err = auth.LocalRegister(id, process.getLocalAuth(), additionalPrincipals, dnsNames, process.Config.AdvertiseIP, systemRoles)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	} else {
-		// Auth server is remote, so we need a provisioning token.
-		if !process.Config.HasToken() {
-			return nil, trace.BadParameter("%v must join a cluster and needs a provisioning token", role)
-		}
-
-		process.log.Infof("Joining the cluster with a secure token.")
-		const reason = "first-time-connect"
-		keyPair, err := process.generateKeyPair(role, reason)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		token, err := process.Config.Token()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		certs, err := auth.Register(auth.RegisterParams{
-			Token:                token,
-			ID:                   id,
-			Servers:              process.Config.AuthServers,
-			AdditionalPrincipals: additionalPrincipals,
-			DNSNames:             dnsNames,
-			PublicTLSKey:         keyPair.PublicTLSKey,
-			PublicSSHKey:         keyPair.PublicSSHKey,
-			CipherSuites:         process.Config.CipherSuites,
-			CAPins:               process.Config.CAPins,
-			CAPath:               filepath.Join(defaults.DataDir, defaults.CACertFile),
-			GetHostCredentials:   client.HostCredentials,
-			Clock:                process.Clock,
-			JoinMethod:           process.Config.JoinMethod,
-			CircuitBreakerConfig: process.Config.CircuitBreakerConfig,
-			FIPS:                 process.Config.FIPS,
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		identity, err = auth.ReadIdentityFromKeyPair(keyPair.PrivateKey, certs)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		process.deleteKeyPair(role, reason)
+	// Auth server is remote, so we need a provisioning token.
+	if !process.Config.HasToken() {
+		return nil, trace.BadParameter("%v must join a cluster and needs a provisioning token", role)
 	}
+
+	process.log.Infof("Joining the cluster with a secure token.")
+	const reason = "first-time-connect"
+	keyPair, err := process.generateKeyPair(role, reason)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	token, err := process.Config.Token()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	certs, err := auth.Register(auth.RegisterParams{
+		Token:                token,
+		ID:                   id,
+		Servers:              process.Config.AuthServers,
+		AdditionalPrincipals: additionalPrincipals,
+		DNSNames:             dnsNames,
+		PublicTLSKey:         keyPair.PublicTLSKey,
+		PublicSSHKey:         keyPair.PublicSSHKey,
+		CipherSuites:         process.Config.CipherSuites,
+		CAPins:               process.Config.CAPins,
+		CAPath:               filepath.Join(defaults.DataDir, defaults.CACertFile),
+		GetHostCredentials:   client.HostCredentials,
+		Clock:                process.Clock,
+		JoinMethod:           process.Config.JoinMethod,
+		CircuitBreakerConfig: process.Config.CircuitBreakerConfig,
+		FIPS:                 process.Config.FIPS,
+	})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	identity, err = auth.ReadIdentityFromKeyPair(keyPair.PrivateKey, certs)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	process.deleteKeyPair(role, reason)
 
 	process.log.Infof("%v has obtained credentials to connect to the cluster.", role)
 	var connector *Connector
