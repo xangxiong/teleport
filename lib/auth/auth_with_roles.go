@@ -2346,14 +2346,6 @@ func (a *ServerWithRoles) DeleteSemaphore(ctx context.Context, filter types.Sema
 	return a.authServer.DeleteSemaphore(ctx, filter)
 }
 
-func (a *ServerWithRoles) checkAccessToApp(app types.Application) error {
-	return a.context.Checker.CheckAccess(
-		app,
-		// MFA is not required for operations on app resources but
-		// will be enforced at the connection time.
-		services.AccessMFAParams{Verified: true})
-}
-
 func (a *ServerWithRoles) Close() error {
 	return a.authServer.Close()
 }
