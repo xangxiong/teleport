@@ -1068,128 +1068,6 @@ func (s *IdentityService) GetOIDCAuthRequest(ctx context.Context, stateToken str
 	return &req, nil
 }
 
-// UpsertSAMLConnector upserts SAML Connector
-func (s *IdentityService) UpsertSAMLConnector(ctx context.Context, connector types.SAMLConnector) error {
-	if err := services.ValidateSAMLConnector(connector); err != nil {
-		return trace.Wrap(err)
-	}
-	value, err := services.MarshalSAMLConnector(connector)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, connector.GetName()),
-		Value:   value,
-		Expires: connector.Expiry(),
-	}
-	_, err = s.Put(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-// DeleteSAMLConnector deletes SAML Connector by name
-func (s *IdentityService) DeleteSAMLConnector(ctx context.Context, name string) error {
-	if name == "" {
-		return trace.BadParameter("missing parameter name")
-	}
-	err := s.Delete(ctx, backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, name))
-	return trace.Wrap(err)
-}
-
-// GetSAMLConnector returns SAML connector data,
-// withSecrets includes or excludes secrets from return results
-func (s *IdentityService) GetSAMLConnector(ctx context.Context, name string, withSecrets bool) (types.SAMLConnector, error) {
-	if name == "" {
-		return nil, trace.BadParameter("missing parameter name")
-	}
-	item, err := s.Get(ctx, backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, name))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return nil, trace.NotFound("SAML connector %q is not configured", name)
-		}
-		return nil, trace.Wrap(err)
-	}
-	conn, err := services.UnmarshalSAMLConnector(
-		item.Value, services.WithExpires(item.Expires))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if !withSecrets {
-		keyPair := conn.GetSigningKeyPair()
-		if keyPair != nil {
-			keyPair.PrivateKey = ""
-			conn.SetSigningKeyPair(keyPair)
-		}
-	}
-	return conn, nil
-}
-
-// GetSAMLConnectors returns registered connectors
-// withSecrets includes or excludes private key values from return results
-func (s *IdentityService) GetSAMLConnectors(ctx context.Context, withSecrets bool) ([]types.SAMLConnector, error) {
-	startKey := backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix)
-	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	connectors := make([]types.SAMLConnector, len(result.Items))
-	for i, item := range result.Items {
-		conn, err := services.UnmarshalSAMLConnector(
-			item.Value, services.WithExpires(item.Expires))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if !withSecrets {
-			keyPair := conn.GetSigningKeyPair()
-			if keyPair != nil {
-				keyPair.PrivateKey = ""
-				conn.SetSigningKeyPair(keyPair)
-			}
-		}
-		connectors[i] = conn
-	}
-	return connectors, nil
-}
-
-// CreateSAMLAuthRequest creates new auth request
-func (s *IdentityService) CreateSAMLAuthRequest(ctx context.Context, req types.SAMLAuthRequest, ttl time.Duration) error {
-	if err := req.Check(); err != nil {
-		return trace.Wrap(err)
-	}
-	value, err := json.Marshal(req)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(webPrefix, connectorsPrefix, samlPrefix, requestsPrefix, req.ID),
-		Value:   value,
-		Expires: backend.Expiry(s.Clock(), ttl),
-	}
-	_, err = s.Create(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-// GetSAMLAuthRequest returns SAML auth request if found
-func (s *IdentityService) GetSAMLAuthRequest(ctx context.Context, id string) (*types.SAMLAuthRequest, error) {
-	if id == "" {
-		return nil, trace.BadParameter("missing parameter id")
-	}
-	item, err := s.Get(ctx, backend.Key(webPrefix, connectorsPrefix, samlPrefix, requestsPrefix, id))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var req types.SAMLAuthRequest
-	if err := json.Unmarshal(item.Value, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &req, nil
-}
-
 // CreateSSODiagnosticInfo creates new SAML diagnostic info record.
 func (s *IdentityService) CreateSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string, entry types.SSODiagnosticInfo) error {
 	if authRequestID == "" {
@@ -1243,118 +1121,6 @@ func (s *IdentityService) GetSSODiagnosticInfo(ctx context.Context, authKind str
 		return nil, trace.Wrap(err)
 	}
 
-	return &req, nil
-}
-
-// UpsertGithubConnector creates or updates a Github connector
-func (s *IdentityService) UpsertGithubConnector(ctx context.Context, connector types.GithubConnector) error {
-	if err := connector.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
-	value, err := services.MarshalGithubConnector(connector)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(webPrefix, connectorsPrefix, githubPrefix, connectorsPrefix, connector.GetName()),
-		Value:   value,
-		Expires: connector.Expiry(),
-		ID:      connector.GetResourceID(),
-	}
-	_, err = s.Put(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-// GetGithubConnectors returns all configured Github connectors
-func (s *IdentityService) GetGithubConnectors(ctx context.Context, withSecrets bool) ([]types.GithubConnector, error) {
-	startKey := backend.Key(webPrefix, connectorsPrefix, githubPrefix, connectorsPrefix)
-	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	connectors := make([]types.GithubConnector, len(result.Items))
-	for i, item := range result.Items {
-		connector, err := services.UnmarshalGithubConnector(item.Value)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if !withSecrets {
-			connector.SetClientSecret("")
-		}
-		connectors[i] = connector
-	}
-	return connectors, nil
-}
-
-// GetGithubConnector returns a particular Github connector.
-func (s *IdentityService) GetGithubConnector(ctx context.Context, name string, withSecrets bool) (types.GithubConnector, error) {
-	if name == "" {
-		return nil, trace.BadParameter("missing parameter name")
-	}
-	item, err := s.Get(ctx, backend.Key(webPrefix, connectorsPrefix, githubPrefix, connectorsPrefix, name))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return nil, trace.NotFound("github connector %q is not configured", name)
-		}
-		return nil, trace.Wrap(err)
-	}
-	connector, err := services.UnmarshalGithubConnector(item.Value)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if !withSecrets {
-		connector.SetClientSecret("")
-	}
-	return connector, nil
-}
-
-// DeleteGithubConnector deletes the specified connector
-func (s *IdentityService) DeleteGithubConnector(ctx context.Context, name string) error {
-	if name == "" {
-		return trace.BadParameter("missing parameter name")
-	}
-	return trace.Wrap(s.Delete(ctx, backend.Key(webPrefix, connectorsPrefix, githubPrefix, connectorsPrefix, name)))
-}
-
-// CreateGithubAuthRequest creates a new auth request for Github OAuth2 flow
-func (s *IdentityService) CreateGithubAuthRequest(ctx context.Context, req types.GithubAuthRequest) error {
-	err := req.Check()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	value, err := json.Marshal(req)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(webPrefix, connectorsPrefix, githubPrefix, requestsPrefix, req.StateToken),
-		Value:   value,
-		Expires: req.Expiry(),
-	}
-	_, err = s.Create(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-// GetGithubAuthRequest retrieves Github auth request by the token
-func (s *IdentityService) GetGithubAuthRequest(ctx context.Context, stateToken string) (*types.GithubAuthRequest, error) {
-	if stateToken == "" {
-		return nil, trace.BadParameter("missing parameter stateToken")
-	}
-	item, err := s.Get(ctx, backend.Key(webPrefix, connectorsPrefix, githubPrefix, requestsPrefix, stateToken))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var req types.GithubAuthRequest
-	err = json.Unmarshal(item.Value, &req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
 	return &req, nil
 }
 
@@ -1484,16 +1250,16 @@ func (s recoveryAttemptsChronologically) Swap(i, j int) {
 }
 
 const (
-	webPrefix                 = "web"
-	usersPrefix               = "users"
-	sessionsPrefix            = "sessions"
-	attemptsPrefix            = "attempts"
-	pwdPrefix                 = "pwd"
-	hotpPrefix                = "hotp"
-	connectorsPrefix          = "connectors"
-	oidcPrefix                = "oidc"
-	samlPrefix                = "saml"
-	githubPrefix              = "github"
+	webPrefix        = "web"
+	usersPrefix      = "users"
+	sessionsPrefix   = "sessions"
+	attemptsPrefix   = "attempts"
+	pwdPrefix        = "pwd"
+	hotpPrefix       = "hotp"
+	connectorsPrefix = "connectors"
+	oidcPrefix       = "oidc"
+	// samlPrefix                = "saml"
+	// githubPrefix              = "github"
 	requestsPrefix            = "requests"
 	requestsTracePrefix       = "requestsTrace"
 	usedTOTPPrefix            = "used_totp"

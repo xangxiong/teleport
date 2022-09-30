@@ -91,14 +91,8 @@ func itemsFromResource(resource types.Resource) ([]backend.Item, error) {
 		item, err = itemFromCertAuthority(r)
 	case types.TrustedCluster:
 		item, err = itemFromTrustedCluster(r)
-	case types.GithubConnector:
-		item, err = itemFromGithubConnector(r)
 	case types.Role:
 		item, err = itemFromRole(r)
-	case types.OIDCConnector:
-		item, err = itemFromOIDCConnector(r)
-	case types.SAMLConnector:
-		item, err = itemFromSAMLConnector(r)
 	default:
 		return nil, trace.NotImplemented("cannot itemFrom resource of type %T", resource)
 	}
@@ -154,14 +148,8 @@ func itemToResource(item backend.Item) (types.Resource, error) {
 		rsc, err = itemToCertAuthority(item)
 	case types.KindTrustedCluster:
 		rsc, err = itemToTrustedCluster(item)
-	case types.KindGithubConnector:
-		rsc, err = itemToGithubConnector(item)
 	case types.KindRole:
 		rsc, err = itemToRole(item)
-	case types.KindOIDCConnector:
-		rsc, err = itemToOIDCConnector(item)
-	case types.KindSAMLConnector:
-		rsc, err = itemToSAMLConnector(item)
 	case types.KindMFADevice:
 		rsc, err = itemToMFADevice(item)
 	case "":
@@ -280,38 +268,6 @@ func itemToTrustedCluster(item backend.Item) (types.TrustedCluster, error) {
 	return tc, nil
 }
 
-// itemFromGithubConnector attempts to encode the supplied github connector
-// as an instance of `backend.Item` suitable for storage.
-func itemFromGithubConnector(gc types.GithubConnector) (*backend.Item, error) {
-	if err := gc.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	value, err := services.MarshalGithubConnector(gc)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	item := &backend.Item{
-		Key:     backend.Key(webPrefix, connectorsPrefix, githubPrefix, connectorsPrefix, gc.GetName()),
-		Value:   value,
-		Expires: gc.Expiry(),
-		ID:      gc.GetResourceID(),
-	}
-	return item, nil
-}
-
-// itemToGithubConnector attempts to decode the supplied `backend.Item` as
-// a github connector resource.
-func itemToGithubConnector(item backend.Item) (types.GithubConnector, error) {
-	// XXX: The `GithubConnectorMarshaler` interface is an outlier in that it
-	// does not support marshal options (e.g. `WithResourceID(..)`).  Support should
-	// be added unless this is an intentional omission.
-	gc, err := services.UnmarshalGithubConnector(item.Value)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return gc, nil
-}
-
 // itemFromRole attempts to encode the supplied role as an
 // instance of `backend.Item` suitable for storage.
 func itemFromRole(role types.Role) (*backend.Item, error) {
@@ -341,69 +297,6 @@ func itemToRole(item backend.Item) (types.Role, error) {
 		return nil, trace.Wrap(err)
 	}
 	return role, nil
-}
-
-// itemFromOIDCConnector attempts to encode the supplied connector as an
-// instance of `backend.Item` suitable for storage.
-func itemFromOIDCConnector(connector types.OIDCConnector) (*backend.Item, error) {
-	value, err := services.MarshalOIDCConnector(connector)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	item := &backend.Item{
-		Key:     backend.Key(webPrefix, connectorsPrefix, oidcPrefix, connectorsPrefix, connector.GetName()),
-		Value:   value,
-		Expires: connector.Expiry(),
-		ID:      connector.GetResourceID(),
-	}
-	return item, nil
-}
-
-// itemToOIDCConnector attempts to decode the supplied `backend.Item` as
-// an oidc connector resource.
-func itemToOIDCConnector(item backend.Item) (types.OIDCConnector, error) {
-	connector, err := services.UnmarshalOIDCConnector(
-		item.Value,
-		services.WithResourceID(item.ID),
-		services.WithExpires(item.Expires),
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return connector, nil
-}
-
-// itemFromSAMLConnector attempts to encode the supplied connector as an
-// instance of `backend.Item` suitable for storage.
-func itemFromSAMLConnector(connector types.SAMLConnector) (*backend.Item, error) {
-	if err := services.ValidateSAMLConnector(connector); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	value, err := services.MarshalSAMLConnector(connector)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	item := &backend.Item{
-		Key:     backend.Key(webPrefix, connectorsPrefix, samlPrefix, connectorsPrefix, connector.GetName()),
-		Value:   value,
-		Expires: connector.Expiry(),
-		ID:      connector.GetResourceID(),
-	}
-	return item, nil
-}
-
-// itemToSAMLConnector attempts to decode the supplied `backend.Item` as
-// a saml connector resource.
-func itemToSAMLConnector(item backend.Item) (types.SAMLConnector, error) {
-	connector, err := services.UnmarshalSAMLConnector(
-		item.Value,
-		services.WithResourceID(item.ID),
-		services.WithExpires(item.Expires),
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return connector, nil
 }
 
 func itemToMFADevice(item backend.Item) (*types.MFADevice, error) {
