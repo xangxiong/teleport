@@ -57,7 +57,6 @@ import (
 	"github.com/gravitational/teleport/lib/client/terminal"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	kubeutils "github.com/gravitational/teleport/lib/kube/utils"
 	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/services"
@@ -2709,33 +2708,6 @@ func (tc *TeleportClient) ListAllNodes(ctx context.Context) ([]types.Server, err
 	return proxyClient.FindNodesByFilters(ctx, proto.ListResourcesRequest{
 		Namespace: tc.Namespace,
 	})
-}
-
-// ListKubeClustersWithFiltersAllClusters returns a map of all kube clusters in all clusters connected to a proxy.
-func (tc *TeleportClient) ListKubeClustersWithFiltersAllClusters(ctx context.Context, req proto.ListResourcesRequest) (map[string][]*types.KubernetesCluster, error) {
-	pc, err := tc.ConnectToProxy(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	clusters, err := pc.GetSites(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	kubeClusters := make(map[string][]*types.KubernetesCluster, 0)
-	for _, cluster := range clusters {
-		ac, err := pc.ConnectToCluster(ctx, cluster.Name)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		kc, err := kubeutils.ListKubeClustersWithFilters(ctx, ac, req)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		kubeClusters[cluster.Name] = kc
-	}
-
-	return kubeClusters, nil
 }
 
 // runCommandOnNodes executes a given bash command on a bunch of remote nodes.
