@@ -121,18 +121,11 @@ type Identity struct {
 	Usage []string
 	// Principals is a list of Unix logins allowed.
 	Principals []string
-	// // KubernetesGroups is a list of Kubernetes groups allowed
-	// KubernetesGroups []string
-	// // KubernetesUsers is a list of Kubernetes users allowed
-	// KubernetesUsers []string
 	// Expires specifies whenever the session will expire
 	Expires time.Time
 	// RouteToCluster specifies the target cluster
 	// if present in the session
 	RouteToCluster string
-	// // KubernetesCluster specifies the target kubernetes cluster for TLS
-	// // identities. This can be empty on older Teleport clients.
-	// KubernetesCluster string
 	// Traits hold claim data used to populate a role at runtime.
 	Traits wrappers.Traits
 	// RouteToApp holds routing information for applications. Routing metadata
@@ -255,16 +248,13 @@ func (id *Identity) GetEventIdentity() events.Identity {
 	}
 
 	return events.Identity{
-		User:         id.Username,
-		Impersonator: id.Impersonator,
-		Roles:        id.Groups,
-		Usage:        id.Usage,
-		Logins:       id.Principals,
-		// KubernetesGroups:   id.KubernetesGroups,
-		// KubernetesUsers:    id.KubernetesUsers,
-		Expires:        id.Expires,
-		RouteToCluster: id.RouteToCluster,
-		// KubernetesCluster:  id.KubernetesCluster,
+		User:               id.Username,
+		Impersonator:       id.Impersonator,
+		Roles:              id.Groups,
+		Usage:              id.Usage,
+		Logins:             id.Principals,
+		Expires:            id.Expires,
+		RouteToCluster:     id.RouteToCluster,
 		Traits:             id.Traits,
 		RouteToApp:         routeToApp,
 		TeleportCluster:    id.TeleportCluster,
@@ -298,18 +288,6 @@ func (id *Identity) CheckAndSetDefaults() error {
 //
 // http://oid-info.com/get/1.3.9999
 var (
-	// KubeUsersASN1ExtensionOID is an extension ID used when encoding/decoding
-	// license payload into certificates
-	KubeUsersASN1ExtensionOID = asn1.ObjectIdentifier{1, 3, 9999, 1, 1}
-
-	// KubeGroupsASN1ExtensionOID is an extension ID used when encoding/decoding
-	// license payload into certificates
-	KubeGroupsASN1ExtensionOID = asn1.ObjectIdentifier{1, 3, 9999, 1, 2}
-
-	// KubeClusterASN1ExtensionOID is an extension ID used when encoding/decoding
-	// target kubernetes cluster name into certificates.
-	KubeClusterASN1ExtensionOID = asn1.ObjectIdentifier{1, 3, 9999, 1, 3}
-
 	// AppSessionIDASN1ExtensionOID is an extension ID used to encode the application
 	// session ID into a certificate.
 	AppSessionIDASN1ExtensionOID = asn1.ObjectIdentifier{1, 3, 9999, 1, 4}
@@ -429,32 +407,6 @@ func (id *Identity) Subject() (pkix.Name, error) {
 				Value: systemRole,
 			})
 	}
-
-	// for i := range id.KubernetesUsers {
-	// 	kubeUser := id.KubernetesUsers[i]
-	// 	subject.ExtraNames = append(subject.ExtraNames,
-	// 		pkix.AttributeTypeAndValue{
-	// 			Type:  KubeUsersASN1ExtensionOID,
-	// 			Value: kubeUser,
-	// 		})
-	// }
-
-	// for i := range id.KubernetesGroups {
-	// 	kubeGroup := id.KubernetesGroups[i]
-	// 	subject.ExtraNames = append(subject.ExtraNames,
-	// 		pkix.AttributeTypeAndValue{
-	// 			Type:  KubeGroupsASN1ExtensionOID,
-	// 			Value: kubeGroup,
-	// 		})
-	// }
-
-	// if id.KubernetesCluster != "" {
-	// 	subject.ExtraNames = append(subject.ExtraNames,
-	// 		pkix.AttributeTypeAndValue{
-	// 			Type:  KubeClusterASN1ExtensionOID,
-	// 			Value: id.KubernetesCluster,
-	// 		})
-	// }
 
 	// Encode application routing metadata if provided.
 	if id.RouteToApp.SessionID != "" {
@@ -651,21 +603,6 @@ func FromSubject(subject pkix.Name, expires time.Time) (*Identity, error) {
 			if ok {
 				id.SystemRoles = append(id.SystemRoles, val)
 			}
-		// case attr.Type.Equal(KubeUsersASN1ExtensionOID):
-		// 	val, ok := attr.Value.(string)
-		// 	if ok {
-		// 		id.KubernetesUsers = append(id.KubernetesUsers, val)
-		// 	}
-		// case attr.Type.Equal(KubeGroupsASN1ExtensionOID):
-		// 	val, ok := attr.Value.(string)
-		// 	if ok {
-		// 		id.KubernetesGroups = append(id.KubernetesGroups, val)
-		// 	}
-		// case attr.Type.Equal(KubeClusterASN1ExtensionOID):
-		// 	val, ok := attr.Value.(string)
-		// 	if ok {
-		// 		id.KubernetesCluster = val
-		// 	}
 		case attr.Type.Equal(AppSessionIDASN1ExtensionOID):
 			val, ok := attr.Value.(string)
 			if ok {
@@ -783,14 +720,6 @@ func FromSubject(subject pkix.Name, expires time.Time) (*Identity, error) {
 			}
 		}
 	}
-
-	// // DELETE IN 11.0.0: This logic is using Province field
-	// // from subject in case if Kubernetes groups were not populated
-	// // from ASN1 extension, after 5.0 Province field will be ignored,
-	// // and after 10.0.0 Province field is never populated
-	// if len(id.KubernetesGroups) == 0 {
-	// 	id.KubernetesGroups = subject.Province
-	// }
 
 	if err := id.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)

@@ -53,10 +53,6 @@ type AccessChecker interface {
 	// returns a combined list of allowed logins.
 	CheckLoginDuration(ttl time.Duration) ([]string, error)
 
-	// CheckKubeGroupsAndUsers check if role can login into kubernetes
-	// and returns two lists of combined allowed groups and users
-	CheckKubeGroupsAndUsers(ttl time.Duration, overrideTTL bool, matchers ...RoleMatcher) (groups []string, users []string, err error)
-
 	// CheckAWSRoleARNs returns a list of AWS role ARNs role is allowed to assume.
 	CheckAWSRoleARNs(ttl time.Duration, overrideTTL bool) ([]string, error)
 
@@ -384,9 +380,7 @@ func AccessInfoFromRemoteIdentity(identity tlsca.Identity, roleMap types.RoleMap
 	// passing exact logins, Kubernetes users/groups and database users/names
 	// to the remote cluster.
 	traits := map[string][]string{
-		constants.TraitLogins: identity.Principals,
-		// constants.TraitKubeGroups: identity.KubernetesGroups,
-		// constants.TraitKubeUsers:  identity.KubernetesUsers,
+		constants.TraitLogins:  identity.Principals,
 		constants.TraitDBNames: identity.DatabaseNames,
 		constants.TraitDBUsers: identity.DatabaseUsers,
 	}

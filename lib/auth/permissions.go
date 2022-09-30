@@ -253,20 +253,17 @@ func (a *authorizer) authorizeRemoteUser(ctx context.Context, u RemoteUser) (*Co
 	// This prevents downstream users from accidentally using the unmapped
 	// identity information and confusing who's accessing a resource.
 	identity := tlsca.Identity{
-		Username:   user.GetName(),
-		Groups:     user.GetRoles(),
-		Traits:     accessInfo.Traits,
-		Principals: principals,
-		// KubernetesGroups: kubeGroups,
-		// KubernetesUsers:  kubeUsers,
+		Username:        user.GetName(),
+		Groups:          user.GetRoles(),
+		Traits:          accessInfo.Traits,
+		Principals:      principals,
 		TeleportCluster: a.clusterName,
 		Expires:         time.Now().Add(ttl),
 
 		// These fields are for routing and restrictions, safe to re-use from
 		// unmapped identity.
-		Usage:          u.Identity.Usage,
-		RouteToCluster: u.Identity.RouteToCluster,
-		// KubernetesCluster: u.Identity.KubernetesCluster,
+		Usage:           u.Identity.Usage,
+		RouteToCluster:  u.Identity.RouteToCluster,
 		RouteToApp:      u.Identity.RouteToApp,
 		RouteToDatabase: u.Identity.RouteToDatabase,
 		MFAVerified:     u.Identity.MFAVerified,
@@ -360,12 +357,11 @@ func roleSpecForProxyWithRecordAtProxy(clusterName string) types.RoleSpecV5 {
 func roleSpecForProxy(clusterName string) types.RoleSpecV5 {
 	return types.RoleSpecV5{
 		Allow: types.RoleConditions{
-			Namespaces:       []string{types.Wildcard},
-			ClusterLabels:    types.Labels{types.Wildcard: []string{types.Wildcard}},
-			NodeLabels:       types.Labels{types.Wildcard: []string{types.Wildcard}},
-			AppLabels:        types.Labels{types.Wildcard: []string{types.Wildcard}},
-			DatabaseLabels:   types.Labels{types.Wildcard: []string{types.Wildcard}},
-			KubernetesLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
+			Namespaces:     []string{types.Wildcard},
+			ClusterLabels:  types.Labels{types.Wildcard: []string{types.Wildcard}},
+			NodeLabels:     types.Labels{types.Wildcard: []string{types.Wildcard}},
+			AppLabels:      types.Labels{types.Wildcard: []string{types.Wildcard}},
+			DatabaseLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
 			Rules: []types.Rule{
 				types.NewRule(types.KindProxy, services.RW()),
 				types.NewRule(types.KindOIDCRequest, services.RW()),
@@ -888,12 +884,6 @@ type RemoteUser struct {
 
 	// Principals is a list of Unix logins.
 	Principals []string `json:"principals"`
-
-	// KubernetesGroups is a list of Kubernetes groups
-	KubernetesGroups []string `json:"kubernetes_groups"`
-
-	// KubernetesUsers is a list of Kubernetes users
-	KubernetesUsers []string `json:"kubernetes_users"`
 
 	// DatabaseNames is a list of database names a user can connect to.
 	DatabaseNames []string `json:"database_names"`
