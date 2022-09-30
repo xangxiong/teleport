@@ -55,7 +55,6 @@ import (
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/auth/keystore"
 	"github.com/gravitational/teleport/lib/auth/native"
-	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
@@ -1298,88 +1297,6 @@ func (a *Server) ListResources(ctx context.Context, req proto.ListResourcesReque
 	return a.Cache.ListResources(ctx, req)
 }
 
-// mfaAuthChallenge constructs an MFAAuthenticateChallenge for all MFA devices
-// registered by the user.
-func (a *Server) mfaAuthChallenge(ctx context.Context, user string, passwordless bool) (*proto.MFAAuthenticateChallenge, error) {
-	// Check what kind of MFA is enabled.
-	apref, err := a.GetAuthPreference(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	enableTOTP := apref.IsSecondFactorTOTPAllowed()
-	enableWebauthn := apref.IsSecondFactorWebauthnAllowed()
-
-	// Fetch configurations. The IsSecondFactor*Allowed calls above already
-	// include the necessary checks of config empty, disabled, etc.
-	var u2fPref *types.U2F
-	switch val, err := apref.GetU2F(); {
-	case trace.IsNotFound(err): // OK, may happen.
-	case err != nil: // NOK, unexpected.
-		return nil, trace.Wrap(err)
-	default:
-		u2fPref = val
-	}
-	var webConfig *types.Webauthn
-	switch val, err := apref.GetWebauthn(); {
-	case trace.IsNotFound(err): // OK, may happen.
-	case err != nil: // NOK, unexpected.
-		return nil, trace.Wrap(err)
-	default:
-		webConfig = val
-	}
-
-	// Handle passwordless separately, it works differently from MFA.
-	if passwordless {
-		if !enableWebauthn {
-			return nil, trace.BadParameter("passwordless requires WebAuthn")
-		}
-		webLogin := &wanlib.PasswordlessFlow{
-			Webauthn: webConfig,
-			Identity: a.Services,
-		}
-		assertion, err := webLogin.Begin(ctx)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return &proto.MFAAuthenticateChallenge{
-			WebauthnChallenge: wanlib.CredentialAssertionToProto(assertion),
-		}, nil
-	}
-
-	// User required for non-passwordless.
-	if user == "" {
-		return nil, trace.BadParameter("user required")
-	}
-
-	devs, err := a.Services.GetMFADevices(ctx, user, true /* withSecrets */)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	groupedDevs := groupByDeviceType(devs, enableWebauthn)
-	challenge := &proto.MFAAuthenticateChallenge{}
-
-	// TOTP challenge.
-	if enableTOTP && groupedDevs.TOTP {
-		challenge.TOTP = &proto.TOTPChallenge{}
-	}
-
-	// WebAuthn challenge.
-	if len(groupedDevs.Webauthn) > 0 {
-		webLogin := &wanlib.LoginFlow{
-			U2F:      u2fPref,
-			Webauthn: webConfig,
-			Identity: wanlib.WithDevices(a.Services, groupedDevs.Webauthn),
-		}
-		assertion, err := webLogin.Begin(ctx, user)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		challenge.WebauthnChallenge = wanlib.CredentialAssertionToProto(assertion)
-	}
-
-	return challenge, nil
-}
-
 type devicesByType struct {
 	TOTP     bool
 	Webauthn []*types.MFADevice
@@ -1404,67 +1321,6 @@ func groupByDeviceType(devs []*types.MFADevice, groupWebauthn bool) devicesByTyp
 		}
 	}
 	return res
-}
-
-// validateMFAAuthResponse validates an MFA or passwordless challenge.
-// Returns the device used to solve the challenge (if applicable) and the
-// username.
-func (a *Server) validateMFAAuthResponse(
-	ctx context.Context,
-	resp *proto.MFAAuthenticateResponse, user string, passwordless bool,
-) (*types.MFADevice, string, error) {
-	// Sanity check user/passwordless.
-	if user == "" && !passwordless {
-		return nil, "", trace.BadParameter("user required")
-	}
-
-	switch res := resp.Response.(type) {
-	// cases in order of preference
-	case *proto.MFAAuthenticateResponse_Webauthn:
-		// Read necessary configurations.
-		cap, err := a.GetAuthPreference(ctx)
-		if err != nil {
-			return nil, "", trace.Wrap(err)
-		}
-		u2f, err := cap.GetU2F()
-		switch {
-		case trace.IsNotFound(err): // OK, may happen.
-		case err != nil: // Unexpected.
-			return nil, "", trace.Wrap(err)
-		}
-		webConfig, err := cap.GetWebauthn()
-		if err != nil {
-			return nil, "", trace.Wrap(err)
-		}
-
-		assertionResp := wanlib.CredentialAssertionResponseFromProto(res.Webauthn)
-		var dev *types.MFADevice
-		if passwordless {
-			webLogin := &wanlib.PasswordlessFlow{
-				Webauthn: webConfig,
-				Identity: a.Services,
-			}
-			dev, user, err = webLogin.Finish(ctx, assertionResp)
-		} else {
-			webLogin := &wanlib.LoginFlow{
-				U2F:      u2f,
-				Webauthn: webConfig,
-				Identity: a.Services,
-			}
-			dev, err = webLogin.Finish(ctx, user, wanlib.CredentialAssertionResponseFromProto(res.Webauthn))
-		}
-		if err != nil {
-			return nil, "", trace.AccessDenied("MFA response validation failed: %v", err)
-		}
-		return dev, user, nil
-
-	case *proto.MFAAuthenticateResponse_TOTP:
-		dev, err := a.checkOTP(user, res.TOTP.Code)
-		return dev, user, trace.Wrap(err)
-
-	default:
-		return nil, "", trace.BadParameter("unknown or missing MFAAuthenticateResponse type %T", resp.Response)
-	}
 }
 
 func mergeKeySets(a, b types.CAKeySet) types.CAKeySet {
