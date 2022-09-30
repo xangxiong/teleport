@@ -420,57 +420,6 @@ func (s *Server) getResetPasswordToken(ctx context.Context, tokenID string) (typ
 	return token, nil
 }
 
-// createRecoveryToken creates a user token for account recovery.
-func (s *Server) createRecoveryToken(ctx context.Context, username, tokenType string, usage types.UserTokenUsage) (types.UserToken, error) {
-	if tokenType != UserTokenTypeRecoveryStart && tokenType != UserTokenTypeRecoveryApproved {
-		return nil, trace.BadParameter("invalid recovery token type: %s", tokenType)
-	}
-
-	if usage != types.UserTokenUsage_USER_TOKEN_RECOVER_MFA && usage != types.UserTokenUsage_USER_TOKEN_RECOVER_PASSWORD {
-		return nil, trace.BadParameter("invalid recovery token usage type %s", usage.String())
-	}
-
-	req := CreateUserTokenRequest{
-		Name: username,
-		Type: tokenType,
-	}
-
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	newToken, err := s.newUserToken(req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Mark what recover type user requested.
-	newToken.SetUsage(usage)
-
-	if _, err := s.CreateUserToken(ctx, newToken); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserTokenCreate{
-		Metadata: apievents.Metadata{
-			Type: events.RecoveryTokenCreateEvent,
-			Code: events.RecoveryTokenCreateCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: username,
-		},
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    req.Name,
-			TTL:     req.TTL.String(),
-			Expires: s.GetClock().Now().UTC().Add(req.TTL),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit create recovery token event.")
-	}
-
-	return newToken, nil
-}
-
 // CreatePrivilegeToken implements AuthService.CreatePrivilegeToken.
 func (s *Server) CreatePrivilegeToken(ctx context.Context, req *proto.CreatePrivilegeTokenRequest) (*types.UserTokenV3, error) {
 	username, err := GetClientUsername(ctx)
