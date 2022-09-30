@@ -28,7 +28,6 @@ import (
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/api/types/wrappers"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/defaults"
@@ -1863,39 +1862,6 @@ func (a *ServerWithRoles) GenerateHostCert(
 // NewKeepAliver not implemented: can only be called locally.
 func (a *ServerWithRoles) NewKeepAliver(ctx context.Context) (types.KeepAliver, error) {
 	return nil, trace.NotImplemented(notImplementedMessage)
-}
-
-// desiredAccessInfoForImpersonation returns the desired AccessInfo for an
-// impersonation request.
-func (a *ServerWithRoles) desiredAccessInfoForImpersonation(req *proto.UserCertsRequest, user types.User) (*services.AccessInfo, error) {
-	return &services.AccessInfo{
-		Roles:  user.GetRoles(),
-		Traits: user.GetTraits(),
-	}, nil
-}
-
-// desiredAccessInfoForRoleRequest returns the desired roles for a role request.
-func (a *ServerWithRoles) desiredAccessInfoForRoleRequest(req *proto.UserCertsRequest, traits wrappers.Traits) (*services.AccessInfo, error) {
-	// If UseRoleRequests is set, make sure we don't return unusable certs: an
-	// identity without roles can't be parsed.
-	// DEPRECATED: consider making role requests without UseRoleRequests set an
-	// error in V11.
-	if req.UseRoleRequests && len(req.RoleRequests) == 0 {
-		return nil, trace.BadParameter("at least one role request is required")
-	}
-
-	// If role requests are provided, attempt to satisfy them instead of
-	// pulling them directly from the logged in identity. Role requests
-	// are intended to reduce allowed permissions so we'll accept them
-	// as-is for now (and ensure the user is allowed to assume them
-	// later).
-	//
-	// Traits are copied across from the impersonating user so that role
-	// variables within the impersonated role behave as expected.
-	return &services.AccessInfo{
-		Roles:  req.RoleRequests,
-		Traits: traits,
-	}, nil
 }
 
 // GetSSODiagnosticInfo returns SSO diagnostic info records.
