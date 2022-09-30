@@ -127,19 +127,6 @@ func (a *ServerWithRoles) currentUserAction(username string) error {
 		apidefaults.Namespace, types.KindUser, types.VerbCreate, true)
 }
 
-// authConnectorAction is a special checker that grants access to auth
-// connectors. It first checks if you have access to the specific connector.
-// If not, it checks if the requester has the meta KindAuthConnector access
-// (which grants access to all connectors).
-func (a *ServerWithRoles) authConnectorAction(namespace string, resource string, verb string) error {
-	if err := a.context.Checker.CheckAccessToRule(&services.Context{User: a.context.User}, namespace, resource, verb, true); err != nil {
-		if err := a.context.Checker.CheckAccessToRule(&services.Context{User: a.context.User}, namespace, types.KindAuthConnector, verb, false); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
 // actionForListWithCondition extracts a restrictive filter condition to be
 // added to a list query after a simple resource check fails.
 func (a *ServerWithRoles) actionForListWithCondition(namespace, resource, identifier string) (*types.WhereExpr, error) {
@@ -3364,19 +3351,6 @@ func (a *ServerWithRoles) canDeleteWebSession(username string) error {
 	}
 
 	return nil
-}
-
-// GenerateAppToken creates a JWT token with application access.
-func (a *ServerWithRoles) GenerateAppToken(ctx context.Context, req types.GenerateAppTokenRequest) (string, error) {
-	if err := a.action(apidefaults.Namespace, types.KindJWT, types.VerbCreate); err != nil {
-		return "", trace.Wrap(err)
-	}
-
-	session, err := a.authServer.generateAppToken(ctx, req.Username, req.Roles, req.URI, req.Expires)
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-	return session, nil
 }
 
 func (a *ServerWithRoles) Close() error {

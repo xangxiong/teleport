@@ -1131,28 +1131,6 @@ func (g *GRPCServer) GenerateSnowflakeJWT(ctx context.Context, req *proto.Snowfl
 	return response, nil
 }
 
-// GenerateAppToken creates a JWT token with application access.
-func (g GRPCServer) GenerateAppToken(ctx context.Context, req *proto.GenerateAppTokenRequest) (*proto.GenerateAppTokenResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	token, err := auth.GenerateAppToken(ctx, types.GenerateAppTokenRequest{
-		Username: req.Username,
-		Roles:    req.Roles,
-		URI:      req.URI,
-		Expires:  req.Expires,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return &proto.GenerateAppTokenResponse{
-		Token: token,
-	}, nil
-}
-
 // GetWebSession gets a web session.
 func (g *GRPCServer) GetWebSession(ctx context.Context, req *types.GetWebSessionRequest) (*proto.GetWebSessionResponse, error) {
 	auth, err := g.authenticate(ctx)
