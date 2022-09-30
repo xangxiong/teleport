@@ -28,7 +28,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/gravitational/teleport/lib/defaults"
-	dbcommon "github.com/gravitational/teleport/lib/srv/db/dbutils"
 	"github.com/gravitational/teleport/lib/utils"
 )
 
@@ -142,19 +141,6 @@ func (l *WebListener) detectAndForward(conn *tls.Conn) {
 	if err != nil {
 		l.log.WithError(err).Warn("Failed to reset connection read deadline")
 		conn.Close()
-		return
-	}
-
-	// Inspect the client certificate (if there's any) and forward the
-	// connection either to database access listener if identity encoded
-	// in the cert indicates this is a database connection, or to a regular
-	// tls listener.
-	isDatabaseConnection, err := dbcommon.IsDatabaseConnection(conn.ConnectionState())
-	if err != nil {
-		l.log.WithError(err).Debug("Failed to check if connection is database connection.")
-	}
-	if isDatabaseConnection {
-		l.dbListener.HandleConnection(l.context, conn)
 		return
 	}
 
