@@ -609,54 +609,6 @@ func (cfg *TestTLSServerConfig) CheckAndSetDefaults() error {
 	return nil
 }
 
-// // NewTestTLSServer returns new test TLS server that is started and is listening
-// // on 127.0.0.1 loopback on any available port
-// func NewTestTLSServer(cfg TestTLSServerConfig) (*TestTLSServer, error) {
-// 	err := cfg.CheckAndSetDefaults()
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	srv := &TestTLSServer{
-// 		TestTLSServerConfig: cfg,
-// 	}
-// 	srv.Identity, err = NewServerIdentity(srv.AuthServer.AuthServer, "test-tls-server", types.RoleAuth)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	// Register TLS endpoint of the auth service
-// 	tlsConfig, err := srv.Identity.TLSConfig(srv.AuthServer.CipherSuites)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	tlsConfig.Time = cfg.AuthServer.Clock().Now
-
-// 	accessPoint, err := NewAdminAuthServer(srv.AuthServer.AuthServer, srv.AuthServer.SessionServer, srv.AuthServer.AuditLog)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	srv.Listener, err = net.Listen("tcp", "127.0.0.1:0")
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	srv.TLSServer, err = NewTLSServer(TLSServerConfig{
-// 		Listener:      srv.Listener,
-// 		AccessPoint:   accessPoint,
-// 		TLS:           tlsConfig,
-// 		APIConfig:     *srv.APIConfig,
-// 		LimiterConfig: *srv.Limiter,
-// 		AcceptedUsage: cfg.AcceptedUsage,
-// 	})
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	if err := srv.Start(); err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	return srv, nil
-// }
-
 // TestIdentity is test identity spec used to generate identities in tests
 type TestIdentity struct {
 	I              interface{}
@@ -1042,32 +994,5 @@ func CreateUserAndRole(clt clt, username string, allowedLogins []string) (types.
 	if err != nil {
 		return nil, nil, trace.Wrap(err)
 	}
-	return user, role, nil
-}
-
-// CreateUserAndRoleWithoutRoles creates user and role, but does not assign user to a role, used in tests
-func CreateUserAndRoleWithoutRoles(clt clt, username string, allowedLogins []string) (types.User, types.Role, error) {
-	ctx := context.TODO()
-	user, err := types.NewUser(username)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-
-	role := services.RoleForUser(user)
-	set := services.MakeRuleSet(role.GetRules(types.Allow))
-	delete(set, types.KindRole)
-	role.SetRules(types.Allow, set.Slice())
-	role.SetLogins(types.Allow, []string{user.GetName()})
-	err = clt.UpsertRole(ctx, role)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-
-	user.AddRole(role.GetName())
-	err = clt.UpsertUser(user)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-
 	return user, role, nil
 }
