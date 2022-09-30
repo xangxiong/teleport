@@ -3655,15 +3655,15 @@ func (a *ServerWithRoles) DeleteSemaphore(ctx context.Context, filter types.Sema
 	return a.authServer.DeleteSemaphore(ctx, filter)
 }
 
-// ProcessKubeCSR processes CSR request against Kubernetes CA, returns
-// signed certificate if successful.
-func (a *ServerWithRoles) ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error) {
-	// limits the requests types to proxies to make it harder to break
-	if !a.hasBuiltinRole(types.RoleProxy) {
-		return nil, trace.AccessDenied("this request can be only executed by a proxy")
-	}
-	return a.authServer.ProcessKubeCSR(req)
-}
+// // ProcessKubeCSR processes CSR request against Kubernetes CA, returns
+// // signed certificate if successful.
+// func (a *ServerWithRoles) ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error) {
+// 	// limits the requests types to proxies to make it harder to break
+// 	if !a.hasBuiltinRole(types.RoleProxy) {
+// 		return nil, trace.AccessDenied("this request can be only executed by a proxy")
+// 	}
+// 	return a.authServer.ProcessKubeCSR(req)
+// }
 
 // GetDatabaseServers returns all registered database servers.
 func (a *ServerWithRoles) GetDatabaseServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.DatabaseServer, error) {

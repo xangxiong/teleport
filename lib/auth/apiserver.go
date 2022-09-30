@@ -86,9 +86,6 @@ func NewAPIServer(config *APIConfig) (http.Handler, error) {
 	srv.Router = *httprouter.New()
 	srv.Router.UseRawPath = true
 
-	// Kubernetes extensions
-	srv.POST("/:version/kube/csr", srv.withAuth(srv.processKubeCSR))
-
 	// Operations on certificate authorities
 	srv.GET("/:version/domain", srv.withAuth(srv.getDomainName))    // DELETE IN 11.0.0 REST method replaced by gRPC
 	srv.GET("/:version/cacert", srv.withAuth(srv.getClusterCACert)) // DELETE IN 11.0.0 REST method replaced by gRPC
@@ -1547,21 +1544,6 @@ func (s *APIServer) deleteAllRemoteClusters(auth ClientI, w http.ResponseWriter,
 		return nil, trace.Wrap(err)
 	}
 	return message("ok"), nil
-}
-
-func (s *APIServer) processKubeCSR(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	var req KubeCSR
-
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	re, err := auth.ProcessKubeCSR(req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return re, nil
 }
 
 func message(msg string) map[string]interface{} {

@@ -274,23 +274,6 @@ func (c *Client) Delete(ctx context.Context, u string) (*roundtrip.Response, err
 	return httplib.ConvertResponse(c.Client.Delete(ctx, u))
 }
 
-// ProcessKubeCSR processes CSR request against Kubernetes CA, returns
-// signed certificate if successful.
-func (c *Client) ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error) {
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	out, err := c.PostJSON(context.TODO(), c.Endpoint("kube", "csr"), req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var re KubeCSRResponse
-	if err := json.Unmarshal(out.Bytes(), &re); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &re, nil
-}
-
 // GetSessions returns a list of active sessions in the cluster as reported by
 // the auth server.
 func (c *Client) GetSessions(ctx context.Context, namespace string) ([]session.Session, error) {
@@ -1658,10 +1641,6 @@ type ClientI interface {
 	// GenerateHostCerts generates new host certificates (signed
 	// by the host certificate authority) for a node
 	GenerateHostCerts(context.Context, *proto.HostCertsRequest) (*proto.Certs, error)
-
-	// ProcessKubeCSR processes CSR request against Kubernetes CA, returns
-	// signed certificate if successful.
-	ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error)
 
 	// Ping gets basic info about the auth server.
 	Ping(ctx context.Context) (proto.PingResponse, error)
