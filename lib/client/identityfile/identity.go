@@ -30,7 +30,6 @@ import (
 	"github.com/gravitational/teleport/api/identityfile"
 	"github.com/gravitational/teleport/api/utils/keypaths"
 	"github.com/gravitational/teleport/lib/client"
-	"github.com/gravitational/teleport/lib/kube/kubeconfig"
 	"github.com/gravitational/teleport/lib/sshutils"
 	"github.com/gravitational/teleport/lib/utils/prompt"
 
@@ -316,28 +315,6 @@ func Write(cfg WriteConfig) (filesWritten []string, err error) {
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-	case FormatKubernetes:
-		filesWritten = append(filesWritten, cfg.OutputPath)
-		if err := checkOverwrite(writer, cfg.OverwriteDestination, filesWritten...); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		// Clean up the existing file, if it exists.
-		//
-		// kubeconfig.Update would try to parse it and merge in new
-		// credentials, which is not what we want.
-		if err := writer.Remove(cfg.OutputPath); err != nil && !os.IsNotExist(err) {
-			return nil, trace.Wrap(err)
-		}
-
-		if err := kubeconfig.Update(cfg.OutputPath, kubeconfig.Values{
-			TeleportClusterName: cfg.Key.ClusterName,
-			ClusterAddr:         cfg.KubeProxyAddr,
-			Credentials:         cfg.Key,
-			TLSServerName:       cfg.KubeTLSServerName,
-		}); err != nil {
-			return nil, trace.Wrap(err)
-		}
-
 	default:
 		return nil, trace.BadParameter("unsupported identity format: %q, use one of %s", cfg.Format, KnownFileFormats)
 	}
