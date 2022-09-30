@@ -827,38 +827,6 @@ func (c *Client) CheckPassword(user string, password []byte, otpToken string) er
 	return trace.Wrap(err)
 }
 
-// AuthenticateWebUser authenticates web user, creates and  returns web session
-// in case if authentication is successful
-func (c *Client) AuthenticateWebUser(ctx context.Context, req AuthenticateUserRequest) (types.WebSession, error) {
-	out, err := c.PostJSON(
-		ctx,
-		c.Endpoint("users", req.Username, "web", "authenticate"),
-		req,
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return services.UnmarshalWebSession(out.Bytes())
-}
-
-// GetWebSessionInfo checks if a web sesion is valid, returns session id in case if
-// it is valid, or error otherwise.
-func (c *Client) GetWebSessionInfo(ctx context.Context, user, sessionID string) (types.WebSession, error) {
-	out, err := c.Get(
-		ctx,
-		c.Endpoint("users", user, "web", "sessions", sessionID), url.Values{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return services.UnmarshalWebSession(out.Bytes())
-}
-
-// DeleteWebSession deletes the web session specified with sid for the given user
-func (c *Client) DeleteWebSession(ctx context.Context, user string, sid string) error {
-	_, err := c.Delete(ctx, c.Endpoint("users", user, "web", "sessions", sid))
-	return trace.Wrap(err)
-}
-
 // GenerateHostCert takes the public key in the Open SSH “authorized_keys“
 // plain text format, signs it using Host Certificate Authority private key and returns the
 // resulting certificate.
@@ -1203,13 +1171,6 @@ func (c *Client) UpdatePresence(ctx context.Context, sessionID, user string) err
 	return trace.NotImplemented(notImplementedMessage)
 }
 
-// WebService implements features used by Web UI clients
-type WebService interface {
-	// GetWebSessionInfo checks if a web session is valid, returns session id in case if
-	// it is valid, or error otherwise.
-	GetWebSessionInfo(ctx context.Context, user, sessionID string) (types.WebSession, error)
-}
-
 // IdentityService manages identities and users
 type IdentityService interface {
 	// GetSSODiagnosticInfo returns SSO diagnostic info records.
@@ -1289,7 +1250,6 @@ type ClientI interface {
 	services.DynamicAccess
 	services.Restrictions
 	services.Apps
-	WebService
 	session.Service
 	services.Status
 	services.ClusterConfiguration
@@ -1297,7 +1257,6 @@ type ClientI interface {
 	services.ConnectionsDiagnostic
 	types.Events
 
-	types.WebSessionsGetter
 	types.WebTokensGetter
 
 	// NewKeepAliver returns a new instance of keep aliver
@@ -1329,10 +1288,6 @@ type ClientI interface {
 
 	// Ping gets basic info about the auth server.
 	Ping(ctx context.Context) (proto.PingResponse, error)
-
-	// GetWebSession queries the existing web session described with req.
-	// Implements ReadAccessPoint.
-	GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error)
 
 	// GetWebToken queries the existing web token described with req.
 	// Implements ReadAccessPoint.

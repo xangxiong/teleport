@@ -399,54 +399,6 @@ func (s *ServicesTestSuite) PasswordHashCRUD(t *testing.T) {
 	require.Empty(t, cmp.Diff(hash, []byte("hello321")))
 }
 
-func (s *ServicesTestSuite) WebSessionCRUD(t *testing.T) {
-	ctx := context.Background()
-	req := types.GetWebSessionRequest{User: "user1", SessionID: "sid1"}
-	_, err := s.WebS.WebSessions().Get(ctx, req)
-	require.Equal(t, trace.IsNotFound(err), true, fmt.Sprintf("%#v", err))
-
-	dt := s.Clock.Now().Add(1 * time.Minute)
-	ws, err := types.NewWebSession("sid1", types.KindWebSession,
-		types.WebSessionSpecV2{
-			User:    "user1",
-			Pub:     []byte("pub123"),
-			Priv:    []byte("priv123"),
-			Expires: dt,
-		})
-	require.NoError(t, err)
-
-	err = s.WebS.WebSessions().Upsert(ctx, ws)
-	require.NoError(t, err)
-
-	out, err := s.WebS.WebSessions().Get(ctx, req)
-	require.NoError(t, err)
-	require.Empty(t, cmp.Diff(out, ws))
-
-	ws1, err := types.NewWebSession("sid1", types.KindWebSession,
-		types.WebSessionSpecV2{
-			User:    "user1",
-			Pub:     []byte("pub321"),
-			Priv:    []byte("priv321"),
-			Expires: dt,
-		})
-	require.NoError(t, err)
-
-	err = s.WebS.WebSessions().Upsert(ctx, ws1)
-	require.NoError(t, err)
-
-	out2, err := s.WebS.WebSessions().Get(ctx, req)
-	require.NoError(t, err)
-	require.Empty(t, cmp.Diff(out2, ws1))
-
-	require.NoError(t, s.WebS.WebSessions().Delete(ctx, types.DeleteWebSessionRequest{
-		User:      req.User,
-		SessionID: req.SessionID,
-	}))
-
-	_, err = s.WebS.WebSessions().Get(ctx, req)
-	require.True(t, trace.IsNotFound(err))
-}
-
 func (s *ServicesTestSuite) TokenCRUD(t *testing.T) {
 	ctx := context.Background()
 	_, err := s.ProvisioningS.GetToken(ctx, "token")

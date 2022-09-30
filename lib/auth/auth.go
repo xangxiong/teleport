@@ -223,12 +223,6 @@ type Services struct {
 	events.IAuditLog
 }
 
-// GetWebSession returns existing web session described by req.
-// Implements ReadAccessPoint
-func (r *Services) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
-	return r.Identity.WebSessions().Get(ctx, req)
-}
-
 // GetWebToken returns existing web token described by req.
 // Implements ReadAccessPoint
 func (r *Services) GetWebToken(ctx context.Context, req types.GetWebTokenRequest) (types.WebToken, error) {
@@ -650,12 +644,6 @@ func (a *Server) deleteMFADeviceSafely(ctx context.Context, user, deviceName str
 		return nil, trace.Wrap(err)
 	}
 	return deviceToDelete, nil
-}
-
-// GetWebSession returns existing web session described by req. Explicitly
-// delegating to Services as it's directly implemented by Cache as well.
-func (a *Server) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
-	return a.Services.GetWebSession(ctx, req)
 }
 
 // GetWebToken returns existing web token described by req. Explicitly
@@ -1092,17 +1080,6 @@ func (a *Server) GetTokens(ctx context.Context, opts ...services.MarshalOption) 
 		tokens = append(tokens, tok)
 	}
 	return tokens, nil
-}
-
-// GetWebSessionInfo returns the web session specified with sessionID for the given user.
-// The session is stripped of any authentication details.
-// Implements auth.WebUIService
-func (a *Server) GetWebSessionInfo(ctx context.Context, user, sessionID string) (types.WebSession, error) {
-	sess, err := a.GetWebSession(ctx, types.GetWebSessionRequest{User: user, SessionID: sessionID})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return sess.WithoutSecrets(), nil
 }
 
 func (a *Server) DeleteNamespace(namespace string) error {

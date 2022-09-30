@@ -98,8 +98,8 @@ func NewAPIServer(config *APIConfig) (http.Handler, error) {
 	srv.POST("/:version/ca/host/certs", srv.withAuth(srv.generateHostCert))
 
 	// Passwords and sessions
-	srv.GET("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.getWebSession))
-	srv.DELETE("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.deleteWebSession))
+	// srv.GET("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.getWebSession))
+	// srv.DELETE("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.deleteWebSession))
 
 	// Servers and presence heartbeat
 	srv.POST("/:version/namespaces/:namespace/nodes/keepalive", srv.withAuth(srv.keepAliveNode))
@@ -418,27 +418,6 @@ func (s *APIServer) validateTrustedCluster(auth ClientI, w http.ResponseWriter, 
 	}
 
 	return validateResponseRaw, nil
-}
-
-func (s *APIServer) deleteWebSession(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	user, sessionID := p.ByName("user"), p.ByName("sid")
-	err := auth.WebSessions().Delete(r.Context(), types.DeleteWebSessionRequest{
-		User:      user,
-		SessionID: sessionID,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return message(fmt.Sprintf("session %q for user %q deleted", sessionID, user)), nil
-}
-
-func (s *APIServer) getWebSession(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	user, sid := p.ByName("user"), p.ByName("sid")
-	sess, err := auth.GetWebSessionInfo(r.Context(), user, sid)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return rawMessage(services.MarshalWebSession(sess, services.WithVersion(version)))
 }
 
 type WebSessionReq struct {

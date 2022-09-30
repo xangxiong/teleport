@@ -995,43 +995,12 @@ func (a *ServerWithRoles) NewWatcher(ctx context.Context, watch types.Watch) (ty
 					return nil, trace.Wrap(err)
 				}
 			}
-		case types.KindAppServer:
-			if err := a.action(apidefaults.Namespace, types.KindAppServer, types.VerbRead); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		case types.KindWebSession:
-			var filter types.WebSessionFilter
-			if err := filter.FromMap(kind.Filter); err != nil {
-				return nil, trace.Wrap(err)
-			}
-			resource := types.KindWebSession
-			// Allow reading Snowflake sessions to DB service.
-			if kind.SubKind == types.KindSnowflakeSession {
-				resource = types.KindDatabase
-			}
-			if filter.User == "" || a.currentUserAction(filter.User) != nil {
-				if err := a.action(apidefaults.Namespace, resource, types.VerbRead); err != nil {
-					return nil, trace.Wrap(err)
-				}
-			}
 		case types.KindWebToken:
 			if err := a.action(apidefaults.Namespace, types.KindWebToken, types.VerbRead); err != nil {
 				return nil, trace.Wrap(err)
 			}
 		case types.KindRemoteCluster:
 			if err := a.action(apidefaults.Namespace, types.KindRemoteCluster, types.VerbRead); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		case types.KindDatabaseServer:
-			if err := a.action(apidefaults.Namespace, types.KindDatabaseServer, types.VerbRead); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		case types.KindKubeService:
-			if err := a.action(apidefaults.Namespace, types.KindKubeService, types.VerbRead); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		case types.KindWindowsDesktopService:
-			if err := a.action(apidefaults.Namespace, types.KindWindowsDesktopService, types.VerbRead); err != nil {
 				return nil, trace.Wrap(err)
 			}
 		default:
@@ -1518,28 +1487,6 @@ func (a *ServerWithRoles) CreateToken(ctx context.Context, token types.Provision
 	return a.authServer.CreateToken(ctx, token)
 }
 
-// GetWebSessionInfo returns the web session for the given user specified with sid.
-// The session is stripped of any authentication details.
-// Implements auth.WebUIService
-func (a *ServerWithRoles) GetWebSessionInfo(ctx context.Context, user, sessionID string) (types.WebSession, error) {
-	if err := a.currentUserAction(user); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetWebSessionInfo(ctx, user, sessionID)
-}
-
-// GetWebSession returns the web session specified with req.
-// Implements auth.ReadAccessPoint.
-func (a *ServerWithRoles) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
-	return a.WebSessions().Get(ctx, req)
-}
-
-// WebSessions returns the web session manager.
-// Implements services.WebSessionsGetter.
-func (a *ServerWithRoles) WebSessions() types.WebSessionInterface {
-	return &webSessionsWithRoles{c: a, ws: a.authServer.WebSessions()}
-}
-
 // Get returns the web session specified with req.
 func (r *webSessionsWithRoles) Get(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
 	if err := r.c.currentUserAction(req.User); err != nil {
@@ -1566,14 +1513,6 @@ func (r *webSessionsWithRoles) List(ctx context.Context) ([]types.WebSession, er
 // moved into a more appropriate API
 func (*webSessionsWithRoles) Upsert(ctx context.Context, session types.WebSession) error {
 	return trace.NotImplemented(notImplementedMessage)
-}
-
-// Delete removes the web session specified with req.
-func (r *webSessionsWithRoles) Delete(ctx context.Context, req types.DeleteWebSessionRequest) error {
-	if err := r.c.canDeleteWebSession(req.User); err != nil {
-		return trace.Wrap(err)
-	}
-	return r.ws.Delete(ctx, req)
 }
 
 // DeleteAll removes all web sessions.
@@ -1658,7 +1597,6 @@ type webTokensWithRoles struct {
 type accessChecker interface {
 	action(namespace, resource string, verbs ...string) error
 	currentUserAction(user string) error
-	canDeleteWebSession(username string) error
 }
 
 func (a *ServerWithRoles) GetAccessRequests(ctx context.Context, filter types.AccessRequestFilter) ([]types.AccessRequest, error) {
@@ -2615,18 +2553,6 @@ func (a *ServerWithRoles) checkAccessToApp(app types.Application) error {
 		// MFA is not required for operations on app resources but
 		// will be enforced at the connection time.
 		services.AccessMFAParams{Verified: true})
-}
-
-// canDeleteWebSession checks if the current user can delete
-// WebSessions from the provided `username`.
-func (a *ServerWithRoles) canDeleteWebSession(username string) error {
-	if err := a.currentUserAction(username); err != nil {
-		if err := a.action(apidefaults.Namespace, types.KindWebSession, types.VerbList, types.VerbDelete); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-
-	return nil
 }
 
 func (a *ServerWithRoles) Close() error {

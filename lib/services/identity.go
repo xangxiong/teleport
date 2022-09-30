@@ -173,7 +173,6 @@ type Identity interface {
 	// DeleteUserRecoveryAttempts removes all recovery attempts of a user.
 	DeleteUserRecoveryAttempts(ctx context.Context, user string) error
 
-	types.WebSessionsGetter
 	types.WebTokensGetter
 }
 

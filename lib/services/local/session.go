@@ -204,11 +204,6 @@ func (s *IdentityService) DeleteAllSnowflakeSessions(ctx context.Context) error 
 	return nil
 }
 
-// WebSessions returns the web sessions manager.
-func (s *IdentityService) WebSessions() types.WebSessionInterface {
-	return &webSessions{backend: s.Backend, log: s.log}
-}
-
 // Get returns the web session state described with req.
 func (r *webSessions) Get(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
 	if err := req.Check(); err != nil {

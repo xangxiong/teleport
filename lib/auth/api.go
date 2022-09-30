@@ -194,9 +194,6 @@ type ReadProxyAccessPoint interface {
 	// GetNetworkRestrictions returns networking restrictions for restricted shell to enforce
 	GetNetworkRestrictions(ctx context.Context) (types.NetworkRestrictions, error)
 
-	// GetWebSession gets a web session for the given request
-	GetWebSession(context.Context, types.GetWebSessionRequest) (types.WebSession, error)
-
 	// GetWebToken gets a web token for the given request
 	GetWebToken(context.Context, types.GetWebTokenRequest) (types.WebToken, error)
 
@@ -382,9 +379,6 @@ type Cache interface {
 
 	// GetTunnelConnections returns tunnel connections for a given cluster
 	GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error)
-
-	// GetWebSession gets a web session for the given request
-	GetWebSession(context.Context, types.GetWebSessionRequest) (types.WebSession, error)
 
 	// GetWebToken gets a web token for the given request
 	GetWebToken(context.Context, types.GetWebTokenRequest) (types.WebToken, error)
