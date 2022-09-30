@@ -64,9 +64,6 @@ type SSOLoginConsoleReq struct {
 	// RouteToCluster is an optional cluster name to route the response
 	// credentials to.
 	RouteToCluster string
-	// KubernetesCluster is an optional k8s cluster name to route the response
-	// credentials to.
-	KubernetesCluster string
 }
 
 // CheckAndSetDefaults makes sure that the request is valid
@@ -120,9 +117,6 @@ type CreateSSHCertReq struct {
 	// RouteToCluster is an optional cluster name to route the response
 	// credentials to.
 	RouteToCluster string
-	// KubernetesCluster is an optional k8s cluster name to route the response
-	// credentials to.
-	KubernetesCluster string
 }
 
 // AuthenticateSSHUserRequest are passed by web client to authenticate against
@@ -147,9 +141,6 @@ type AuthenticateSSHUserRequest struct {
 	// RouteToCluster is an optional cluster name to route the response
 	// credentials to.
 	RouteToCluster string
-	// KubernetesCluster is an optional k8s cluster name to route the response
-	// credentials to.
-	KubernetesCluster string
 }
 
 type AuthenticateWebUserRequest struct {
