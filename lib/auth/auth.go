@@ -72,7 +72,6 @@ import (
 	kubeutils "github.com/gravitational/teleport/lib/kube/utils"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/modules"
-	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
 	"github.com/gravitational/teleport/lib/session"
@@ -144,9 +143,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Streamer == nil {
 		cfg.Streamer = events.NewDiscardEmitter()
 	}
-	if cfg.ConnectionsDiagnostic == nil {
-		cfg.ConnectionsDiagnostic = local.NewConnectionsDiagnosticService(cfg.Backend)
-	}
 	if cfg.SessionTrackerService == nil {
 		cfg.SessionTrackerService, err = local.NewSessionTrackerService(cfg.Backend)
 		if err != nil {
@@ -162,9 +158,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	}
 	if cfg.KeyStoreConfig.HostUUID == "" {
 		cfg.KeyStoreConfig.HostUUID = cfg.HostUUID
-	}
-	if cfg.TraceClient == nil {
-		cfg.TraceClient = tracing.NewNoopClient()
 	}
 
 	limiter, err := limiter.NewConnectionsLimiter(limiter.Config{
@@ -191,7 +184,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		IAuditLog:             cfg.AuditLog,
 		Events:                cfg.Events,
 		SessionTrackerService: cfg.SessionTrackerService,
-		ConnectionsDiagnostic: cfg.ConnectionsDiagnostic,
 		StatusInternal:        cfg.Status,
 	}
 
@@ -215,7 +207,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		keyStore:        keyStore,
 		getClaimsFun:    getClaims,
 		inventory:       inventory.NewController(cfg.Presence),
-		traceClient:     cfg.TraceClient,
 	}
 	for _, o := range opts {
 		if err := o(&as); err != nil {

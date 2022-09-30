@@ -26,7 +26,6 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/gravitational/teleport"
@@ -167,12 +166,6 @@ type InitConfig struct {
 
 	// SessionTrackerService is a service that manages trackers for all active sessions.
 	SessionTrackerService services.SessionTrackerService
-
-	// ConnectionsDiagnostic is a service that manages Connection Diagnostics resources.
-	ConnectionsDiagnostic services.ConnectionsDiagnostic
-
-	// TraceClient is used to forward spans to the upstream telemetry collector
-	TraceClient otlptrace.Client
 
 	// AssertionReplayService is a service that mitigatates SSO assertion replay.
 	*local.AssertionReplayService
