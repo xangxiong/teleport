@@ -17,7 +17,6 @@ limitations under the License.
 package auth
 
 import (
-	"context"
 	"errors"
 	"time"
 
@@ -25,9 +24,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
 )
@@ -88,9 +85,6 @@ type SessionCreds struct {
 }
 
 var (
-	// authenticateWebauthnError is the generic error returned for failed WebAuthn
-	// authentication attempts.
-	authenticateWebauthnError = trace.AccessDenied("invalid Webauthn response")
 	// invalidUserPassError is the error for when either the provided username or
 	// password is incorrect.
 	invalidUserPassError = trace.AccessDenied("invalid username or password")
@@ -190,48 +184,3 @@ func AuthoritiesToTrustedCerts(authorities []types.CertAuthority) []TrustedCerts
 	}
 	return out
 }
-
-// emitNoLocalAuthEvent creates and emits a local authentication is disabled message.
-func (s *Server) emitNoLocalAuthEvent(username string) {
-	if err := s.emitter.EmitAuditEvent(s.closeCtx, &apievents.AuthAttempt{
-		Metadata: apievents.Metadata{
-			Type: events.AuthAttemptEvent,
-			Code: events.AuthAttemptFailureCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			User: username,
-		},
-		Status: apievents.Status{
-			Success: false,
-			Error:   noLocalAuth,
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit no local auth event.")
-	}
-}
-
-func (s *Server) createUserWebSession(ctx context.Context, user types.User) (types.WebSession, error) {
-	// It's safe to extract the roles and traits directly from services.User as this method
-	// is only used for local accounts.
-	return s.createWebSession(ctx, types.NewWebSessionRequest{
-		User:      user.GetName(),
-		Roles:     user.GetRoles(),
-		Traits:    user.GetTraits(),
-		LoginTime: s.clock.Now().UTC(),
-	})
-}
-
-func getErrorByTraceField(err error) error {
-	traceErr, ok := err.(trace.Error)
-	switch {
-	case !ok:
-		log.WithError(err).Warn("Unexpected error type, wanted TraceError")
-		return trace.AccessDenied("an error has occurred")
-	case traceErr.GetFields()[ErrFieldKeyUserMaxedAttempts] != nil:
-		return trace.AccessDenied(MaxFailedAttemptsErrMsg)
-	}
-
-	return nil
-}
-
-const noLocalAuth = "local auth disabled"
