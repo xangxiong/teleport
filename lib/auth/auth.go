@@ -1114,53 +1114,6 @@ func (a *Server) PreAuthenticatedSignIn(ctx context.Context, user string, identi
 	return sess.WithoutSecrets(), nil
 }
 
-// // CreateAuthenticateChallenge implements AuthService.CreateAuthenticateChallenge.
-// func (a *Server) CreateAuthenticateChallenge(ctx context.Context, req *proto.CreateAuthenticateChallengeRequest) (*proto.MFAAuthenticateChallenge, error) {
-// 	var username string
-// 	var passwordless bool
-
-// 	switch req.GetRequest().(type) {
-// 	case *proto.CreateAuthenticateChallengeRequest_UserCredentials:
-// 		username = req.GetUserCredentials().GetUsername()
-
-// 		if err := a.WithUserLock(username, func() error {
-// 			return a.checkPasswordWOToken(username, req.GetUserCredentials().GetPassword())
-// 		}); err != nil {
-// 			return nil, trace.Wrap(err)
-// 		}
-
-// 	case *proto.CreateAuthenticateChallengeRequest_RecoveryStartTokenID:
-// 		token, err := a.GetUserToken(ctx, req.GetRecoveryStartTokenID())
-// 		if err != nil {
-// 			log.Error(trace.DebugReport(err))
-// 			return nil, trace.AccessDenied("invalid token")
-// 		}
-
-// 		if err := a.verifyUserToken(token, UserTokenTypeRecoveryStart); err != nil {
-// 			return nil, trace.Wrap(err)
-// 		}
-
-// 		username = token.GetUser()
-
-// 	case *proto.CreateAuthenticateChallengeRequest_Passwordless:
-// 		passwordless = true // Allows empty username.
-
-// 	default: // unset or CreateAuthenticateChallengeRequest_ContextUser.
-// 		var err error
-// 		username, err = GetClientUsername(ctx)
-// 		if err != nil {
-// 			return nil, trace.Wrap(err)
-// 		}
-// 	}
-
-// 	challenges, err := a.mfaAuthChallenge(ctx, username, passwordless)
-// 	if err != nil {
-// 		log.Error(trace.DebugReport(err))
-// 		return nil, trace.AccessDenied("unable to create MFA challenges")
-// 	}
-// 	return challenges, nil
-// }
-
 // CreateRegisterChallenge implements AuthService.CreateRegisterChallenge.
 func (a *Server) CreateRegisterChallenge(ctx context.Context, req *proto.CreateRegisterChallengeRequest) (*proto.MFARegisterChallenge, error) {
 	token, err := a.GetUserToken(ctx, req.GetTokenID())

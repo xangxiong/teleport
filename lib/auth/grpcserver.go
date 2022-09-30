@@ -3778,21 +3778,6 @@ func (g *GRPCServer) GenerateWindowsDesktopCert(ctx context.Context, req *proto.
 	return response, nil
 }
 
-// // CreateAuthenticateChallenge is implemented by AuthService.CreateAuthenticateChallenge.
-// func (g *GRPCServer) CreateAuthenticateChallenge(ctx context.Context, req *proto.CreateAuthenticateChallengeRequest) (*proto.MFAAuthenticateChallenge, error) {
-// 	actx, err := g.authenticate(ctx)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	res, err := actx.ServerWithRoles.CreateAuthenticateChallenge(ctx, req)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	return res, nil
-// }
-
 // CreatePrivilegeToken is implemented by AuthService.CreatePrivilegeToken.
 func (g *GRPCServer) CreatePrivilegeToken(ctx context.Context, req *proto.CreatePrivilegeTokenRequest) (*types.UserTokenV3, error) {
 	auth, err := g.authenticate(ctx)

@@ -531,42 +531,6 @@ func (s *APIServer) createWebSession(auth ClientI, w http.ResponseWriter, r *htt
 	return rawMessage(services.MarshalWebSession(sess, services.WithVersion(version)))
 }
 
-// func (s *APIServer) authenticateWebUser(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-// 	var req AuthenticateUserRequest
-// 	if err := httplib.ReadJSON(r, &req); err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	req.Username = p.ByName("user")
-// 	sess, err := auth.AuthenticateWebUser(r.Context(), req)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	return rawMessage(services.MarshalWebSession(sess, services.WithVersion(version)))
-// }
-
-// func (s *APIServer) authenticateSSHUser(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-// 	var req AuthenticateSSHRequest
-// 	if err := httplib.ReadJSON(r, &req); err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	req.Username = p.ByName("user")
-// 	return auth.AuthenticateSSHUser(r.Context(), req)
-// }
-
-// // changePassword updates users password based on the old password.
-// func (s *APIServer) changePassword(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-// 	var req services.ChangePasswordReq
-// 	if err := httplib.ReadJSON(r, &req); err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	if err := auth.ChangePassword(req); err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	return message(fmt.Sprintf("password has been changed for user %q", req.User)), nil
-// }
-
 type upsertUserRawReq struct {
 	User json.RawMessage `json:"user"`
 }
@@ -592,20 +556,6 @@ type checkPasswordReq struct {
 	Password string `json:"password"`
 	OTPToken string `json:"otp_token"`
 }
-
-// func (s *APIServer) checkPassword(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-// 	var req checkPasswordReq
-// 	if err := httplib.ReadJSON(r, &req); err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	user := p.ByName("user")
-// 	if err := auth.CheckPassword(user, []byte(req.Password), req.OTPToken); err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	return message(fmt.Sprintf("%q user password matches", user)), nil
-// }
 
 func (s *APIServer) getUser(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
 	user, err := auth.GetUser(p.ByName("user"), false)

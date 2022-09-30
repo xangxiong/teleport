@@ -896,24 +896,6 @@ func (c *Client) AuthenticateWebUser(ctx context.Context, req AuthenticateUserRe
 	return services.UnmarshalWebSession(out.Bytes())
 }
 
-// // AuthenticateSSHUser authenticates SSH console user, creates and  returns a pair of signed TLS and SSH
-// // short lived certificates as a result
-// func (c *Client) AuthenticateSSHUser(ctx context.Context, req AuthenticateSSHRequest) (*SSHLoginResponse, error) {
-// 	out, err := c.PostJSON(
-// 		ctx,
-// 		c.Endpoint("users", req.Username, "ssh", "authenticate"),
-// 		req,
-// 	)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	var re SSHLoginResponse
-// 	if err := json.Unmarshal(out.Bytes(), &re); err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	return &re, nil
-// }
-
 // GetWebSessionInfo checks if a web sesion is valid, returns session id in case if
 // it is valid, or error otherwise.
 func (c *Client) GetWebSessionInfo(ctx context.Context, user, sessionID string) (types.WebSession, error) {
@@ -1533,12 +1515,6 @@ type IdentityService interface {
 	// GetUsers returns a list of usernames registered in the system
 	GetUsers(withSecrets bool) ([]types.User, error)
 
-	// // ChangePassword changes user password
-	// ChangePassword(req services.ChangePasswordReq) error
-
-	// // CheckPassword checks if the suplied web access password is valid.
-	// CheckPassword(user string, password []byte, otpToken string) error
-
 	// GenerateToken creates a special provisioning token for a new SSH server
 	// that is valid for ttl period seconds.
 	//
@@ -1594,8 +1570,6 @@ type IdentityService interface {
 	AddMFADeviceSync(ctx context.Context, req *proto.AddMFADeviceSyncRequest) (*proto.AddMFADeviceSyncResponse, error)
 	// DeleteMFADeviceSync deletes a users MFA device (nonstream).
 	DeleteMFADeviceSync(ctx context.Context, req *proto.DeleteMFADeviceSyncRequest) error
-	// // CreateAuthenticateChallenge creates and returns MFA challenges for a users registered MFA devices.
-	// CreateAuthenticateChallenge(ctx context.Context, req *proto.CreateAuthenticateChallengeRequest) (*proto.MFAAuthenticateChallenge, error)
 	// CreateRegisterChallenge creates and returns MFA register challenge for a new MFA device.
 	CreateRegisterChallenge(ctx context.Context, req *proto.CreateRegisterChallengeRequest) (*proto.MFARegisterChallenge, error)
 
