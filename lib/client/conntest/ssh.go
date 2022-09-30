@@ -95,17 +95,6 @@ func (s SSHConnectionTester) handleErrFromSSH(ctx context.Context, connectionDia
 		return connDiag, nil
 	}
 
-	// This happens when the principal is not part of the allowed ones.
-	// A trace was already added by the Node and, here, we just return the diagnostic.
-	if trace.IsAccessDenied(sshError) {
-		connDiag, err := s.cfg.UserClient.GetConnectionDiagnostic(ctx, connectionDiagnosticID)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		return connDiag, nil
-	}
-
 	connDiag, err := s.cfg.UserClient.AppendDiagnosticTrace(ctx, connectionDiagnosticID, types.NewTraceDiagnosticConnection(
 		types.ConnectionDiagnosticTrace_UNKNOWN_ERROR,
 		fmt.Sprintf("Unknown error. %s", processStdoutString),

@@ -26,17 +26,6 @@ import (
 
 // ConnectionsDiagnostic defines an interface for managing Connection Diagnostics.
 type ConnectionsDiagnostic interface {
-	// CreateConnectionDiagnostic creates a new Connection Diagnostic
-	CreateConnectionDiagnostic(context.Context, types.ConnectionDiagnostic) error
-
-	// UpdateConnectionDiagnostic updates a Connection Diagnostic
-	UpdateConnectionDiagnostic(context.Context, types.ConnectionDiagnostic) error
-
-	// GetConnectionDiagnostic receives a name and returns the Connection Diagnostic matching that name
-	//
-	// If not found, a `trace.NotFound` error is returned
-	GetConnectionDiagnostic(ctx context.Context, name string) (types.ConnectionDiagnostic, error)
-
 	// ConnectionDiagnosticTraceAppender adds a method to append traces into ConnectionDiagnostics.
 	ConnectionDiagnosticTraceAppender
 }
