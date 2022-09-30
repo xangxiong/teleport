@@ -28,8 +28,6 @@ import (
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 
-	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/defaults"
@@ -125,65 +123,6 @@ func (r *CreateUserTokenRequest) CheckAndSetDefaults() error {
 	}
 
 	return nil
-}
-
-// CreateResetPasswordToken creates a reset password token
-func (s *Server) CreateResetPasswordToken(ctx context.Context, req CreateUserTokenRequest) (types.UserToken, error) {
-	err := req.CheckAndSetDefaults()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if req.Type != UserTokenTypeResetPassword && req.Type != UserTokenTypeResetPasswordInvite {
-		return nil, trace.BadParameter("invalid reset password token request type")
-	}
-
-	_, err = s.GetUser(req.Name, false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	_, err = s.ResetPassword(req.Name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := s.resetMFA(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	token, err := s.newUserToken(req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// remove any other existing tokens for this user
-	err = s.deleteUserTokens(ctx, req.Name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	_, err = s.CreateUserToken(ctx, token)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := s.emitter.EmitAuditEvent(ctx, &apievents.UserTokenCreate{
-		Metadata: apievents.Metadata{
-			Type: events.ResetPasswordTokenCreateEvent,
-			Code: events.ResetPasswordTokenCreateCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:    req.Name,
-			TTL:     req.TTL.String(),
-			Expires: s.GetClock().Now().UTC().Add(req.TTL),
-		},
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit create reset password token event.")
-	}
-
-	return s.GetUserToken(ctx, token.GetName())
 }
 
 func (s *Server) resetMFA(ctx context.Context, user string) error {
@@ -418,59 +357,6 @@ func (s *Server) getResetPasswordToken(ctx context.Context, tokenID string) (typ
 	}
 
 	return token, nil
-}
-
-// CreatePrivilegeToken implements AuthService.CreatePrivilegeToken.
-func (s *Server) CreatePrivilegeToken(ctx context.Context, req *proto.CreatePrivilegeTokenRequest) (*types.UserTokenV3, error) {
-	username, err := GetClientUsername(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	authPref, err := s.GetAuthPreference(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// For a user to add a device, second factor must be enabled.
-	// A nil request will be interpreted as a user who has second factor enabled
-	// but does not have any MFA registered, as can be the case with second factor optional.
-	if authPref.GetSecondFactor() == constants.SecondFactorOff {
-		return nil, trace.AccessDenied("second factor must be enabled")
-	}
-
-	tokenKind := UserTokenTypePrivilege
-
-	switch {
-	case req.GetExistingMFAResponse() == nil:
-		// Allows users with no devices to bypass second factor re-auth.
-		devices, err := s.Services.GetMFADevices(ctx, username, false /* withSecrets */)
-		switch {
-		case err != nil:
-			return nil, trace.Wrap(err)
-		case len(devices) > 0:
-			return nil, trace.BadParameter("second factor authentication required")
-		}
-
-		tokenKind = UserTokenTypePrivilegeException
-
-	default:
-		if err := s.WithUserLock(username, func() error {
-			_, _, err := s.validateMFAAuthResponse(
-				ctx, req.GetExistingMFAResponse(), username, false /* passwordless */)
-			return err
-		}); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	// Delete any existing user tokens for user before creating.
-	if err := s.deleteUserTokens(ctx, username); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	token, err := s.createPrivilegeToken(ctx, username, tokenKind)
-	return token, trace.Wrap(err)
 }
 
 func (s *Server) createPrivilegeToken(ctx context.Context, username, tokenKind string) (*types.UserTokenV3, error) {

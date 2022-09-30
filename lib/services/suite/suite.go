@@ -142,17 +142,9 @@ type ServicesTestSuite struct {
 	WebS          services.Identity
 	ConfigS       services.ClusterConfiguration
 	EventsS       types.Events
-	UsersS        services.UsersService
 	RestrictionsS services.Restrictions
 	ChangesC      chan interface{}
 	Clock         clockwork.FakeClock
-}
-
-func (s *ServicesTestSuite) Users() services.UsersService {
-	if s.WebS != nil {
-		return s.WebS
-	}
-	return s.UsersS
 }
 
 func userSlicesEqual(t *testing.T, a []types.User, b []types.User) {
@@ -182,102 +174,6 @@ func newUser(name string, roles []string) types.User {
 			Roles: roles,
 		},
 	}
-}
-
-func (s *ServicesTestSuite) UsersCRUD(t *testing.T) {
-	ctx := context.Background()
-
-	u, err := s.WebS.GetUsers(false)
-	require.NoError(t, err)
-	require.Equal(t, len(u), 0)
-
-	require.NoError(t, s.WebS.UpsertPasswordHash("user1", []byte("hash")))
-	require.NoError(t, s.WebS.UpsertPasswordHash("user2", []byte("hash2")))
-
-	u, err = s.WebS.GetUsers(false)
-	require.NoError(t, err)
-	userSlicesEqual(t, u, []types.User{newUser("user1", nil), newUser("user2", nil)})
-
-	out, err := s.WebS.GetUser("user1", false)
-	require.NoError(t, err)
-	usersEqual(t, out, u[0])
-
-	user := newUser("user1", []string{"admin", "user"})
-	require.NoError(t, s.WebS.UpsertUser(user))
-
-	out, err = s.WebS.GetUser("user1", false)
-	require.NoError(t, err)
-	usersEqual(t, out, user)
-
-	out, err = s.WebS.GetUser("user1", false)
-	require.NoError(t, err)
-	usersEqual(t, out, user)
-
-	require.NoError(t, s.WebS.DeleteUser(ctx, "user1"))
-
-	u, err = s.WebS.GetUsers(false)
-	require.NoError(t, err)
-	userSlicesEqual(t, u, []types.User{newUser("user2", nil)})
-
-	err = s.WebS.DeleteUser(ctx, "user1")
-	require.True(t, trace.IsNotFound(err))
-
-	// bad username
-	err = s.WebS.UpsertUser(newUser("", nil))
-	require.True(t, trace.IsBadParameter(err))
-}
-
-func (s *ServicesTestSuite) UsersExpiry(t *testing.T) {
-	expiresAt := s.Clock.Now().Add(1 * time.Minute)
-
-	err := s.WebS.UpsertUser(&types.UserV2{
-		Kind:    types.KindUser,
-		Version: types.V2,
-		Metadata: types.Metadata{
-			Name:      "foo",
-			Namespace: apidefaults.Namespace,
-			Expires:   &expiresAt,
-		},
-		Spec: types.UserSpecV2{},
-	})
-	require.NoError(t, err)
-
-	// Make sure the user exists.
-	u, err := s.WebS.GetUser("foo", false)
-	require.NoError(t, err)
-	require.Equal(t, u.GetName(), "foo")
-
-	s.Clock.Advance(2 * time.Minute)
-
-	// Make sure the user is now gone.
-	_, err = s.WebS.GetUser("foo", false)
-	require.Error(t, err)
-}
-
-func (s *ServicesTestSuite) LoginAttempts(t *testing.T) {
-	user1 := uuid.NewString()
-
-	user := newUser(user1, []string{"admin", "user"})
-	require.NoError(t, s.WebS.UpsertUser(user))
-
-	attempts, err := s.WebS.GetUserLoginAttempts(user.GetName())
-	require.NoError(t, err)
-	require.Equal(t, len(attempts), 0)
-
-	clock := clockwork.NewFakeClock()
-	attempt1 := services.LoginAttempt{Time: clock.Now().UTC(), Success: false}
-	err = s.WebS.AddUserLoginAttempt(user.GetName(), attempt1, defaults.AttemptTTL)
-	require.NoError(t, err)
-
-	attempt2 := services.LoginAttempt{Time: clock.Now().UTC(), Success: false}
-	err = s.WebS.AddUserLoginAttempt(user.GetName(), attempt2, defaults.AttemptTTL)
-	require.NoError(t, err)
-
-	attempts, err = s.WebS.GetUserLoginAttempts(user.GetName())
-	require.NoError(t, err)
-	require.Empty(t, cmp.Diff(attempts, []services.LoginAttempt{attempt1, attempt2}))
-	require.Equal(t, services.LastFailed(3, attempts), false)
-	require.Equal(t, services.LastFailed(2, attempts), true)
 }
 
 func (s *ServicesTestSuite) CertAuthCRUD(t *testing.T) {
@@ -1310,23 +1206,6 @@ func (s *ServicesTestSuite) Events(t *testing.T) {
 				err = s.Access.DeleteRole(ctx, role.GetName())
 				require.NoError(t, err)
 
-				return out
-			},
-		},
-		{
-			name: "User",
-			kind: types.WatchKind{
-				Kind: types.KindUser,
-			},
-			crud: func(context.Context) types.Resource {
-				user := newUser("user1", []string{"admin"})
-				err := s.Users().UpsertUser(user)
-				require.NoError(t, err)
-
-				out, err := s.Users().GetUser(user.GetName(), false)
-				require.NoError(t, err)
-
-				require.NoError(t, s.Users().DeleteUser(ctx, user.GetName()))
 				return out
 			},
 		},

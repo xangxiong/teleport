@@ -194,8 +194,6 @@ func (a *authorizer) Authorize(ctx context.Context) (*Context, error) {
 
 func (a *authorizer) fromUser(ctx context.Context, userI interface{}) (*Context, error) {
 	switch user := userI.(type) {
-	case LocalUser:
-		return a.authorizeLocalUser(user)
 	case RemoteUser:
 		return a.authorizeRemoteUser(ctx, user)
 	case BuiltinRole:
@@ -205,11 +203,6 @@ func (a *authorizer) fromUser(ctx context.Context, userI interface{}) (*Context,
 	default:
 		return nil, trace.AccessDenied("unsupported context type %T", userI)
 	}
-}
-
-// authorizeLocalUser returns authz context based on the username
-func (a *authorizer) authorizeLocalUser(u LocalUser) (*Context, error) {
-	return contextForLocalUser(u, a.accessPoint, a.clusterName)
 }
 
 // authorizeRemoteUser returns checker based on cert authority roles
@@ -691,38 +684,6 @@ func contextForBuiltinRole(r BuiltinRole, recConfig types.SessionRecordingConfig
 		Checker:          checker,
 		Identity:         r,
 		UnmappedIdentity: r,
-	}, nil
-}
-
-func contextForLocalUser(u LocalUser, accessPoint AuthorizerAccessPoint, clusterName string) (*Context, error) {
-	// User has to be fetched to check if it's a blocked username
-	user, err := accessPoint.GetUser(u.Username, false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	accessInfo, err := services.AccessInfoFromLocalIdentity(u.Identity, accessPoint)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	accessChecker, err := services.NewAccessChecker(accessInfo, clusterName, accessPoint)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Override roles and traits from the local user based on the identity roles
-	// and traits, this is done to prevent potential conflict. Imagine a scenario
-	// when SSO user has left the company, but local user entry remained with old
-	// privileged roles. New user with the same name has been onboarded and would
-	// have derived the roles from the stale user entry. This code prevents
-	// that by extracting up to date identity traits and roles from the user's
-	// certificate metadata.
-	user.SetRoles(accessInfo.Roles)
-	user.SetTraits(accessInfo.Traits)
-
-	return &Context{
-		User:             user,
-		Checker:          accessChecker,
-		Identity:         u,
-		UnmappedIdentity: u,
 	}, nil
 }
 

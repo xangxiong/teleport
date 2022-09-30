@@ -88,11 +88,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter ClusterConfig")
 			}
 			collections[resourceKind] = &sessionRecordingConfig{watch: watch, Cache: c}
-		case types.KindUser:
-			if c.Users == nil {
-				return nil, trace.BadParameter("missing parameter Users")
-			}
-			collections[resourceKind] = &user{watch: watch, Cache: c}
 		case types.KindRole:
 			if c.Access == nil {
 				return nil, trace.BadParameter("missing parameter Access")
@@ -1080,71 +1075,6 @@ func (c *clusterName) processEvent(ctx context.Context, event types.Event) error
 }
 
 func (c *clusterName) watchKind() types.WatchKind {
-	return c.watch
-}
-
-type user struct {
-	*Cache
-	watch types.WatchKind
-}
-
-// erase erases all data in the collection
-func (c *user) erase(ctx context.Context) error {
-	if err := c.usersCache.DeleteAllUsers(); err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (c *user) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := c.Users.GetUsers(false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := c.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-		for _, resource := range resources {
-			if err := c.usersCache.UpsertUser(resource); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	}, nil
-}
-
-func (c *user) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.usersCache.DeleteUser(ctx, event.Resource.GetName())
-		if err != nil {
-			// resource could be missing in the cache
-			// expired or not created, if the first consumed
-			// event is delete
-			if !trace.IsNotFound(err) {
-				c.Warningf("Failed to delete user %v.", err)
-				return trace.Wrap(err)
-			}
-			return nil
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(types.User)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		if err := c.usersCache.UpsertUser(resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warningf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *user) watchKind() types.WatchKind {
 	return c.watch
 }
 

@@ -809,21 +809,6 @@ func (c *Client) DeleteProxy(name string) error {
 	return nil
 }
 
-// UpsertUser user updates user entry.
-func (c *Client) UpsertUser(user types.User) error {
-	data, err := services.MarshalUser(user)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	_, err = c.PostJSON(context.TODO(), c.Endpoint("users"), &upsertUserRawReq{User: data})
-	return trace.Wrap(err)
-}
-
-// CompareAndSwapUser not implemented: can only be called locally
-func (c *Client) CompareAndSwapUser(ctx context.Context, new, expected types.User) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // ChangePassword updates users password based on the old password.
 func (c *Client) ChangePassword(req services.ChangePasswordReq) error {
 	_, err := c.PutJSON(context.TODO(), c.Endpoint("users", req.User, "web", "password"), req)
@@ -840,29 +825,6 @@ func (c *Client) CheckPassword(user string, password []byte, otpToken string) er
 			OTPToken: otpToken,
 		})
 	return trace.Wrap(err)
-}
-
-// ExtendWebSession creates a new web session for a user based on another
-// valid web session
-func (c *Client) ExtendWebSession(ctx context.Context, req WebSessionReq) (types.WebSession, error) {
-	out, err := c.PostJSON(ctx, c.Endpoint("users", req.User, "web", "sessions"), req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return services.UnmarshalWebSession(out.Bytes())
-}
-
-// CreateWebSession creates a new web session for a user
-func (c *Client) CreateWebSession(ctx context.Context, user string) (types.WebSession, error) {
-	out, err := c.PostJSON(
-		ctx,
-		c.Endpoint("users", user, "web", "sessions"),
-		WebSessionReq{User: user},
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return services.UnmarshalWebSession(out.Bytes())
 }
 
 // AuthenticateWebUser authenticates web user, creates and  returns web session
@@ -1169,45 +1131,6 @@ func (c *Client) ValidateTrustedCluster(ctx context.Context, validateRequest *Va
 	return validateResponse, nil
 }
 
-// CreateResetPasswordToken creates reset password token
-func (c *Client) CreateResetPasswordToken(ctx context.Context, req CreateUserTokenRequest) (types.UserToken, error) {
-	return c.APIClient.CreateResetPasswordToken(ctx, &proto.CreateResetPasswordTokenRequest{
-		Name: req.Name,
-		TTL:  proto.Duration(req.TTL),
-		Type: req.Type,
-	})
-}
-
-// CreateBot creates a bot and associated resources.
-func (c *Client) CreateBot(ctx context.Context, req *proto.CreateBotRequest) (*proto.CreateBotResponse, error) {
-	return c.APIClient.CreateBot(ctx, req)
-}
-
-// DeleteBot deletes a certificate renewal bot and associated resources.
-func (c *Client) DeleteBot(ctx context.Context, botName string) error {
-	return c.APIClient.DeleteBot(ctx, botName)
-}
-
-// GetBotUsers fetches all bot users.
-func (c *Client) GetBotUsers(ctx context.Context) ([]types.User, error) {
-	return c.APIClient.GetBotUsers(ctx)
-}
-
-// GetAppServers gets all application servers.
-func (c *Client) GetAppServers(ctx context.Context, namespace string, opts ...services.MarshalOption) ([]types.Server, error) {
-	return c.APIClient.GetAppServers(ctx, namespace)
-}
-
-// UpsertAppSession not implemented: can only be called locally.
-func (c *Client) UpsertAppSession(ctx context.Context, session types.WebSession) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// UpsertSnowflakeSession not implemented: can only be called locally.
-func (c *Client) UpsertSnowflakeSession(_ context.Context, _ types.WebSession) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // ResumeAuditStream resumes existing audit stream.
 // This is a wrapper on the grpc endpoint and is deprecated.
 // DELETE IN 7.0.0
@@ -1285,46 +1208,12 @@ type WebService interface {
 	// GetWebSessionInfo checks if a web session is valid, returns session id in case if
 	// it is valid, or error otherwise.
 	GetWebSessionInfo(ctx context.Context, user, sessionID string) (types.WebSession, error)
-	// ExtendWebSession creates a new web session for a user based on another
-	// valid web session
-	ExtendWebSession(ctx context.Context, req WebSessionReq) (types.WebSession, error)
-	// CreateWebSession creates a new web session for a user
-	CreateWebSession(ctx context.Context, user string) (types.WebSession, error)
 }
 
 // IdentityService manages identities and users
 type IdentityService interface {
 	// GetSSODiagnosticInfo returns SSO diagnostic info records.
 	GetSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string) (*types.SSODiagnosticInfo, error)
-
-	// GetUser returns user by name
-	GetUser(name string, withSecrets bool) (types.User, error)
-
-	// GetCurrentUser returns current user as seen by the server.
-	// Useful especially in the context of remote clusters which perform role and trait mapping.
-	GetCurrentUser(ctx context.Context) (types.User, error)
-
-	// GetCurrentUserRoles returns current user's roles.
-	GetCurrentUserRoles(ctx context.Context) ([]types.Role, error)
-
-	// CreateUser inserts a new entry in a backend.
-	CreateUser(ctx context.Context, user types.User) error
-
-	// UpdateUser updates an existing user in a backend.
-	UpdateUser(ctx context.Context, user types.User) error
-
-	// UpsertUser user updates or inserts user entry
-	UpsertUser(user types.User) error
-
-	// CompareAndSwapUser updates an existing user in a backend, but fails if
-	// the user in the backend does not match the expected value.
-	CompareAndSwapUser(ctx context.Context, new, expected types.User) error
-
-	// DeleteUser deletes an existng user in a backend by username.
-	DeleteUser(ctx context.Context, user string) error
-
-	// GetUsers returns a list of usernames registered in the system
-	GetUsers(withSecrets bool) ([]types.User, error)
 
 	// GenerateToken creates a special provisioning token for a new SSH server
 	// that is valid for ttl period seconds.
@@ -1341,11 +1230,6 @@ type IdentityService interface {
 	// resulting certificate.
 	GenerateHostCert(key []byte, hostID, nodeName string, principals []string, clusterName string, role types.SystemRole, ttl time.Duration) ([]byte, error)
 
-	// GenerateUserCerts takes the public key in the OpenSSH `authorized_keys` plain
-	// text format, signs it using User Certificate Authority signing key and
-	// returns the resulting certificates.
-	GenerateUserCerts(ctx context.Context, req proto.UserCertsRequest) (*proto.Certs, error)
-
 	// GenerateUserSingleUseCerts is like GenerateUserCerts but issues a
 	// certificate for a single session
 	// (https://github.com/gravitational/teleport/blob/3a1cf9111c2698aede2056513337f32bfc16f1f1/rfd/0014-session-2FA.md#sessions).
@@ -1357,16 +1241,6 @@ type IdentityService interface {
 
 	// DeleteAllUsers deletes all users
 	DeleteAllUsers() error
-
-	// CreateResetPasswordToken creates a new user reset token
-	CreateResetPasswordToken(ctx context.Context, req CreateUserTokenRequest) (types.UserToken, error)
-
-	// CreateBot creates a new certificate renewal bot and associated resources.
-	CreateBot(ctx context.Context, req *proto.CreateBotRequest) (*proto.CreateBotResponse, error)
-	// DeleteBot removes a certificate renewal bot and associated resources.
-	DeleteBot(ctx context.Context, botName string) error
-	// GetBotUsers gets all bot users.
-	GetBotUsers(ctx context.Context) ([]types.User, error)
 
 	// GetResetPasswordToken returns a reset password token.
 	GetResetPasswordToken(ctx context.Context, username string) (types.UserToken, error)
@@ -1386,10 +1260,6 @@ type IdentityService interface {
 
 	// MaintainSessionPresence establishes a channel used to continuously verify the presence for a session.
 	MaintainSessionPresence(ctx context.Context) (proto.AuthService_MaintainSessionPresenceClient, error)
-
-	// CreatePrivilegeToken creates a privilege token for the logged in user who has successfully re-authenticated with their second factor.
-	// A privilege token allows users to perform privileged action eg: add/delete their MFA device.
-	CreatePrivilegeToken(ctx context.Context, req *proto.CreatePrivilegeTokenRequest) (*types.UserTokenV3, error)
 }
 
 // ProvisioningService is a service in control
@@ -1433,7 +1303,6 @@ type ClientI interface {
 	services.Presence
 	services.Access
 	services.DynamicAccess
-	services.DynamicAccessOracle
 	services.Restrictions
 	services.Apps
 	WebService

@@ -20,7 +20,6 @@ import "github.com/gravitational/teleport/api/types"
 
 // Services collects all services
 type Services interface {
-	UsersService
 	Provisioner
 	Trust
 	types.Events

@@ -21,7 +21,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"net"
 	"time"
 
 	"github.com/coreos/go-semver/semver"
@@ -449,18 +448,6 @@ func resourceLabel(event types.Event) string {
 	return fmt.Sprintf("/%s/%s", event.Resource.GetKind(), sub)
 }
 
-func (g *GRPCServer) GenerateUserCerts(ctx context.Context, req *proto.UserCertsRequest) (*proto.Certs, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	certs, err := auth.ServerWithRoles.GenerateUserCerts(ctx, *req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return certs, nil
-}
-
 func (g *GRPCServer) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequest) (*proto.Certs, error) {
 	auth, err := g.authenticate(ctx)
 	if err != nil {
@@ -580,23 +567,6 @@ func (g *GRPCServer) UpsertClusterAlert(ctx context.Context, req *proto.UpsertCl
 	return &empty.Empty{}, nil
 }
 
-func (g *GRPCServer) GetUser(ctx context.Context, req *proto.GetUserRequest) (*types.UserV2, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	user, err := auth.ServerWithRoles.GetUser(req.Name, req.WithSecrets)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	v2, ok := user.(*types.UserV2)
-	if !ok {
-		log.Warnf("expected type services.UserV2, got %T for user %q", user, user.GetName())
-		return nil, trace.Errorf("encountered unexpected user type")
-	}
-	return v2, nil
-}
-
 func (g *GRPCServer) GetCurrentUser(ctx context.Context, req *empty.Empty) (*types.UserV2, error) {
 	auth, err := g.authenticate(ctx)
 	if err != nil {
@@ -630,28 +600,6 @@ func (g *GRPCServer) GetCurrentUserRoles(_ *empty.Empty, stream proto.AuthServic
 			return trace.Errorf("encountered unexpected role type")
 		}
 		if err := stream.Send(v5); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (g *GRPCServer) GetUsers(req *proto.GetUsersRequest, stream proto.AuthService_GetUsersServer) error {
-	auth, err := g.authenticate(stream.Context())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	users, err := auth.ServerWithRoles.GetUsers(req.WithSecrets)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, user := range users {
-		v2, ok := user.(*types.UserV2)
-		if !ok {
-			log.Warnf("expected type services.UserV2, got %T for user %q", user, user.GetName())
-			return trace.Errorf("encountered unexpected user type")
-		}
-		if err := stream.Send(v2); err != nil {
 			return trace.Wrap(err)
 		}
 	}
@@ -759,66 +707,6 @@ func (g *GRPCServer) SetAccessRequestState(ctx context.Context, req *proto.Reque
 	return &empty.Empty{}, nil
 }
 
-func (g *GRPCServer) SubmitAccessReview(ctx context.Context, review *types.AccessReviewSubmission) (*types.AccessRequestV3, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	req, err := auth.ServerWithRoles.SubmitAccessReview(ctx, *review)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	r, ok := req.(*types.AccessRequestV3)
-	if !ok {
-		err = trace.BadParameter("unexpected access request type %T", req)
-		return nil, trace.Wrap(err)
-	}
-
-	return r, nil
-}
-
-func (g *GRPCServer) GetAccessCapabilities(ctx context.Context, req *types.AccessCapabilitiesRequest) (*types.AccessCapabilities, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	caps, err := auth.ServerWithRoles.GetAccessCapabilities(ctx, *req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return caps, nil
-}
-
-func (g *GRPCServer) CreateResetPasswordToken(ctx context.Context, req *proto.CreateResetPasswordTokenRequest) (*types.UserTokenV3, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if req == nil {
-		req = &proto.CreateResetPasswordTokenRequest{}
-	}
-
-	token, err := auth.CreateResetPasswordToken(ctx, CreateUserTokenRequest{
-		Name: req.Name,
-		TTL:  time.Duration(req.TTL),
-		Type: req.Type,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	r, ok := token.(*types.UserTokenV3)
-	if !ok {
-		err = trace.BadParameter("unexpected UserToken type %T", token)
-		return nil, trace.Wrap(err)
-	}
-
-	return r, nil
-}
-
 func (g *GRPCServer) RotateResetPasswordTokenSecrets(ctx context.Context, req *proto.RotateUserTokenSecretsRequest) (*types.UserTokenSecretsV3, error) {
 	auth, err := g.authenticate(ctx)
 	if err != nil {
@@ -867,63 +755,6 @@ func (g *GRPCServer) GetResetPasswordToken(ctx context.Context, req *proto.GetRe
 	}
 
 	return r, nil
-}
-
-// CreateBot creates a new bot and an optional join token.
-func (g *GRPCServer) CreateBot(ctx context.Context, req *proto.CreateBotRequest) (*proto.CreateBotResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	response, err := auth.ServerWithRoles.CreateBot(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	log.Infof("%q bot created", req.GetName())
-
-	return response, nil
-}
-
-// DeleteBot removes a bot and its associated resources.
-func (g *GRPCServer) DeleteBot(ctx context.Context, req *proto.DeleteBotRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := auth.ServerWithRoles.DeleteBot(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	log.Infof("%q bot deleted", req.Name)
-
-	return &empty.Empty{}, nil
-}
-
-// GetBotUsers lists all users with a bot label
-func (g *GRPCServer) GetBotUsers(_ *proto.GetBotUsersRequest, stream proto.AuthService_GetBotUsersServer) error {
-	auth, err := g.authenticate(stream.Context())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	users, err := auth.ServerWithRoles.GetBotUsers(stream.Context())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, user := range users {
-		v2, ok := user.(*types.UserV2)
-		if !ok {
-			log.Warnf("expected type services.UserV2, got %T for user %q", user, user.GetName())
-			return trace.Errorf("encountered unexpected user type")
-		}
-		if err := stream.Send(v2); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-
-	return nil
 }
 
 // GetPluginData loads all plugin data matching the supplied filter.
@@ -982,70 +813,6 @@ func (g *GRPCServer) Ping(ctx context.Context, req *proto.PingRequest) (*proto.P
 	}
 
 	return &rsp, nil
-}
-
-// CreateUser inserts a new user entry in a backend.
-func (g *GRPCServer) CreateUser(ctx context.Context, req *types.UserV2) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := services.ValidateUser(req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := services.ValidateUserRoles(ctx, req, auth); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := auth.ServerWithRoles.CreateUser(ctx, req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	log.Infof("%q user created", req.GetName())
-
-	return &empty.Empty{}, nil
-}
-
-// UpdateUser updates an existing user in a backend.
-func (g *GRPCServer) UpdateUser(ctx context.Context, req *types.UserV2) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := services.ValidateUser(req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := services.ValidateUserRoles(ctx, req, auth); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := auth.ServerWithRoles.UpdateUser(ctx, req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	log.Infof("%q user updated", req.GetName())
-
-	return &empty.Empty{}, nil
-}
-
-// DeleteUser deletes an existng user in a backend by username.
-func (g *GRPCServer) DeleteUser(ctx context.Context, req *proto.DeleteUserRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := auth.ServerWithRoles.DeleteUser(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	log.Infof("%q user deleted", req.Name)
-
-	return &empty.Empty{}, nil
 }
 
 // AcquireSemaphore acquires lease with requested resources from semaphore.
@@ -1762,59 +1529,6 @@ func (g *GRPCServer) GetMFADevices(ctx context.Context, req *proto.GetMFADevices
 	return devs, trace.Wrap(err)
 }
 
-func (g *GRPCServer) GenerateUserSingleUseCerts(stream proto.AuthService_GenerateUserSingleUseCertsServer) error {
-	ctx := stream.Context()
-	actx, err := g.authenticate(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// The RPC is streaming both ways and the message sequence is:
-	// (-> means client-to-server, <- means server-to-client)
-	//
-	// 1. -> Init
-	// 2. <- MFAChallenge
-	// 3. -> MFAResponse
-	// 4. <- Certs
-
-	// 1. receive client Init
-	req, err := stream.Recv()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	initReq := req.GetInit()
-	if initReq == nil {
-		return trace.BadParameter("expected UserCertsRequest, got %T", req.Request)
-	}
-	if err := validateUserSingleUseCertRequest(ctx, actx, initReq); err != nil {
-		g.Entry.Debugf("Validation of single-use cert request failed: %v", err)
-		return trace.Wrap(err)
-	}
-
-	// 2. send MFAChallenge
-	// 3. receive and validate MFAResponse
-	mfaDev, err := userSingleUseCertsAuthChallenge(actx, stream)
-	if err != nil {
-		g.Entry.Debugf("Failed to perform single-use cert challenge: %v", err)
-		return trace.Wrap(err)
-	}
-
-	// Generate the cert.
-	respCert, err := userSingleUseCertsGenerate(ctx, actx, *initReq, mfaDev)
-	if err != nil {
-		g.Entry.Warningf("Failed to generate single-use cert: %v", err)
-		return trace.Wrap(err)
-	}
-
-	// 4. send Certs
-	if err := stream.Send(&proto.UserSingleUseCertsResponse{
-		Response: &proto.UserSingleUseCertsResponse_Cert{Cert: respCert},
-	}); err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // validateUserSingleUseCertRequest validates the request for a single-use user
 // cert.
 func validateUserSingleUseCertRequest(ctx context.Context, actx *grpcContext, req *proto.UserCertsRequest) error {
@@ -1884,34 +1598,6 @@ func userSingleUseCertsAuthChallenge(gctx *grpcContext, stream proto.AuthService
 		return nil, trace.Wrap(err)
 	}
 	return mfaDev, nil
-}
-
-func userSingleUseCertsGenerate(ctx context.Context, actx *grpcContext, req proto.UserCertsRequest, mfaDev *types.MFADevice) (*proto.SingleUseUserCert, error) {
-	// Get the client IP.
-	clientPeer, ok := peer.FromContext(ctx)
-	if !ok {
-		return nil, trace.BadParameter("no peer info in gRPC stream, can't get client IP")
-	}
-	clientIP, _, err := net.SplitHostPort(clientPeer.Addr.String())
-	if err != nil {
-		return nil, trace.BadParameter("can't parse client IP from peer info: %v", err)
-	}
-
-	// Generate the cert.
-	certs, err := actx.generateUserCerts(ctx, req, certRequestMFAVerified(mfaDev.Id), certRequestClientIP(clientIP))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	resp := new(proto.SingleUseUserCert)
-	switch req.Usage {
-	case proto.UserCertsRequest_SSH:
-		resp.Cert = &proto.SingleUseUserCert_SSH{SSH: certs.SSH}
-	case proto.UserCertsRequest_Kubernetes, proto.UserCertsRequest_Database, proto.UserCertsRequest_WindowsDesktop:
-		resp.Cert = &proto.SingleUseUserCert_TLS{TLS: certs.TLS}
-	default:
-		return nil, trace.BadParameter("unknown certificate usage %q", req.Usage)
-	}
-	return resp, nil
 }
 
 func (g *GRPCServer) IsMFARequired(ctx context.Context, req *proto.IsMFARequiredRequest) (*proto.IsMFARequiredResponse, error) {
@@ -2621,17 +2307,6 @@ func (g *GRPCServer) DeleteAllApps(ctx context.Context, _ *empty.Empty) (*empty.
 		return nil, trace.Wrap(err)
 	}
 	return &empty.Empty{}, nil
-}
-
-// CreatePrivilegeToken is implemented by AuthService.CreatePrivilegeToken.
-func (g *GRPCServer) CreatePrivilegeToken(ctx context.Context, req *proto.CreatePrivilegeTokenRequest) (*types.UserTokenV3, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	token, err := auth.CreatePrivilegeToken(ctx, req)
-	return token, trace.Wrap(err)
 }
 
 // CreateRegisterChallenge is implemented by AuthService.CreateRegisterChallenge.

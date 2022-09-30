@@ -32,38 +32,8 @@ import (
 	"github.com/gravitational/trace"
 )
 
-// UserGetter is responsible for getting users
-type UserGetter interface {
-	// GetUser returns a user by name
-	GetUser(user string, withSecrets bool) (types.User, error)
-}
-
-// UsersService is responsible for basic user management
-type UsersService interface {
-	UserGetter
-	// UpdateUser updates an existing user.
-	UpdateUser(ctx context.Context, user types.User) error
-	// UpsertUser updates parameters about user
-	UpsertUser(user types.User) error
-	// CompareAndSwapUser updates an existing user, but fails if the user does
-	// not match an expected backend value.
-	CompareAndSwapUser(ctx context.Context, new, existing types.User) error
-	// DeleteUser deletes a user with all the keys from the backend
-	DeleteUser(ctx context.Context, user string) error
-	// GetUsers returns a list of users registered with the local auth server
-	GetUsers(withSecrets bool) ([]types.User, error)
-	// DeleteAllUsers deletes all users
-	DeleteAllUsers() error
-}
-
 // Identity is responsible for managing user entries and external identities
 type Identity interface {
-	// CreateUser creates user, only if the user entry does not exist
-	CreateUser(user types.User) error
-
-	// UsersService implements most methods
-	UsersService
-
 	// AddUserLoginAttempt logs user login attempt
 	AddUserLoginAttempt(user string, attempt LoginAttempt, ttl time.Duration) error
 

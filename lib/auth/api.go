@@ -164,9 +164,6 @@ type ReadProxyAccessPoint interface {
 	// GetRoles returns a list of roles
 	GetRoles(ctx context.Context) ([]types.Role, error)
 
-	// GetUser returns a services.User for this cluster.
-	GetUser(name string, withSecrets bool) (types.User, error)
-
 	// GetNamespaces returns a list of namespaces
 	GetNamespaces() ([]types.Namespace, error)
 
@@ -373,12 +370,6 @@ type Cache interface {
 
 	// GetCertAuthorities returns a list of cert authorities
 	GetCertAuthorities(ctx context.Context, caType types.CertAuthType, loadKeys bool, opts ...services.MarshalOption) ([]types.CertAuthority, error)
-
-	// GetUser returns a services.User for this cluster.
-	GetUser(name string, withSecrets bool) (types.User, error)
-
-	// GetUsers returns a list of local users registered with this domain
-	GetUsers(withSecrets bool) ([]types.User, error)
 
 	// GetRole returns role by name
 	GetRole(ctx context.Context, name string) (types.Role, error)

@@ -25,30 +25,7 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/utils"
 )
-
-// ResetPassword securely generates a new random password and assigns it to user.
-// This method is used to invalidate existing user password during password
-// reset process.
-func (s *Server) ResetPassword(username string) (string, error) {
-	user, err := s.GetUser(username, false)
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-
-	password, err := utils.CryptoRandomHex(defaults.ResetPasswordLength)
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-
-	err = s.UpsertPassword(user.GetName(), []byte(password))
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-
-	return password, nil
-}
 
 // checkOTP determines the type of OTP token used (for legacy HOTP support), fetches the
 // appropriate type from the backend, and checks if the token is valid.

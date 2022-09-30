@@ -129,38 +129,6 @@ type DynamicAccess interface {
 	DynamicAccessCore
 	// SetAccessRequestState updates the state of an existing access request.
 	SetAccessRequestState(ctx context.Context, params types.AccessRequestUpdate) error
-	// SubmitAccessReview applies a review to a request and returns the post-application state.
-	SubmitAccessReview(ctx context.Context, params types.AccessReviewSubmission) (types.AccessRequest, error)
-}
-
-// DynamicAccessOracle is a service capable of answering questions related
-// to the dynamic access API.  Necessary because some information (e.g. the
-// list of roles a user is allowed to request) can not be calculated by
-// actors with limited privileges.
-type DynamicAccessOracle interface {
-	GetAccessCapabilities(ctx context.Context, req types.AccessCapabilitiesRequest) (*types.AccessCapabilities, error)
-}
-
-// CalculateAccessCapabilities aggregates the requested capabilities using the supplied getter
-// to load relevant resources.
-func CalculateAccessCapabilities(ctx context.Context, clt RequestValidatorGetter, req types.AccessCapabilitiesRequest) (*types.AccessCapabilities, error) {
-	var caps types.AccessCapabilities
-	// all capabilities require use of a request validator.  calculating suggested reviewers
-	// requires that the validator be configured for variable expansion.
-	v, err := NewRequestValidator(ctx, clt, req.User, ExpandVars(req.SuggestedReviewers))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if req.RequestableRoles {
-		caps.RequestableRoles, err = v.GetRequestableRoles()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	if req.SuggestedReviewers {
-		caps.SuggestedReviewers = v.SuggestedReviewers
-	}
-	return &caps, nil
 }
 
 // DynamicAccessExt is an extended dynamic access interface
@@ -599,7 +567,6 @@ func GetTraitMappings(cms []types.ClaimMapping) types.TraitMappingSet {
 // RequestValidatorGetter is the interface required by the request validation
 // functions used to get necessary resources.
 type RequestValidatorGetter interface {
-	UserGetter
 	RoleGetter
 	GetRoles(ctx context.Context) ([]types.Role, error)
 	ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error)
@@ -778,34 +745,6 @@ Outer:
 	return len(needsAllow) == 0, nil
 }
 
-func NewReviewPermissionChecker(ctx context.Context, getter RequestValidatorGetter, username string) (ReviewPermissionChecker, error) {
-	user, err := getter.GetUser(username, false)
-	if err != nil {
-		return ReviewPermissionChecker{}, trace.Wrap(err)
-	}
-
-	c := ReviewPermissionChecker{
-		User: user,
-	}
-
-	c.Roles.AllowReview = make(map[string][]parse.Matcher)
-	c.Roles.DenyReview = make(map[string][]parse.Matcher)
-
-	// load all statically assigned roles for the user and
-	// use them to build our checker state.
-	for _, roleName := range c.User.GetRoles() {
-		role, err := getter.GetRole(ctx, roleName)
-		if err != nil {
-			return ReviewPermissionChecker{}, trace.Wrap(err)
-		}
-		if err := c.push(role); err != nil {
-			return ReviewPermissionChecker{}, trace.Wrap(err)
-		}
-	}
-
-	return c, nil
-}
-
 func (c *ReviewPermissionChecker) push(role types.Role) error {
 
 	allow, deny := role.GetAccessReviewConditions(types.Allow), role.GetAccessReviewConditions(types.Deny)
@@ -850,42 +789,6 @@ type RequestValidator struct {
 		Thresholds []types.AccessReviewThreshold
 	}
 	SuggestedReviewers []string
-}
-
-// NewRequestValidator configures a new RequestValidor for the specified user.
-func NewRequestValidator(ctx context.Context, getter RequestValidatorGetter, username string, opts ...ValidateRequestOption) (RequestValidator, error) {
-	user, err := getter.GetUser(username, false)
-	if err != nil {
-		return RequestValidator{}, trace.Wrap(err)
-	}
-
-	m := RequestValidator{
-		getter: getter,
-		user:   user,
-	}
-	for _, opt := range opts {
-		opt(&m)
-	}
-	if m.opts.expandVars {
-		// validation process for incoming access requests requires
-		// generating system annotations to be attached to the request
-		// before it is inserted into the backend.
-		m.Annotations.Allow = make(map[string][]string)
-		m.Annotations.Deny = make(map[string][]string)
-	}
-
-	// load all statically assigned roles for the user and
-	// use them to build our validation state.
-	for _, roleName := range m.user.GetRoles() {
-		role, err := m.getter.GetRole(ctx, roleName)
-		if err != nil {
-			return RequestValidator{}, trace.Wrap(err)
-		}
-		if err := m.push(role); err != nil {
-			return RequestValidator{}, trace.Wrap(err)
-		}
-	}
-	return m, nil
 }
 
 // Validate validates an access request and potentially modifies it depending on how
@@ -1253,18 +1156,6 @@ func ExpandVars(expand bool) ValidateRequestOption {
 	}
 }
 
-// ValidateAccessRequestForUser validates an access request against the associated users's
-// *statically assigned* roles. If expandRoles is true, it will also expand wildcard
-// requests, setting their role list to include all roles the user is allowed to request.
-// Expansion should be performed before an access request is initially placed in the backend.
-func ValidateAccessRequestForUser(ctx context.Context, getter RequestValidatorGetter, req types.AccessRequest, opts ...ValidateRequestOption) error {
-	v, err := NewRequestValidator(ctx, getter, req.GetUser(), opts...)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return trace.Wrap(v.Validate(ctx, req))
-}
-
 // UnmarshalAccessRequest unmarshals the AccessRequest resource from JSON.
 func UnmarshalAccessRequest(data []byte, opts ...MarshalOption) (types.AccessRequest, error) {
 	cfg, err := CollectOptions(opts)
@@ -1314,16 +1205,16 @@ func MarshalAccessRequest(accessRequest types.AccessRequest, opts ...MarshalOpti
 }
 
 // pruneResourceRequestRoles takes an access request and does one of two things:
-// 1. If it is a role request, returns it unchanged.
-// 2. If it is a resource request, all available `search_as_roles` for the user
-//    should have been populated on the request by `ValidateAccessReqeustForUser`.
-//    This function will attempt to prune these roles to a minimal necessary set
-//    based on the following rules:
-//    - If a role does not grant access to any resources in the set, it is pruned.
-//    - If the request includes a LoginHint, access to a node with that login
-//      should be satisfied by exactly 1 role. The first such role will be
-//      requested, all others will be pruned unless they are necessary to access
-//      a different resource in the set.
+//  1. If it is a role request, returns it unchanged.
+//  2. If it is a resource request, all available `search_as_roles` for the user
+//     should have been populated on the request by `ValidateAccessReqeustForUser`.
+//     This function will attempt to prune these roles to a minimal necessary set
+//     based on the following rules:
+//     - If a role does not grant access to any resources in the set, it is pruned.
+//     - If the request includes a LoginHint, access to a node with that login
+//     should be satisfied by exactly 1 role. The first such role will be
+//     requested, all others will be pruned unless they are necessary to access
+//     a different resource in the set.
 func (m *RequestValidator) pruneResourceRequestRoles(
 	ctx context.Context,
 	resourceIDs []types.ResourceID,

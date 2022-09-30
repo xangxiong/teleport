@@ -210,13 +210,13 @@ type accessChecker struct {
 // NewAccessChecker returns a new AccessChecker which can be used to check
 // access to resources.
 // Args:
-// - `info *AccessInfo` should hold the roles, traits, and allowed resource IDs
-//   for the identity.
-// - `localCluster string` should be the name of the local cluster in which
-//   access will be checked. You cannot check for access to resources in remote
-//   clusters.
-// - `access RoleGetter` should be a RoleGetter which will be used to fetch the
-//   full RoleSet
+//   - `info *AccessInfo` should hold the roles, traits, and allowed resource IDs
+//     for the identity.
+//   - `localCluster string` should be the name of the local cluster in which
+//     access will be checked. You cannot check for access to resources in remote
+//     clusters.
+//   - `access RoleGetter` should be a RoleGetter which will be used to fetch the
+//     full RoleSet
 func NewAccessChecker(info *AccessInfo, localCluster string, access RoleGetter) (AccessChecker, error) {
 	roleSet, err := FetchRoles(info.Roles, access, info.Traits)
 	if err != nil {
@@ -367,39 +367,6 @@ func AccessInfoFromRemoteCertificate(cert *ssh.Certificate, roleMap types.RoleMa
 	allowedResourceIDs, err := ExtractAllowedResourcesFromCert(cert)
 	if err != nil {
 		return nil, trace.Wrap(err)
-	}
-
-	return &AccessInfo{
-		Roles:              roles,
-		Traits:             traits,
-		AllowedResourceIDs: allowedResourceIDs,
-	}, nil
-}
-
-// AccessInfoFromLocalIdentity returns a new AccessInfo populated from the given
-// tlsca.Identity. Should only be used for cluster local users as roles will not
-// be mapped.
-func AccessInfoFromLocalIdentity(identity tlsca.Identity, access UserGetter) (*AccessInfo, error) {
-	roles := identity.Groups
-	traits := identity.Traits
-	allowedResourceIDs := identity.AllowedResourceIDs
-
-	// Legacy certs are not encoded with roles or traits,
-	// so we fallback to the traits and roles in the backend.
-	// empty traits are a valid use case in standard certs,
-	// so we only check for whether roles are empty.
-	if len(identity.Groups) == 0 {
-		u, err := access.GetUser(identity.Username, false)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		log.Warnf("Failed to find roles in x509 identity for %v. Fetching "+
-			"from backend. If the identity provider allows username changes, this can "+
-			"potentially allow an attacker to change the role of the existing user.",
-			identity.Username)
-		roles = u.GetRoles()
-		traits = u.GetTraits()
 	}
 
 	return &AccessInfo{

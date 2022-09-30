@@ -97,14 +97,7 @@ func NewAPIServer(config *APIConfig) (http.Handler, error) {
 	// Generating certificates for user and host authorities
 	srv.POST("/:version/ca/host/certs", srv.withAuth(srv.generateHostCert))
 
-	// Operations on users
-	srv.GET("/:version/users", srv.withAuth(srv.getUsers))
-	srv.GET("/:version/users/:user", srv.withAuth(srv.getUser))
-	srv.DELETE("/:version/users/:user", srv.withAuth(srv.deleteUser)) // DELETE IN: 5.2 REST method is replaced by grpc method with context.
-
 	// Passwords and sessions
-	srv.POST("/:version/users", srv.withAuth(srv.upsertUser))
-	srv.POST("/:version/users/:user/web/sessions", srv.withAuth(srv.createWebSession))
 	srv.GET("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.getWebSession))
 	srv.DELETE("/:version/users/:user/web/sessions/:sid", srv.withAuth(srv.deleteWebSession))
 
@@ -140,7 +133,6 @@ func NewAPIServer(config *APIConfig) (http.Handler, error) {
 
 	// Tokens
 	srv.POST("/:version/tokens", srv.withAuth(srv.generateToken))
-	srv.POST("/:version/tokens/register", srv.withAuth(srv.registerUsingToken))
 	srv.POST("/:version/tokens/register/auth", srv.withAuth(srv.registerNewAuthServer))
 
 	// Active sessions
@@ -464,60 +456,9 @@ type WebSessionReq struct {
 	ReloadUser bool `json:"reload_user"`
 }
 
-func (s *APIServer) createWebSession(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	var req WebSessionReq
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if req.PrevSessionID != "" {
-		sess, err := auth.ExtendWebSession(r.Context(), req)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return sess, nil
-	}
-
-	sess, err := auth.CreateWebSession(r.Context(), req.User)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return rawMessage(services.MarshalWebSession(sess, services.WithVersion(version)))
-}
-
-type upsertUserRawReq struct {
-	User json.RawMessage `json:"user"`
-}
-
-func (s *APIServer) upsertUser(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	var req *upsertUserRawReq
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	user, err := services.UnmarshalUser(req.User)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	err = auth.UpsertUser(user)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return message(fmt.Sprintf("'%v' user upserted", user.GetName())), nil
-}
-
 type checkPasswordReq struct {
 	Password string `json:"password"`
 	OTPToken string `json:"otp_token"`
-}
-
-func (s *APIServer) getUser(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	user, err := auth.GetUser(p.ByName("user"), false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return rawMessage(services.MarshalUser(user, services.WithVersion(version), services.PreserveResourceID()))
 }
 
 func rawMessage(data []byte, err error) (interface{}, error) {
@@ -526,31 +467,6 @@ func rawMessage(data []byte, err error) (interface{}, error) {
 	}
 	m := json.RawMessage(data)
 	return &m, nil
-}
-
-func (s *APIServer) getUsers(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	users, err := auth.GetUsers(false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	out := make([]json.RawMessage, len(users))
-	for i, user := range users {
-		data, err := services.MarshalUser(user, services.WithVersion(version), services.PreserveResourceID())
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		out[i] = data
-	}
-	return out, nil
-}
-
-// DELETE IN: 5.2 REST method is replaced by grpc method with context.
-func (s *APIServer) deleteUser(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	user := p.ByName("user")
-	if err := auth.DeleteUser(r.Context(), user); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return message(fmt.Sprintf("user %q deleted", user)), nil
 }
 
 type generateHostCertReq struct {
@@ -592,23 +508,6 @@ func (s *APIServer) generateToken(auth ClientI, w http.ResponseWriter, r *http.R
 		return nil, trace.Wrap(err)
 	}
 	return token, nil
-}
-
-func (s *APIServer) registerUsingToken(auth ClientI, w http.ResponseWriter, r *http.Request, _ httprouter.Params, version string) (interface{}, error) {
-	var req types.RegisterUsingTokenRequest
-	if err := httplib.ReadJSON(r, &req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Pass along the remote address the request came from to the registration function.
-	req.RemoteAddr = r.RemoteAddr
-
-	certs, err := auth.RegisterUsingToken(r.Context(), &req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return certs, nil
 }
 
 type registerNewAuthServerReq struct {

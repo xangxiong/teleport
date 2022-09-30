@@ -32,7 +32,6 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/api/types/wrappers"
 	apiutils "github.com/gravitational/teleport/api/utils"
-	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/teleport/lib/utils/parse"
 
@@ -413,15 +412,16 @@ func applyValueTraitsSlice(inputs []string, traits map[string][]string, fieldNam
 // and traits from identity provider. For example:
 //
 // cluster_labels:
-//   env: ['{{external.groups}}']
+//
+//	env: ['{{external.groups}}']
 //
 // and groups: ['admins', 'devs']
 //
 // will be interpolated to:
 //
 // cluster_labels:
-//   env: ['admins', 'devs']
 //
+//	env: ['admins', 'devs']
 func applyLabelsTraits(inLabels types.Labels, traits map[string][]string) types.Labels {
 	outLabels := make(types.Labels, len(inLabels))
 	// every key will be mapped to the first value
@@ -557,7 +557,6 @@ func MakeRuleSet(rules []types.Rule) RuleSet {
 // Specifying order solves the problem on having multiple rules, e.g. one wildcard
 // rule can override more specific rules with 'where' sections that can have
 // 'actions' lists with side effects that will not be triggered otherwise.
-//
 func (set RuleSet) Match(whereParser predicate.Parser, actionsParser predicate.Parser, resource string, verb string) (bool, error) {
 	// empty set matches nothing
 	if len(set) == 0 {
@@ -697,30 +696,6 @@ func ExtractFromCertificate(cert *ssh.Certificate) ([]string, wrappers.Traits, e
 	}
 
 	return roles, traits, nil
-}
-
-// ExtractFromIdentity will extract roles and traits from the *x509.Certificate
-// which Teleport passes along as a *tlsca.Identity. If roles and traits do not
-// exist in the certificates, they are extracted from the backend.
-func ExtractFromIdentity(access UserGetter, identity tlsca.Identity) ([]string, wrappers.Traits, error) {
-	// Legacy certs are not encoded with roles or traits,
-	// so we fallback to the traits and roles in the backend.
-	// empty traits are a valid use case in standard certs,
-	// so we only check for whether roles are empty.
-	if len(identity.Groups) == 0 {
-		u, err := access.GetUser(identity.Username, false)
-		if err != nil {
-			return nil, nil, trace.Wrap(err)
-		}
-
-		log.Warnf("Failed to find roles in x509 identity for %v. Fetching "+
-			"from backend. If the identity provider allows username changes, this can "+
-			"potentially allow an attacker to change the role of the existing user.",
-			identity.Username)
-		return u.GetRoles(), u.GetTraits(), nil
-	}
-
-	return identity.Groups, identity.Traits, nil
 }
 
 // FetchRoleList fetches roles by their names, applies the traits to role

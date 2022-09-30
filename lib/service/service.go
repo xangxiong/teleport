@@ -1025,7 +1025,6 @@ func (process *TeleportProcess) newAccessCache(cfg accessCacheConfig) (*cache.Ca
 		ClusterConfig: cfg.services,
 		Provisioner:   cfg.services,
 		Trust:         cfg.services,
-		Users:         cfg.services,
 		Access:        cfg.services,
 		DynamicAccess: cfg.services,
 		Presence:      cfg.services,

@@ -155,7 +155,6 @@ type Cache struct {
 	trustCache         services.Trust
 	clusterConfigCache services.ClusterConfiguration
 	provisionerCache   services.Provisioner
-	usersCache         services.UsersService
 	accessCache        services.Access
 	dynamicAccessCache services.DynamicAccessExt
 	presenceCache      services.Presence
@@ -210,7 +209,6 @@ func (c *Cache) read() (readGuard, error) {
 			trust:         c.trustCache,
 			clusterConfig: c.clusterConfigCache,
 			provisioner:   c.provisionerCache,
-			users:         c.usersCache,
 			access:        c.accessCache,
 			dynamicAccess: c.dynamicAccessCache,
 			presence:      c.presenceCache,
@@ -225,7 +223,6 @@ func (c *Cache) read() (readGuard, error) {
 		trust:         c.Config.Trust,
 		clusterConfig: c.Config.ClusterConfig,
 		provisioner:   c.Config.Provisioner,
-		users:         c.Config.Users,
 		access:        c.Config.Access,
 		dynamicAccess: c.Config.DynamicAccess,
 		presence:      c.Config.Presence,
@@ -244,7 +241,6 @@ type readGuard struct {
 	trust         services.Trust
 	clusterConfig services.ClusterConfiguration
 	provisioner   services.Provisioner
-	users         services.UsersService
 	access        services.Access
 	dynamicAccess services.DynamicAccessCore
 	presence      services.Presence
@@ -288,8 +284,6 @@ type Config struct {
 	ClusterConfig services.ClusterConfiguration
 	// Provisioner is a provisioning service
 	Provisioner services.Provisioner
-	// Users is a users service
-	Users services.UsersService
 	// Access is an access service
 	Access services.Access
 	// DynamicAccess is a dynamic access service
@@ -437,7 +431,6 @@ func New(config Config) (*Cache, error) {
 		trustCache:         local.NewCAService(config.Backend),
 		clusterConfigCache: clusterConfigCache,
 		provisionerCache:   local.NewProvisioningService(config.Backend),
-		usersCache:         local.NewIdentityService(config.Backend),
 		accessCache:        local.NewAccessService(config.Backend),
 		dynamicAccessCache: local.NewDynamicAccessService(config.Backend),
 		presenceCache:      local.NewPresenceService(config.Backend),
@@ -1474,49 +1467,6 @@ func (c *Cache) GetRemoteCluster(clusterName string) (types.RemoteCluster, error
 		}
 	}
 	return rc, trace.Wrap(err)
-}
-
-// GetUser is a part of auth.Cache implementation.
-func (c *Cache) GetUser(name string, withSecrets bool) (user types.User, err error) {
-	_, span := c.Tracer.Start(context.TODO(), "cache/GetUser")
-	defer span.End()
-
-	if withSecrets { // cache never tracks user secrets
-		return c.Config.Users.GetUser(name, withSecrets)
-	}
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-
-	user, err = rg.users.GetUser(name, withSecrets)
-	if trace.IsNotFound(err) && rg.IsCacheRead() {
-		// release read lock early
-		rg.Release()
-		// fallback is sane because method is never used
-		// in construction of derivative caches.
-		if user, err := c.Config.Users.GetUser(name, withSecrets); err == nil {
-			return user, nil
-		}
-	}
-	return user, trace.Wrap(err)
-}
-
-// GetUsers is a part of auth.Cache implementation
-func (c *Cache) GetUsers(withSecrets bool) (users []types.User, err error) {
-	_, span := c.Tracer.Start(context.TODO(), "cache/GetUsers")
-	defer span.End()
-
-	if withSecrets { // cache never tracks user secrets
-		return c.Users.GetUsers(withSecrets)
-	}
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.users.GetUsers(withSecrets)
 }
 
 // GetTunnelConnections is a part of auth.Cache implementation
