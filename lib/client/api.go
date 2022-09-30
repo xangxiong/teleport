@@ -509,19 +509,6 @@ type ProfileStatus struct {
 	// Logins are the Linux accounts, also known as principals in OpenSSH terminology.
 	Logins []string
 
-	// // KubeEnabled is true when this profile is configured to connect to a
-	// // kubernetes cluster.
-	// KubeEnabled bool
-
-	// // KubeUsers are the kubernetes users used by this profile.
-	// KubeUsers []string
-
-	// // KubeGroups are the kubernetes groups used by this profile.
-	// KubeGroups []string
-
-	// // Databases is a list of database services this profile is logged into.
-	// Databases []tlsca.RouteToDatabase
-
 	// Apps is a list of apps this profile is logged into.
 	Apps []tlsca.RouteToApp
 
@@ -672,14 +659,6 @@ func (p *ProfileStatus) KubeConfigPath(name string) string {
 	return keypaths.KubeConfigPath(p.Dir, p.Name, p.Username, p.Cluster, name)
 }
 
-// // DatabaseServices returns a list of database service names for this profile.
-// func (p *ProfileStatus) DatabaseServices() (result []string) {
-// 	for _, db := range p.Databases {
-// 		result = append(result, db.ServiceName)
-// 	}
-// 	return result
-// }
-
 // AppNames returns a list of app names this profile is logged into.
 func (p *ProfileStatus) AppNames() (result []string) {
 	for _, app := range p.Apps {
@@ -817,11 +796,6 @@ func profileFromKey(key *Key, opts ProfileOptions) (*ProfileStatus, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// databases, err := findActiveDatabases(key)
-	// if err != nil {
-	// 	return nil, trace.Wrap(err)
-	// }
-
 	appCerts, err := key.AppTLSCertificates()
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -844,19 +818,15 @@ func profileFromKey(key *Key, opts ProfileOptions) (*ProfileStatus, error) {
 			Scheme: "https",
 			Host:   opts.WebProxyAddr,
 		},
-		Username:        opts.Username,
-		Logins:          sshCert.ValidPrincipals,
-		ValidUntil:      validUntil,
-		Extensions:      extensions,
-		CriticalOptions: sshCert.CriticalOptions,
-		Roles:           roles,
-		Cluster:         opts.SiteName,
-		Traits:          traits,
-		ActiveRequests:  activeRequests,
-		// KubeEnabled:     opts.KubeProxyAddr != "",
-		// KubeUsers:       tlsID.KubernetesUsers,
-		// KubeGroups:      tlsID.KubernetesGroups,
-		// Databases:          databases,
+		Username:           opts.Username,
+		Logins:             sshCert.ValidPrincipals,
+		ValidUntil:         validUntil,
+		Extensions:         extensions,
+		CriticalOptions:    sshCert.CriticalOptions,
+		Roles:              roles,
+		Cluster:            opts.SiteName,
+		Traits:             traits,
+		ActiveRequests:     activeRequests,
 		Apps:               apps,
 		AWSRolesARNs:       tlsID.AWSRoleARNs,
 		IsVirtual:          opts.IsVirtual,
