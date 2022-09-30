@@ -251,24 +251,6 @@ func filterInvalidUnixLogins(candidates []string) []string {
 	return output
 }
 
-func filterInvalidWindowsLogins(candidates []string) []string {
-	var output []string
-
-	// https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-2000-server/bb726984(v=technet.10)
-	const invalidChars = `"/\[]:;|=,+*?<>`
-
-	for _, candidate := range candidates {
-		if strings.ContainsAny(candidate, invalidChars) {
-			log.Debugf("Skipping Windows login %v, not a valid Windows login.", candidate)
-			continue
-		}
-
-		output = append(output, candidate)
-	}
-
-	return output
-}
-
 // ApplyTraits applies the passed in traits to any variables within the role
 // and returns itself.
 func ApplyTraits(r types.Role, traits map[string][]string) types.Role {
@@ -1100,7 +1082,7 @@ func (set RoleSet) CheckAccessToRemoteCluster(rc types.RemoteCluster) error {
 		}
 	}
 
-	if usesLabels == false && len(rcLabels) == 0 {
+	if !usesLabels && len(rcLabels) == 0 {
 		debugf("Grant access to cluster %v - no role in %v uses cluster labels and the cluster is not labeled.",
 			rc.GetName(), set.RoleNames())
 		return nil
