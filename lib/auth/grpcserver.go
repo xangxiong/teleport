@@ -94,10 +94,6 @@ type GRPCServer struct {
 	collectortracepb.TraceServiceServer
 }
 
-func (g *GRPCServer) serverContext() context.Context {
-	return g.AuthServer.closeCtx
-}
-
 // Export forwards OTLP traces to the upstream collector configured in the tracing service. This allows for
 // tsh, tctl, etc to be able to export traces without having to know how to connect to the upstream collector
 // for the cluster.
@@ -1186,61 +1182,6 @@ func (g *GRPCServer) MaintainSessionPresence(stream proto.AuthService_MaintainSe
 	}
 }
 
-func addMFADeviceInit(gctx *grpcContext, stream proto.AuthService_AddMFADeviceServer) (*proto.AddMFADeviceRequestInit, error) {
-	req, err := stream.Recv()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	initReq := req.GetInit()
-	if initReq == nil {
-		return nil, trace.BadParameter("expected AddMFADeviceRequestInit, got %T", req)
-	}
-	devs, err := gctx.authServer.Services.GetMFADevices(stream.Context(), gctx.User.GetName(), false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	for _, d := range devs {
-		if d.Metadata.Name == initReq.DeviceName {
-			return nil, trace.AlreadyExists("MFA device named %q already exists", d.Metadata.Name)
-		}
-	}
-	return initReq, nil
-}
-
-func addMFADeviceAuthChallenge(gctx *grpcContext, stream proto.AuthService_AddMFADeviceServer) error {
-	auth := gctx.authServer
-	user := gctx.User.GetName()
-	ctx := stream.Context()
-
-	// Note: authChallenge may be empty if this user has no existing MFA devices.
-	const passwordless = false
-	authChallenge, err := auth.mfaAuthChallenge(ctx, user, passwordless)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if err := stream.Send(&proto.AddMFADeviceResponse{
-		Response: &proto.AddMFADeviceResponse_ExistingMFAChallenge{ExistingMFAChallenge: authChallenge},
-	}); err != nil {
-		return trace.Wrap(err)
-	}
-
-	req, err := stream.Recv()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	authResp := req.GetExistingMFAResponse()
-	if authResp == nil {
-		return trace.BadParameter("expected MFAAuthenticateResponse, got %T", req)
-	}
-	// Only validate if there was a challenge.
-	if authChallenge.TOTP != nil || authChallenge.WebauthnChallenge != nil {
-		if _, _, err := auth.validateMFAAuthResponse(ctx, authResp, user, passwordless); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
 func (g *GRPCServer) DeleteMFADevice(stream proto.AuthService_DeleteMFADeviceServer) error {
 	ctx := stream.Context()
 	actx, err := g.authenticate(ctx)
@@ -1329,77 +1270,6 @@ func mfaDeviceEventMetadata(d *types.MFADevice) apievents.MFADeviceMetadata {
 		DeviceID:   d.Id,
 		DeviceType: d.MFAType(),
 	}
-}
-
-// validateUserSingleUseCertRequest validates the request for a single-use user
-// cert.
-func validateUserSingleUseCertRequest(ctx context.Context, actx *grpcContext, req *proto.UserCertsRequest) error {
-	if err := actx.currentUserAction(req.Username); err != nil {
-		return trace.Wrap(err)
-	}
-
-	switch req.Usage {
-	case proto.UserCertsRequest_SSH:
-		if req.NodeName == "" {
-			return trace.BadParameter("missing NodeName field in a ssh-only UserCertsRequest")
-		}
-	case proto.UserCertsRequest_Kubernetes:
-		if req.KubernetesCluster == "" {
-			return trace.BadParameter("missing KubernetesCluster field in a kubernetes-only UserCertsRequest")
-		}
-	case proto.UserCertsRequest_Database:
-		if req.RouteToDatabase.ServiceName == "" {
-			return trace.BadParameter("missing ServiceName field in a database-only UserCertsRequest")
-		}
-	case proto.UserCertsRequest_All:
-		return trace.BadParameter("must specify a concrete Usage in UserCertsRequest, one of SSH, Kubernetes or Database")
-	case proto.UserCertsRequest_WindowsDesktop:
-		if req.RouteToWindowsDesktop.WindowsDesktop == "" {
-			return trace.BadParameter("missing WindowsDesktop field in a windows-desktop-only UserCertsRequest")
-		}
-	default:
-		return trace.BadParameter("unknown certificate Usage %q", req.Usage)
-	}
-
-	maxExpiry := actx.authServer.GetClock().Now().Add(teleport.UserSingleUseCertTTL)
-	if req.Expires.After(maxExpiry) {
-		req.Expires = maxExpiry
-	}
-	return nil
-}
-
-func userSingleUseCertsAuthChallenge(gctx *grpcContext, stream proto.AuthService_GenerateUserSingleUseCertsServer) (*types.MFADevice, error) {
-	ctx := stream.Context()
-	auth := gctx.authServer
-	user := gctx.User.GetName()
-
-	const passwordless = false
-	challenge, err := auth.mfaAuthChallenge(ctx, user, passwordless)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if challenge.TOTP == nil && challenge.WebauthnChallenge == nil {
-		return nil, trace.AccessDenied("MFA is required to access this resource but user has no MFA devices; use 'tsh mfa add' to register MFA devices")
-	}
-	if err := stream.Send(&proto.UserSingleUseCertsResponse{
-		Response: &proto.UserSingleUseCertsResponse_MFAChallenge{MFAChallenge: challenge},
-	}); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	req, err := stream.Recv()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	authResp := req.GetMFAResponse()
-	if authResp == nil {
-		return nil, trace.BadParameter("expected MFAAuthenticateResponse, got %T", req.Request)
-	}
-	mfaDev, _, err := auth.validateMFAAuthResponse(ctx, authResp, user, passwordless)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return mfaDev, nil
 }
 
 func (g *GRPCServer) IsMFARequired(ctx context.Context, req *proto.IsMFARequiredRequest) (*proto.IsMFARequiredResponse, error) {
