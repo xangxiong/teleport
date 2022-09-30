@@ -33,8 +33,6 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	"github.com/sirupsen/logrus"
-
-	wantypes "github.com/gravitational/teleport/api/types/webauthn"
 )
 
 // GlobalSessionDataMaxEntries represents the maximum number of in-flight
@@ -57,64 +55,6 @@ func NewIdentityService(backend backend.Backend) *IdentityService {
 		log:     logrus.WithField(trace.Component, "identity"),
 	}
 }
-
-// func webauthnLocalAuthKey(user string) []byte {
-// 	return backend.Key(webPrefix, usersPrefix, user, webauthnLocalAuthPrefix)
-// }
-
-// func webauthnUserKey(id []byte) []byte {
-// 	key := base64.RawURLEncoding.EncodeToString(id)
-// 	return backend.Key(webauthnPrefix, usersPrefix, key)
-// }
-
-// func (s *IdentityService) UpsertWebauthnSessionData(ctx context.Context, user, sessionID string, sd *wantypes.SessionData) error {
-// 	switch {
-// 	case user == "":
-// 		return trace.BadParameter("missing parameter user")
-// 	case sessionID == "":
-// 		return trace.BadParameter("missing parameter sessionID")
-// 	case sd == nil:
-// 		return trace.BadParameter("missing parameter sd")
-// 	}
-
-// 	value, err := json.Marshal(sd)
-// 	if err != nil {
-// 		return trace.Wrap(err)
-// 	}
-// 	_, err = s.Put(ctx, backend.Item{
-// 		Key:     sessionDataKey(user, sessionID),
-// 		Value:   value,
-// 		Expires: s.Clock().Now().UTC().Add(defaults.WebauthnChallengeTimeout),
-// 	})
-// 	return trace.Wrap(err)
-// }
-
-// func (s *IdentityService) GetWebauthnSessionData(ctx context.Context, user, sessionID string) (*wantypes.SessionData, error) {
-// 	switch {
-// 	case user == "":
-// 		return nil, trace.BadParameter("missing parameter user")
-// 	case sessionID == "":
-// 		return nil, trace.BadParameter("missing parameter sessionID")
-// 	}
-
-// 	item, err := s.Get(ctx, sessionDataKey(user, sessionID))
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	sd := &wantypes.SessionData{}
-// 	return sd, trace.Wrap(json.Unmarshal(item.Value, sd))
-// }
-
-// func (s *IdentityService) DeleteWebauthnSessionData(ctx context.Context, user, sessionID string) error {
-// 	switch {
-// 	case user == "":
-// 		return trace.BadParameter("missing parameter user")
-// 	case sessionID == "":
-// 		return trace.BadParameter("missing parameter sessionID")
-// 	}
-
-// 	return trace.Wrap(s.Delete(ctx, sessionDataKey(user, sessionID)))
-// }
 
 func sessionDataKey(user, sessionID string) []byte {
 	return backend.Key(webPrefix, usersPrefix, user, webauthnSessionData, sessionID)
@@ -160,71 +100,6 @@ var sdLimiter = &globalSessionDataLimiter{
 	// more conservative than storage.
 	ResetPeriod: defaults.WebauthnGlobalChallengeTimeout + 10*time.Second,
 	scopeCount:  make(map[string]int),
-}
-
-func (s *IdentityService) UpsertGlobalWebauthnSessionData(ctx context.Context, scope, id string, sd *wantypes.SessionData) error {
-	switch {
-	case scope == "":
-		return trace.BadParameter("missing parameter scope")
-	case id == "":
-		return trace.BadParameter("missing parameter id")
-	case sd == nil:
-		return trace.BadParameter("missing parameter sd")
-	}
-
-	// Marshal before checking limiter, in case this fails.
-	value, err := json.Marshal(sd)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// Are we within the limits for the current time window?
-	if entries := sdLimiter.add(scope, 1); entries > GlobalSessionDataMaxEntries {
-		sdLimiter.add(scope, -1) // Request denied, adjust accordingly
-		return trace.LimitExceeded("too many in-flight challenges")
-	}
-
-	if _, err = s.Put(ctx, backend.Item{
-		Key:     globalSessionDataKey(scope, id),
-		Value:   value,
-		Expires: s.Clock().Now().UTC().Add(defaults.WebauthnGlobalChallengeTimeout),
-	}); err != nil {
-		sdLimiter.add(scope, -1) // Don't count eventual write failures
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-func (s *IdentityService) GetGlobalWebauthnSessionData(ctx context.Context, scope, id string) (*wantypes.SessionData, error) {
-	switch {
-	case scope == "":
-		return nil, trace.BadParameter("missing parameter scope")
-	case id == "":
-		return nil, trace.BadParameter("missing parameter id")
-	}
-
-	item, err := s.Get(ctx, globalSessionDataKey(scope, id))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	sd := &wantypes.SessionData{}
-	return sd, trace.Wrap(json.Unmarshal(item.Value, sd))
-}
-
-func (s *IdentityService) DeleteGlobalWebauthnSessionData(ctx context.Context, scope, id string) error {
-	switch {
-	case scope == "":
-		return trace.BadParameter("missing parameter scope")
-	case id == "":
-		return trace.BadParameter("missing parameter id")
-	}
-
-	if err := s.Delete(ctx, globalSessionDataKey(scope, id)); err != nil {
-		return trace.Wrap(err)
-	}
-
-	sdLimiter.add(scope, -1)
-	return nil
 }
 
 func globalSessionDataKey(scope, id string) []byte {
