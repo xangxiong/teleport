@@ -20,8 +20,6 @@ import (
 	"context"
 
 	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/utils"
-	"github.com/gravitational/trace"
 )
 
 // ConnectionsDiagnostic defines an interface for managing Connection Diagnostics.
@@ -34,72 +32,4 @@ type ConnectionsDiagnostic interface {
 type ConnectionDiagnosticTraceAppender interface {
 	// AppendDiagnosticTrace atomically adds a new trace into the ConnectionDiagnostic.
 	AppendDiagnosticTrace(ctx context.Context, name string, t *types.ConnectionDiagnosticTrace) (types.ConnectionDiagnostic, error)
-}
-
-// MarshalConnectionDiagnostic marshals the ConnectionDiagnostic resource to JSON.
-func MarshalConnectionDiagnostic(s types.ConnectionDiagnostic, opts ...MarshalOption) ([]byte, error) {
-	if err := s.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	cfg, err := CollectOptions(opts)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	switch s := s.(type) {
-	case *types.ConnectionDiagnosticV1:
-		if !cfg.PreserveResourceID {
-			// avoid modifying the original object
-			// to prevent unexpected data races
-			copy := *s
-			copy.SetResourceID(0)
-			s = &copy
-		}
-
-		return utils.FastMarshal(s)
-	}
-
-	return nil, trace.BadParameter("unrecognized connection diagnostic version %T", s)
-}
-
-// UnmarshalConnectionDiagnostic unmarshals the ConnectionDiagnostic resource from JSON.
-func UnmarshalConnectionDiagnostic(data []byte, opts ...MarshalOption) (types.ConnectionDiagnostic, error) {
-	if len(data) == 0 {
-		return nil, trace.BadParameter("missing connection diagnostic data")
-	}
-
-	cfg, err := CollectOptions(opts)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	var h types.ResourceHeader
-	if err := utils.FastUnmarshal(data, &h); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	switch h.Version {
-	case types.V1:
-		var s types.ConnectionDiagnosticV1
-		if err := utils.FastUnmarshal(data, &s); err != nil {
-			return nil, trace.BadParameter(err.Error())
-		}
-
-		if err := s.CheckAndSetDefaults(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		if cfg.ID != 0 {
-			s.SetResourceID(cfg.ID)
-		}
-
-		if !cfg.Expires.IsZero() {
-			s.SetExpiry(cfg.Expires)
-		}
-
-		return &s, nil
-	}
-
-	return nil, trace.BadParameter("connection diagnostic resource version %q is not supported", h.Version)
 }
