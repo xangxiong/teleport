@@ -870,27 +870,6 @@ func (w *AppsWrapper) Close() error {
 	return trace.NewAggregate(err, err2)
 }
 
-type WindowsDesktopWrapper struct {
-	ReadWindowsDesktopAccessPoint
-	accessPoint
-	NoCache WindowsDesktopAccessPoint
-}
-
-func NewWindowsDesktopWrapper(base WindowsDesktopAccessPoint, cache ReadWindowsDesktopAccessPoint) WindowsDesktopAccessPoint {
-	return &WindowsDesktopWrapper{
-		NoCache:                       base,
-		accessPoint:                   base,
-		ReadWindowsDesktopAccessPoint: cache,
-	}
-}
-
-// Close closes all associated resources
-func (w *WindowsDesktopWrapper) Close() error {
-	err := w.NoCache.Close()
-	err2 := w.ReadWindowsDesktopAccessPoint.Close()
-	return trace.NewAggregate(err, err2)
-}
-
 // NewRemoteProxyCachingAccessPoint returns new caching access point using
 // access point policy
 type NewRemoteProxyCachingAccessPoint func(clt ClientI, cacheName []string) (RemoteProxyAccessPoint, error)
