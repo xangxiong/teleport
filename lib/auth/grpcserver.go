@@ -355,15 +355,6 @@ func (g *GRPCServer) WatchEvents(watch *proto.Watch, stream proto.AuthService_Wa
 		case <-watcher.Done():
 			return watcher.Error()
 		case event := <-watcher.Events():
-			switch r := event.Resource.(type) {
-			case *types.RoleV5:
-				downgraded, err := downgradeRole(stream.Context(), r)
-				if err != nil {
-					return trace.Wrap(err)
-				}
-				event.Resource = downgraded
-			}
-
 			out, err := client.EventToGRPC(event)
 			if err != nil {
 				return trace.Wrap(err)
@@ -914,119 +905,6 @@ func (g *GRPCServer) UpdateRemoteCluster(ctx context.Context, req *types.RemoteC
 	if err := auth.UpdateRemoteCluster(ctx, req); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return &empty.Empty{}, nil
-}
-
-// downgradeRole tests the client version passed through the GRPC metadata, and
-// if the client version is unknown or less than the minimum supported version
-// for V5 roles returns a shallow copy of the given role downgraded to V4, If
-// the passed in role is already V4, it is returned unmodified.
-func downgradeRole(ctx context.Context, role *types.RoleV5) (*types.RoleV5, error) {
-	if role.Version == types.V4 {
-		// role is already V4, no need to downgrade
-		return role, nil
-	}
-
-	var clientVersion *semver.Version
-	clientVersionString, ok := metadata.ClientVersionFromContext(ctx)
-	if ok {
-		var err error
-		clientVersion, err = semver.NewVersion(clientVersionString)
-		if err != nil {
-			return nil, trace.BadParameter("unrecognized client version: %s is not a valid semver", clientVersionString)
-		}
-	}
-
-	if clientVersion == nil || clientVersion.LessThan(*MinSupportedModeratedSessionsVersion) {
-		log.Debugf(`Client version "%s" is unknown or less than 9.0.0, converting role to v4`, clientVersionString)
-		downgraded, err := services.DowngradeRoleToV4(role)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return downgraded, nil
-	}
-	return role, nil
-}
-
-// GetRole retrieves a role by name.
-func (g *GRPCServer) GetRole(ctx context.Context, req *proto.GetRoleRequest) (*types.RoleV5, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	role, err := auth.ServerWithRoles.GetRole(ctx, req.Name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	roleV5, ok := role.(*types.RoleV5)
-	if !ok {
-		return nil, trace.Errorf("encountered unexpected role type")
-	}
-	downgraded, err := downgradeRole(ctx, roleV5)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return downgraded, nil
-}
-
-// GetRoles retrieves all roles.
-func (g *GRPCServer) GetRoles(ctx context.Context, _ *empty.Empty) (*proto.GetRolesResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	roles, err := auth.ServerWithRoles.GetRoles(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var rolesV5 []*types.RoleV5
-	for _, r := range roles {
-		role, ok := r.(*types.RoleV5)
-		if !ok {
-			return nil, trace.BadParameter("unexpected type %T", r)
-		}
-		downgraded, err := downgradeRole(ctx, role)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		rolesV5 = append(rolesV5, downgraded)
-	}
-	return &proto.GetRolesResponse{
-		Roles: rolesV5,
-	}, nil
-}
-
-// UpsertRole upserts a role.
-func (g *GRPCServer) UpsertRole(ctx context.Context, role *types.RoleV5) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err = services.ValidateRole(role); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = auth.ServerWithRoles.UpsertRole(ctx, role)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	g.Debugf("%q role upserted", role.GetName())
-
-	return &empty.Empty{}, nil
-}
-
-// DeleteRole deletes a role by name.
-func (g *GRPCServer) DeleteRole(ctx context.Context, req *proto.DeleteRoleRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.ServerWithRoles.DeleteRole(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	g.Debugf("%q role deleted", req.GetName())
-
 	return &empty.Empty{}, nil
 }
 
