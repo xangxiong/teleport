@@ -1,3 +1,0 @@
-account     required    pam_teleport.so 1
-auth        required    pam_teleport.so 1
-session     required    pam_teleport.so 1
