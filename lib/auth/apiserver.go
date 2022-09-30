@@ -17,7 +17,6 @@ limitations under the License.
 package auth
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -29,7 +28,6 @@ import (
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/plugin"
@@ -231,33 +229,6 @@ func (s *APIServer) withAuth(handler HandlerWithAuthFunc) httprouter.Handle {
 		}
 		return handler(auth, w, r, p, version)
 	})
-}
-
-// withRate wrap a rate limiter around the passed in httprouter.Handle and
-// returns a httprouter.Handle. Because the rate limiter wraps a http.Handler,
-// internally withRate converts to the standard handler and back.
-func (s *APIServer) withRate(handle httprouter.Handle) httprouter.Handle {
-	limiter := defaults.CheckPasswordLimiter()
-
-	fromStandard := func(h http.Handler) httprouter.Handle {
-		return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-			ctx := context.WithValue(r.Context(), contextParams, p)
-			r = r.WithContext(ctx)
-			h.ServeHTTP(w, r)
-		}
-	}
-	toStandard := func(handle httprouter.Handle) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			p, ok := r.Context().Value(contextParams).(httprouter.Params)
-			if !ok {
-				trace.WriteError(w, trace.BadParameter("parameters missing from request"))
-				return
-			}
-			handle(w, r, p)
-		})
-	}
-	limiter.WrapHandle(toStandard(handle))
-	return fromStandard(limiter)
 }
 
 type upsertServerRawReq struct {
@@ -1549,9 +1520,3 @@ func (s *APIServer) deleteAllRemoteClusters(auth ClientI, w http.ResponseWriter,
 func message(msg string) map[string]interface{} {
 	return map[string]interface{}{"message": msg}
 }
-
-type contextParamsKey string
-
-// contextParams is the name of of the key that holds httprouter.Params in
-// a context.
-const contextParams contextParamsKey = "params"
