@@ -34,7 +34,6 @@ import (
 	"math"
 	"math/big"
 	insecurerand "math/rand"
-	"net"
 	"strings"
 	"sync"
 	"time"
@@ -1297,97 +1296,6 @@ func (a *Server) CreateSessionTracker(ctx context.Context, tracker types.Session
 // ListResources returns paginated resources depending on the resource type..
 func (a *Server) ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
 	return a.Cache.ListResources(ctx, req)
-}
-
-func (a *Server) isMFARequired(ctx context.Context, checker services.AccessChecker, req *proto.IsMFARequiredRequest) (*proto.IsMFARequiredResponse, error) {
-	pref, err := a.GetAuthPreference(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if pref.GetRequireSessionMFA() {
-		// Cluster always requires MFA, regardless of roles.
-		return &proto.IsMFARequiredResponse{Required: true}, nil
-	}
-	// var noMFAAccessErr, notFoundErr error
-	var noMFAAccessErr error
-	switch t := req.Target.(type) {
-	case *proto.IsMFARequiredRequest_Node:
-		if t.Node.Node == "" {
-			return nil, trace.BadParameter("empty Node field")
-		}
-		if t.Node.Login == "" {
-			return nil, trace.BadParameter("empty Login field")
-		}
-		// Find the target node and check whether MFA is required.
-		nodes, err := a.GetNodes(ctx, apidefaults.Namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		var matches []types.Server
-		for _, n := range nodes {
-			// Get the server address without port number.
-			addr, _, err := net.SplitHostPort(n.GetAddr())
-			if err != nil {
-				addr = n.GetAddr()
-			}
-			// Match NodeName to UUID, hostname or self-reported server address.
-			if n.GetName() == t.Node.Node || n.GetHostname() == t.Node.Node || addr == t.Node.Node {
-				matches = append(matches, n)
-			}
-		}
-		if len(matches) == 0 {
-			// If t.Node.Node is not a known registered node, it may be an
-			// unregistered host running OpenSSH with a certificate created via
-			// `tctl auth sign`. In these cases, let the user through without
-			// extra checks.
-			//
-			// If t.Node.Node turns out to be an alias for a real node (e.g.
-			// private network IP), and MFA check was actually required, the
-			// Node itself will check the cert extensions and reject the
-			// connection.
-			return &proto.IsMFARequiredResponse{Required: false}, nil
-		}
-		// Check RBAC against all matching nodes and return the first error.
-		// If at least one node requires MFA, we'll catch it.
-		for _, n := range matches {
-			err := checker.CheckAccess(
-				n,
-				services.AccessMFAParams{},
-				services.NewLoginMatcher(t.Node.Login),
-			)
-
-			// Ignore other errors; they'll be caught on the real access attempt.
-			if err != nil && errors.Is(err, services.ErrSessionMFARequired) {
-				noMFAAccessErr = err
-				break
-			}
-		}
-
-	default:
-		return nil, trace.BadParameter("unknown Target %T", req.Target)
-	}
-	// No error means that MFA is not required for this resource by
-	// AccessChecker.
-	if noMFAAccessErr == nil {
-		return &proto.IsMFARequiredResponse{Required: false}, nil
-	}
-	// Errors other than ErrSessionMFARequired mean something else is wrong,
-	// most likely access denied.
-	if !errors.Is(noMFAAccessErr, services.ErrSessionMFARequired) {
-		if !trace.IsAccessDenied(noMFAAccessErr) {
-			log.WithError(noMFAAccessErr).Warn("Could not determine MFA access")
-		}
-
-		// Mask the access denied errors by returning false to prevent resource
-		// name oracles. Auth will be denied (and generate an audit log entry)
-		// when the client attempts to connect.
-		return &proto.IsMFARequiredResponse{Required: false}, nil
-	}
-	// If we reach here, the error from AccessChecker was
-	// ErrSessionMFARequired.
-
-	return &proto.IsMFARequiredResponse{Required: true}, nil
 }
 
 // mfaAuthChallenge constructs an MFAAuthenticateChallenge for all MFA devices
