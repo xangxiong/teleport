@@ -509,18 +509,18 @@ type ProfileStatus struct {
 	// Logins are the Linux accounts, also known as principals in OpenSSH terminology.
 	Logins []string
 
-	// KubeEnabled is true when this profile is configured to connect to a
-	// kubernetes cluster.
-	KubeEnabled bool
+	// // KubeEnabled is true when this profile is configured to connect to a
+	// // kubernetes cluster.
+	// KubeEnabled bool
 
-	// KubeUsers are the kubernetes users used by this profile.
-	KubeUsers []string
+	// // KubeUsers are the kubernetes users used by this profile.
+	// KubeUsers []string
 
-	// KubeGroups are the kubernetes groups used by this profile.
-	KubeGroups []string
+	// // KubeGroups are the kubernetes groups used by this profile.
+	// KubeGroups []string
 
-	// Databases is a list of database services this profile is logged into.
-	Databases []tlsca.RouteToDatabase
+	// // Databases is a list of database services this profile is logged into.
+	// Databases []tlsca.RouteToDatabase
 
 	// Apps is a list of apps this profile is logged into.
 	Apps []tlsca.RouteToApp
@@ -672,37 +672,13 @@ func (p *ProfileStatus) KubeConfigPath(name string) string {
 	return keypaths.KubeConfigPath(p.Dir, p.Name, p.Username, p.Cluster, name)
 }
 
-// DatabaseServices returns a list of database service names for this profile.
-func (p *ProfileStatus) DatabaseServices() (result []string) {
-	for _, db := range p.Databases {
-		result = append(result, db.ServiceName)
-	}
-	return result
-}
-
-// DatabasesForCluster returns a list of databases for this profile, for the
-// specified cluster name.
-func (p *ProfileStatus) DatabasesForCluster(clusterName string) ([]tlsca.RouteToDatabase, error) {
-	if clusterName == "" || clusterName == p.Cluster {
-		return p.Databases, nil
-	}
-
-	idx := KeyIndex{
-		ProxyHost:   p.Name,
-		Username:    p.Username,
-		ClusterName: clusterName,
-	}
-
-	store, err := NewFSLocalKeyStore(p.Dir)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	key, err := store.GetKey(idx, WithDBCerts{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return findActiveDatabases(key)
-}
+// // DatabaseServices returns a list of database service names for this profile.
+// func (p *ProfileStatus) DatabaseServices() (result []string) {
+// 	for _, db := range p.Databases {
+// 		result = append(result, db.ServiceName)
+// 	}
+// 	return result
+// }
 
 // AppNames returns a list of app names this profile is logged into.
 func (p *ProfileStatus) AppNames() (result []string) {
@@ -841,10 +817,10 @@ func profileFromKey(key *Key, opts ProfileOptions) (*ProfileStatus, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	databases, err := findActiveDatabases(key)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// databases, err := findActiveDatabases(key)
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
 	appCerts, err := key.AppTLSCertificates()
 	if err != nil {
@@ -868,19 +844,19 @@ func profileFromKey(key *Key, opts ProfileOptions) (*ProfileStatus, error) {
 			Scheme: "https",
 			Host:   opts.WebProxyAddr,
 		},
-		Username:           opts.Username,
-		Logins:             sshCert.ValidPrincipals,
-		ValidUntil:         validUntil,
-		Extensions:         extensions,
-		CriticalOptions:    sshCert.CriticalOptions,
-		Roles:              roles,
-		Cluster:            opts.SiteName,
-		Traits:             traits,
-		ActiveRequests:     activeRequests,
-		KubeEnabled:        opts.KubeProxyAddr != "",
-		KubeUsers:          tlsID.KubernetesUsers,
-		KubeGroups:         tlsID.KubernetesGroups,
-		Databases:          databases,
+		Username:        opts.Username,
+		Logins:          sshCert.ValidPrincipals,
+		ValidUntil:      validUntil,
+		Extensions:      extensions,
+		CriticalOptions: sshCert.CriticalOptions,
+		Roles:           roles,
+		Cluster:         opts.SiteName,
+		Traits:          traits,
+		ActiveRequests:  activeRequests,
+		// KubeEnabled:     opts.KubeProxyAddr != "",
+		// KubeUsers:       tlsID.KubernetesUsers,
+		// KubeGroups:      tlsID.KubernetesGroups,
+		// Databases:          databases,
 		Apps:               apps,
 		AWSRolesARNs:       tlsID.AWSRoleARNs,
 		IsVirtual:          opts.IsVirtual,
@@ -4309,28 +4285,28 @@ func playSession(sessionEvents []events.EventFields, stream []byte) error {
 	}
 }
 
-func findActiveDatabases(key *Key) ([]tlsca.RouteToDatabase, error) {
-	dbCerts, err := key.DBTLSCertificates()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var databases []tlsca.RouteToDatabase
-	for _, cert := range dbCerts {
-		tlsID, err := tlsca.FromSubject(cert.Subject, time.Time{})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		// If the cert expiration time is less than 5s consider cert as expired and don't add
-		// it to the user profile as an active database.
-		if time.Until(cert.NotAfter) < 5*time.Second {
-			continue
-		}
-		if tlsID.RouteToDatabase.ServiceName != "" {
-			databases = append(databases, tlsID.RouteToDatabase)
-		}
-	}
-	return databases, nil
-}
+// func findActiveDatabases(key *Key) ([]tlsca.RouteToDatabase, error) {
+// 	dbCerts, err := key.DBTLSCertificates()
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	var databases []tlsca.RouteToDatabase
+// 	for _, cert := range dbCerts {
+// 		tlsID, err := tlsca.FromSubject(cert.Subject, time.Time{})
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		// If the cert expiration time is less than 5s consider cert as expired and don't add
+// 		// it to the user profile as an active database.
+// 		if time.Until(cert.NotAfter) < 5*time.Second {
+// 			continue
+// 		}
+// 		if tlsID.RouteToDatabase.ServiceName != "" {
+// 			databases = append(databases, tlsID.RouteToDatabase)
+// 		}
+// 	}
+// 	return databases, nil
+// }
 
 // SearchSessionEvents allows searching for session events with a full pagination support.
 func (tc *TeleportClient) SearchSessionEvents(ctx context.Context, fromUTC, toUTC time.Time, pageSize int, order types.EventOrder, max int) ([]apievents.AuditEvent, error) {
