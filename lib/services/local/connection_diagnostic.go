@@ -16,20 +16,20 @@ limitations under the License.
 
 package local
 
-import (
-	"github.com/gravitational/teleport/lib/backend"
-)
+// import (
+// 	"github.com/gravitational/teleport/lib/backend"
+// )
 
-// ConnectionDiagnosticService manages connection diagnostic resources in the backend.
-type ConnectionDiagnosticService struct {
-	backend.Backend
-}
+// // ConnectionDiagnosticService manages connection diagnostic resources in the backend.
+// type ConnectionDiagnosticService struct {
+// 	backend.Backend
+// }
 
-const (
-	connectionDiagnosticPrefix = "connectionDiagnostic"
-)
+// const (
+// 	connectionDiagnosticPrefix = "connectionDiagnostic"
+// )
 
-// NewConnectionsDiagnosticService creates a new ConnectionsDiagnosticService.
-func NewConnectionsDiagnosticService(backend backend.Backend) *ConnectionDiagnosticService {
-	return &ConnectionDiagnosticService{Backend: backend}
-}
+// // NewConnectionsDiagnosticService creates a new ConnectionsDiagnosticService.
+// func NewConnectionsDiagnosticService(backend backend.Backend) *ConnectionDiagnosticService {
+// 	return &ConnectionDiagnosticService{Backend: backend}
+// }
