@@ -22,46 +22,16 @@ package services
 
 import (
 	"context"
-	"time"
 
 	"github.com/gravitational/teleport/api/types"
 	wantypes "github.com/gravitational/teleport/api/types/webauthn"
 	"github.com/gravitational/teleport/lib/defaults"
 
-	"github.com/gokyle/hotp"
 	"github.com/gravitational/trace"
 )
 
 // Identity is responsible for managing user entries and external identities
 type Identity interface {
-	// AddUserLoginAttempt logs user login attempt
-	AddUserLoginAttempt(user string, attempt LoginAttempt, ttl time.Duration) error
-
-	// GetUserLoginAttempts returns user login attempts
-	GetUserLoginAttempts(user string) ([]LoginAttempt, error)
-
-	// DeleteUserLoginAttempts removes all login attempts of a user. Should be
-	// called after successful login.
-	DeleteUserLoginAttempts(user string) error
-
-	// GetPasswordHash returns the password hash for a given user
-	GetPasswordHash(user string) ([]byte, error)
-
-	// UpsertHOTP upserts HOTP state for user
-	// Deprecated: HOTP use is deprecated, use UpsertTOTP instead.
-	UpsertHOTP(user string, otp *hotp.HOTP) error
-
-	// GetHOTP gets HOTP token state for a user
-	// Deprecated: HOTP use is deprecated, use GetTOTP instead.
-	GetHOTP(user string) (*hotp.HOTP, error)
-
-	// UpsertUsedTOTPToken upserts a TOTP token to the backend so it can't be used again
-	// during the 30 second window it's valid.
-	UpsertUsedTOTPToken(user string, otpToken string) error
-
-	// GetUsedTOTPToken returns the last successfully used TOTP token.
-	GetUsedTOTPToken(user string) (string, error)
-
 	// UpsertWebauthnLocalAuth creates or updates the local auth configuration for
 	// Webauthn.
 	// WebauthnLocalAuth is a component of LocalAuthSecrets.
