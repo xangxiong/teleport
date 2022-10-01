@@ -61,37 +61,3 @@ func (u Users) Less(i, j int) bool {
 func (u Users) Swap(i, j int) {
 	u[i], u[j] = u[j], u[i]
 }
-
-// SortedLoginAttempts sorts login attempts by time
-type SortedLoginAttempts []LoginAttempt
-
-// Len returns length of a role list
-func (s SortedLoginAttempts) Len() int {
-	return len(s)
-}
-
-// Less stacks latest attempts to the end of the list
-func (s SortedLoginAttempts) Less(i, j int) bool {
-	return s[i].Time.Before(s[j].Time)
-}
-
-// Swap swaps two attempts
-func (s SortedLoginAttempts) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-// LastFailed calculates last x successive attempts are failed
-func LastFailed(x int, attempts []LoginAttempt) bool {
-	var failed int
-	for i := len(attempts) - 1; i >= 0; i-- {
-		if !attempts[i].Success {
-			failed++
-		} else {
-			return false
-		}
-		if failed >= x {
-			return true
-		}
-	}
-	return false
-}

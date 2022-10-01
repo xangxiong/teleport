@@ -412,25 +412,6 @@ func getResourceUnmarshaler(kind string) (ResourceUnmarshaler, bool) {
 }
 
 func init() {
-	RegisterResourceMarshaler(types.KindUser, func(resource types.Resource, opts ...MarshalOption) ([]byte, error) {
-		user, ok := resource.(types.User)
-		if !ok {
-			return nil, trace.BadParameter("expected User, got %T", resource)
-		}
-		bytes, err := MarshalUser(user, opts...)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return bytes, nil
-	})
-	RegisterResourceUnmarshaler(types.KindUser, func(bytes []byte, opts ...MarshalOption) (types.Resource, error) {
-		user, err := UnmarshalUser(bytes, opts...)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return user, nil
-	})
-
 	RegisterResourceMarshaler(types.KindCertAuthority, func(resource types.Resource, opts ...MarshalOption) ([]byte, error) {
 		certAuthority, ok := resource.(types.CertAuthority)
 		if !ok {

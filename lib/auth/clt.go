@@ -620,16 +620,6 @@ func (c *Client) DeleteAllTunnelConnections() error {
 	return trace.Wrap(err)
 }
 
-// AddUserLoginAttempt logs user login attempt
-func (c *Client) AddUserLoginAttempt(user string, attempt services.LoginAttempt, ttl time.Duration) error {
-	panic("not implemented")
-}
-
-// GetUserLoginAttempts returns user login attempts
-func (c *Client) GetUserLoginAttempts(user string) ([]services.LoginAttempt, error) {
-	panic("not implemented")
-}
-
 // GetRemoteClusters returns a list of remote clusters
 func (c *Client) GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error) {
 	out, err := c.Get(context.TODO(), c.Endpoint("remoteclusters"), url.Values{})
