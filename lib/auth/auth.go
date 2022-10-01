@@ -160,7 +160,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		Trust:                 cfg.Trust,
 		Presence:              cfg.Presence,
 		Provisioner:           cfg.Provisioner,
-		Identity:              cfg.Identity,
 		Access:                cfg.Access,
 		DynamicAccessExt:      cfg.DynamicAccessExt,
 		ClusterConfiguration:  cfg.ClusterConfiguration,
@@ -204,7 +203,7 @@ type Services struct {
 	services.Trust
 	services.Presence
 	services.Provisioner
-	services.Identity
+	// services.Identity
 	services.Access
 	services.DynamicAccessExt
 	services.ClusterConfiguration
@@ -214,12 +213,6 @@ type Services struct {
 	services.StatusInternal
 	types.Events
 	events.IAuditLog
-}
-
-// GetWebToken returns existing web token described by req.
-// Implements ReadAccessPoint
-func (r *Services) GetWebToken(ctx context.Context, req types.GetWebTokenRequest) (types.WebToken, error) {
-	return r.Identity.WebTokens().Get(ctx, req)
 }
 
 var (
@@ -549,12 +542,6 @@ func (a *Server) generateHostCert(p services.HostCertParams) ([]byte, error) {
 // GetKeyStore returns the KeyStore used by the auth server
 func (a *Server) GetKeyStore() keystore.KeyStore {
 	return a.keyStore
-}
-
-// GetWebToken returns existing web token described by req. Explicitly
-// delegating to Services as it's directly implemented by Cache as well.
-func (a *Server) GetWebToken(ctx context.Context, req types.GetWebTokenRequest) (types.WebToken, error) {
-	return a.Services.GetWebToken(ctx, req)
 }
 
 // GenerateToken generates multi-purpose authentication token.

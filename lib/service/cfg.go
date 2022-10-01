@@ -118,9 +118,6 @@ type Config struct {
 	// Provisioner is a service that keeps track of provisioning tokens
 	Provisioner services.Provisioner
 
-	// Trust is a service that manages users and credentials
-	Identity services.Identity
-
 	// Access is a service that controls access
 	Access services.Access
 

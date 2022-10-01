@@ -1197,8 +1197,6 @@ type ClientI interface {
 	services.ConnectionsDiagnostic
 	types.Events
 
-	types.WebTokensGetter
-
 	// NewKeepAliver returns a new instance of keep aliver
 	NewKeepAliver(ctx context.Context) (types.KeepAliver, error)
 
@@ -1223,10 +1221,6 @@ type ClientI interface {
 
 	// Ping gets basic info about the auth server.
 	Ping(ctx context.Context) (proto.PingResponse, error)
-
-	// GetWebToken queries the existing web token described with req.
-	// Implements ReadAccessPoint.
-	GetWebToken(ctx context.Context, req types.GetWebTokenRequest) (types.WebToken, error)
 
 	// ResetAuthPreference resets cluster auth preference to defaults.
 	ResetAuthPreference(ctx context.Context) error

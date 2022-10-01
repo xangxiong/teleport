@@ -28,5 +28,4 @@ type Services interface {
 	DynamicAccessCore
 	Presence
 	Restrictions
-	types.WebTokensGetter
 }
