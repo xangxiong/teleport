@@ -90,10 +90,11 @@ type proxySubsys struct {
 // proxy subsystem
 //
 // proxy subsystem name can take the following forms:
-//  "proxy:host:22"          - standard SSH request to connect to  host:22 on the 1st cluster
-//  "proxy:@clustername"        - Teleport request to connect to an auth server for cluster with name 'clustername'
-//  "proxy:host:22@clustername" - Teleport request to connect to host:22 on cluster 'clustername'
-//  "proxy:host:22@namespace@clustername"
+//
+//	"proxy:host:22"          - standard SSH request to connect to  host:22 on the 1st cluster
+//	"proxy:@clustername"        - Teleport request to connect to an auth server for cluster with name 'clustername'
+//	"proxy:host:22@clustername" - Teleport request to connect to host:22 on cluster 'clustername'
+//	"proxy:host:22@namespace@clustername"
 func parseProxySubsysRequest(request string) (proxySubsysRequest, error) {
 	log.Debugf("parse_proxy_subsys(%q)", request)
 	var (
@@ -481,7 +482,7 @@ func (t *proxySubsys) getMatchingServer(watcher NodesGetter, strategy types.Rout
 	// check if hostname is a valid uuid or EC2 node ID.  If it is, we will
 	// preferentially match by node ID over node hostname.
 	_, err := uuid.Parse(t.host)
-	hostIsUniqueID := err == nil || utils.IsEC2NodeID(t.host)
+	hostIsUniqueID := err == nil
 
 	ips, _ := net.LookupHost(t.host)
 
@@ -542,9 +543,6 @@ func (t *proxySubsys) getMatchingServer(watcher NodesGetter, strategy types.Rout
 	// based resolution in the future.
 	if hostIsUniqueID && server == nil {
 		idType := "UUID"
-		if utils.IsEC2NodeID(t.host) {
-			idType = "EC2"
-		}
 		return nil, trace.NotFound("unable to locate node matching %s-like target %s", idType, t.host)
 	}
 
