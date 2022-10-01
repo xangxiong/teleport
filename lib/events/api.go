@@ -151,45 +151,9 @@ const (
 	// event it explains why server disconnected the client
 	Reason = "reason"
 
-	// UserLoginEvent indicates that a user logged into web UI or via tsh
-	UserLoginEvent = "user.login"
-	// LoginMethod is the event field indicating how the login was performed
-	LoginMethod = "method"
-	// LoginMethodLocal represents login with username/password
-	LoginMethodLocal = "local"
-	// LoginMethodClientCert represents login with client certificate
-	LoginMethodClientCert = "client.cert"
-	// LoginMethodOIDC represents login with OIDC
-	LoginMethodOIDC = "oidc"
-	// LoginMethodSAML represents login with SAML
-	LoginMethodSAML = "saml"
-	// LoginMethodGithub represents login with Github
-	LoginMethodGithub = "github"
-
-	// UserUpdatedEvent is emitted when the user is updated.
-	UserUpdatedEvent = "user.update"
-
-	// UserDeleteEvent is emitted when the user is deleted.
-	UserDeleteEvent = "user.delete"
-
-	// UserCreateEvent is emitted when the user is created.
-	UserCreateEvent = "user.create"
-
-	// UserPasswordChangeEvent is when the user changes their own password.
-	UserPasswordChangeEvent = "user.password_change"
-
-	// UserExpires is when the user will expire.
-	UserExpires = "expires"
-
-	// UserRoles is a list of roles for the user.
-	UserRoles = "roles"
-
 	// IdentityAttributes is a map of user attributes
 	// received from identity provider
 	IdentityAttributes = "attributes"
-
-	// UserConnector is the connector used to create the user.
-	UserConnector = "connector"
 
 	// AccessRequestCreateEvent is emitted when a new access request is created.
 	AccessRequestCreateEvent = "access_request.create"
@@ -210,30 +174,10 @@ const (
 	// AccessRequestID is the ID of an access request.
 	AccessRequestID = "id"
 
-	// BillingCardCreateEvent is emitted when a user creates a new credit card.
-	BillingCardCreateEvent = "billing.create_card"
-	// BillingCardDeleteEvent is emitted when a user deletes a credit card.
-	BillingCardDeleteEvent = "billing.delete_card"
-	// BillingCardUpdateEvent is emitted when a user updates an existing credit card.
-	BillingCardUpdateEvent = "billing.update_card"
-	// BillingInformationUpdateEvent is emitted when a user updates their billing information.
-	BillingInformationUpdateEvent = "billing.update_info"
-
 	// UpdatedBy indicates the user who modified some resource:
 	//  - updating a request state
 	//  - updating a user record
 	UpdatedBy = "updated_by"
-
-	// RecoveryTokenCreateEvent is emitted when a new recovery token is created.
-	RecoveryTokenCreateEvent = "recovery_token.create"
-	// ResetPasswordTokenCreateEvent is emitted when a new reset password token is created.
-	ResetPasswordTokenCreateEvent = "reset_password_token.create"
-	// BotTokenCreateEvent is emitted when a new bot join user token is created
-	BotTokenCreateEvent = "bot_token.create"
-	// ResetPasswordTokenTTL is TTL of reset password token.
-	ResetPasswordTokenTTL = "ttl"
-	// PrivilegeTokenCreateEvent is emitted when a new user privilege token is created.
-	PrivilegeTokenCreateEvent = "privilege_token.create"
 
 	// FieldName contains name, e.g. resource name, etc.
 	FieldName = "name"
@@ -263,10 +207,7 @@ const (
 
 	// AuthAttemptEvent is authentication attempt that either
 	// succeeded or failed based on event status
-	AuthAttemptEvent   = "auth"
-	AuthAttemptSuccess = "success"
-	AuthAttemptErr     = "error"
-	AuthAttemptMessage = "message"
+	AuthAttemptEvent = "auth"
 
 	// SCPEvent means data transfer that occurred on the server
 	SCPEvent          = "scp"
@@ -353,134 +294,12 @@ const (
 	// creating new join token for a trusted cluster.
 	TrustedClusterTokenCreateEvent = "trusted_cluster_token.create"
 
-	// GithubConnectorCreatedEvent fires when a Github connector is created/updated.
-	GithubConnectorCreatedEvent = "github.created"
-	// GithubConnectorDeletedEvent fires when a Github connector is deleted.
-	GithubConnectorDeletedEvent = "github.deleted"
-	// OIDCConnectorCreatedEvent fires when OIDC connector is created/updated.
-	OIDCConnectorCreatedEvent = "oidc.created"
-	// OIDCConnectorDeletedEvent fires when OIDC connector is deleted.
-	OIDCConnectorDeletedEvent = "oidc.deleted"
-	// SAMLConnectorCreatedEvent fires when SAML connector is created/updated.
-	SAMLConnectorCreatedEvent = "saml.created"
-	// SAMLConnectorDeletedEvent fires when SAML connector is deleted.
-	SAMLConnectorDeletedEvent = "saml.deleted"
-
 	// SessionRejected fires when a user's attempt to create an authenticated
 	// session has been rejected due to exceeding a session control limit.
 	SessionRejectedEvent = "session.rejected"
 
 	// SessionConnect is emitted when any ssh connection is made
 	SessionConnectEvent = "session.connect"
-
-	// AppCreateEvent is emitted when an application resource is created.
-	AppCreateEvent = "app.create"
-	// AppUpdateEvent is emitted when an application resource is updated.
-	AppUpdateEvent = "app.update"
-	// AppDeleteEvent is emitted when an application resource is deleted.
-	AppDeleteEvent = "app.delete"
-
-	// AppSessionStartEvent is emitted when a user is issued an application certificate.
-	AppSessionStartEvent = "app.session.start"
-	// AppSessionEndEvent is emitted when a user connects to a TCP application.
-	AppSessionEndEvent = "app.session.end"
-
-	// AppSessionChunkEvent is emitted at the start of a 5 minute chunk on each
-	// proxy. This chunk is used to buffer 5 minutes of audit events at a time
-	// for applications.
-	AppSessionChunkEvent = "app.session.chunk"
-
-	// AppSessionRequestEvent is an HTTP request and response.
-	AppSessionRequestEvent = "app.session.request"
-
-	// DatabaseCreateEvent is emitted when a database resource is created.
-	DatabaseCreateEvent = "db.create"
-	// DatabaseUpdateEvent is emitted when a database resource is updated.
-	DatabaseUpdateEvent = "db.update"
-	// DatabaseDeleteEvent is emitted when a database resource is deleted.
-	DatabaseDeleteEvent = "db.delete"
-
-	// DatabaseSessionStartEvent is emitted when a database client attempts
-	// to connect to a database.
-	DatabaseSessionStartEvent = "db.session.start"
-	// DatabaseSessionEndEvent is emitted when a database client disconnects
-	// from a database.
-	DatabaseSessionEndEvent = "db.session.end"
-	// DatabaseSessionQueryEvent is emitted when a database client executes
-	// a query.
-	DatabaseSessionQueryEvent = "db.session.query"
-	// DatabaseSessionQueryFailedEvent is emitted when database client's request
-	// to execute a database query/command was unsuccessful.
-	DatabaseSessionQueryFailedEvent = "db.session.query.failed"
-	// DatabaseSessionPostgresParseEvent is emitted when a Postgres client
-	// creates a prepared statement using extended query protocol.
-	DatabaseSessionPostgresParseEvent = "db.session.postgres.statements.parse"
-	// DatabaseSessionPostgresBindEvent is emitted when a Postgres client
-	// readies a prepared statement for execution and binds it to parameters.
-	DatabaseSessionPostgresBindEvent = "db.session.postgres.statements.bind"
-	// DatabaseSessionPostgresExecuteEvent is emitted when a Postgres client
-	// executes a previously bound prepared statement.
-	DatabaseSessionPostgresExecuteEvent = "db.session.postgres.statements.execute"
-	// DatabaseSessionPostgresCloseEvent is emitted when a Postgres client
-	// closes an existing prepared statement.
-	DatabaseSessionPostgresCloseEvent = "db.session.postgres.statements.close"
-	// DatabaseSessionPostgresFunctionEvent is emitted when a Postgres client
-	// calls an internal function.
-	DatabaseSessionPostgresFunctionEvent = "db.session.postgres.function"
-
-	// DatabaseSessionMySQLStatementPrepareEvent is emitted when a MySQL client
-	// creates a prepared statement using the prepared statement protocol.
-	DatabaseSessionMySQLStatementPrepareEvent = "db.session.mysql.statements.prepare"
-	// DatabaseSessionMySQLStatementExecuteEvent is emitted when a MySQL client
-	// executes a prepared statement using the prepared statement protocol.
-	DatabaseSessionMySQLStatementExecuteEvent = "db.session.mysql.statements.execute"
-	// DatabaseSessionMySQLStatementSendLongDataEvent is emitted when a MySQL
-	// client sends long bytes stream using the prepared statement protocol.
-	DatabaseSessionMySQLStatementSendLongDataEvent = "db.session.mysql.statements.send_long_data"
-	// DatabaseSessionMySQLStatementCloseEvent is emitted when a MySQL client
-	// deallocates a prepared statement using the prepared statement protocol.
-	DatabaseSessionMySQLStatementCloseEvent = "db.session.mysql.statements.close"
-	// DatabaseSessionMySQLStatementResetEvent is emitted when a MySQL client
-	// resets the data of a prepared statement using the prepared statement
-	// protocol.
-	DatabaseSessionMySQLStatementResetEvent = "db.session.mysql.statements.reset"
-	// DatabaseSessionMySQLStatementFetchEvent is emitted when a MySQL client
-	// fetches rows from a prepared statement using the prepared statement
-	// protocol.
-	DatabaseSessionMySQLStatementFetchEvent = "db.session.mysql.statements.fetch"
-	// DatabaseSessionMySQLStatementBulkExecuteEvent is emitted when a MySQL
-	// client executes a bulk insert of a prepared statement using the prepared
-	// statement protocol.
-	DatabaseSessionMySQLStatementBulkExecuteEvent = "db.session.mysql.statements.bulk_execute"
-
-	// DatabaseSessionMySQLInitDBEvent is emitted when a MySQL client changes
-	// the default schema for the connection.
-	DatabaseSessionMySQLInitDBEvent = "db.session.mysql.init_db"
-	// DatabaseSessionMySQLCreateDBEvent is emitted when a MySQL client creates
-	// a schema.
-	DatabaseSessionMySQLCreateDBEvent = "db.session.mysql.create_db"
-	// DatabaseSessionMySQLDropDBEvent is emitted when a MySQL client drops a
-	// schema.
-	DatabaseSessionMySQLDropDBEvent = "db.session.mysql.drop_db"
-	// DatabaseSessionMySQLShutDownEvent is emitted when a MySQL client asks
-	// the server to shut down.
-	DatabaseSessionMySQLShutDownEvent = "db.session.mysql.shut_down"
-	// DatabaseSessionMySQLProcessKillEvent is emitted when a MySQL client asks
-	// the server to terminate a connection.
-	DatabaseSessionMySQLProcessKillEvent = "db.session.mysql.process_kill"
-	// DatabaseSessionMySQLDebugEvent is emitted when a MySQL client asks the
-	// server to dump internal debug info to stdout.
-	DatabaseSessionMySQLDebugEvent = "db.session.mysql.debug"
-	// DatabaseSessionMySQLRefreshEvent is emitted when a MySQL client sends
-	// refresh commands.
-	DatabaseSessionMySQLRefreshEvent = "db.session.mysql.refresh"
-
-	// DatabaseSessionSQLServerRPCRequestEvent is emitted when MSServer client sends
-	// RPC request command.
-	DatabaseSessionSQLServerRPCRequestEvent = "db.session.sqlserver.rpc_request"
-
-	// DatabaseSessionMalformedPacketEvent is emitted when SQL packet is malformed.
-	DatabaseSessionMalformedPacketEvent = "db.session.malformed_packet"
 
 	// SessionRejectedReasonMaxConnections indicates that a session.rejected event
 	// corresponds to enforcement of the max_connections control.
@@ -493,27 +312,10 @@ const (
 	// of `max_connections` for a `session.rejected` event).
 	Maximum = "max"
 
-	// MFADeviceAddEvent is an event type for users adding MFA devices.
-	MFADeviceAddEvent = "mfa.add"
-	// MFADeviceDeleteEvent is an event type for users deleting MFA devices.
-	MFADeviceDeleteEvent = "mfa.delete"
-
 	// LockCreatedEvent fires when a lock is created/updated.
 	LockCreatedEvent = "lock.created"
 	// LockDeletedEvent fires when a lock is deleted.
 	LockDeletedEvent = "lock.deleted"
-
-	// RecoveryCodeGeneratedEvent is an event type for generating a user's recovery tokens.
-	RecoveryCodeGeneratedEvent = "recovery_code.generated"
-	// RecoveryCodeUsedEvent is an event type when a recovery token was used.
-	RecoveryCodeUsedEvent = "recovery_code.used"
-
-	// WindowsDesktopSessionStartEvent is emitted when a user attempts
-	// to connect to a desktop.
-	WindowsDesktopSessionStartEvent = "windows.desktop.session.start"
-	// WindowsDesktopSessionEndEvent is emitted when a user disconnects
-	// from a desktop.
-	WindowsDesktopSessionEndEvent = "windows.desktop.session.end"
 
 	// CertificateCreateEvent is emitted when a certificate is issued.
 	CertificateCreateEvent = "cert.create"
@@ -524,15 +326,6 @@ const (
 
 	// CertificateTypeUser is the CertificateType for certificate events pertaining to user certificates.
 	CertificateTypeUser = "user"
-
-	// DesktopRecordingEvent is emitted as a desktop access session is recorded.
-	DesktopRecordingEvent = "desktop.recording"
-	// DesktopClipboardReceiveEvent is emitted when Teleport receives
-	// clipboard data from a remote desktop.
-	DesktopClipboardReceiveEvent = "desktop.clipboard.receive"
-	// DesktopClipboardSendEvent is emitted when local clipboard data
-	// is sent to Teleport.
-	DesktopClipboardSendEvent = "desktop.clipboard.send"
 
 	// UpgradeWindowStartUpdateEvent is emitted when the upgrade window start time
 	// is updated. Used only for teleport cloud.

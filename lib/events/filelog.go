@@ -364,7 +364,7 @@ func getCheckpointFromEvent(event apievents.AuditEvent) (string, error) {
 
 func (l *FileLog) SearchSessionEvents(fromUTC, toUTC time.Time, limit int, order types.EventOrder, startKey string, cond *types.WhereExpr, sessionID string) ([]apievents.AuditEvent, string, error) {
 	l.Debugf("SearchSessionEvents(%v, %v, order=%v, limit=%v, cond=%q)", fromUTC, toUTC, order, limit, cond)
-	filter := searchEventsFilter{eventTypes: []string{SessionEndEvent, WindowsDesktopSessionEndEvent}}
+	filter := searchEventsFilter{eventTypes: []string{SessionEndEvent}}
 	if cond != nil {
 		condFn, err := utils.ToFieldsCondition(cond)
 		if err != nil {

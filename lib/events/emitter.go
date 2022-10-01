@@ -182,10 +182,10 @@ func checkAndSetEventFields(event apievents.AuditEvent, clock clockwork.Clock, u
 	if event.GetType() == "" {
 		return trace.BadParameter("missing mandatory event type field")
 	}
-	if event.GetCode() == "" && event.GetType() != SessionPrintEvent && event.GetType() != DesktopRecordingEvent {
+	if event.GetCode() == "" && event.GetType() != SessionPrintEvent {
 		return trace.BadParameter("missing mandatory event code field for %v event", event.GetType())
 	}
-	if event.GetID() == "" && event.GetType() != SessionPrintEvent && event.GetType() != DesktopRecordingEvent {
+	if event.GetID() == "" && event.GetType() != SessionPrintEvent {
 		event.SetID(uid.New())
 	}
 	if event.GetTime().IsZero() {
@@ -244,7 +244,7 @@ type LoggingEmitter struct {
 // disk events and app session request events, because they are very verbose.
 func (*LoggingEmitter) EmitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
 	switch event.GetType() {
-	case ResizeEvent, SessionDiskEvent, SessionPrintEvent, AppSessionRequestEvent, "":
+	case ResizeEvent, SessionDiskEvent, SessionPrintEvent, "":
 		return nil
 	}
 
@@ -498,7 +498,7 @@ func (t *TeeStream) EmitAuditEvent(ctx context.Context, event apievents.AuditEve
 	}
 	// Forward session events except the ones that pollute global logs
 	switch event.GetType() {
-	case ResizeEvent, SessionDiskEvent, SessionPrintEvent, AppSessionRequestEvent, DesktopRecordingEvent, "":
+	case ResizeEvent, SessionDiskEvent, SessionPrintEvent, "":
 		return trace.NewAggregate(errors...)
 	}
 	if err := t.emitter.EmitAuditEvent(ctx, event); err != nil {

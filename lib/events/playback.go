@@ -273,12 +273,6 @@ func (w *SSHPlaybackWriter) writeEvent(event apievents.AuditEvent) error {
 	case SessionCommandEvent, SessionDiskEvent, SessionNetworkEvent:
 		return nil
 
-	// PlaybackWriter is not used for desktop playback, so we should never see
-	// these events, but skip them if a user or developer somehow tries to playback
-	// a desktop session using this TTY PlaybackWriter
-	case DesktopRecordingEvent:
-		return nil
-
 	// All other events get put into the general events file. These are events like
 	// session.join, session.end, etc.
 	default:

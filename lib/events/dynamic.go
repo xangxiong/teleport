@@ -67,18 +67,6 @@ func FromEventFields(fields EventFields) (events.AuditEvent, error) {
 		e = &events.SessionData{}
 	case ClientDisconnectEvent:
 		e = &events.ClientDisconnect{}
-	case UserLoginEvent:
-		e = &events.UserLogin{}
-	case UserDeleteEvent:
-		e = &events.UserDelete{}
-	case UserCreateEvent:
-		e = &events.UserCreate{}
-	case UserUpdatedEvent:
-		// note: user.update is a custom code applied on top of the same data as the user.create event
-		//       and they are thus functionally identical. There exists no direct gRPC version of user.update.
-		e = &events.UserCreate{}
-	case UserPasswordChangeEvent:
-		e = &events.UserPasswordChange{}
 	case AccessRequestCreateEvent:
 		e = &events.AccessRequestCreate{}
 	case AccessRequestReviewEvent:
@@ -89,16 +77,6 @@ func FromEventFields(fields EventFields) (events.AuditEvent, error) {
 		e = &events.AccessRequestCreate{}
 	case AccessRequestResourceSearch:
 		e = &events.AccessRequestResourceSearch{}
-	case BillingCardCreateEvent:
-		e = &events.BillingCardCreate{}
-	case BillingCardUpdateEvent:
-		e = &events.BillingCardCreate{}
-	case BillingCardDeleteEvent:
-		e = &events.BillingCardDelete{}
-	case BillingInformationUpdateEvent:
-		e = &events.BillingInformationUpdate{}
-	case ResetPasswordTokenCreateEvent:
-		e = &events.UserTokenCreate{}
 	case ExecEvent:
 		e = &events.Exec{}
 	case SubsystemEvent:
@@ -107,8 +85,6 @@ func FromEventFields(fields EventFields) (events.AuditEvent, error) {
 		e = &events.X11Forward{}
 	case PortForwardEvent:
 		e = &events.PortForward{}
-	case AuthAttemptEvent:
-		e = &events.AuthAttempt{}
 	case SCPEvent:
 		e = &events.SCP{}
 	case ResizeEvent:
@@ -131,14 +107,6 @@ func FromEventFields(fields EventFields) (events.AuditEvent, error) {
 		e = &events.LockCreate{}
 	case LockDeletedEvent:
 		e = &events.LockDelete{}
-	case RecoveryCodeGeneratedEvent:
-		e = &events.RecoveryCodeGenerate{}
-	case RecoveryCodeUsedEvent:
-		e = &events.RecoveryCodeUsed{}
-	case RecoveryTokenCreateEvent:
-		e = &events.UserTokenCreate{}
-	case PrivilegeTokenCreateEvent:
-		e = &events.UserTokenCreate{}
 	case SessionConnectEvent:
 		e = &events.SessionConnect{}
 	case AccessRequestDeleteEvent:
