@@ -1778,34 +1778,6 @@ func (tc *TeleportClient) Logout() error {
 	return tc.localAgent.DeleteKey()
 }
 
-// LogoutDatabase removes certificate for a particular database.
-func (tc *TeleportClient) LogoutDatabase(dbName string) error {
-	if tc.localAgent == nil {
-		return nil
-	}
-	if tc.SiteName == "" {
-		return trace.BadParameter("cluster name must be set for database logout")
-	}
-	if dbName == "" {
-		return trace.BadParameter("please specify database name to log out of")
-	}
-	return tc.localAgent.DeleteUserCerts(tc.SiteName, WithDBCerts{dbName})
-}
-
-// LogoutApp removes certificate for the specified app.
-func (tc *TeleportClient) LogoutApp(appName string) error {
-	if tc.localAgent == nil {
-		return nil
-	}
-	if tc.SiteName == "" {
-		return trace.BadParameter("cluster name must be set for app logout")
-	}
-	if appName == "" {
-		return trace.BadParameter("please specify app name to log out of")
-	}
-	return tc.localAgent.DeleteUserCerts(tc.SiteName, WithAppCerts{appName})
-}
-
 // LogoutAll removes all certificates for all users from the filesystem
 // and agent.
 func (tc *TeleportClient) LogoutAll() error {

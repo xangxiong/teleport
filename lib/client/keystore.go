@@ -173,33 +173,6 @@ func (fs *FSLocalKeyStore) AddKey(key *Key) error {
 		}
 	}
 
-	// TODO(awly): unit test this.
-	for kubeCluster, cert := range key.KubeTLSCerts {
-		// Prevent directory traversal via a crafted kubernetes cluster name.
-		//
-		// This will confuse cluster cert loading (GetKey will return
-		// kubernetes cluster names different from the ones stored here), but I
-		// don't expect any well-meaning user to create bad names.
-		kubeCluster = filepath.Clean(kubeCluster)
-
-		path := fs.kubeCertPath(key.KeyIndex, kubeCluster)
-		if err := fs.writeBytes(cert, path); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	for db, cert := range key.DBTLSCerts {
-		path := fs.databaseCertPath(key.KeyIndex, filepath.Clean(db))
-		if err := fs.writeBytes(cert, path); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	for app, cert := range key.AppTLSCerts {
-		path := fs.appCertPath(key.KeyIndex, filepath.Clean(app))
-		if err := fs.writeBytes(cert, path); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-
 	return nil
 }
 
@@ -387,7 +360,7 @@ type CertOption interface {
 }
 
 // WithAllCerts lists all known CertOptions.
-var WithAllCerts = []CertOption{WithSSHCerts{}, WithKubeCerts{}, WithDBCerts{}, WithAppCerts{}}
+var WithAllCerts = []CertOption{WithSSHCerts{}}
 
 // WithSSHCerts is a CertOption for handling SSH certificates.
 type WithSSHCerts struct{}
@@ -418,85 +391,6 @@ func (o WithSSHCerts) updateKeyWithMap(key *Key, certMap map[string][]byte) erro
 
 func (o WithSSHCerts) deleteFromKey(key *Key) {
 	key.Cert = nil
-}
-
-// WithKubeCerts is a CertOption for handling kubernetes certificates.
-type WithKubeCerts struct{}
-
-func (o WithKubeCerts) certPath(keyDir string, idx KeyIndex) string {
-	if idx.ClusterName == "" {
-		return keypaths.KubeDir(keyDir, idx.ProxyHost, idx.Username)
-	}
-	return keypaths.KubeCertDir(keyDir, idx.ProxyHost, idx.Username, idx.ClusterName)
-}
-
-func (o WithKubeCerts) updateKeyWithBytes(key *Key, certBytes []byte) error {
-	return trace.NotImplemented("WithKubeCerts does not implement updateKeyWithBytes")
-}
-
-func (o WithKubeCerts) updateKeyWithMap(key *Key, certMap map[string][]byte) error {
-	key.KubeTLSCerts = certMap
-	return nil
-}
-
-func (o WithKubeCerts) deleteFromKey(key *Key) {
-	key.KubeTLSCerts = nil
-}
-
-// WithDBCerts is a CertOption for handling database access certificates.
-type WithDBCerts struct {
-	dbName string
-}
-
-func (o WithDBCerts) certPath(keyDir string, idx KeyIndex) string {
-	if idx.ClusterName == "" {
-		return keypaths.DatabaseDir(keyDir, idx.ProxyHost, idx.Username)
-	}
-	if o.dbName == "" {
-		return keypaths.DatabaseCertDir(keyDir, idx.ProxyHost, idx.Username, idx.ClusterName)
-	}
-	return keypaths.DatabaseCertPath(keyDir, idx.ProxyHost, idx.Username, idx.ClusterName, o.dbName)
-}
-
-func (o WithDBCerts) updateKeyWithBytes(key *Key, certBytes []byte) error {
-	return trace.NotImplemented("WithDBCerts does not implement updateKeyWithBytes")
-}
-
-func (o WithDBCerts) updateKeyWithMap(key *Key, certMap map[string][]byte) error {
-	key.DBTLSCerts = certMap
-	return nil
-}
-
-func (o WithDBCerts) deleteFromKey(key *Key) {
-	key.DBTLSCerts = nil
-}
-
-// WithAppCerts is a CertOption for handling application access certificates.
-type WithAppCerts struct {
-	appName string
-}
-
-func (o WithAppCerts) certPath(keyDir string, idx KeyIndex) string {
-	if idx.ClusterName == "" {
-		return keypaths.AppDir(keyDir, idx.ProxyHost, idx.Username)
-	}
-	if o.appName == "" {
-		return keypaths.AppCertDir(keyDir, idx.ProxyHost, idx.Username, idx.ClusterName)
-	}
-	return keypaths.AppCertPath(keyDir, idx.ProxyHost, idx.Username, idx.ClusterName, o.appName)
-}
-
-func (o WithAppCerts) updateKeyWithBytes(key *Key, certBytes []byte) error {
-	return trace.NotImplemented("WithAppCerts does not implement updateKeyWithBytes")
-}
-
-func (o WithAppCerts) updateKeyWithMap(key *Key, certMap map[string][]byte) error {
-	key.AppTLSCerts = certMap
-	return nil
-}
-
-func (o WithAppCerts) deleteFromKey(key *Key) {
-	key.AppTLSCerts = nil
 }
 
 // fsLocalNonSessionKeyStore is a FS-based store implementing methods
@@ -563,21 +457,6 @@ func (fs *fsLocalNonSessionKeyStore) ppkFilePath(idx KeyIndex) string {
 // publicKeyPath returns the public key path for the given KeyIndex.
 func (fs *fsLocalNonSessionKeyStore) publicKeyPath(idx KeyIndex) string {
 	return keypaths.PublicKeyPath(fs.KeyDir, idx.ProxyHost, idx.Username)
-}
-
-// appCertPath returns the TLS certificate path for the given KeyIndex and app name.
-func (fs *fsLocalNonSessionKeyStore) appCertPath(idx KeyIndex, appname string) string {
-	return keypaths.AppCertPath(fs.KeyDir, idx.ProxyHost, idx.Username, idx.ClusterName, appname)
-}
-
-// databaseCertPath returns the TLS certificate path for the given KeyIndex and database name.
-func (fs *fsLocalNonSessionKeyStore) databaseCertPath(idx KeyIndex, dbname string) string {
-	return keypaths.DatabaseCertPath(fs.KeyDir, idx.ProxyHost, idx.Username, idx.ClusterName, dbname)
-}
-
-// kubeCertPath returns the TLS certificate path for the given KeyIndex and kube cluster name.
-func (fs *fsLocalNonSessionKeyStore) kubeCertPath(idx KeyIndex, kubename string) string {
-	return keypaths.KubeCertPath(fs.KeyDir, idx.ProxyHost, idx.Username, idx.ClusterName, kubename)
 }
 
 // AddKnownHostKeys adds a new entry to `known_hosts` file.
