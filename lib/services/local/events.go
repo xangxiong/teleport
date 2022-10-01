@@ -78,8 +78,6 @@ func (e *EventsService) NewWatcher(ctx context.Context, watch types.Watch) (type
 			parser = newNamespaceParser(kind.Name)
 		case types.KindRole:
 			parser = newRoleParser()
-		// case types.KindUser:
-		// 	parser = newUserParser()
 		case types.KindNode:
 			parser = newNodeParser()
 		case types.KindProxy:
