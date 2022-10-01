@@ -469,25 +469,6 @@ func init() {
 		return trustedCluster, nil
 	})
 
-	RegisterResourceMarshaler(types.KindGithubConnector, func(resource types.Resource, opts ...MarshalOption) ([]byte, error) {
-		githubConnector, ok := resource.(types.GithubConnector)
-		if !ok {
-			return nil, trace.BadParameter("expected GithubConnector, got %T", resource)
-		}
-		bytes, err := MarshalGithubConnector(githubConnector, opts...)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return bytes, nil
-	})
-	RegisterResourceUnmarshaler(types.KindGithubConnector, func(bytes []byte, opts ...MarshalOption) (types.Resource, error) {
-		githubConnector, err := UnmarshalGithubConnector(bytes) // XXX: Does not support marshal options.
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return githubConnector, nil
-	})
-
 	RegisterResourceMarshaler(types.KindRole, func(resource types.Resource, opts ...MarshalOption) ([]byte, error) {
 		role, ok := resource.(types.Role)
 		if !ok {
