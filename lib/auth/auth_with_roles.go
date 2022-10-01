@@ -1606,24 +1606,6 @@ func (a *ServerWithRoles) NewKeepAliver(ctx context.Context) (types.KeepAliver, 
 	return nil, trace.NotImplemented(notImplementedMessage)
 }
 
-// GetSSODiagnosticInfo returns SSO diagnostic info records.
-func (a *ServerWithRoles) GetSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string) (*types.SSODiagnosticInfo, error) {
-	var resource string
-
-	switch authKind {
-	case types.KindOIDC:
-		resource = types.KindOIDCRequest
-	default:
-		return nil, trace.BadParameter("unsupported authKind %q", authKind)
-	}
-
-	if err := a.action(apidefaults.Namespace, resource, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return a.authServer.GetSSODiagnosticInfo(ctx, authKind, authRequestID)
-}
-
 // EmitAuditEvent emits a single audit event
 func (a *ServerWithRoles) EmitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
 	if err := a.action(apidefaults.Namespace, types.KindEvent, types.VerbCreate); err != nil {

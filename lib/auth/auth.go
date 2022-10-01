@@ -934,62 +934,6 @@ func (a *Server) checkTokenTTL(tok types.ProvisionToken) bool {
 	return true
 }
 
-func (a *Server) DeleteToken(ctx context.Context, token string) (err error) {
-	tkns, err := a.GetStaticTokens()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// is this a static token?
-	for _, st := range tkns.GetStaticTokens() {
-		if subtle.ConstantTimeCompare([]byte(st.GetName()), []byte(token)) == 1 {
-			return trace.BadParameter("token %s is statically configured and cannot be removed", backend.MaskKeyName(token))
-		}
-	}
-	// Delete a user token.
-	if err = a.DeleteUserToken(ctx, token); err == nil {
-		return nil
-	}
-	// delete node token:
-	if err = a.Services.DeleteToken(ctx, token); err == nil {
-		return nil
-	}
-	return trace.Wrap(err)
-}
-
-// GetTokens returns all tokens (machine provisioning ones and user tokens). Machine
-// tokens usually have "node roles", like auth,proxy,node and user invitation tokens have 'signup' role
-func (a *Server) GetTokens(ctx context.Context, opts ...services.MarshalOption) (tokens []types.ProvisionToken, err error) {
-	// get node tokens:
-	tokens, err = a.Services.GetTokens(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// get static tokens:
-	tkns, err := a.GetStaticTokens()
-	if err != nil && !trace.IsNotFound(err) {
-		return nil, trace.Wrap(err)
-	}
-	if err == nil {
-		tokens = append(tokens, tkns.GetStaticTokens()...)
-	}
-	// get user tokens:
-	userTokens, err := a.GetUserTokens(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// convert user tokens to machine tokens:
-	for _, t := range userTokens {
-		roles := types.SystemRoles{types.RoleSignup}
-		tok, err := types.NewProvisionToken(t.GetName(), roles, t.Expiry())
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		tokens = append(tokens, tok)
-	}
-	return tokens, nil
-}
-
 func (a *Server) DeleteNamespace(namespace string) error {
 	ctx := context.TODO()
 	if namespace == apidefaults.Namespace {

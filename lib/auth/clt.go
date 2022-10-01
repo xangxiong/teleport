@@ -1131,9 +1131,6 @@ func (c *Client) UpdatePresence(ctx context.Context, sessionID, user string) err
 
 // IdentityService manages identities and users
 type IdentityService interface {
-	// GetSSODiagnosticInfo returns SSO diagnostic info records.
-	GetSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string) (*types.SSODiagnosticInfo, error)
-
 	// GenerateToken creates a special provisioning token for a new SSH server
 	// that is valid for ttl period seconds.
 	//

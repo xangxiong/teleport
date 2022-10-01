@@ -21,8 +21,6 @@ limitations under the License.
 package services
 
 import (
-	"context"
-
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/defaults"
 
@@ -31,54 +29,6 @@ import (
 
 // Identity is responsible for managing user entries and external identities
 type Identity interface {
-	// UpsertMFADevice upserts an MFA device for the user.
-	UpsertMFADevice(ctx context.Context, user string, d *types.MFADevice) error
-
-	// GetMFADevices gets all MFA devices for the user.
-	GetMFADevices(ctx context.Context, user string, withSecrets bool) ([]*types.MFADevice, error)
-
-	// DeleteMFADevice deletes an MFA device for the user by ID.
-	DeleteMFADevice(ctx context.Context, user, id string) error
-
-	// CreateSSODiagnosticInfo creates new SSO diagnostic info record.
-	CreateSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string, entry types.SSODiagnosticInfo) error
-
-	// GetSSODiagnosticInfo returns SSO diagnostic info records.
-	GetSSODiagnosticInfo(ctx context.Context, authKind string, authRequestID string) (*types.SSODiagnosticInfo, error)
-
-	// CreateUserToken creates a new user token.
-	CreateUserToken(ctx context.Context, token types.UserToken) (types.UserToken, error)
-
-	// DeleteUserToken deletes a user token.
-	DeleteUserToken(ctx context.Context, tokenID string) error
-
-	// GetUserTokens returns all user tokens.
-	GetUserTokens(ctx context.Context) ([]types.UserToken, error)
-
-	// GetUserToken returns a user token by id.
-	GetUserToken(ctx context.Context, tokenID string) (types.UserToken, error)
-
-	// UpsertUserTokenSecrets upserts a user token secrets.
-	UpsertUserTokenSecrets(ctx context.Context, secrets types.UserTokenSecrets) error
-
-	// GetUserTokenSecrets returns a user token secrets.
-	GetUserTokenSecrets(ctx context.Context, tokenID string) (types.UserTokenSecrets, error)
-
-	// UpsertRecoveryCodes upserts a user's new recovery codes.
-	UpsertRecoveryCodes(ctx context.Context, user string, recovery *types.RecoveryCodesV1) error
-
-	// GetRecoveryCodes gets a user's recovery codes.
-	GetRecoveryCodes(ctx context.Context, user string, withSecrets bool) (*types.RecoveryCodesV1, error)
-
-	// CreateUserRecoveryAttempt logs user recovery attempt.
-	CreateUserRecoveryAttempt(ctx context.Context, user string, attempt *types.RecoveryAttempt) error
-
-	// GetUserRecoveryAttempts returns user recovery attempts sorted by oldest to latest time.
-	GetUserRecoveryAttempts(ctx context.Context, user string) ([]*types.RecoveryAttempt, error)
-
-	// DeleteUserRecoveryAttempts removes all recovery attempts of a user.
-	DeleteUserRecoveryAttempts(ctx context.Context, user string) error
-
 	types.WebTokensGetter
 }
 
