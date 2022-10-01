@@ -26,27 +26,6 @@ import (
 	"github.com/gravitational/teleport/lib/events"
 )
 
-// UpsertRole creates or updates a role and emits a related audit event.
-func (a *Server) UpsertRole(ctx context.Context, role types.Role) error {
-	if err := a.Services.UpsertRole(ctx, role); err != nil {
-		return trace.Wrap(err)
-	}
-
-	if err := a.emitter.EmitAuditEvent(a.closeCtx, &apievents.RoleCreate{
-		Metadata: apievents.Metadata{
-			Type: events.RoleCreatedEvent,
-			Code: events.RoleCreatedCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: role.GetName(),
-		},
-	}); err != nil {
-		log.WithError(err).Warnf("Failed to emit role create event.")
-	}
-	return nil
-}
-
 // UpsertLock upserts a lock and emits a related audit event.
 func (a *Server) UpsertLock(ctx context.Context, lock types.Lock) error {
 	if err := a.Services.UpsertLock(ctx, lock); err != nil {

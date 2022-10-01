@@ -29,55 +29,13 @@ type Event struct {
 // There is no strict algorithm for picking an event code, however existing
 // event codes are currently loosely categorized as follows:
 //
-//  * Teleport event codes start with "T" and belong in this const block.
+//   - Teleport event codes start with "T" and belong in this const block.
 //
-//  * Related events are grouped starting with the same number.
-//		eg: All user related events are grouped under 1xxx.
+//   - Related events are grouped starting with the same number.
+//     eg: All user related events are grouped under 1xxx.
 //
-//  * Suffix code with one of these letters: I (info), W (warn), E (error).
+//   - Suffix code with one of these letters: I (info), W (warn), E (error).
 const (
-	// UserLocalLoginCode is the successful local user login event code.
-	UserLocalLoginCode = "T1000I"
-	// UserLocalLoginFailureCode is the unsuccessful local user login event code.
-	UserLocalLoginFailureCode = "T1000W"
-	// UserSSOLoginCode is the successful SSO user login event code.
-	UserSSOLoginCode = "T1001I"
-	// UserSSOLoginFailureCode is the unsuccessful SSO user login event code.
-	UserSSOLoginFailureCode = "T1001W"
-	// UserCreateCode is the user create event code.
-	UserCreateCode = "T1002I"
-	// UserUpdateCode is the user update event code.
-	UserUpdateCode = "T1003I"
-	// UserDeleteCode is the user delete event code.
-	UserDeleteCode = "T1004I"
-	// UserPasswordChangeCode is an event code for when user changes their own password.
-	UserPasswordChangeCode = "T1005I"
-	// MFADeviceAddEventCode is an event code for users adding MFA devices.
-	MFADeviceAddEventCode = "T1006I"
-	// MFADeviceDeleteEventCode is an event code for users deleting MFA devices.
-	MFADeviceDeleteEventCode = "T1007I"
-	// RecoveryCodesGenerateCode is an event code for generation of recovery codes.
-	RecoveryCodesGenerateCode = "T1008I"
-	// RecoveryCodeUseSuccessCode is an event code for when a
-	// recovery code was used successfully.
-	RecoveryCodeUseSuccessCode = "T1009I"
-	// RecoveryCodeUseFailureCode is an event code for when a
-	// recovery code was not used successfully.
-	RecoveryCodeUseFailureCode = "T1009W"
-	// UserSSOTestFlowLoginCode is the successful SSO test flow user login event code.
-	UserSSOTestFlowLoginCode = "T1010I"
-	// UserSSOTestFlowLoginFailureCode is the unsuccessful SSO test flow user login event code.
-	UserSSOTestFlowLoginFailureCode = "T1011W"
-
-	// BillingCardCreateCode is an event code for when a user creates a new credit card.
-	BillingCardCreateCode = "TBL00I"
-	// BillingCardDeleteCode is an event code for when a user deletes a credit card.
-	BillingCardDeleteCode = "TBL01I"
-	// BillingCardUpdateCode is an event code for when a user updates an existing credit card.
-	BillingCardUpdateCode = "TBL02I"
-	// BillingInformationUpdateCode is an event code for when a user updates their billing info.
-	BillingInformationUpdateCode = "TBL03I"
-
 	// SessionRejectedCode is an event code for when a user's attempt to create an
 	// session/connection has been rejected.
 	SessionRejectedCode = "T1006W"
@@ -96,100 +54,10 @@ const (
 	SessionUploadCode = "T2005I"
 	// SessionDataCode is the session data event code.
 	SessionDataCode = "T2006I"
-	// AppSessionStartCode is the application session start code.
-	AppSessionStartCode = "T2007I"
-	// AppSessionChunkCode is the application session chunk create code.
-	AppSessionChunkCode = "T2008I"
-	// AppSessionRequestCode is the application request/response code.
-	AppSessionRequestCode = "T2009I"
 	// SessionConnectCode is the session connect event code.
 	SessionConnectCode = "T2010I"
-	// AppSessionEndCode is the application session end event code.
-	AppSessionEndCode = "T2011I"
 	// SessionRecordingAccessCode is the session recording view data event code.
 	SessionRecordingAccessCode = "T2012I"
-
-	// AppCreateCode is the app.create event code.
-	AppCreateCode = "TAP03I"
-	// AppUpdateCode is the app.update event code.
-	AppUpdateCode = "TAP04I"
-	// AppDeleteCode is the app.delete event code.
-	AppDeleteCode = "TAP05I"
-
-	// DatabaseSessionStartCode is the database session start event code.
-	DatabaseSessionStartCode = "TDB00I"
-	// DatabaseSessionStartFailureCode is the database session start failure event code.
-	DatabaseSessionStartFailureCode = "TDB00W"
-	// DatabaseSessionEndCode is the database session end event code.
-	DatabaseSessionEndCode = "TDB01I"
-	// DatabaseSessionQueryCode is the database query event code.
-	DatabaseSessionQueryCode = "TDB02I"
-	// DatabaseSessionQueryFailedCode is the database query failure event code.
-	DatabaseSessionQueryFailedCode = "TDB02W"
-	// DatabaseSessionMalformedPacketCode is the db.session.malformed_packet event code.
-	DatabaseSessionMalformedPacketCode = "TDB06I"
-
-	// PostgresParseCode is the db.session.postgres.statements.parse event code.
-	PostgresParseCode = "TPG00I"
-	// PostgresBindCode is the db.session.postgres.statements.bind event code.
-	PostgresBindCode = "TPG01I"
-	// PostgresExecuteCode is the db.session.postgres.statements.execute event code.
-	PostgresExecuteCode = "TPG02I"
-	// PostgresCloseCode is the db.session.postgres.statements.close event code.
-	PostgresCloseCode = "TPG03I"
-	// PostgresFunctionCallCode is the db.session.postgres.function event code.
-	PostgresFunctionCallCode = "TPG04I"
-
-	// MySQLStatementPrepareCode is the db.session.mysql.statements.prepare event code.
-	MySQLStatementPrepareCode = "TMY00I"
-	// MySQLStatementExecuteCode is the db.session.mysql.statements.execute event code.
-	MySQLStatementExecuteCode = "TMY01I"
-	// MySQLStatementSendLongDataCode is the db.session.mysql.statements.send_long_data event code.
-	MySQLStatementSendLongDataCode = "TMY02I"
-	// MySQLStatementCloseCode is the db.session.mysql.statements.close event code.
-	MySQLStatementCloseCode = "TMY03I"
-	// MySQLStatementResetCode is the db.session.mysql.statements.reset event code.
-	MySQLStatementResetCode = "TMY04I"
-	// MySQLStatementFetchCode is the db.session.mysql.statements.fetch event code.
-	MySQLStatementFetchCode = "TMY05I"
-	// MySQLStatementBulkExecuteCode is the db.session.mysql.statements.bulk_execute event code.
-	MySQLStatementBulkExecuteCode = "TMY06I"
-	// MySQLInitDBCode is the db.session.mysql.init_db event code.
-	MySQLInitDBCode = "TMY07I"
-	// MySQLCreateDBCode is the db.session.mysql.create_db event code.
-	MySQLCreateDBCode = "TMY08I"
-	// MySQLDropDBCode is the db.session.mysql.drop_db event code.
-	MySQLDropDBCode = "TMY09I"
-	// MySQLShutDownCode is the db.session.mysql.shut_down event code.
-	MySQLShutDownCode = "TMY10I"
-	// MySQLProcessKillCode is the db.session.mysql.process_kill event code.
-	MySQLProcessKillCode = "TMY11I"
-	// MySQLDebugCode is the db.session.mysql.debug event code.
-	MySQLDebugCode = "TMY12I"
-	// MySQLRefreshCode is the db.session.mysql.refresh event code.
-	MySQLRefreshCode = "TMY13I"
-
-	// SQLServerRPCRequestCode is the db.session.sqlserver.rpc_request event code.
-	SQLServerRPCRequestCode = "TMS00I"
-
-	// DatabaseCreateCode is the db.create event code.
-	DatabaseCreateCode = "TDB03I"
-	// DatabaseUpdateCode is the db.update event code.
-	DatabaseUpdateCode = "TDB04I"
-	// DatabaseDeleteCode is the db.delete event code.
-	DatabaseDeleteCode = "TDB05I"
-
-	// DesktopSessionStartCode is the desktop session start event code.
-	DesktopSessionStartCode = "TDP00I"
-	// DesktopSessionStartFailureCode is event code for desktop sessions
-	// that failed to start.
-	DesktopSessionStartFailureCode = "TDP00W"
-	// DesktopSessionEndCode is the desktop session end event code.
-	DesktopSessionEndCode = "TDP01I"
-	// DesktopClipboardSendCode is the desktop clipboard send code.
-	DesktopClipboardSendCode = "TDP02I"
-	// DesktopClipboardReceiveCode is the desktop clipboard receive code.
-	DesktopClipboardReceiveCode = "TDP03I"
 
 	// SubsystemCode is the subsystem event code.
 	SubsystemCode = "T3001I"
@@ -219,11 +87,6 @@ const (
 	X11ForwardCode = "T3008I"
 	// X11ForwardFailureCode is the x11 forward failure event code.
 	X11ForwardFailureCode = "T3008W"
-	// KubeRequestCode is an event code for a generic kubernetes request.
-	//
-	// Note: some requests (like exec into a pod) use other codes (like
-	// ExecCode).
-	KubeRequestCode = "T3009I"
 
 	// The following codes correspond to SFTP file operations.
 	SFTPOpenCode            = "TS001I"
@@ -285,8 +148,6 @@ const (
 	ResetPasswordTokenCreateCode = "T6000I"
 	// RecoveryTokenCreateCode is the recovery token create event code.
 	RecoveryTokenCreateCode = "T6001I"
-	// PrivilegeTokenCreateCode is the privilege token create event code.
-	PrivilegeTokenCreateCode = "T6002I"
 
 	// TrustedClusterCreateCode is the event code for creating a trusted cluster.
 	TrustedClusterCreateCode = "T7000I"
@@ -295,26 +156,6 @@ const (
 	// TrustedClusterTokenCreateCode is the event code for
 	// creating new join token for a trusted cluster.
 	TrustedClusterTokenCreateCode = "T7002I"
-
-	// GithubConnectorCreatedCode is the Github connector created event code.
-	GithubConnectorCreatedCode = "T8000I"
-	// GithubConnectorDeletedCode is the Github connector deleted event code.
-	GithubConnectorDeletedCode = "T8001I"
-
-	// OIDCConnectorCreatedCode is the OIDC connector created event code.
-	OIDCConnectorCreatedCode = "T8100I"
-	// OIDCConnectorDeletedCode is the OIDC connector deleted event code.
-	OIDCConnectorDeletedCode = "T8101I"
-
-	// SAMLConnectorCreatedCode is the SAML connector created event code.
-	SAMLConnectorCreatedCode = "T8200I"
-	// SAMLConnectorDeletedCode is the SAML connector deleted event code.
-	SAMLConnectorDeletedCode = "T8201I"
-
-	// RoleCreatedCode is the role created event code.
-	RoleCreatedCode = "T9000I"
-	// RoleDeletedCode is the role deleted event code.
-	RoleDeletedCode = "T9001I"
 
 	// LockCreatedCode is the lock created event code.
 	LockCreatedCode = "TLK00I"
@@ -327,9 +168,6 @@ const (
 	// RenewableCertificateGenerationMismatchCode is the renewable cert
 	// generation mismatch code.
 	RenewableCertificateGenerationMismatchCode = "TCB00W"
-
-	// UpgradeWindowStartUpdatedCode is the edit code of UpgradeWindowStartUpdateEvent.
-	UpgradeWindowStartUpdatedCode = "TUW01I"
 
 	// UnknownCode is used when an event of unknown type is encountered.
 	UnknownCode = apievents.UnknownCode
