@@ -553,7 +553,7 @@ func (l *AuditLog) downloadSession(namespace string, sid session.ID) error {
 		return trace.ConvertSystemError(err)
 	}
 	switch {
-	case format.Proto == true:
+	case format.Proto:
 		start = time.Now()
 		l.log.Debugf("Converting %v to playback format.", tarballPath)
 		protoReader := NewProtoReader(tarball)
@@ -565,7 +565,7 @@ func (l *AuditLog) downloadSession(namespace string, sid session.ID) error {
 		stats := protoReader.GetStats().ToFields()
 		stats["duration"] = time.Since(start)
 		l.log.WithFields(stats).Debugf("Converted %v to %v.", tarballPath, l.playbackDir)
-	case format.Tar == true:
+	case format.Tar:
 		if err := utils.Extract(tarball, l.playbackDir); err != nil {
 			return trace.Wrap(err)
 		}

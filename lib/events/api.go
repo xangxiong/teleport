@@ -48,8 +48,6 @@ const (
 	EventProtocol = "proto"
 	// EventProtocolsSSH specifies SSH as a type of captured protocol
 	EventProtocolSSH = "ssh"
-	// EventProtocolKube specifies kubernetes as a type of captured protocol
-	EventProtocolKube = "kube"
 	// EventProtocolTDP specifies Teleport Desktop Protocol (TDP)
 	// as a type of captured protocol
 	EventProtocolTDP = "tdp"
@@ -494,10 +492,6 @@ const (
 	// Maximum is an event field specifying a maximal value (e.g. the value
 	// of `max_connections` for a `session.rejected` event).
 	Maximum = "max"
-
-	// KubeRequestEvent fires when a proxy handles a generic kubernetes
-	// request.
-	KubeRequestEvent = "kube.request"
 
 	// MFADeviceAddEvent is an event type for users adding MFA devices.
 	MFADeviceAddEvent = "mfa.add"

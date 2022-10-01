@@ -119,104 +119,14 @@ func FromEventFields(fields EventFields) (events.AuditEvent, error) {
 		e = &events.SessionDisk{}
 	case SessionNetworkEvent:
 		e = &events.SessionNetwork{}
-	case RoleCreatedEvent:
-		e = &events.RoleCreate{}
-	case RoleDeletedEvent:
-		e = &events.RoleDelete{}
 	case TrustedClusterCreateEvent:
 		e = &events.TrustedClusterCreate{}
 	case TrustedClusterDeleteEvent:
 		e = &events.TrustedClusterDelete{}
 	case TrustedClusterTokenCreateEvent:
 		e = &events.TrustedClusterTokenCreate{}
-	case GithubConnectorCreatedEvent:
-		e = &events.GithubConnectorCreate{}
-	case GithubConnectorDeletedEvent:
-		e = &events.GithubConnectorDelete{}
-	case OIDCConnectorCreatedEvent:
-		e = &events.OIDCConnectorCreate{}
-	case OIDCConnectorDeletedEvent:
-		e = &events.OIDCConnectorDelete{}
-	case SAMLConnectorCreatedEvent:
-		e = &events.SAMLConnectorCreate{}
-	case SAMLConnectorDeletedEvent:
-		e = &events.SAMLConnectorDelete{}
 	case SessionRejectedEvent:
 		e = &events.SessionReject{}
-	case AppSessionStartEvent:
-		e = &events.AppSessionStart{}
-	case AppSessionEndEvent:
-		e = &events.AppSessionEnd{}
-	case AppSessionChunkEvent:
-		e = &events.AppSessionChunk{}
-	case AppSessionRequestEvent:
-		e = &events.AppSessionRequest{}
-	case AppCreateEvent:
-		e = &events.AppCreate{}
-	case AppUpdateEvent:
-		e = &events.AppUpdate{}
-	case AppDeleteEvent:
-		e = &events.AppDelete{}
-	case DatabaseCreateEvent:
-		e = &events.DatabaseCreate{}
-	case DatabaseUpdateEvent:
-		e = &events.DatabaseUpdate{}
-	case DatabaseDeleteEvent:
-		e = &events.DatabaseDelete{}
-	case DatabaseSessionStartEvent:
-		e = &events.DatabaseSessionStart{}
-	case DatabaseSessionEndEvent:
-		e = &events.DatabaseSessionEnd{}
-	case DatabaseSessionQueryEvent, DatabaseSessionQueryFailedEvent:
-		e = &events.DatabaseSessionQuery{}
-	case DatabaseSessionMalformedPacketEvent:
-		e = &events.DatabaseSessionMalformedPacket{}
-	case DatabaseSessionPostgresParseEvent:
-		e = &events.PostgresParse{}
-	case DatabaseSessionPostgresBindEvent:
-		e = &events.PostgresBind{}
-	case DatabaseSessionPostgresExecuteEvent:
-		e = &events.PostgresExecute{}
-	case DatabaseSessionPostgresCloseEvent:
-		e = &events.PostgresClose{}
-	case DatabaseSessionPostgresFunctionEvent:
-		e = &events.PostgresFunctionCall{}
-	case DatabaseSessionMySQLStatementPrepareEvent:
-		e = &events.MySQLStatementPrepare{}
-	case DatabaseSessionMySQLStatementExecuteEvent:
-		e = &events.MySQLStatementExecute{}
-	case DatabaseSessionMySQLStatementSendLongDataEvent:
-		e = &events.MySQLStatementSendLongData{}
-	case DatabaseSessionMySQLStatementCloseEvent:
-		e = &events.MySQLStatementClose{}
-	case DatabaseSessionMySQLStatementResetEvent:
-		e = &events.MySQLStatementReset{}
-	case DatabaseSessionMySQLStatementFetchEvent:
-		e = &events.MySQLStatementFetch{}
-	case DatabaseSessionMySQLStatementBulkExecuteEvent:
-		e = &events.MySQLStatementBulkExecute{}
-	case DatabaseSessionMySQLInitDBEvent:
-		e = &events.MySQLInitDB{}
-	case DatabaseSessionMySQLCreateDBEvent:
-		e = &events.MySQLCreateDB{}
-	case DatabaseSessionMySQLDropDBEvent:
-		e = &events.MySQLDropDB{}
-	case DatabaseSessionMySQLShutDownEvent:
-		e = &events.MySQLShutDown{}
-	case DatabaseSessionMySQLProcessKillEvent:
-		e = &events.MySQLProcessKill{}
-	case DatabaseSessionMySQLDebugEvent:
-		e = &events.MySQLDebug{}
-	case DatabaseSessionMySQLRefreshEvent:
-		e = &events.MySQLRefresh{}
-	case DatabaseSessionSQLServerRPCRequestEvent:
-		e = &events.SQLServerRPCRequest{}
-	case KubeRequestEvent:
-		e = &events.KubeRequest{}
-	case MFADeviceAddEvent:
-		e = &events.MFADeviceAdd{}
-	case MFADeviceDeleteEvent:
-		e = &events.MFADeviceDelete{}
 	case LockCreatedEvent:
 		e = &events.LockCreate{}
 	case LockDeletedEvent:
@@ -229,14 +139,6 @@ func FromEventFields(fields EventFields) (events.AuditEvent, error) {
 		e = &events.UserTokenCreate{}
 	case PrivilegeTokenCreateEvent:
 		e = &events.UserTokenCreate{}
-	case WindowsDesktopSessionStartEvent:
-		e = &events.WindowsDesktopSessionStart{}
-	case WindowsDesktopSessionEndEvent:
-		e = &events.WindowsDesktopSessionEnd{}
-	case DesktopClipboardSendEvent:
-		e = &events.DesktopClipboardSend{}
-	case DesktopClipboardReceiveEvent:
-		e = &events.DesktopClipboardReceive{}
 	case SessionConnectEvent:
 		e = &events.SessionConnect{}
 	case AccessRequestDeleteEvent:

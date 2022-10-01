@@ -18,7 +18,6 @@ package events
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/gravitational/teleport"
@@ -179,7 +178,7 @@ func (u *UploadCompleter) checkUploads(ctx context.Context) error {
 		case trace.IsAccessDenied(err): // upload abandoned, complete upload
 			// Treat access denied errors as not found errors, since we expect
 			// to get them if the auth server is v9.2.3 or earlier, since only
-			// node, proxy, and kube roles had permissions to create trackers.
+			// node and proxy had permissions to create trackers.
 			// DELETE IN 11.0.0
 		default: // aka err != nil
 			return trace.Wrap(err)
@@ -280,23 +279,8 @@ loop:
 
 			switch e := evt.(type) {
 			// Return if session end event already exists
-			case *events.SessionEnd, *events.WindowsDesktopSessionEnd:
+			case *events.SessionEnd:
 				return nil
-
-			case *events.WindowsDesktopSessionStart:
-				desktopSessionEnd.Type = WindowsDesktopSessionEndEvent
-				desktopSessionEnd.Code = DesktopSessionEndCode
-				desktopSessionEnd.ClusterName = e.ClusterName
-				desktopSessionEnd.StartTime = e.Time
-				desktopSessionEnd.Participants = append(desktopSessionEnd.Participants, e.User)
-				desktopSessionEnd.Recorded = true
-				desktopSessionEnd.UserMetadata = e.UserMetadata
-				desktopSessionEnd.SessionMetadata = e.SessionMetadata
-				desktopSessionEnd.WindowsDesktopService = e.WindowsDesktopService
-				desktopSessionEnd.Domain = e.Domain
-				desktopSessionEnd.DesktopAddr = e.DesktopAddr
-				desktopSessionEnd.DesktopLabels = e.DesktopLabels
-				desktopSessionEnd.DesktopName = fmt.Sprintf("%v (recovered)", e.DesktopName)
 
 			case *events.SessionStart:
 				sshSessionEnd.Type = SessionEndEvent
@@ -307,8 +291,6 @@ loop:
 				sshSessionEnd.SessionMetadata = e.SessionMetadata
 				sshSessionEnd.ServerMetadata = e.ServerMetadata
 				sshSessionEnd.ConnectionMetadata = e.ConnectionMetadata
-				sshSessionEnd.KubernetesClusterMetadata = e.KubernetesClusterMetadata
-				sshSessionEnd.KubernetesPodMetadata = e.KubernetesPodMetadata
 				sshSessionEnd.InitialCommand = e.InitialCommand
 				sshSessionEnd.SessionRecording = e.SessionRecording
 				sshSessionEnd.Interactive = e.TerminalSize != ""
