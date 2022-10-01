@@ -27,7 +27,6 @@ import (
 var GlobalSessionDataMaxEntries = 5000 // arbitrary
 
 const (
-	webPrefix                 = "web"
 	usersPrefix               = "users"
 	sessionsPrefix            = "sessions"
 	attemptsPrefix            = "attempts"

@@ -78,8 +78,8 @@ func (e *EventsService) NewWatcher(ctx context.Context, watch types.Watch) (type
 			parser = newNamespaceParser(kind.Name)
 		case types.KindRole:
 			parser = newRoleParser()
-		case types.KindUser:
-			parser = newUserParser()
+		// case types.KindUser:
+		// 	parser = newUserParser()
 		case types.KindNode:
 			parser = newNodeParser()
 		case types.KindProxy:
@@ -631,11 +631,11 @@ func (p *accessRequestParser) parse(event backend.Event) (types.Resource, error)
 	}
 }
 
-func newUserParser() *userParser {
-	return &userParser{
-		baseParser: newBaseParser(backend.Key(webPrefix, usersPrefix)),
-	}
-}
+// func newUserParser() *userParser {
+// 	return &userParser{
+// 		baseParser: newBaseParser(backend.Key(webPrefix, usersPrefix)),
+// 	}
+// }
 
 type userParser struct {
 	baseParser
