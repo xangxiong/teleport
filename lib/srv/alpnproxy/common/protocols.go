@@ -19,10 +19,7 @@ package common
 import (
 	"strings"
 
-	"github.com/gravitational/trace"
 	"golang.org/x/exp/slices"
-
-	"github.com/gravitational/teleport/lib/defaults"
 )
 
 // Protocol is the TLS ALPN protocol type.
@@ -108,26 +105,6 @@ func ProtocolsToString(protocols []Protocol) []string {
 		out = append(out, string(v))
 	}
 	return out
-}
-
-// ToALPNProtocol maps provided database protocol to ALPN protocol.
-func ToALPNProtocol(dbProtocol string) (Protocol, error) {
-	switch dbProtocol {
-	case defaults.ProtocolMySQL:
-		return ProtocolMySQL, nil
-	case defaults.ProtocolPostgres, defaults.ProtocolCockroachDB:
-		return ProtocolPostgres, nil
-	case defaults.ProtocolMongoDB:
-		return ProtocolMongoDB, nil
-	case defaults.ProtocolRedis:
-		return ProtocolRedisDB, nil
-	case defaults.ProtocolSQLServer:
-		return ProtocolSQLServer, nil
-	case defaults.ProtocolSnowflake:
-		return ProtocolSnowflake, nil
-	default:
-		return "", trace.NotImplemented("%q protocol is not supported", dbProtocol)
-	}
 }
 
 // IsDBTLSProtocol returns if DB protocol has supported native TLS protocol.

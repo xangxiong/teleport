@@ -51,41 +51,13 @@ const (
 
 	SSHProxyTunnelListenPort = defaults.SSHProxyTunnelListenPort
 
-	// KubeListenPort is a default port for kubernetes proxies
-	KubeListenPort = 3026
-
 	// When running as a "SSH Proxy" this port will be used to
 	// serve auth requests.
 	AuthListenPort = 3025
 
-	// MySQLListenPort is the default listen port for MySQL proxy.
-	MySQLListenPort = 3036
-
-	// PostgresListenPort is the default listen port for PostgreSQL proxy.
-	PostgresListenPort = 5432
-
-	// MongoListenPort is the default listen port for Mongo proxy.
-	MongoListenPort = 27017
-
-	// RedisListenPort is the default listen port for Redis proxy.
-	RedisListenPort = 6379
-
-	// MetricsListenPort is the default listen port for the metrics service.
-	MetricsListenPort = 3081
-
-	// WindowsDesktopListenPort is the default listed port for
-	// windows_desktop_service.
-	//
-	// TODO(awly): update to match HTTPListenPort once SNI routing is
-	// implemented.
-	WindowsDesktopListenPort = 3028
-
 	// ProxyPeeringListenPort is the default port proxies will listen on when
 	// proxy peering is enabled.
 	ProxyPeeringListenPort = 3021
-
-	// RDPListenPort is the standard port for RDP servers.
-	RDPListenPort = 3389
 
 	// BackendDir is a default backend subdirectory
 	BackendDir = "backend"
@@ -139,10 +111,6 @@ const (
 	// ReadHeadersTimeout is a default TCP timeout when we wait
 	// for the response headers to arrive
 	ReadHeadersTimeout = time.Second
-
-	// DatabaseConnectTimeout is a timeout for connecting to a database via
-	// database access.
-	DatabaseConnectTimeout = time.Minute
 
 	// HandshakeReadDeadline is the default time to wait for the client during
 	// the TLS handshake.
@@ -212,15 +180,6 @@ const (
 
 	// ActiveSessionTTL is a TTL when session is marked as inactive
 	ActiveSessionTTL = 30 * time.Second
-
-	// OIDCAuthRequestTTL is TTL of internally stored auth request created by client
-	OIDCAuthRequestTTL = 10 * 60 * time.Second
-
-	// SAMLAuthRequestTTL is TTL of internally stored auth request created by client
-	SAMLAuthRequestTTL = 10 * 60 * time.Second
-
-	// GithubAuthRequestTTL is TTL of internally stored Github auth request
-	GithubAuthRequestTTL = 10 * 60 * time.Second
 
 	// LogRotationPeriod defines how frequently to rotate the audit log file
 	LogRotationPeriod = time.Hour * 24
@@ -371,18 +330,6 @@ var (
 	// NodeQueueSize is node service queue size
 	NodeQueueSize = 128
 
-	// KubernetesQueueSize is kubernetes service watch queue size
-	KubernetesQueueSize = 128
-
-	// AppsQueueSize is apps service queue size.
-	AppsQueueSize = 128
-
-	// DatabasesQueueSize is db service queue size.
-	DatabasesQueueSize = 128
-
-	// WindowsDesktopQueueSize is windows_desktop service watch queue size.
-	WindowsDesktopQueueSize = 128
-
 	// SessionControlTimeout is the maximum amount of time a controlled session
 	// may persist after contact with the auth server is lost (sessctl semaphore
 	// leases are refreshed at a rate of ~1/2 this duration).
@@ -406,9 +353,6 @@ var (
 	// MaxWatcherBackoff is the maximum retry time a watcher should use in
 	// the event of connection issues
 	MaxWatcherBackoff = time.Minute
-
-	// PrometheusScrapeInterval is the default time interval for prometheus scrapes. Used for metric update periods.
-	PrometheusScrapeInterval = 15 * time.Second
 )
 
 // Default connection limits, they can be applied separately on any of the Teleport
@@ -467,69 +411,7 @@ const (
 	// RoleAuthService is authentication and authorization service,
 	// the only stateful role in the system
 	RoleAuthService = "auth"
-	// RoleApp is an application proxy.
-	RoleApp = "app"
-	// RoleDatabase is a database proxy role.
-	RoleDatabase = "db"
-	// RoleWindowsDesktop is a Windows desktop service.
-	RoleWindowsDesktop = "windowsdesktop"
 )
-
-const (
-	// ProtocolPostgres is the PostgreSQL database protocol.
-	ProtocolPostgres = "postgres"
-	// ProtocolMySQL is the MySQL/MariaDB database protocol.
-	ProtocolMySQL = "mysql"
-	// ProtocolMongoDB is the MongoDB database protocol.
-	ProtocolMongoDB = "mongodb"
-	// ProtocolRedis is the Redis database protocol.
-	ProtocolRedis = "redis"
-	// ProtocolCockroachDB is the CockroachDB database protocol.
-	//
-	// Technically it's the same as the Postgres protocol, but it's used to
-	// differentiate between Cockroach and Postgres databases e.g. when
-	// selecting a CLI client to use.
-	ProtocolCockroachDB = "cockroachdb"
-	// ProtocolSQLServer is the Microsoft SQL Server database protocol.
-	ProtocolSQLServer = "sqlserver"
-	// ProtocolSnowflake is the Snowflake REST database protocol.
-	ProtocolSnowflake = "snowflake"
-)
-
-// DatabaseProtocols is a list of all supported database protocols.
-var DatabaseProtocols = []string{
-	ProtocolPostgres,
-	ProtocolMySQL,
-	ProtocolMongoDB,
-	ProtocolCockroachDB,
-	ProtocolRedis,
-	ProtocolSnowflake,
-	ProtocolSQLServer,
-}
-
-// ReadableDatabaseProtocol returns a more human readable string of the
-// provided database protocol.
-func ReadableDatabaseProtocol(p string) string {
-	switch p {
-	case ProtocolPostgres:
-		return "PostgreSQL"
-	case ProtocolMySQL:
-		return "MySQL"
-	case ProtocolMongoDB:
-		return "MongoDB"
-	case ProtocolCockroachDB:
-		return "CockroachDB"
-	case ProtocolRedis:
-		return "Redis"
-	case ProtocolSnowflake:
-		return "Snowflake"
-	case ProtocolSQLServer:
-		return "Microsoft SQL Server"
-	default:
-		// Unknown protocol. Return original string.
-		return p
-	}
-}
 
 const (
 	// PerfBufferPageCount is the size of the perf ring buffer in number of pages.
@@ -553,8 +435,8 @@ var (
 	// registered SSH servers, etc):
 	DataDir = "/var/lib/teleport"
 
-	// StartRoles is default roles teleport assumes when started via 'start' command
-	StartRoles = []string{RoleProxy, RoleNode, RoleAuthService, RoleApp, RoleDatabase}
+	// // StartRoles is default roles teleport assumes when started via 'start' command
+	StartRoles = []string{RoleNode}
 
 	// ConfigEnvar is a name of teleport's configuration environment variable
 	ConfigEnvar = "TELEPORT_CONFIG"
@@ -610,11 +492,6 @@ const (
 	SelfSignedCertPath = "webproxy_cert.pem"
 )
 
-const (
-	// SnowflakeURL is the Snowflake URL used for address validation.
-	SnowflakeURL = "snowflakecomputing.com"
-)
-
 // ConfigureLimiter assigns the default parameters to a connection throttler (AKA limiter)
 func ConfigureLimiter(lc *limiter.Config) {
 	lc.MaxConnections = LimiterMaxConnections
@@ -636,11 +513,6 @@ func ProxyListenAddr() *utils.NetAddr {
 	return makeAddr(BindIP, SSHProxyListenPort)
 }
 
-// KubeProxyListenAddr returns the default listening address for the Kubernetes Proxy service
-func KubeProxyListenAddr() *utils.NetAddr {
-	return makeAddr(BindIP, KubeListenPort)
-}
-
 // ProxyWebListenAddr returns the default listening address for the Web-based SSH Proxy service
 func ProxyWebListenAddr() *utils.NetAddr {
 	return makeAddr(BindIP, HTTPListenPort)
@@ -656,11 +528,6 @@ func SSHServerListenAddr() *utils.NetAddr {
 // blocks inbound connecions to ssh_nodes
 func ReverseTunnelListenAddr() *utils.NetAddr {
 	return makeAddr(BindIP, SSHProxyTunnelListenPort)
-}
-
-// MetricsServiceListenAddr returns the default listening address for the metrics service
-func MetricsServiceListenAddr() *utils.NetAddr {
-	return makeAddr(BindIP, MetricsListenPort)
 }
 
 func ProxyPeeringListenAddr() *utils.NetAddr {
@@ -768,7 +635,7 @@ func CheckPasswordLimiter() *limiter.Limiter {
 		MaxConnections:   LimiterMaxConnections,
 		MaxNumberOfUsers: LimiterMaxConcurrentUsers,
 		Rates: []limiter.Rate{
-			limiter.Rate{
+			{
 				Period:  1 * time.Second,
 				Average: 10,
 				Burst:   10,
