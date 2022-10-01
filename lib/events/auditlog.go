@@ -278,7 +278,6 @@ func NewAuditLog(cfg AuditLogConfig) (*AuditLog, error) {
 		}
 	}
 
-	go al.periodicCleanupPlaybacks()
 	go al.periodicSpaceMonitor()
 
 	return al, nil
@@ -332,38 +331,6 @@ func (l *AuditLog) createOrGetDownload(path string) (context.Context, context.Ca
 		defer l.Unlock()
 		delete(l.activeDownloads, path)
 	}
-}
-
-func (l *AuditLog) cleanupOldPlaybacks() error {
-	// scan the log directory and clean files last
-	// accessed after an hour
-	df, err := os.Open(l.playbackDir)
-	if err != nil {
-		return trace.ConvertSystemError(err)
-	}
-	defer df.Close()
-	entries, err := df.Readdir(-1)
-	if err != nil {
-		return trace.ConvertSystemError(err)
-	}
-	for i := range entries {
-		fi := entries[i]
-		if fi.IsDir() {
-			continue
-		}
-		fd := fi.ModTime().UTC()
-		diff := l.Clock.Now().UTC().Sub(fd)
-		if diff <= l.PlaybackRecycleTTL {
-			continue
-		}
-		fileToRemove := filepath.Join(l.playbackDir, fi.Name())
-		err := os.Remove(fileToRemove)
-		if err != nil {
-			l.log.Warningf("Failed to remove file %v: %v.", fileToRemove, err)
-		}
-		l.log.Debugf("Removed unpacked session playback file %v after %v.", fileToRemove, diff)
-	}
-	return nil
 }
 
 // EmitAuditEvent adds a new event to the local file log
@@ -535,22 +502,6 @@ func (l *AuditLog) Close() error {
 		l.localLog = nil
 	}
 	return nil
-}
-
-func (l *AuditLog) periodicCleanupPlaybacks() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-l.ctx.Done():
-			return
-		case <-ticker.C:
-			if err := l.cleanupOldPlaybacks(); err != nil {
-				l.log.Warningf("Error while cleaning up playback files: %v.", err)
-			}
-		}
-	}
 }
 
 // periodicSpaceMonitor run forever monitoring how much disk space has been
