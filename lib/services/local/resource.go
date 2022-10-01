@@ -84,8 +84,6 @@ func itemsFromResource(resource types.Resource) ([]backend.Item, error) {
 		item, err = itemFromCertAuthority(r)
 	case types.TrustedCluster:
 		item, err = itemFromTrustedCluster(r)
-	case types.Role:
-		item, err = itemFromRole(r)
 	default:
 		return nil, trace.NotImplemented("cannot itemFrom resource of type %T", resource)
 	}
@@ -139,23 +137,6 @@ func itemFromTrustedCluster(tc types.TrustedCluster) (*backend.Item, error) {
 		Value:   value,
 		Expires: tc.Expiry(),
 		ID:      tc.GetResourceID(),
-	}
-	return item, nil
-}
-
-// itemFromRole attempts to encode the supplied role as an
-// instance of `backend.Item` suitable for storage.
-func itemFromRole(role types.Role) (*backend.Item, error) {
-	value, err := services.MarshalRole(role)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	item := &backend.Item{
-		Key:     backend.Key(rolesPrefix, role.GetName(), paramsPrefix),
-		Value:   value,
-		Expires: role.Expiry(),
-		ID:      role.GetResourceID(),
 	}
 	return item, nil
 }

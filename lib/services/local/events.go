@@ -76,14 +76,8 @@ func (e *EventsService) NewWatcher(ctx context.Context, watch types.Watch) (type
 			parser = newClusterNameParser()
 		case types.KindNamespace:
 			parser = newNamespaceParser(kind.Name)
-		case types.KindRole:
-			parser = newRoleParser()
 		case types.KindNode:
 			parser = newNodeParser()
-		case types.KindProxy:
-			parser = newProxyParser()
-		case types.KindAuthServer:
-			parser = newAuthServerParser()
 		case types.KindTunnelConnection:
 			parser = newTunnelConnectionParser()
 		case types.KindReverseTunnel:
@@ -551,34 +545,6 @@ func (p *namespaceParser) parse(event backend.Event) (types.Resource, error) {
 	}
 }
 
-func newRoleParser() *roleParser {
-	return &roleParser{
-		baseParser: newBaseParser(backend.Key(rolesPrefix)),
-	}
-}
-
-type roleParser struct {
-	baseParser
-}
-
-func (p *roleParser) parse(event backend.Event) (types.Resource, error) {
-	switch event.Type {
-	case types.OpDelete:
-		return resourceHeader(event, types.KindRole, types.V3, 1)
-	case types.OpPut:
-		resource, err := services.UnmarshalRole(event.Item.Value,
-			services.WithResourceID(event.Item.ID),
-			services.WithExpires(event.Item.Expires),
-		)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return resource, nil
-	default:
-		return nil, trace.BadParameter("event %v is not supported", event.Type)
-	}
-}
-
 func newAccessRequestParser(m map[string]string) (*accessRequestParser, error) {
 	var filter types.AccessRequestFilter
 	if err := filter.FromMap(m); err != nil {
@@ -629,42 +595,6 @@ func (p *accessRequestParser) parse(event backend.Event) (types.Resource, error)
 	}
 }
 
-// func newUserParser() *userParser {
-// 	return &userParser{
-// 		baseParser: newBaseParser(backend.Key(webPrefix, usersPrefix)),
-// 	}
-// }
-
-type userParser struct {
-	baseParser
-}
-
-func (p *userParser) match(key []byte) bool {
-	// users are stored under key '/web/users/<username>/params'
-	// and this code matches similar pattern
-	return p.baseParser.match(key) &&
-		bytes.HasSuffix(key, []byte(paramsPrefix)) &&
-		bytes.Count(key, []byte{backend.Separator}) == 4
-}
-
-func (p *userParser) parse(event backend.Event) (types.Resource, error) {
-	switch event.Type {
-	case types.OpDelete:
-		return resourceHeader(event, types.KindUser, types.V2, 1)
-	case types.OpPut:
-		resource, err := services.UnmarshalUser(event.Item.Value,
-			services.WithResourceID(event.Item.ID),
-			services.WithExpires(event.Item.Expires),
-		)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return resource, nil
-	default:
-		return nil, trace.BadParameter("event %v is not supported", event.Type)
-	}
-}
-
 func newNodeParser() *nodeParser {
 	return &nodeParser{
 		baseParser: newBaseParser(backend.Key(nodesPrefix, apidefaults.Namespace)),
@@ -677,34 +607,6 @@ type nodeParser struct {
 
 func (p *nodeParser) parse(event backend.Event) (types.Resource, error) {
 	return parseServer(event, types.KindNode)
-}
-
-func newProxyParser() *proxyParser {
-	return &proxyParser{
-		baseParser: newBaseParser(backend.Key(proxiesPrefix)),
-	}
-}
-
-type proxyParser struct {
-	baseParser
-}
-
-func (p *proxyParser) parse(event backend.Event) (types.Resource, error) {
-	return parseServer(event, types.KindProxy)
-}
-
-func newAuthServerParser() *authServerParser {
-	return &authServerParser{
-		baseParser: newBaseParser(backend.Key(authServersPrefix)),
-	}
-}
-
-type authServerParser struct {
-	baseParser
-}
-
-func (p *authServerParser) parse(event backend.Event) (types.Resource, error) {
-	return parseServer(event, types.KindAuthServer)
 }
 
 func newTunnelConnectionParser() *tunnelConnectionParser {
