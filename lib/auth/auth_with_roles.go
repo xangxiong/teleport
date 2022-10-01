@@ -1329,62 +1329,6 @@ func (a *ServerWithRoles) CreateToken(ctx context.Context, token types.Provision
 	return a.authServer.CreateToken(ctx, token)
 }
 
-// Get returns the web token specified with req.
-func (r *webTokensWithRoles) Get(ctx context.Context, req types.GetWebTokenRequest) (types.WebToken, error) {
-	if err := r.c.currentUserAction(req.User); err != nil {
-		if err := r.c.action(apidefaults.Namespace, types.KindWebToken, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return r.t.Get(ctx, req)
-}
-
-// List returns the list of all web tokens.
-func (r *webTokensWithRoles) List(ctx context.Context) ([]types.WebToken, error) {
-	if err := r.c.action(apidefaults.Namespace, types.KindWebToken, types.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return r.t.List(ctx)
-}
-
-// Upsert creates a new or updates the existing web token from the specified token.
-// TODO(dmitri): this is currently only implemented for local invocations. This needs to be
-// moved into a more appropriate API
-func (*webTokensWithRoles) Upsert(ctx context.Context, session types.WebToken) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// Delete removes the web token specified with req.
-func (r *webTokensWithRoles) Delete(ctx context.Context, req types.DeleteWebTokenRequest) error {
-	if err := r.c.currentUserAction(req.User); err != nil {
-		if err := r.c.action(apidefaults.Namespace, types.KindWebToken, types.VerbDelete); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return r.t.Delete(ctx, req)
-}
-
-// DeleteAll removes all web tokens.
-func (r *webTokensWithRoles) DeleteAll(ctx context.Context) error {
-	if err := r.c.action(apidefaults.Namespace, types.KindWebToken, types.VerbList); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := r.c.action(apidefaults.Namespace, types.KindWebToken, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return r.t.DeleteAll(ctx)
-}
-
-type webTokensWithRoles struct {
-	c accessChecker
-	t types.WebTokenInterface
-}
-
-type accessChecker interface {
-	action(namespace, resource string, verbs ...string) error
-	currentUserAction(user string) error
-}
-
 func (a *ServerWithRoles) GetAccessRequests(ctx context.Context, filter types.AccessRequestFilter) ([]types.AccessRequest, error) {
 	// users can always view their own access requests
 	if filter.User != "" && a.currentUserAction(filter.User) == nil {
