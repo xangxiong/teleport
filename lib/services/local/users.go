@@ -18,11 +18,6 @@ package local
 
 import (
 	"time"
-
-	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/trace"
-
-	"github.com/sirupsen/logrus"
 )
 
 // GlobalSessionDataMaxEntries represents the maximum number of in-flight
@@ -30,21 +25,6 @@ import (
 // Attempting to write more instances than the max limit causes an error.
 // The limit is enforced separately by Auth Server instances.
 var GlobalSessionDataMaxEntries = 5000 // arbitrary
-
-// IdentityService is responsible for managing web users and currently
-// user accounts as well
-type IdentityService struct {
-	backend.Backend
-	log logrus.FieldLogger
-}
-
-// NewIdentityService returns a new instance of IdentityService object
-func NewIdentityService(backend backend.Backend) *IdentityService {
-	return &IdentityService{
-		Backend: backend,
-		log:     logrus.WithField(trace.Component, "identity"),
-	}
-}
 
 const (
 	webPrefix                 = "web"

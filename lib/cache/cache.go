@@ -435,7 +435,6 @@ func New(config Config) (*Cache, error) {
 		dynamicAccessCache: local.NewDynamicAccessService(config.Backend),
 		presenceCache:      local.NewPresenceService(config.Backend),
 		restrictionsCache:  local.NewRestrictionsService(config.Backend),
-		webTokenCache:      local.NewIdentityService(config.Backend).WebTokens(),
 		eventsFanout:       services.NewFanoutSet(),
 		Entry: log.WithFields(log.Fields{
 			trace.Component: config.Component,
