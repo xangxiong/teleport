@@ -22,42 +22,9 @@ package services
 
 import (
 	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/defaults"
-
-	"github.com/gravitational/trace"
 )
 
 // Identity is responsible for managing user entries and external identities
 type Identity interface {
 	types.WebTokensGetter
-}
-
-// VerifyPassword makes sure password satisfies our requirements (relaxed),
-// mostly to avoid putting garbage in
-func VerifyPassword(password []byte) error {
-	if len(password) < defaults.MinPasswordLength {
-		return trace.BadParameter(
-			"password is too short, min length is %v", defaults.MinPasswordLength)
-	}
-	if len(password) > defaults.MaxPasswordLength {
-		return trace.BadParameter(
-			"password is too long, max length is %v", defaults.MaxPasswordLength)
-	}
-	return nil
-}
-
-// Users represents a slice of users,
-// makes it sort compatible (sorts by username)
-type Users []types.User
-
-func (u Users) Len() int {
-	return len(u)
-}
-
-func (u Users) Less(i, j int) bool {
-	return u[i].GetName() < u[j].GetName()
-}
-
-func (u Users) Swap(i, j int) {
-	u[i], u[j] = u[j], u[i]
 }
