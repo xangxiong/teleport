@@ -17,8 +17,6 @@ limitations under the License.
 package utils
 
 import (
-	"github.com/gravitational/teleport/lib/fixtures"
-
 	"github.com/google/uuid"
 )
 
@@ -39,17 +37,4 @@ func NewRealUID() UID {
 // New generates a new UUID4.
 func (u *realUID) New() string {
 	return uuid.New().String()
-}
-
-// fakeUID is a fake UID generator used in tests.
-type fakeUID struct{}
-
-// NewFakeUID returns a new fake UID generator used in tests.
-func NewFakeUID() UID {
-	return &fakeUID{}
-}
-
-// New returns a fake UUID4.
-func (u *fakeUID) New() string {
-	return fixtures.UUID
 }
