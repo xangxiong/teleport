@@ -1088,13 +1088,6 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 	return resp, nil
 }
 
-func (a *ServerWithRoles) UpsertProxy(s types.Server) error {
-	if err := a.action(apidefaults.Namespace, types.KindProxy, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertProxy(s)
-}
-
 func (a *ServerWithRoles) GetProxies() ([]types.Server, error) {
 	if err := a.action(apidefaults.Namespace, types.KindProxy, types.VerbList, types.VerbRead); err != nil {
 		return nil, trace.Wrap(err)
