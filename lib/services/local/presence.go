@@ -639,14 +639,6 @@ func (s *PresenceService) GetRemoteCluster(clusterName string) (types.RemoteClus
 	return rc, trace.Wrap(err)
 }
 
-// DeleteRemoteCluster deletes remote cluster by name
-func (s *PresenceService) DeleteRemoteCluster(clusterName string) error {
-	if clusterName == "" {
-		return trace.BadParameter("missing parameter cluster name")
-	}
-	return s.Delete(context.TODO(), backend.Key(remoteClustersPrefix, clusterName))
-}
-
 // this combination of backoff parameters leads to worst-case total time spent
 // in backoff between 1ms and 2000ms depending on jitter.  tests are in
 // place to verify that this is sufficient to resolve a 20-lease contention

@@ -156,9 +156,6 @@ type Presence interface {
 	// GetRemoteCluster returns a remote cluster by name
 	GetRemoteCluster(clusterName string) (types.RemoteCluster, error)
 
-	// DeleteRemoteCluster deletes remote cluster by name
-	DeleteRemoteCluster(clusterName string) error
-
 	// KeepAliveServer updates TTL of the server resource in the backend.
 	KeepAliveServer(ctx context.Context, h types.KeepAlive) error
 

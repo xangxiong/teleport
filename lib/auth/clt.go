@@ -653,15 +653,6 @@ func (c *Client) GetRemoteCluster(clusterName string) (types.RemoteCluster, erro
 	return services.UnmarshalRemoteCluster(out.Bytes())
 }
 
-// DeleteRemoteCluster deletes remote cluster by name
-func (c *Client) DeleteRemoteCluster(clusterName string) error {
-	if clusterName == "" {
-		return trace.BadParameter("missing parameter cluster name")
-	}
-	_, err := c.Delete(context.TODO(), c.Endpoint("remoteclusters", clusterName))
-	return trace.Wrap(err)
-}
-
 // UpsertAuthServer is used by auth servers to report their presence
 // to other auth servers in form of hearbeat expiring after ttl period.
 func (c *Client) UpsertAuthServer(s types.Server) error {
