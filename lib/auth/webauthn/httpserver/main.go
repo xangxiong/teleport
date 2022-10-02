@@ -26,7 +26,6 @@ import (
 	"sync"
 
 	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/lib/client"
 	"github.com/gravitational/trace"
 
 	apiclient "github.com/gravitational/teleport/api/client"
@@ -81,7 +80,7 @@ func run() error {
 		ctx:      ctx,
 		teleport: teleport,
 	}
-	http.HandleFunc("/login/1", s.login1)
+	// http.HandleFunc("/login/1", s.login1)
 	http.HandleFunc("/login/2", s.login2)
 	http.HandleFunc("/register/1", s.register1)
 	http.HandleFunc("/register/2", s.register2)
@@ -96,54 +95,6 @@ type server struct {
 
 	mu                sync.Mutex
 	inFlightAddStream *proto.AuthService_AddMFADeviceClient
-}
-
-type login1Request struct {
-	User string `json:"user"`
-	Pass string `json:"pass"`
-}
-
-func (s *server) login1(w http.ResponseWriter, r *http.Request) {
-	var req login1Request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// Get login challenge.
-	body, err := json.Marshal(&libclient.MFAChallengeRequest{
-		User: req.User,
-		Pass: req.Pass,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	resp, err := http.Post("https://"+*webAddr+"/webapi/mfa/login/begin", "application/json", bytes.NewReader(body))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("INFO /mfa/login/begin: %#v", resp)
-		http.Error(w, "Unexpected status from /mfa/login/begin", http.StatusBadRequest)
-	}
-	var challenge client.MFAAuthenticateChallenge
-	if err := json.NewDecoder(resp.Body).Decode(&challenge); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if challenge.WebauthnChallenge == nil {
-		http.Error(w, "nil credential assertion", http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(challenge.WebauthnChallenge); err != nil {
-		log.Println(err)
-	}
 }
 
 type login2Request struct {
