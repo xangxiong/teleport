@@ -168,24 +168,3 @@ type RegisterPrompt interface {
 	// devices)
 	PromptTouch() error
 }
-
-// Register performs client-side, U2F-compatible, Webauthn registration.
-// This method blocks until either device authentication is successful or the
-// context is cancelled. Calling Register without a deadline or cancel condition
-// may cause it block forever.
-// The caller is expected to react to RegisterPrompt in order to prompt the user
-// at appropriate times. Register may choose different flows depending on the
-// type of authentication and connected devices.
-func Register(
-	ctx context.Context,
-	origin string, cc *wanlib.CredentialCreation, prompt RegisterPrompt) (*proto.MFARegisterResponse, error) {
-	if IsFIDO2Available() {
-		log.Debug("FIDO2: Using libfido2 for credential creation")
-		return FIDO2Register(ctx, origin, cc, prompt)
-	}
-
-	if err := prompt.PromptTouch(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return U2FRegister(ctx, origin, cc)
-}
