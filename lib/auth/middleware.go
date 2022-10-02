@@ -151,12 +151,6 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 		GRPCMetrics:   grpcMetrics,
 	}
 
-	apiServer, err := NewAPIServer(&cfg.APIConfig)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	authMiddleware.Wrap(apiServer)
 	// Wrap sets the next middleware in chain to the authMiddleware
 	limiter.WrapHandle(authMiddleware)
 	// force client auth if given
