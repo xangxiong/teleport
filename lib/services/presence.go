@@ -150,9 +150,6 @@ type Presence interface {
 	// DeleteAllTunnelConnections deletes all tunnel connections for cluster
 	DeleteAllTunnelConnections() error
 
-	// UpdateRemoteCluster updates a remote cluster
-	UpdateRemoteCluster(ctx context.Context, rc types.RemoteCluster) error
-
 	// GetRemoteClusters returns a list of remote clusters
 	GetRemoteClusters(opts ...MarshalOption) ([]types.RemoteCluster, error)
 

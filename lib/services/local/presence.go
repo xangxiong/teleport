@@ -593,42 +593,6 @@ func (s *PresenceService) DeleteAllTunnelConnections() error {
 	return trace.Wrap(err)
 }
 
-// UpdateRemoteCluster updates selected remote cluster fields: expiry and labels
-// other changed fields will be ignored by the method
-func (s *PresenceService) UpdateRemoteCluster(ctx context.Context, rc types.RemoteCluster) error {
-	if err := rc.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
-	existingItem, update, err := s.getRemoteCluster(rc.GetName())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	update.SetExpiry(rc.Expiry())
-	update.SetLastHeartbeat(rc.GetLastHeartbeat())
-	meta := rc.GetMetadata()
-	meta.Labels = rc.GetMetadata().Labels
-	update.SetMetadata(meta)
-
-	updateValue, err := services.MarshalRemoteCluster(update)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	updateItem := backend.Item{
-		Key:     backend.Key(remoteClustersPrefix, update.GetName()),
-		Value:   updateValue,
-		Expires: update.Expiry(),
-	}
-
-	_, err = s.CompareAndSwap(ctx, *existingItem, updateItem)
-	if err != nil {
-		if trace.IsCompareFailed(err) {
-			return trace.CompareFailed("remote cluster %v has been updated by another client, try again", rc.GetName())
-		}
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // GetRemoteClusters returns a list of remote clusters
 func (s *PresenceService) GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error) {
 	startKey := backend.Key(remoteClustersPrefix)
