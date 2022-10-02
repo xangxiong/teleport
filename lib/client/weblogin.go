@@ -29,7 +29,6 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/types"
-	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
 )
@@ -37,8 +36,6 @@ import (
 type AuthenticateWebUserRequest struct {
 	// User is a teleport username.
 	User string `json:"user"`
-	// WebauthnAssertionResponse is a signed WebAuthn credential assertion.
-	WebauthnAssertionResponse *wanlib.CredentialAssertionResponse `json:"webauthnAssertionResponse,omitempty"`
 }
 
 // initClient creates a new client to the HTTPS web proxy.

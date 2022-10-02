@@ -33,7 +33,6 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/api/types/wrappers"
 	apiutils "github.com/gravitational/teleport/api/utils"
-	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/jwt"
 	"github.com/gravitational/teleport/lib/sshutils"
@@ -244,8 +243,6 @@ type ChangePasswordReq struct {
 	NewPassword []byte `json:"new_password"`
 	// SecondFactorToken is user 2nd factor token
 	SecondFactorToken string `json:"second_factor_token"`
-	// WebauthnResponse is Webauthn sign response
-	WebauthnResponse *wanlib.CredentialAssertionResponse `json:"webauthn_response"`
 }
 
 // UserCertParams defines OpenSSH user certificate parameters

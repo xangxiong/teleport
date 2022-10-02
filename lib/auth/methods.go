@@ -24,7 +24,6 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/gravitational/teleport/api/types"
-	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
 )
@@ -35,8 +34,6 @@ type AuthenticateUserRequest struct {
 	Username string `json:"username"`
 	// Pass is a password used in local authentication schemes
 	Pass *PassCreds `json:"pass,omitempty"`
-	// Webauthn is a signed credential assertion, used in MFA authentication
-	Webauthn *wanlib.CredentialAssertionResponse `json:"webauthn,omitempty"`
 	// OTP is a password and second factor, used for MFA authentication
 	OTP *OTPCreds `json:"otp,omitempty"`
 	// Session is a web session credential used to authenticate web sessions
@@ -55,11 +52,8 @@ type ForwardedClientMetadata struct {
 // CheckAndSetDefaults checks and sets defaults
 func (a *AuthenticateUserRequest) CheckAndSetDefaults() error {
 	switch {
-	case a.Username == "" && a.Webauthn != nil: // OK, passwordless.
 	case a.Username == "":
 		return trace.BadParameter("missing parameter 'username'")
-	case a.Pass == nil && a.Webauthn == nil && a.OTP == nil && a.Session == nil:
-		return trace.BadParameter("at least one authentication method is required")
 	}
 	return nil
 }

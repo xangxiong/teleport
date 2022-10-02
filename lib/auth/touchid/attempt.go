@@ -18,8 +18,6 @@ import (
 	"errors"
 
 	"github.com/gravitational/trace"
-
-	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
 )
 
 // ErrAttemptFailed is returned by AttemptLogin and AttemptDeleteNonInteractive
@@ -49,20 +47,6 @@ func (e *ErrAttemptFailed) As(target interface{}) bool {
 		return true
 	}
 	return false
-}
-
-// AttemptLogin attempts a touch ID login.
-// It returns ErrAttemptFailed if the attempt failed before user interaction.
-// See Login.
-func AttemptLogin(origin, user string, assertion *wanlib.CredentialAssertion, picker CredentialPicker) (*wanlib.CredentialAssertionResponse, string, error) {
-	resp, actualUser, err := Login(origin, user, assertion, picker)
-	switch {
-	case errors.Is(err, ErrNotAvailable), errors.Is(err, ErrCredentialNotFound):
-		return nil, "", &ErrAttemptFailed{Err: err}
-	case err != nil:
-		return nil, "", trace.Wrap(err)
-	}
-	return resp, actualUser, nil
 }
 
 // AttemptDeleteNonInteractive attempts to delete a Secure Enclave credential.

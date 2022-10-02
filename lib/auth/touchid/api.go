@@ -27,17 +27,13 @@ import (
 	"io"
 	"math/big"
 	"os"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/duo-labs/webauthn/protocol"
-	"github.com/duo-labs/webauthn/protocol/webauthncose"
-	"github.com/fxamacker/cbor/v2"
 	"github.com/gravitational/trace"
 
-	wanlib "github.com/gravitational/teleport/lib/auth/webauthn"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -176,8 +172,6 @@ func Diag() (*DiagResult, error) {
 // Confirm may replace equivalent keys with the new key, at the implementation's
 // discretion.
 type Registration struct {
-	CCR *wanlib.CredentialCreationResponse
-
 	credentialID string
 
 	// done is atomically set to 1 after either Rollback or Confirm are called.
@@ -202,140 +196,6 @@ func (r *Registration) Rollback() error {
 
 	// Delete the newly-created credential.
 	return native.DeleteNonInteractive(r.credentialID)
-}
-
-// Register creates a new Secure Enclave-backed biometric credential.
-// Callers are encouraged to either explicitly Confirm or Rollback the returned
-// registration.
-// See Registration.
-func Register(origin string, cc *wanlib.CredentialCreation) (*Registration, error) {
-	if !IsAvailable() {
-		return nil, ErrNotAvailable
-	}
-
-	// Ignored cc fields:
-	// - Timeout - we don't control touch ID timeouts (also the server is free to
-	//   enforce it)
-	// - CredentialExcludeList - we always allow re-registering (for various
-	//   reasons).
-	// - Extensions - none supported
-	// - Attestation - we always to our best (packed/self-attestation).
-	//   The server is free to ignore/reject.
-	switch {
-	case origin == "":
-		return nil, errors.New("origin required")
-	case cc == nil:
-		return nil, errors.New("credential creation required")
-	case len(cc.Response.Challenge) == 0:
-		return nil, errors.New("challenge required")
-	// Note: we don't need other RelyingParty fields, but technically they would
-	// be required as well.
-	case cc.Response.RelyingParty.ID == "":
-		return nil, errors.New("relying party ID required")
-	case len(cc.Response.User.ID) == 0:
-		return nil, errors.New("user ID required")
-	case cc.Response.User.Name == "":
-		return nil, errors.New("user name required")
-	case cc.Response.AuthenticatorSelection.AuthenticatorAttachment == protocol.CrossPlatform:
-		return nil, fmt.Errorf("cannot fulfil authenticator attachment %q", cc.Response.AuthenticatorSelection.AuthenticatorAttachment)
-	}
-	ok := false
-	for _, param := range cc.Response.Parameters {
-		// ES256 is all we can do.
-		if param.Type == protocol.PublicKeyCredentialType && param.Algorithm == webauthncose.AlgES256 {
-			ok = true
-			break
-		}
-	}
-	if !ok {
-		return nil, errors.New("cannot fulfil credential parameters, only ES256 are supported")
-	}
-
-	rpID := cc.Response.RelyingParty.ID
-	user := cc.Response.User.Name
-	userHandle := cc.Response.User.ID
-
-	// TODO(codingllama): Handle double registrations and failures after key
-	//  creation.
-	resp, err := native.Register(rpID, user, userHandle)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	credentialID := resp.CredentialID
-	pubKeyRaw := resp.publicKeyRaw
-
-	// Parse public key and transform to the required CBOR object.
-	pubKey, err := pubKeyFromRawAppleKey(pubKeyRaw)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	x := make([]byte, 32) // x and y must have exactly 32 bytes in EC2PublicKeyData.
-	y := make([]byte, 32)
-	pubKey.X.FillBytes(x)
-	pubKey.Y.FillBytes(y)
-
-	pubKeyCBOR, err := cbor.Marshal(
-		&webauthncose.EC2PublicKeyData{
-			PublicKeyData: webauthncose.PublicKeyData{
-				KeyType:   int64(webauthncose.EllipticKey),
-				Algorithm: int64(webauthncose.AlgES256),
-			},
-			// See https://datatracker.ietf.org/doc/html/rfc8152#section-13.1.
-			Curve:  1, // P-256
-			XCoord: x,
-			YCoord: y,
-		})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	attData, err := makeAttestationData(
-		protocol.CreateCeremony, origin, rpID, cc.Response.Challenge,
-		&credentialData{
-			id:         credentialID,
-			pubKeyCBOR: pubKeyCBOR,
-		})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	promptPlatform()
-	sig, err := native.Authenticate(nil /* actx */, credentialID, attData.digest)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	attObj, err := cbor.Marshal(protocol.AttestationObject{
-		RawAuthData: attData.rawAuthData,
-		Format:      "packed",
-		AttStatement: map[string]interface{}{
-			"alg": int64(webauthncose.AlgES256),
-			"sig": sig,
-		},
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	ccr := &wanlib.CredentialCreationResponse{
-		PublicKeyCredential: wanlib.PublicKeyCredential{
-			Credential: wanlib.Credential{
-				ID:   credentialID,
-				Type: string(protocol.PublicKeyCredentialType),
-			},
-			RawID: []byte(credentialID),
-		},
-		AttestationResponse: wanlib.AuthenticatorAttestationResponse{
-			AuthenticatorResponse: wanlib.AuthenticatorResponse{
-				ClientDataJSON: attData.ccdJSON,
-			},
-			AttestationObject: attObj,
-		},
-	}
-	return &Registration{
-		CCR:          ccr,
-		credentialID: credentialID,
-	}, nil
 }
 
 func pubKeyFromRawAppleKey(pubKeyRaw []byte) (*ecdsa.PublicKey, error) {
@@ -434,101 +294,6 @@ type CredentialPicker interface {
 	// Prompts only happen if there is more than one credential to choose from.
 	// Must return one of the pointers from the slice or an error.
 	PromptCredential(creds []*CredentialInfo) (*CredentialInfo, error)
-}
-
-// Login authenticates using a Secure Enclave-backed biometric credential.
-// It returns the assertion response and the user that owns the credential to
-// sign it.
-func Login(origin, user string, assertion *wanlib.CredentialAssertion, picker CredentialPicker) (*wanlib.CredentialAssertionResponse, string, error) {
-	if !IsAvailable() {
-		return nil, "", ErrNotAvailable
-	}
-
-	// Ignored assertion fields:
-	// - Timeout - we don't control touch ID timeouts (also the server is free to
-	//   enforce it)
-	// - UserVerification - always performed
-	// - Extensions - none supported
-	switch {
-	case origin == "":
-		return nil, "", errors.New("origin required")
-	case assertion == nil:
-		return nil, "", errors.New("assertion required")
-	case len(assertion.Response.Challenge) == 0:
-		return nil, "", errors.New("challenge required")
-	case assertion.Response.RelyingPartyID == "":
-		return nil, "", errors.New("relying party ID required")
-	case picker == nil:
-		return nil, "", errors.New("picker required")
-	}
-
-	rpID := assertion.Response.RelyingPartyID
-	infos, err := native.FindCredentials(rpID, user)
-	switch {
-	case err != nil:
-		return nil, "", trace.Wrap(err)
-	case len(infos) == 0:
-		return nil, "", ErrCredentialNotFound
-	}
-
-	// If everything else is equal, prefer newer credentials.
-	sort.Slice(infos, func(i, j int) bool {
-		i1 := infos[i]
-		i2 := infos[j]
-		// Sorted in descending order.
-		return i1.CreateTime.After(i2.CreateTime)
-	})
-
-	// Prepare authentication context and prompt for the credential picker.
-	actx := native.NewAuthContext()
-	defer actx.Close()
-
-	var prompted bool
-	promptOnce := func() {
-		if prompted {
-			return
-		}
-		promptPlatform()
-		prompted = true
-	}
-
-	cred, err := pickCredential(
-		actx,
-		infos, assertion.Response.AllowedCredentials,
-		picker, promptOnce, user != "" /* userRequested */)
-	if err != nil {
-		return nil, "", trace.Wrap(err)
-	}
-	log.Debugf("Touch ID: using credential %q", cred.CredentialID)
-
-	attData, err := makeAttestationData(protocol.AssertCeremony, origin, rpID, assertion.Response.Challenge, nil /* cred */)
-	if err != nil {
-		return nil, "", trace.Wrap(err)
-	}
-
-	promptOnce() // In case the picker prompt didn't happen.
-	sig, err := native.Authenticate(actx, cred.CredentialID, attData.digest)
-	if err != nil {
-		return nil, "", trace.Wrap(err)
-	}
-
-	return &wanlib.CredentialAssertionResponse{
-		PublicKeyCredential: wanlib.PublicKeyCredential{
-			Credential: wanlib.Credential{
-				ID:   cred.CredentialID,
-				Type: string(protocol.PublicKeyCredentialType),
-			},
-			RawID: []byte(cred.CredentialID),
-		},
-		AssertionResponse: wanlib.AuthenticatorAssertionResponse{
-			AuthenticatorResponse: wanlib.AuthenticatorResponse{
-				ClientDataJSON: attData.ccdJSON,
-			},
-			AuthenticatorData: attData.rawAuthData,
-			Signature:         sig,
-			UserHandle:        cred.User.UserHandle,
-		},
-	}, cred.User.Name, nil
 }
 
 func pickCredential(
