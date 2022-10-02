@@ -340,15 +340,9 @@ func roleSpecForProxy(clusterName string) types.RoleSpecV5 {
 			DatabaseLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
 			Rules: []types.Rule{
 				types.NewRule(types.KindProxy, services.RW()),
-				types.NewRule(types.KindOIDCRequest, services.RW()),
 				types.NewRule(types.KindSSHSession, services.RW()),
 				types.NewRule(types.KindSession, services.RO()),
 				types.NewRule(types.KindEvent, services.RW()),
-				types.NewRule(types.KindSAMLRequest, services.RW()),
-				types.NewRule(types.KindOIDC, services.ReadNoSecrets()),
-				types.NewRule(types.KindSAML, services.ReadNoSecrets()),
-				types.NewRule(types.KindGithub, services.ReadNoSecrets()),
-				types.NewRule(types.KindGithubRequest, services.RW()),
 				types.NewRule(types.KindNamespace, services.RO()),
 				types.NewRule(types.KindNode, services.RO()),
 				types.NewRule(types.KindAuthServer, services.RO()),
@@ -365,17 +359,8 @@ func roleSpecForProxy(clusterName string) types.RoleSpecV5 {
 				types.NewRule(types.KindTunnelConnection, services.RW()),
 				types.NewRule(types.KindRemoteCluster, services.RO()),
 				types.NewRule(types.KindSemaphore, services.RW()),
-				types.NewRule(types.KindAppServer, services.RO()),
-				types.NewRule(types.KindWebSession, services.RW()),
-				types.NewRule(types.KindWebToken, services.RW()),
-				types.NewRule(types.KindKubeService, services.RW()),
-				types.NewRule(types.KindDatabaseServer, services.RO()),
 				types.NewRule(types.KindLock, services.RO()),
 				types.NewRule(types.KindToken, []string{types.VerbRead, types.VerbDelete}),
-				types.NewRule(types.KindWindowsDesktopService, services.RO()),
-				types.NewRule(types.KindDatabaseCertificate, []string{types.VerbCreate}),
-				types.NewRule(types.KindWindowsDesktop, services.RO()),
-				types.NewRule(types.KindConnectionDiagnostic, services.RW()),
 				// this rule allows local proxy to update the remote cluster's host certificate authorities
 				// during certificates renewal
 				{
@@ -454,65 +439,6 @@ func definitionForBuiltinRole(clusterName string, recConfig types.SessionRecordi
 						types.NewRule(types.KindSemaphore, services.RW()),
 						types.NewRule(types.KindLock, services.RO()),
 						types.NewRule(types.KindNetworkRestrictions, services.RO()),
-						types.NewRule(types.KindConnectionDiagnostic, services.RW()),
-					},
-				},
-			})
-	case types.RoleApp:
-		return services.RoleFromSpec(
-			role.String(),
-			types.RoleSpecV5{
-				Allow: types.RoleConditions{
-					Namespaces: []string{types.Wildcard},
-					Rules: []types.Rule{
-						types.NewRule(types.KindEvent, services.RW()),
-						types.NewRule(types.KindProxy, services.RO()),
-						types.NewRule(types.KindCertAuthority, services.ReadNoSecrets()),
-						types.NewRule(types.KindUser, services.RO()),
-						types.NewRule(types.KindNamespace, services.RO()),
-						types.NewRule(types.KindRole, services.RO()),
-						types.NewRule(types.KindAuthServer, services.RO()),
-						types.NewRule(types.KindReverseTunnel, services.RW()),
-						types.NewRule(types.KindTunnelConnection, services.RO()),
-						types.NewRule(types.KindClusterName, services.RO()),
-						types.NewRule(types.KindClusterAuditConfig, services.RO()),
-						types.NewRule(types.KindClusterNetworkingConfig, services.RO()),
-						types.NewRule(types.KindSessionRecordingConfig, services.RO()),
-						types.NewRule(types.KindClusterAuthPreference, services.RO()),
-						types.NewRule(types.KindAppServer, services.RW()),
-						types.NewRule(types.KindApp, services.RW()),
-						types.NewRule(types.KindWebSession, services.RO()),
-						types.NewRule(types.KindWebToken, services.RO()),
-						types.NewRule(types.KindJWT, services.RW()),
-						types.NewRule(types.KindLock, services.RO()),
-					},
-				},
-			})
-	case types.RoleDatabase:
-		return services.RoleFromSpec(
-			role.String(),
-			types.RoleSpecV5{
-				Allow: types.RoleConditions{
-					Namespaces: []string{types.Wildcard},
-					Rules: []types.Rule{
-						types.NewRule(types.KindEvent, services.RW()),
-						types.NewRule(types.KindProxy, services.RO()),
-						types.NewRule(types.KindCertAuthority, services.ReadNoSecrets()),
-						types.NewRule(types.KindUser, services.RO()),
-						types.NewRule(types.KindNamespace, services.RO()),
-						types.NewRule(types.KindRole, services.RO()),
-						types.NewRule(types.KindAuthServer, services.RO()),
-						types.NewRule(types.KindReverseTunnel, services.RW()),
-						types.NewRule(types.KindTunnelConnection, services.RO()),
-						types.NewRule(types.KindClusterName, services.RO()),
-						types.NewRule(types.KindClusterAuditConfig, services.RO()),
-						types.NewRule(types.KindClusterNetworkingConfig, services.RO()),
-						types.NewRule(types.KindSessionRecordingConfig, services.RO()),
-						types.NewRule(types.KindClusterAuthPreference, services.RO()),
-						types.NewRule(types.KindDatabaseServer, services.RW()),
-						types.NewRule(types.KindDatabase, services.RW()),
-						types.NewRule(types.KindSemaphore, services.RW()),
-						types.NewRule(types.KindLock, services.RO()),
 					},
 				},
 			})
@@ -529,18 +455,6 @@ func definitionForBuiltinRole(clusterName string, recConfig types.SessionRecordi
 			role.String(),
 			roleSpecForProxy(clusterName),
 		)
-	case types.RoleSignup:
-		return services.RoleFromSpec(
-			role.String(),
-			types.RoleSpecV5{
-				Allow: types.RoleConditions{
-					Namespaces: []string{types.Wildcard},
-					Rules: []types.Rule{
-						types.NewRule(types.KindAuthServer, services.RO()),
-						types.NewRule(types.KindClusterAuthPreference, services.RO()),
-					},
-				},
-			})
 	case types.RoleAdmin:
 		return services.RoleFromSpec(
 			role.String(),
@@ -549,11 +463,10 @@ func definitionForBuiltinRole(clusterName string, recConfig types.SessionRecordi
 					MaxSessionTTL: types.MaxDuration(),
 				},
 				Allow: types.RoleConditions{
-					Namespaces:           []string{types.Wildcard},
-					Logins:               []string{},
-					NodeLabels:           types.Labels{types.Wildcard: []string{types.Wildcard}},
-					ClusterLabels:        types.Labels{types.Wildcard: []string{types.Wildcard}},
-					WindowsDesktopLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
+					Namespaces:    []string{types.Wildcard},
+					Logins:        []string{},
+					NodeLabels:    types.Labels{types.Wildcard: []string{types.Wildcard}},
+					ClusterLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
 					Rules: []types.Rule{
 						types.NewRule(types.Wildcard, services.RW()),
 					},
@@ -566,52 +479,6 @@ func definitionForBuiltinRole(clusterName string, recConfig types.SessionRecordi
 				Allow: types.RoleConditions{
 					Namespaces: []string{},
 					Rules:      []types.Rule{},
-				},
-			})
-	case types.RoleKube:
-		return services.RoleFromSpec(
-			role.String(),
-			types.RoleSpecV5{
-				Allow: types.RoleConditions{
-					Namespaces: []string{types.Wildcard},
-					Rules: []types.Rule{
-						types.NewRule(types.KindKubeService, services.RW()),
-						types.NewRule(types.KindEvent, services.RW()),
-						types.NewRule(types.KindCertAuthority, services.ReadNoSecrets()),
-						types.NewRule(types.KindClusterName, services.RO()),
-						types.NewRule(types.KindClusterAuditConfig, services.RO()),
-						types.NewRule(types.KindClusterNetworkingConfig, services.RO()),
-						types.NewRule(types.KindSessionRecordingConfig, services.RO()),
-						types.NewRule(types.KindClusterAuthPreference, services.RO()),
-						types.NewRule(types.KindUser, services.RO()),
-						types.NewRule(types.KindRole, services.RO()),
-						types.NewRule(types.KindNamespace, services.RO()),
-						types.NewRule(types.KindLock, services.RO()),
-					},
-				},
-			})
-	case types.RoleWindowsDesktop:
-		return services.RoleFromSpec(
-			role.String(),
-			types.RoleSpecV5{
-				Allow: types.RoleConditions{
-					Namespaces:           []string{types.Wildcard},
-					WindowsDesktopLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
-					Rules: []types.Rule{
-						types.NewRule(types.KindEvent, services.RW()),
-						types.NewRule(types.KindCertAuthority, services.ReadNoSecrets()),
-						types.NewRule(types.KindClusterName, services.RO()),
-						types.NewRule(types.KindClusterAuditConfig, services.RO()),
-						types.NewRule(types.KindClusterNetworkingConfig, services.RO()),
-						types.NewRule(types.KindSessionRecordingConfig, services.RO()),
-						types.NewRule(types.KindClusterAuthPreference, services.RO()),
-						types.NewRule(types.KindUser, services.RO()),
-						types.NewRule(types.KindRole, services.RO()),
-						types.NewRule(types.KindNamespace, services.RO()),
-						types.NewRule(types.KindLock, services.RO()),
-						types.NewRule(types.KindWindowsDesktopService, services.RW()),
-						types.NewRule(types.KindWindowsDesktop, services.RW()),
-					},
 				},
 			})
 	}
