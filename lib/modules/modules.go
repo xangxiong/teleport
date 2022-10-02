@@ -35,26 +35,12 @@ import (
 
 // Features provides supported and unsupported features
 type Features struct {
-	// Kubernetes enables Kubernetes Access product
-	Kubernetes bool
-	// App enables Application Access product
-	App bool
-	// DB enables database access product
-	DB bool
-	// OIDC enables OIDC connectors
-	OIDC bool
-	// SAML enables SAML connectors
-	SAML bool
 	// AccessControls enables FIPS access controls
 	AccessControls bool
 	// AdvancedAccessWorkflows enables advanced access workflows
 	AdvancedAccessWorkflows bool
-	// Cloud enables some cloud-related features
-	Cloud bool
 	// HSM enables PKCS#11 HSM support
 	HSM bool
-	// Desktop enables desktop access product
-	Desktop bool
 	// ModeratedSessions turns on moderated sessions
 	ModeratedSessions bool
 	// MachineID turns on MachineID
@@ -66,16 +52,9 @@ type Features struct {
 // ToProto converts Features into proto.Features
 func (f Features) ToProto() *proto.Features {
 	return &proto.Features{
-		Kubernetes:              f.Kubernetes,
-		App:                     f.App,
-		DB:                      f.DB,
-		OIDC:                    f.OIDC,
-		SAML:                    f.SAML,
 		AccessControls:          f.AccessControls,
 		AdvancedAccessWorkflows: f.AdvancedAccessWorkflows,
-		Cloud:                   f.Cloud,
 		HSM:                     f.HSM,
-		Desktop:                 f.Desktop,
 		ModeratedSessions:       f.ModeratedSessions,
 		MachineID:               f.MachineID,
 		ResourceAccessRequests:  f.ResourceAccessRequests,
@@ -118,11 +97,6 @@ func GetModules() Modules {
 
 // ValidateResource performs additional resource checks.
 func ValidateResource(res types.Resource) error {
-	// All checks below are Cloud-specific.
-	if !GetModules().Features().Cloud {
-		return nil
-	}
-
 	switch r := res.(type) {
 	case types.AuthPreference:
 		switch r.GetSecondFactor() {
@@ -156,10 +130,6 @@ func (p *defaultModules) PrintVersion() {
 // Features returns supported features
 func (p *defaultModules) Features() Features {
 	return Features{
-		Kubernetes:        true,
-		DB:                true,
-		App:               true,
-		Desktop:           true,
 		MachineID:         true,
 		ModeratedSessions: false, // moderated sessions is supported in enterprise only
 	}
