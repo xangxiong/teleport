@@ -650,17 +650,17 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		}
 	}
 
-	// // create the data directory if it's missing
-	// _, err = os.Stat(cfg.DataDir)
-	// if os.IsNotExist(err) {
-	// 	err := os.MkdirAll(cfg.DataDir, os.ModeDir|0o700)
-	// 	if err != nil {
-	// 		if errors.Is(err, fs.ErrPermission) {
-	// 			cfg.Log.Errorf("Teleport does not have permission to write to: %v. Ensure that you are running as a user with appropriate permissions.", cfg.DataDir)
-	// 		}
-	// 		return nil, trace.ConvertSystemError(err)
-	// 	}
-	// }
+	// create the data directory if it's missing
+	_, err = os.Stat(cfg.DataDir)
+	if os.IsNotExist(err) {
+		err := os.MkdirAll(cfg.DataDir, os.ModeDir|0o700)
+		if err != nil {
+			if errors.Is(err, fs.ErrPermission) {
+				cfg.Log.Errorf("Teleport does not have permission to write to: %v. Ensure that you are running as a user with appropriate permissions.", cfg.DataDir)
+			}
+			return nil, trace.ConvertSystemError(err)
+		}
+	}
 
 	// // TODO(espadolini): DELETE IN 11.0, replace with
 	// // os.RemoveAll(filepath.Join(cfg.DataDir, "cache")), because no stable v10
