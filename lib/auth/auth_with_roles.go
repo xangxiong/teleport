@@ -900,27 +900,6 @@ func (a *ServerWithRoles) NewWatcher(ctx context.Context, watch types.Watch) (ty
 	return a.authServer.NewWatcher(ctx, watch)
 }
 
-// GetNode gets a node by name and namespace.
-func (a *ServerWithRoles) GetNode(ctx context.Context, namespace, name string) (types.Server, error) {
-	if err := a.action(namespace, types.KindNode, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	node, err := a.authServer.GetNode(ctx, namespace, name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err := a.checkAccessToNode(node); err != nil {
-		if trace.IsAccessDenied(err) {
-			return nil, trace.NotFound("not found")
-		}
-
-		return nil, trace.Wrap(err)
-	}
-
-	return node, nil
-}
-
 func (a *ServerWithRoles) GetNodes(ctx context.Context, namespace string) ([]types.Server, error) {
 	if err := a.action(namespace, types.KindNode, types.VerbList); err != nil {
 		return nil, trace.Wrap(err)

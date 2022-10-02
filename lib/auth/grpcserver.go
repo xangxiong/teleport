@@ -954,29 +954,6 @@ func (g *GRPCServer) DeleteToken(ctx context.Context, req *types.ResourceRequest
 	return &empty.Empty{}, nil
 }
 
-// GetNode retrieves a node by name and namespace.
-func (g *GRPCServer) GetNode(ctx context.Context, req *types.ResourceInNamespaceRequest) (*types.ServerV2, error) {
-	if req.Namespace == "" {
-		return nil, trace.BadParameter("missing parameter namespace")
-	}
-	if req.Name == "" {
-		return nil, trace.BadParameter("missing parameter name")
-	}
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	node, err := auth.ServerWithRoles.GetNode(ctx, req.Namespace, req.Name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	serverV2, ok := node.(*types.ServerV2)
-	if !ok {
-		return nil, trace.Errorf("encountered unexpected node type: %T", node)
-	}
-	return serverV2, nil
-}
-
 // UpsertNode upserts a node.
 func (g *GRPCServer) UpsertNode(ctx context.Context, node *types.ServerV2) (*types.KeepAlive, error) {
 	auth, err := g.authenticate(ctx)
