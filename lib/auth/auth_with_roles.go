@@ -1116,20 +1116,6 @@ func (a *ServerWithRoles) DeleteReverseTunnel(domainName string) error {
 	return a.authServer.DeleteReverseTunnel(domainName)
 }
 
-func (a *ServerWithRoles) DeleteToken(ctx context.Context, token string) error {
-	if err := a.action(apidefaults.Namespace, types.KindToken, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteToken(ctx, token)
-}
-
-func (a *ServerWithRoles) GetTokens(ctx context.Context) ([]types.ProvisionToken, error) {
-	if err := a.action(apidefaults.Namespace, types.KindToken, types.VerbList, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetTokens(ctx)
-}
-
 func (a *ServerWithRoles) GetToken(ctx context.Context, token string) (types.ProvisionToken, error) {
 	// The Proxy has permission to look up tokens by name in order to validate
 	// attempts to use the node join script.

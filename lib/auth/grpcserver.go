@@ -881,28 +881,6 @@ func (g *GRPCServer) GetToken(ctx context.Context, req *types.ResourceRequest) (
 	return provisionTokenV2, nil
 }
 
-// GetTokens retrieves all tokens.
-func (g *GRPCServer) GetTokens(ctx context.Context, _ *empty.Empty) (*types.ProvisionTokenV2List, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	ts, err := auth.ServerWithRoles.GetTokens(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	provisionTokensV2 := make([]*types.ProvisionTokenV2, len(ts))
-	for i, t := range ts {
-		var ok bool
-		if provisionTokensV2[i], ok = t.(*types.ProvisionTokenV2); !ok {
-			return nil, trace.Errorf("encountered unexpected token type: %T", t)
-		}
-	}
-	return &types.ProvisionTokenV2List{
-		ProvisionTokens: provisionTokensV2,
-	}, nil
-}
-
 // UpsertToken upserts a token.
 func (g *GRPCServer) UpsertToken(ctx context.Context, token *types.ProvisionTokenV2) (*empty.Empty, error) {
 	auth, err := g.authenticate(ctx)
@@ -940,18 +918,6 @@ func (g *GRPCServer) GenerateToken(ctx context.Context, req *proto.GenerateToken
 	}
 
 	return &proto.GenerateTokenResponse{Token: token}, nil
-}
-
-// DeleteToken deletes a token by name.
-func (g *GRPCServer) DeleteToken(ctx context.Context, req *types.ResourceRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.ServerWithRoles.DeleteToken(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
 }
 
 // GetClusterAuditConfig gets cluster audit configuration.
