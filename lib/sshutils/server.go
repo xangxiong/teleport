@@ -164,10 +164,7 @@ func NewServer(
 	ah AuthMethods,
 	opts ...ServerOption,
 ) (*Server, error) {
-	err := utils.RegisterPrometheusCollectors(proxyConnectionLimitHitCount)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	var err error
 
 	closeContext, cancel := context.WithCancel(context.TODO())
 	s := &Server{

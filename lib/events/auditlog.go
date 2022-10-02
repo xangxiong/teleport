@@ -64,13 +64,6 @@ const (
 )
 
 var (
-	auditOpenFiles = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "audit_server_open_files",
-			Help: "Number of open audit files",
-		},
-	)
-
 	auditDiskUsed = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "audit_percentage_disk_space_used",
@@ -99,8 +92,6 @@ var (
 			Help:      "Number of audit events emitted",
 		},
 	)
-
-	prometheusCollectors = []prometheus.Collector{auditOpenFiles, auditDiskUsed, auditFailedDisk, AuditFailedEmit, auditEmitEvent}
 )
 
 // AuditLog is a new combined facility to record Teleport events and
@@ -213,11 +204,6 @@ func (a *AuditLogConfig) CheckAndSetDefaults() error {
 // NewAuditLog creates and returns a new Audit Log object which will store its log files in
 // a given directory.
 func NewAuditLog(cfg AuditLogConfig) (*AuditLog, error) {
-	err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	if err := cfg.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}

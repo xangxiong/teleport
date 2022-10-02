@@ -130,11 +130,6 @@ func NewSessionRegistry(cfg SessionRegistryConfig) (*SessionRegistry, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	err := utils.RegisterPrometheusCollectors(serverSessions)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	return &SessionRegistry{
 		SessionRegistryConfig: cfg,
 		log: log.WithFields(log.Fields{

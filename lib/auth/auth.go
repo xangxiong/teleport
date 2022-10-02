@@ -82,10 +82,7 @@ type ServerOption func(*Server) error
 
 // NewServer creates and configures a new Server instance
 func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
-	err := utils.RegisterPrometheusCollectors(prometheusCollectors...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	var err error
 
 	if cfg.Trust == nil {
 		cfg.Trust = local.NewCAService(cfg.Backend)
@@ -257,22 +254,6 @@ var (
 			Help: "Number of hearbeats missed by auth server",
 		},
 	)
-
-	registeredAgents = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: teleport.MetricNamespace,
-			Name:      teleport.MetricRegisteredServers,
-			Help: "The number of Teleport servers (a server consists of one or more Teleport services) that have connected to the Teleport cluster, including the Teleport version. " +
-				"After disconnecting, a Teleport server has a TTL of 10 minutes, so this value will include servers that have recently disconnected but have not reached their TTL.",
-		},
-		[]string{teleport.TagVersion},
-	)
-
-	prometheusCollectors = []prometheus.Collector{
-		generateRequestsCount, generateThrottledRequestsCount,
-		generateRequestsCurrent, generateRequestsLatencies, UserLoginCount, heartbeatsMissedByAuth,
-		registeredAgents,
-	}
 )
 
 // Server keeps the cluster together. It acts as a certificate authority (CA) for

@@ -21,9 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
-	"github.com/gravitational/trace"
-
-	"github.com/gravitational/teleport/lib/utils"
 )
 
 type APIMetrics struct {
@@ -31,10 +28,6 @@ type APIMetrics struct {
 }
 
 func NewAPIMetrics(api s3iface.S3API) (*APIMetrics, error) {
-	if err := utils.RegisterPrometheusCollectors(s3Collectors...); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	return &APIMetrics{S3API: api}, nil
 }
 

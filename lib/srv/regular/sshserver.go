@@ -698,11 +698,6 @@ func New(addr utils.NetAddr,
 	auth auth.ClientI,
 	options ...ServerOption,
 ) (*Server, error) {
-	err := utils.RegisterPrometheusCollectors(userSessionLimitHitCount)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	// read the host UUID:
 	uuid, err := utils.ReadOrMakeHostUUID(dataDir)
 	if err != nil {

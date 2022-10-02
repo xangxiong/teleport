@@ -398,9 +398,6 @@ const (
 
 // New creates a new instance of Cache
 func New(config Config) (*Cache, error) {
-	if err := utils.RegisterPrometheusCollectors(cacheCollectors...); err != nil {
-		return nil, trace.Wrap(err)
-	}
 	if err := config.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}

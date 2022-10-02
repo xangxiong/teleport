@@ -38,8 +38,6 @@ import (
 
 	"github.com/gravitational/oxy/ratelimit"
 	"github.com/gravitational/trace"
-	om "github.com/grpc-ecosystem/go-grpc-middleware/providers/openmetrics/v2"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
@@ -135,12 +133,6 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// sets up grpc metrics interceptor
-	grpcMetrics := utils.CreateGRPCServerMetrics(cfg.Metrics.GRPCServerLatency, prometheus.Labels{teleport.TagServer: "teleport-auth"})
-	err = utils.RegisterPrometheusCollectors(grpcMetrics)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
 	// authMiddleware authenticates request assuming TLS client authentication
 	// adds authentication information to the context
 	// and passes it to the API server
@@ -148,7 +140,6 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 		AccessPoint:   cfg.AccessPoint,
 		AcceptedUsage: cfg.AcceptedUsage,
 		Limiter:       limiter,
-		GRPCMetrics:   grpcMetrics,
 	}
 
 	// Wrap sets the next middleware in chain to the authMiddleware
@@ -321,8 +312,6 @@ type Middleware struct {
 	AcceptedUsage []string
 	// Limiter is a rate and connection limiter
 	Limiter *limiter.Limiter
-	// GRPCMetrics is the configured grpc metrics for the interceptors
-	GRPCMetrics *om.ServerMetrics
 }
 
 // Wrap sets next handler in chain
@@ -405,13 +394,6 @@ func (a *Middleware) withAuthenticatedUserStreamInterceptor(srv interface{}, ser
 // limiting, authenticates requests, and passes the user information as context
 // metadata.
 func (a *Middleware) UnaryInterceptor() grpc.UnaryServerInterceptor {
-	if a.GRPCMetrics != nil {
-		return utils.ChainUnaryServerInterceptors(
-			om.UnaryServerInterceptor(a.GRPCMetrics),
-			utils.GRPCServerUnaryErrorInterceptor,
-			a.Limiter.UnaryServerInterceptorWithCustomRate(getCustomRate),
-			a.withAuthenticatedUserUnaryInterceptor)
-	}
 	return utils.ChainUnaryServerInterceptors(
 		utils.GRPCServerUnaryErrorInterceptor,
 		a.Limiter.UnaryServerInterceptorWithCustomRate(getCustomRate),
@@ -422,13 +404,6 @@ func (a *Middleware) UnaryInterceptor() grpc.UnaryServerInterceptor {
 // limiting, authenticates requests, and passes the user information as context
 // metadata.
 func (a *Middleware) StreamInterceptor() grpc.StreamServerInterceptor {
-	if a.GRPCMetrics != nil {
-		return utils.ChainStreamServerInterceptors(
-			om.StreamServerInterceptor(a.GRPCMetrics),
-			utils.GRPCServerStreamErrorInterceptor,
-			a.Limiter.StreamServerInterceptor,
-			a.withAuthenticatedUserStreamInterceptor)
-	}
 	return utils.ChainStreamServerInterceptors(
 		utils.GRPCServerStreamErrorInterceptor,
 		a.Limiter.StreamServerInterceptor,
