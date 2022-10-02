@@ -1088,29 +1088,6 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 	return resp, nil
 }
 
-func (a *ServerWithRoles) GetProxies() ([]types.Server, error) {
-	if err := a.action(apidefaults.Namespace, types.KindProxy, types.VerbList, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetProxies()
-}
-
-// DeleteAllProxies deletes all proxies
-func (a *ServerWithRoles) DeleteAllProxies() error {
-	if err := a.action(apidefaults.Namespace, types.KindProxy, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAllProxies()
-}
-
-// DeleteProxy deletes proxy by name
-func (a *ServerWithRoles) DeleteProxy(name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindProxy, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteProxy(name)
-}
-
 func (a *ServerWithRoles) UpsertReverseTunnel(r types.ReverseTunnel) error {
 	if err := a.action(apidefaults.Namespace, types.KindReverseTunnel, types.VerbCreate, types.VerbUpdate); err != nil {
 		return trace.Wrap(err)
