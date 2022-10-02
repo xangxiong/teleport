@@ -28,8 +28,6 @@ import (
 type ClusterConfiguration interface {
 	// SetClusterName gets services.ClusterName from the backend.
 	GetClusterName(opts ...MarshalOption) (types.ClusterName, error)
-	// SetClusterName sets services.ClusterName on the backend.
-	SetClusterName(types.ClusterName) error
 	// UpsertClusterName upserts cluster name
 	UpsertClusterName(types.ClusterName) error
 
@@ -38,8 +36,6 @@ type ClusterConfiguration interface {
 
 	// GetStaticTokens gets services.StaticTokens from the backend.
 	GetStaticTokens() (types.StaticTokens, error)
-	// SetStaticTokens sets services.StaticTokens on the backend.
-	SetStaticTokens(types.StaticTokens) error
 	// DeleteStaticTokens deletes static tokens resource
 	DeleteStaticTokens() error
 

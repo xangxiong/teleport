@@ -191,9 +191,6 @@ func checkAndSetEventFields(event apievents.AuditEvent, clock clockwork.Clock, u
 	if event.GetTime().IsZero() {
 		event.SetTime(clock.Now().UTC().Round(time.Millisecond))
 	}
-	if event.GetClusterName() == "" {
-		event.SetClusterName(clusterName)
-	}
 	return nil
 }
 

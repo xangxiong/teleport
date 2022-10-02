@@ -150,9 +150,6 @@ type Presence interface {
 	// DeleteAllTunnelConnections deletes all tunnel connections for cluster
 	DeleteAllTunnelConnections() error
 
-	// CreateRemoteCluster creates a remote cluster
-	CreateRemoteCluster(types.RemoteCluster) error
-
 	// UpdateRemoteCluster updates a remote cluster
 	UpdateRemoteCluster(ctx context.Context, rc types.RemoteCluster) error
 

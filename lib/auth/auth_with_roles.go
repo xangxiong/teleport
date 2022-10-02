@@ -1826,13 +1826,13 @@ func (a *ServerWithRoles) GetClusterName(opts ...services.MarshalOption) (types.
 	return a.authServer.GetClusterName()
 }
 
-// SetClusterName sets the name of the cluster. SetClusterName can only be called once.
-func (a *ServerWithRoles) SetClusterName(c types.ClusterName) error {
-	if err := a.action(apidefaults.Namespace, types.KindClusterName, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.SetClusterName(c)
-}
+// // SetClusterName sets the name of the cluster. SetClusterName can only be called once.
+// func (a *ServerWithRoles) SetClusterName(c types.ClusterName) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindClusterName, types.VerbCreate, types.VerbUpdate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return a.authServer.SetClusterName(c)
+// }
 
 // UpsertClusterName sets the name of the cluster.
 func (a *ServerWithRoles) UpsertClusterName(c types.ClusterName) error {
@@ -1856,14 +1856,6 @@ func (a *ServerWithRoles) GetStaticTokens() (types.StaticTokens, error) {
 		return nil, trace.Wrap(err)
 	}
 	return a.authServer.GetStaticTokens()
-}
-
-// SetStaticTokens sets the list of static tokens used to provision nodes.
-func (a *ServerWithRoles) SetStaticTokens(s types.StaticTokens) error {
-	if err := a.action(apidefaults.Namespace, types.KindStaticTokens, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.SetStaticTokens(s)
 }
 
 // GetAuthPreference gets cluster auth preference.
@@ -2144,13 +2136,6 @@ func (a *ServerWithRoles) DeleteAllTunnelConnections() error {
 		return trace.Wrap(err)
 	}
 	return a.authServer.DeleteAllTunnelConnections()
-}
-
-func (a *ServerWithRoles) CreateRemoteCluster(conn types.RemoteCluster) error {
-	if err := a.action(apidefaults.Namespace, types.KindRemoteCluster, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.CreateRemoteCluster(conn)
 }
 
 func (a *ServerWithRoles) UpdateRemoteCluster(ctx context.Context, rc types.RemoteCluster) error {

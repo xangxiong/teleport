@@ -53,11 +53,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 			var filter types.CertAuthorityFilter
 			filter.FromMap(watch.Filter)
 			collections[resourceKind] = &certAuthority{Cache: c, watch: watch, filter: filter}
-		case types.KindStaticTokens:
-			if c.ClusterConfig == nil {
-				return nil, trace.BadParameter("missing parameter ClusterConfig")
-			}
-			collections[resourceKind] = &staticTokens{watch: watch, Cache: c}
 		case types.KindToken:
 			if c.Provisioner == nil {
 				return nil, trace.BadParameter("missing parameter Provisioner")
@@ -123,11 +118,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter Presence")
 			}
 			collections[resourceKind] = &tunnelConnection{watch: watch, Cache: c}
-		case types.KindRemoteCluster:
-			if c.Presence == nil {
-				return nil, trace.BadParameter("missing parameter Presence")
-			}
-			collections[resourceKind] = &remoteCluster{watch: watch, Cache: c}
 		case types.KindAccessRequest:
 			if c.DynamicAccess == nil {
 				return nil, trace.BadParameter("missing parameter DynamicAccess")
@@ -342,77 +332,6 @@ func (c *tunnelConnection) processEvent(ctx context.Context, event types.Event) 
 }
 
 func (c *tunnelConnection) watchKind() types.WatchKind {
-	return c.watch
-}
-
-type remoteCluster struct {
-	*Cache
-	watch types.WatchKind
-}
-
-// erase erases all data in the collection
-func (c *remoteCluster) erase(ctx context.Context) error {
-	if err := c.presenceCache.DeleteAllRemoteClusters(); err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (c *remoteCluster) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := c.Presence.GetRemoteClusters()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := c.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-		for _, resource := range resources {
-			if err := c.presenceCache.CreateRemoteCluster(resource); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	}, nil
-}
-
-func (c *remoteCluster) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.presenceCache.DeleteRemoteCluster(event.Resource.GetName())
-		if err != nil {
-			// resource could be missing in the cache
-			// expired or not created, if the first consumed
-			// event is delete
-			if !trace.IsNotFound(err) {
-				c.WithError(err).Warningf("Failed to delete remote cluster %v.", event.Resource.GetName())
-				return trace.Wrap(err)
-			}
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(types.RemoteCluster)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		err := c.presenceCache.DeleteRemoteCluster(event.Resource.GetName())
-		if err != nil {
-			if !trace.IsNotFound(err) {
-				c.WithError(err).Warningf("Failed to delete remote cluster %v.", event.Resource.GetName())
-				return trace.Wrap(err)
-			}
-		}
-		if err := c.presenceCache.CreateRemoteCluster(resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warningf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *remoteCluster) watchKind() types.WatchKind {
 	return c.watch
 }
 
@@ -864,79 +783,6 @@ func (c *certAuthority) processEvent(ctx context.Context, event types.Event) err
 }
 
 func (c *certAuthority) watchKind() types.WatchKind {
-	return c.watch
-}
-
-type staticTokens struct {
-	*Cache
-	watch types.WatchKind
-}
-
-// erase erases all data in the collection
-func (c *staticTokens) erase(ctx context.Context) error {
-	err := c.clusterConfigCache.DeleteStaticTokens()
-	if err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (c *staticTokens) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	var noTokens bool
-	staticTokens, err := c.ClusterConfig.GetStaticTokens()
-	if err != nil {
-		if !trace.IsNotFound(err) {
-			return nil, trace.Wrap(err)
-		}
-		noTokens = true
-	}
-	return func(ctx context.Context) error {
-		// either zero or one instance exists, so we either erase or
-		// update, but not both.
-		if noTokens {
-			if err := c.erase(ctx); err != nil {
-				return trace.Wrap(err)
-			}
-			return nil
-		}
-		err = c.clusterConfigCache.SetStaticTokens(staticTokens)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		return nil
-	}, nil
-}
-
-func (c *staticTokens) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.clusterConfigCache.DeleteStaticTokens()
-		if err != nil {
-			// resource could be missing in the cache
-			// expired or not created, if the first consumed
-			// event is delete
-			if !trace.IsNotFound(err) {
-				c.Warningf("Failed to delete static tokens %v.", err)
-				return trace.Wrap(err)
-			}
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(types.StaticTokens)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		if err := c.clusterConfigCache.SetStaticTokens(resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warningf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *staticTokens) watchKind() types.WatchKind {
 	return c.watch
 }
 

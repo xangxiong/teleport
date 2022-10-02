@@ -668,19 +668,6 @@ func (c *Client) DeleteAllRemoteClusters() error {
 	return trace.Wrap(err)
 }
 
-// CreateRemoteCluster creates remote cluster resource
-func (c *Client) CreateRemoteCluster(rc types.RemoteCluster) error {
-	data, err := services.MarshalRemoteCluster(rc)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	args := &createRemoteClusterRawReq{
-		RemoteCluster: data,
-	}
-	_, err = c.PostJSON(context.TODO(), c.Endpoint("remoteclusters"), args)
-	return trace.Wrap(err)
-}
-
 // UpsertAuthServer is used by auth servers to report their presence
 // to other auth servers in form of hearbeat expiring after ttl period.
 func (c *Client) UpsertAuthServer(s types.Server) error {
@@ -960,22 +947,6 @@ func (c *Client) GetClusterName(opts ...services.MarshalOption) (types.ClusterNa
 	return cn, err
 }
 
-// SetClusterName sets cluster name once, will
-// return Already Exists error if the name is already set
-func (c *Client) SetClusterName(cn types.ClusterName) error {
-	data, err := services.MarshalClusterName(cn)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	_, err = c.PostJSON(context.TODO(), c.Endpoint("configuration", "name"), &setClusterNameReq{ClusterName: data})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
-}
-
 // UpsertClusterName not implemented: can only be called locally.
 func (c *Client) UpsertClusterName(cn types.ClusterName) error {
 	return trace.NotImplemented(notImplementedMessage)
@@ -1000,21 +971,6 @@ func (c *Client) GetStaticTokens() (types.StaticTokens, error) {
 	}
 
 	return st, err
-}
-
-// SetStaticTokens sets a list of static register tokens
-func (c *Client) SetStaticTokens(st types.StaticTokens) error {
-	data, err := services.MarshalStaticTokens(st)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	_, err = c.PostJSON(context.TODO(), c.Endpoint("configuration", "static_tokens"), &setStaticTokensReq{StaticTokens: data})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
 }
 
 // DeleteClusterName not implemented: can only be called locally.

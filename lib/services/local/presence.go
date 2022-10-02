@@ -19,7 +19,6 @@ package local
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"sort"
 	"time"
 
@@ -592,24 +591,6 @@ func (s *PresenceService) DeleteAllTunnelConnections() error {
 	startKey := backend.Key(tunnelConnectionsPrefix)
 	err := s.DeleteRange(context.TODO(), startKey, backend.RangeEnd(startKey))
 	return trace.Wrap(err)
-}
-
-// CreateRemoteCluster creates remote cluster
-func (s *PresenceService) CreateRemoteCluster(rc types.RemoteCluster) error {
-	value, err := json.Marshal(rc)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(remoteClustersPrefix, rc.GetName()),
-		Value:   value,
-		Expires: rc.Expiry(),
-	}
-	_, err = s.Create(context.TODO(), item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
 }
 
 // UpdateRemoteCluster updates selected remote cluster fields: expiry and labels

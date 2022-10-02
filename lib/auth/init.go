@@ -251,13 +251,6 @@ func Init(cfg InitConfig, opts ...ServerOption) (*Server, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// The first Auth Server that starts gets to set the name of the cluster.
-	// If a cluster name/ID is already stored in the backend, the attempt to set
-	// a new name returns an AlreadyExists error.
-	err = asrv.SetClusterName(cfg.ClusterName)
-	if err != nil && !trace.IsAlreadyExists(err) {
-		return nil, trace.Wrap(err)
-	}
 	// If the cluster name has already been set, log a warning if the user
 	// is trying to change the name.
 	if trace.IsAlreadyExists(err) {
@@ -280,12 +273,6 @@ func Init(cfg InitConfig, opts ...ServerOption) (*Server, error) {
 		cfg.ClusterName = cn
 	}
 	log.Debugf("Cluster configuration: %v.", cfg.ClusterName)
-
-	err = asrv.SetStaticTokens(cfg.StaticTokens)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	log.Infof("Updating cluster configuration: %v.", cfg.StaticTokens)
 
 	// always create the default namespace
 	err = asrv.UpsertNamespace(types.DefaultNamespace())

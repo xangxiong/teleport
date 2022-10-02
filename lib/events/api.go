@@ -395,9 +395,6 @@ type SessionMetadataGetter interface {
 type SessionMetadataSetter interface {
 	// SetSessionID sets event session ID
 	SetSessionID(string)
-
-	// SetClusterName sets teleport cluster name
-	SetClusterName(string)
 }
 
 // Streamer creates and resumes event streams for session IDs

@@ -81,26 +81,6 @@ func (s *ClusterConfigurationService) DeleteClusterName() error {
 	return nil
 }
 
-// SetClusterName sets the name of the cluster in the backend. SetClusterName
-// can only be called once on a cluster after which it will return trace.AlreadyExists.
-func (s *ClusterConfigurationService) SetClusterName(c types.ClusterName) error {
-	value, err := services.MarshalClusterName(c)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	_, err = s.Create(context.TODO(), backend.Item{
-		Key:     backend.Key(clusterConfigPrefix, namePrefix),
-		Value:   value,
-		Expires: c.Expiry(),
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
-}
-
 // UpsertClusterName sets the name of the cluster in the backend.
 func (s *ClusterConfigurationService) UpsertClusterName(c types.ClusterName) error {
 	value, err := services.MarshalClusterName(c)
@@ -132,25 +112,6 @@ func (s *ClusterConfigurationService) GetStaticTokens() (types.StaticTokens, err
 	}
 	return services.UnmarshalStaticTokens(item.Value,
 		services.WithResourceID(item.ID), services.WithExpires(item.Expires))
-}
-
-// SetStaticTokens sets the list of static tokens used to provision nodes.
-func (s *ClusterConfigurationService) SetStaticTokens(c types.StaticTokens) error {
-	value, err := services.MarshalStaticTokens(c)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	_, err = s.Put(context.TODO(), backend.Item{
-		Key:     backend.Key(clusterConfigPrefix, staticTokensPrefix),
-		Value:   value,
-		Expires: c.Expiry(),
-		ID:      c.GetResourceID(),
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
 }
 
 // DeleteStaticTokens deletes static tokens
