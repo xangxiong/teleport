@@ -95,11 +95,6 @@ type WebSessionReq struct {
 	ReloadUser bool `json:"reload_user"`
 }
 
-type checkPasswordReq struct {
-	Password string `json:"password"`
-	OTPToken string `json:"otp_token"`
-}
-
 type generateHostCertReq struct {
 	Key         []byte            `json:"key"`
 	HostID      string            `json:"hostname"`
