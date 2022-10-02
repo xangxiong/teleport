@@ -1116,31 +1116,6 @@ func (a *ServerWithRoles) DeleteReverseTunnel(domainName string) error {
 	return a.authServer.DeleteReverseTunnel(domainName)
 }
 
-func (a *ServerWithRoles) GetToken(ctx context.Context, token string) (types.ProvisionToken, error) {
-	// The Proxy has permission to look up tokens by name in order to validate
-	// attempts to use the node join script.
-	if isProxy := a.hasBuiltinRole(types.RoleProxy); !isProxy {
-		if err := a.action(apidefaults.Namespace, types.KindToken, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return a.authServer.GetToken(ctx, token)
-}
-
-func (a *ServerWithRoles) UpsertToken(ctx context.Context, token types.ProvisionToken) error {
-	if err := a.action(apidefaults.Namespace, types.KindToken, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertToken(ctx, token)
-}
-
-func (a *ServerWithRoles) CreateToken(ctx context.Context, token types.ProvisionToken) error {
-	if err := a.action(apidefaults.Namespace, types.KindToken, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.CreateToken(ctx, token)
-}
-
 func (a *ServerWithRoles) GetAccessRequests(ctx context.Context, filter types.AccessRequestFilter) ([]types.AccessRequest, error) {
 	// users can always view their own access requests
 	if filter.User != "" && a.currentUserAction(filter.User) == nil {
