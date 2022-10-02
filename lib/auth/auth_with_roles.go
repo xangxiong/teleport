@@ -789,13 +789,6 @@ func (a *ServerWithRoles) PingInventory(ctx context.Context, req proto.Inventory
 	return a.authServer.PingInventory(ctx, req)
 }
 
-func (a *ServerWithRoles) UpsertNode(ctx context.Context, s types.Server) (*types.KeepAlive, error) {
-	if err := a.action(s.GetNamespace(), types.KindNode, types.VerbCreate, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.UpsertNode(ctx, s)
-}
-
 // DELETE IN: 5.1.0
 //
 // This logic has moved to KeepAliveServer.

@@ -954,29 +954,6 @@ func (g *GRPCServer) DeleteToken(ctx context.Context, req *types.ResourceRequest
 	return &empty.Empty{}, nil
 }
 
-// UpsertNode upserts a node.
-func (g *GRPCServer) UpsertNode(ctx context.Context, node *types.ServerV2) (*types.KeepAlive, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Extract peer (remote host) from context and if the node sent 0.0.0.0 as
-	// its address (meaning it did not set an advertise address) update it with
-	// the address of the peer.
-	p, ok := peer.FromContext(ctx)
-	if !ok {
-		return nil, trace.BadParameter("unable to find peer")
-	}
-	node.SetAddr(utils.ReplaceLocalhost(node.GetAddr(), p.Addr.String()))
-
-	keepAlive, err := auth.ServerWithRoles.UpsertNode(ctx, node)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return keepAlive, nil
-}
-
 // GetClusterAuditConfig gets cluster audit configuration.
 func (g *GRPCServer) GetClusterAuditConfig(ctx context.Context, _ *empty.Empty) (*types.ClusterAuditConfigV2, error) {
 	auth, err := g.authenticate(ctx)
