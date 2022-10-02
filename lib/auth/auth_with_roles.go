@@ -2178,13 +2178,6 @@ func (a *ServerWithRoles) DeleteRemoteCluster(clusterName string) error {
 	return a.authServer.DeleteRemoteCluster(clusterName)
 }
 
-func (a *ServerWithRoles) DeleteAllRemoteClusters() error {
-	if err := a.action(apidefaults.Namespace, types.KindRemoteCluster, types.VerbList, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAllRemoteClusters()
-}
-
 // AcquireSemaphore acquires lease with requested resources from semaphore.
 func (a *ServerWithRoles) AcquireSemaphore(ctx context.Context, params types.AcquireSemaphoreRequest) (*types.SemaphoreLease, error) {
 	if err := a.action(apidefaults.Namespace, types.KindSemaphore, types.VerbCreate, types.VerbUpdate); err != nil {

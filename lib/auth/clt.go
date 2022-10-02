@@ -662,12 +662,6 @@ func (c *Client) DeleteRemoteCluster(clusterName string) error {
 	return trace.Wrap(err)
 }
 
-// DeleteAllRemoteClusters deletes all remote clusters
-func (c *Client) DeleteAllRemoteClusters() error {
-	_, err := c.Delete(context.TODO(), c.Endpoint("remoteclusters"))
-	return trace.Wrap(err)
-}
-
 // UpsertAuthServer is used by auth servers to report their presence
 // to other auth servers in form of hearbeat expiring after ttl period.
 func (c *Client) UpsertAuthServer(s types.Server) error {

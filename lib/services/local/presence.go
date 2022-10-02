@@ -647,13 +647,6 @@ func (s *PresenceService) DeleteRemoteCluster(clusterName string) error {
 	return s.Delete(context.TODO(), backend.Key(remoteClustersPrefix, clusterName))
 }
 
-// DeleteAllRemoteClusters deletes all remote clusters
-func (s *PresenceService) DeleteAllRemoteClusters() error {
-	startKey := backend.Key(remoteClustersPrefix)
-	err := s.DeleteRange(context.TODO(), startKey, backend.RangeEnd(startKey))
-	return trace.Wrap(err)
-}
-
 // this combination of backoff parameters leads to worst-case total time spent
 // in backoff between 1ms and 2000ms depending on jitter.  tests are in
 // place to verify that this is sufficient to resolve a 20-lease contention
