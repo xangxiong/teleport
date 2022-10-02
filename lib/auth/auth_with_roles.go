@@ -1088,34 +1088,11 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 	return resp, nil
 }
 
-func (a *ServerWithRoles) UpsertAuthServer(s types.Server) error {
-	if err := a.action(apidefaults.Namespace, types.KindAuthServer, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertAuthServer(s)
-}
-
 func (a *ServerWithRoles) GetAuthServers() ([]types.Server, error) {
 	if err := a.action(apidefaults.Namespace, types.KindAuthServer, types.VerbList, types.VerbRead); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	return a.authServer.GetAuthServers()
-}
-
-// DeleteAllAuthServers deletes all auth servers
-func (a *ServerWithRoles) DeleteAllAuthServers() error {
-	if err := a.action(apidefaults.Namespace, types.KindAuthServer, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAllAuthServers()
-}
-
-// DeleteAuthServer deletes auth server by name
-func (a *ServerWithRoles) DeleteAuthServer(name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindAuthServer, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAuthServer(name)
 }
 
 func (a *ServerWithRoles) UpsertProxy(s types.Server) error {
