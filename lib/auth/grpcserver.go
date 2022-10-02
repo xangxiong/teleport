@@ -1012,18 +1012,6 @@ func (g *GRPCServer) DeleteNode(ctx context.Context, req *types.ResourceInNamesp
 	return &empty.Empty{}, nil
 }
 
-// DeleteAllNodes deletes all nodes in a given namespace.
-func (g *GRPCServer) DeleteAllNodes(ctx context.Context, req *types.ResourcesInNamespaceRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err = auth.ServerWithRoles.DeleteAllNodes(ctx, req.Namespace); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
-
 // GetClusterAuditConfig gets cluster audit configuration.
 func (g *GRPCServer) GetClusterAuditConfig(ctx context.Context, _ *empty.Empty) (*types.ClusterAuditConfigV2, error) {
 	auth, err := g.authenticate(ctx)

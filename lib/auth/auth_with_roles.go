@@ -900,14 +900,6 @@ func (a *ServerWithRoles) NewWatcher(ctx context.Context, watch types.Watch) (ty
 	return a.authServer.NewWatcher(ctx, watch)
 }
 
-// DeleteAllNodes deletes all nodes in a given namespace
-func (a *ServerWithRoles) DeleteAllNodes(ctx context.Context, namespace string) error {
-	if err := a.action(namespace, types.KindNode, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAllNodes(ctx, namespace)
-}
-
 // DeleteNode deletes node in the namespace
 func (a *ServerWithRoles) DeleteNode(ctx context.Context, namespace, node string) error {
 	if err := a.action(namespace, types.KindNode, types.VerbDelete); err != nil {
