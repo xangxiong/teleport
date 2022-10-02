@@ -58,11 +58,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter Provisioner")
 			}
 			collections[resourceKind] = &provisionToken{watch: watch, Cache: c}
-		case types.KindClusterName:
-			if c.ClusterConfig == nil {
-				return nil, trace.BadParameter("missing parameter ClusterConfig")
-			}
-			collections[resourceKind] = &clusterName{watch: watch, Cache: c}
 		case types.KindClusterAuditConfig:
 			if c.ClusterConfig == nil {
 				return nil, trace.BadParameter("missing parameter ClusterConfig")
@@ -847,80 +842,6 @@ func (c *provisionToken) processEvent(ctx context.Context, event types.Event) er
 }
 
 func (c *provisionToken) watchKind() types.WatchKind {
-	return c.watch
-}
-
-type clusterName struct {
-	*Cache
-	watch types.WatchKind
-}
-
-// erase erases all data in the collection
-func (c *clusterName) erase(ctx context.Context) error {
-	err := c.clusterConfigCache.DeleteClusterName()
-	if err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (c *clusterName) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	var noName bool
-	clusterName, err := c.ClusterConfig.GetClusterName()
-	if err != nil {
-		if !trace.IsNotFound(err) {
-			return nil, trace.Wrap(err)
-		}
-		noName = true
-	}
-	return func(ctx context.Context) error {
-		// either zero or one instance exists, so we either erase or
-		// update, but not both.
-		if noName {
-			if err := c.erase(ctx); err != nil {
-				return trace.Wrap(err)
-			}
-			return nil
-		}
-		if err := c.clusterConfigCache.UpsertClusterName(clusterName); err != nil {
-			if !trace.IsNotFound(err) {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	}, nil
-}
-
-func (c *clusterName) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.clusterConfigCache.DeleteClusterName()
-		if err != nil {
-			// resource could be missing in the cache
-			// expired or not created, if the first consumed
-			// event is delete
-			if !trace.IsNotFound(err) {
-				c.Warningf("Failed to delete cluster name %v.", err)
-				return trace.Wrap(err)
-			}
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(types.ClusterName)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		if err := c.clusterConfigCache.UpsertClusterName(resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warningf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *clusterName) watchKind() types.WatchKind {
 	return c.watch
 }
 

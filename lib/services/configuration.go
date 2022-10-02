@@ -26,13 +26,8 @@ import (
 // the resources modified by this interface can only have a single instance
 // in the backend.
 type ClusterConfiguration interface {
-	// SetClusterName gets services.ClusterName from the backend.
+	// GetClusterName gets services.ClusterName from the backend.
 	GetClusterName(opts ...MarshalOption) (types.ClusterName, error)
-	// UpsertClusterName upserts cluster name
-	UpsertClusterName(types.ClusterName) error
-
-	// DeleteClusterName deletes cluster name resource
-	DeleteClusterName() error
 
 	// GetStaticTokens gets services.StaticTokens from the backend.
 	GetStaticTokens() (types.StaticTokens, error)
