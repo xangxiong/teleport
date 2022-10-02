@@ -769,24 +769,6 @@ func (c *Client) DeleteProxy(name string) error {
 	return nil
 }
 
-// ChangePassword updates users password based on the old password.
-func (c *Client) ChangePassword(req services.ChangePasswordReq) error {
-	_, err := c.PutJSON(context.TODO(), c.Endpoint("users", req.User, "web", "password"), req)
-	return trace.Wrap(err)
-}
-
-// CheckPassword checks if the suplied web access password is valid.
-func (c *Client) CheckPassword(user string, password []byte, otpToken string) error {
-	_, err := c.PostJSON(
-		context.TODO(),
-		c.Endpoint("users", user, "web", "password", "check"),
-		checkPasswordReq{
-			Password: string(password),
-			OTPToken: otpToken,
-		})
-	return trace.Wrap(err)
-}
-
 // GenerateHostCert takes the public key in the Open SSH “authorized_keys“
 // plain text format, signs it using Host Certificate Authority private key and returns the
 // resulting certificate.
@@ -998,11 +980,6 @@ func (c *Client) DeleteAllRoles() error {
 	return trace.NotImplemented(notImplementedMessage)
 }
 
-// DeleteAllUsers not implemented: can only be called locally.
-func (c *Client) DeleteAllUsers() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // ResumeAuditStream resumes existing audit stream.
 // This is a wrapper on the grpc endpoint and is deprecated.
 // DELETE IN 7.0.0
@@ -1096,9 +1073,6 @@ type IdentityService interface {
 	// certificate for a single session
 	// (https://github.com/gravitational/teleport/blob/3a1cf9111c2698aede2056513337f32bfc16f1f1/rfd/0014-session-2FA.md#sessions).
 	GenerateUserSingleUseCerts(ctx context.Context) (proto.AuthService_GenerateUserSingleUseCertsClient, error)
-
-	// DeleteAllUsers deletes all users
-	DeleteAllUsers() error
 
 	// MaintainSessionPresence establishes a channel used to continuously verify the presence for a session.
 	MaintainSessionPresence(ctx context.Context) (proto.AuthService_MaintainSessionPresenceClient, error)
