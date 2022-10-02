@@ -34,15 +34,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// MFAChallengeRequest is a request from the client for a MFA challenge from the
-// server.
-type MFAChallengeRequest struct {
-	User string `json:"user"`
-	Pass string `json:"pass"`
-	// Passwordless explicitly requests a passwordless/usernameless challenge.
-	Passwordless bool `json:"passwordless"`
-}
-
 type AuthenticateWebUserRequest struct {
 	// User is a teleport username.
 	User string `json:"user"`
