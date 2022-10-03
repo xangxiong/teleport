@@ -28,7 +28,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/trace/trail"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -48,38 +47,6 @@ import (
 	"github.com/gravitational/teleport/lib/joinserver"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/session"
-)
-
-var (
-	heartbeatConnectionsReceived = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: teleport.MetricHeartbeatConnectionsReceived,
-			Help: "Number of times auth received a heartbeat connection",
-		},
-	)
-	watcherEventsEmitted = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    teleport.MetricWatcherEventsEmitted,
-			Help:    "Per resources size of events emitted",
-			Buckets: prometheus.LinearBuckets(0, 200, 5),
-		},
-		[]string{teleport.TagResource},
-	)
-	watcherEventSizes = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:    teleport.MetricWatcherEventSizes,
-			Help:    "Overall size of events emitted",
-			Buckets: prometheus.LinearBuckets(0, 100, 20),
-		},
-	)
-	connectedResources = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: teleport.MetricNamespace,
-			Name:      teleport.MetricConnectedResources,
-			Help:      "Tracks the number and type of resources connected via keepalives",
-		},
-		[]string{teleport.TagType},
-	)
 )
 
 // GRPCServer is GPRC Auth Server API
@@ -160,9 +127,6 @@ func (g *GRPCServer) SendKeepAlives(stream proto.AuthService_SendKeepAlivesServe
 		}
 		if firstIteration {
 			g.Debugf("Got heartbeat connection from %v.", auth.User.GetName())
-			heartbeatConnectionsReceived.Inc()
-			connectedResources.WithLabelValues(keepAlive.GetType()).Inc()
-			defer connectedResources.WithLabelValues(keepAlive.GetType()).Dec()
 			firstIteration = false
 		}
 	}
@@ -358,9 +322,6 @@ func (g *GRPCServer) WatchEvents(watch *proto.Watch, stream proto.AuthService_Wa
 			if err != nil {
 				return trace.Wrap(err)
 			}
-
-			watcherEventsEmitted.WithLabelValues(resourceLabel(event)).Observe(float64(out.Size()))
-			watcherEventSizes.Observe(float64(out.Size()))
 
 			if err := stream.Send(out); err != nil {
 				return trace.Wrap(err)
