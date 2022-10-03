@@ -116,17 +116,9 @@ func NewServer(config ServerConfig) (*Server, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	metrics, err := newServerMetrics()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	reporter := newReporter(metrics)
-
 	transportCreds := newProxyCredentials(credentials.NewTLS(config.TLSConfig))
 	server := grpc.NewServer(
 		grpc.Creds(transportCreds),
-		grpc.StatsHandler(newStatsHandler(reporter)),
 		grpc.ChainStreamInterceptor(metadata.StreamServerInterceptor, utils.GRPCServerStreamErrorInterceptor),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			Time:    peerKeepAlive,
