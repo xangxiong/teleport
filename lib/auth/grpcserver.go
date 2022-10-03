@@ -57,23 +57,6 @@ func (g *GRPCServer) GetServer() (*grpc.Server, error) {
 	return g.server, nil
 }
 
-func (g *GRPCServer) GetCurrentUser(ctx context.Context, req *empty.Empty) (*types.UserV2, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	user, err := auth.ServerWithRoles.GetCurrentUser(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	v2, ok := user.(*types.UserV2)
-	if !ok {
-		log.Warnf("expected type services.UserV2, got %T for user %q", user, user.GetName())
-		return nil, trace.Errorf("encountered unexpected user type")
-	}
-	return v2, nil
-}
-
 // ListResources retrieves a paginated list of resources.
 func (g *GRPCServer) ListResources(ctx context.Context, req *proto.ListResourcesRequest) (*proto.ListResourcesResponse, error) {
 	auth, err := g.authenticate(ctx)

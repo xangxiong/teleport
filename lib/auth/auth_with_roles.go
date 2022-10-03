@@ -400,24 +400,6 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 	return resp, nil
 }
 
-// GetCurrentUser returns current user as seen by the server.
-// Useful especially in the context of remote clusters which perform role and trait mapping.
-func (a *ServerWithRoles) GetCurrentUser(ctx context.Context) (types.User, error) {
-	// check access to roles
-	for _, role := range a.context.User.GetRoles() {
-		_, err := a.GetRole(ctx, role)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	usrRes := a.context.User.WithoutSecrets()
-	if usr, ok := usrRes.(types.User); ok {
-		return usr, nil
-	}
-	return nil, trace.BadParameter("expected types.User when fetching current user information, got %T", usrRes)
-}
-
 // GetRole returns role by name
 func (a *ServerWithRoles) GetRole(ctx context.Context, name string) (types.Role, error) {
 	// Current-user exception: we always allow users to read roles
