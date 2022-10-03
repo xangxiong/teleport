@@ -255,14 +255,13 @@ func (u *UploadCompleter) checkUploads(ctx context.Context) error {
 }
 
 func (u *UploadCompleter) ensureSessionEndEvent(ctx context.Context, uploadData UploadMetadata) error {
-	// at this point, we don't know whether we'll need to emit a session.end or a
-	// windows.desktop.session.end, but as soon as we see the session start we'll
+	// at this point, we don't know whether we'll need to emit a session.end,
+	// but as soon as we see the session start we'll
 	// be able to start filling in the details
 	var sshSessionEnd events.SessionEnd
-	var desktopSessionEnd events.WindowsDesktopSessionEnd
 
 	// We use the streaming events API to search through the session events, because it works
-	// for both Desktop and SSH sessions, where as the GetSessionEvents API relies on downloading
+	// for SSH sessions, where as the GetSessionEvents API relies on downloading
 	// a copy of the session and using the SSH-specific index to iterate through events.
 	var lastEvent events.AuditEvent
 	evts, errors := u.cfg.AuditLog.StreamSessionEvents(ctx, uploadData.SessionID, 0)
@@ -313,14 +312,11 @@ loop:
 
 	sshSessionEnd.Participants = apiutils.Deduplicate(sshSessionEnd.Participants)
 	sshSessionEnd.EndTime = lastEvent.GetTime()
-	desktopSessionEnd.EndTime = lastEvent.GetTime()
 
 	var sessionEndEvent events.AuditEvent
 	switch {
 	case sshSessionEnd.Code != "":
 		sessionEndEvent = &sshSessionEnd
-	case desktopSessionEnd.Code != "":
-		sessionEndEvent = &desktopSessionEnd
 	default:
 		return trace.BadParameter("invalid session, could not find session start")
 	}
