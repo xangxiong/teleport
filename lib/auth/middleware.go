@@ -488,13 +488,11 @@ func (a *Middleware) GetUser(connState tls.ConnectionState) (IdentityGetter, err
 			}, nil
 		}
 		return RemoteUser{
-			ClusterName:   certClusterName,
-			Username:      identity.Username,
-			Principals:    identity.Principals,
-			DatabaseNames: identity.DatabaseNames,
-			DatabaseUsers: identity.DatabaseUsers,
-			RemoteRoles:   identity.Groups,
-			Identity:      *identity,
+			ClusterName: certClusterName,
+			Username:    identity.Username,
+			Principals:  identity.Principals,
+			RemoteRoles: identity.Groups,
+			Identity:    *identity,
 		}, nil
 	}
 	// code below expects user or service from local cluster, to distinguish between

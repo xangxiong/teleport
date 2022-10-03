@@ -231,12 +231,10 @@ func (a *authorizer) authorizeRemoteUser(ctx context.Context, u RemoteUser) (*Co
 
 		// These fields are for routing and restrictions, safe to re-use from
 		// unmapped identity.
-		Usage:           u.Identity.Usage,
-		RouteToCluster:  u.Identity.RouteToCluster,
-		RouteToApp:      u.Identity.RouteToApp,
-		RouteToDatabase: u.Identity.RouteToDatabase,
-		MFAVerified:     u.Identity.MFAVerified,
-		ClientIP:        u.Identity.ClientIP,
+		Usage:          u.Identity.Usage,
+		RouteToCluster: u.Identity.RouteToCluster,
+		MFAVerified:    u.Identity.MFAVerified,
+		ClientIP:       u.Identity.ClientIP,
 	}
 
 	return &Context{
@@ -719,12 +717,6 @@ type RemoteUser struct {
 
 	// Principals is a list of Unix logins.
 	Principals []string `json:"principals"`
-
-	// DatabaseNames is a list of database names a user can connect to.
-	DatabaseNames []string `json:"database_names"`
-
-	// DatabaseUsers is a list of database users a user can connect as.
-	DatabaseUsers []string `json:"database_users"`
 
 	// Identity is source x509 used to build this role
 	Identity tlsca.Identity
