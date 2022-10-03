@@ -95,14 +95,6 @@ type rotateExternalCertAuthorityRawReq struct {
 	CA json.RawMessage `json:"ca"`
 }
 
-// deprecatedLocalCAResponse contains the concatenated PEM-encoded TLS certs for
-// the local cluster's Host CA
-// DELETE IN 11.0.0
-type deprecatedLocalCAResponse struct {
-	// TLSCA is a PEM-encoded TLS certificate authority.
-	TLSCA []byte `json:"tls_ca"`
-}
-
 type createSessionReq struct {
 	Session session.Session `json:"session"`
 }
