@@ -77,23 +77,6 @@ func (g *GRPCServer) GetServer() (*grpc.Server, error) {
 	return g.server, nil
 }
 
-// EmitAuditEvent emits audit event
-func (g *GRPCServer) EmitAuditEvent(ctx context.Context, req *apievents.OneOf) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	event, err := apievents.FromOneOf(*req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = auth.EmitAuditEvent(ctx, event)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
-
 func (g *GRPCServer) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequest) (*proto.Certs, error) {
 	auth, err := g.authenticate(ctx)
 	if err != nil {

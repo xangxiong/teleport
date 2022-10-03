@@ -695,28 +695,6 @@ func (a *ServerWithRoles) GenerateHostCert(
 	return a.authServer.GenerateHostCert(key, hostID, nodeName, principals, clusterName, role, ttl)
 }
 
-// EmitAuditEvent emits a single audit event
-func (a *ServerWithRoles) EmitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
-	if err := a.action(apidefaults.Namespace, types.KindEvent, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	role, ok := a.context.Identity.(BuiltinRole)
-	if !ok || !role.IsServer() {
-		return trace.AccessDenied("this request can be only executed by a teleport built-in server")
-	}
-	err := events.ValidateServerMetadata(event, role.GetServerID(), a.hasBuiltinRole(types.RoleProxy))
-	if err != nil {
-		// TODO: this should be a proper audit event
-		// notifying about access violation
-		log.Warningf("Rejecting audit event %v(%q) from %q: %v. The client is attempting to "+
-			"submit events for an identity other than the one on its x509 certificate.",
-			event.GetType(), event.GetID(), role.GetServerID(), err)
-		// this message is sparse on purpose to avoid conveying extra data to an attacker
-		return trace.AccessDenied("failed to validate event metadata")
-	}
-	return a.authServer.emitter.EmitAuditEvent(ctx, event)
-}
-
 // ResumeAuditStream resumes the stream that has been created
 func (a *ServerWithRoles) ResumeAuditStream(ctx context.Context, sid session.ID, uploadID string) (apievents.Stream, error) {
 	if err := a.action(apidefaults.Namespace, types.KindEvent, types.VerbCreate, types.VerbUpdate); err != nil {
