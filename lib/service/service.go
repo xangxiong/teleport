@@ -87,17 +87,9 @@ const (
 	// TLS Mutual Auth endpoint and is ready to start accepting connections.
 	AuthTLSReady = "AuthTLSReady"
 
-	// ProxyWebServerReady is generated when the proxy has initialized the web
-	// server and is ready to start accepting connections.
-	ProxyWebServerReady = "ProxyWebServerReady"
-
 	// ProxyReverseTunnelReady is generated when the proxy has initialized the
 	// reverse tunnel server and is ready to start accepting connections.
 	ProxyReverseTunnelReady = "ProxyReverseTunnelReady"
-
-	// DebugAppReady is generated when the debugging application has been started
-	// and is ready to serve requests.
-	DebugAppReady = "DebugAppReady"
 
 	// ProxyAgentPoolReady is generated when the proxy has initialized the
 	// remote cluster watcher (to spawn reverse tunnels) and is ready to start
