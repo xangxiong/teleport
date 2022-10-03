@@ -470,54 +470,6 @@ func (a *Server) GetKeyStore() keystore.KeyStore {
 	return a.keyStore
 }
 
-// GenerateToken generates multi-purpose authentication token.
-func (a *Server) GenerateToken(ctx context.Context, req *proto.GenerateTokenRequest) (string, error) {
-	ttl := defaults.ProvisioningTokenTTL
-	if req.TTL != 0 {
-		ttl = req.TTL.Get()
-	}
-	expires := a.clock.Now().UTC().Add(ttl)
-
-	if req.Token == "" {
-		token, err := utils.CryptoRandomHex(TokenLenBytes)
-		if err != nil {
-			return "", trace.Wrap(err)
-		}
-		req.Token = token
-	}
-
-	token, err := types.NewProvisionToken(req.Token, req.Roles, expires)
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-	if len(req.Labels) != 0 {
-		meta := token.GetMetadata()
-		meta.Labels = req.Labels
-		token.SetMetadata(meta)
-	}
-
-	if err := a.UpsertToken(ctx, token); err != nil {
-		return "", trace.Wrap(err)
-	}
-
-	userMetadata := ClientUserMetadata(ctx)
-	for _, role := range req.Roles {
-		if role == types.RoleTrustedCluster {
-			if err := a.emitter.EmitAuditEvent(ctx, &apievents.TrustedClusterTokenCreate{
-				Metadata: apievents.Metadata{
-					Type: events.TrustedClusterTokenCreateEvent,
-					Code: events.TrustedClusterTokenCreateCode,
-				},
-				UserMetadata: userMetadata,
-			}); err != nil {
-				log.WithError(err).Warn("Failed to emit trusted cluster token create event.")
-			}
-		}
-	}
-
-	return req.Token, nil
-}
-
 // ExtractHostID returns host id based on the hostname
 func ExtractHostID(hostName string, clusterName string) (string, error) {
 	suffix := "." + clusterName
@@ -1270,21 +1222,6 @@ func (k *authKeepAliver) Close() error {
 	k.cancel()
 	return nil
 }
-
-const (
-	// BearerTokenTTL specifies standard bearer token to exist before
-	// it has to be renewed by the client
-	BearerTokenTTL = 10 * time.Minute
-
-	// TokenLenBytes is len in bytes of the invite token
-	TokenLenBytes = 16
-
-	// RecoveryTokenLenBytes is len in bytes of a user token for recovery.
-	RecoveryTokenLenBytes = 32
-
-	// SessionTokenBytes is the number of bytes of a web or application session.
-	SessionTokenBytes = 32
-)
 
 // DefaultDNSNamesForRole returns default DNS names for the specified role.
 func DefaultDNSNamesForRole(role types.SystemRole) []string {
