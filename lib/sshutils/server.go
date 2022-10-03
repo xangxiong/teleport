@@ -31,7 +31,6 @@ import (
 	"time"
 
 	"github.com/gravitational/trace"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -44,13 +43,6 @@ import (
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/utils"
-)
-
-var proxyConnectionLimitHitCount = prometheus.NewCounter(
-	prometheus.CounterOpts{
-		Name: teleport.MetricProxyConnectionLimitHit,
-		Help: "Number of times the proxy connection limit was exceeded",
-	},
 )
 
 // Server is a generic implementation of an SSH server. All Teleport
@@ -411,9 +403,6 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		s.log.Errorf(err.Error())
 	}
 	if err := s.limiter.AcquireConnection(remoteAddr); err != nil {
-		if trace.IsLimitExceeded(err) {
-			proxyConnectionLimitHitCount.Inc()
-		}
 		s.log.Errorf(err.Error())
 		conn.Close()
 		return
