@@ -166,15 +166,6 @@ func (a *ServerWithRoles) actionForKindSSHSession(ctx context.Context, namespace
 	return trace.Wrap(a.actionWithExtendedContext(namespace, types.KindSSHSession, verb, extendContext))
 }
 
-// serverAction returns an access denied error if the role is not one of the builtin server roles.
-func (a *ServerWithRoles) serverAction() error {
-	role, ok := a.context.Identity.(BuiltinRole)
-	if !ok || !role.IsServer() {
-		return trace.AccessDenied("this request can be only executed by a teleport built-in server")
-	}
-	return nil
-}
-
 // hasBuiltinRole checks that the attached identity is a builtin role and
 // whether any of the given roles match the role set.
 func (a *ServerWithRoles) hasBuiltinRole(roles ...types.SystemRole) bool {
