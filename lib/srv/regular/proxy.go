@@ -44,34 +44,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gravitational/trace"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
-)
-
-var ( // failedConnectingToNode counts failed attempts to connect to a node
-	proxiedSessions = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: teleport.MetricProxySSHSessions,
-			Help: "Number of active sessions through this proxy",
-		},
-	)
-
-	failedConnectingToNode = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: teleport.MetricFailedConnectToNodeAttempts,
-			Help: "Number of failed SSH connection attempts to a node. Use with `teleport_connect_to_node_attempts_total` to get the failure rate.",
-		},
-	)
-
-	connectingToNode = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: teleport.MetricNamespace,
-			Name:      teleport.MetricConnectToNodeAttempts,
-			Help:      "Number of SSH connection attempts to a node. Use with `failed_connect_to_node_attempts_total` to get the failure rate.",
-		},
-	)
-
-	prometheusCollectors = []prometheus.Collector{proxiedSessions, failedConnectingToNode, connectingToNode}
 )
 
 // proxySubsys implements an SSH subsystem for proxying listening sockets from
@@ -289,7 +262,6 @@ func (t *proxySubsys) proxyToSite(
 	}
 	t.log.Infof("Connected to auth server: %v", conn.RemoteAddr())
 
-	proxiedSessions.Inc()
 	go func() {
 		var err error
 		defer func() {
@@ -417,7 +389,6 @@ func (t *proxySubsys) proxyToHost(
 		AddrNetwork: "tcp",
 		Addr:        serverAddr,
 	}
-	connectingToNode.Inc()
 	conn, err := site.Dial(reversetunnel.DialParams{
 		From:         remoteAddr,
 		To:           toAddr,
@@ -429,7 +400,6 @@ func (t *proxySubsys) proxyToHost(
 		ConnType:     types.NodeTunnel,
 	})
 	if err != nil {
-		failedConnectingToNode.Inc()
 		return trace.Wrap(err)
 	}
 
@@ -437,7 +407,6 @@ func (t *proxySubsys) proxyToHost(
 	// address to the SSH server
 	t.doHandshake(ctx, remoteAddr, ch, conn)
 
-	proxiedSessions.Inc()
 	go func() {
 		var err error
 		defer func() {
@@ -546,7 +515,6 @@ func (t *proxySubsys) getMatchingServer(watcher NodesGetter, strategy types.Rout
 
 func (t *proxySubsys) close(err error) {
 	t.closeOnce.Do(func() {
-		proxiedSessions.Dec()
 		t.error = err
 		close(t.closeC)
 	})
