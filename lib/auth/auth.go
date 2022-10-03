@@ -23,26 +23,20 @@ limitations under the License.
 package auth
 
 import (
-	"bytes"
 	"context"
-	"crypto/rand"
 	"crypto/subtle"
-	"crypto/x509"
 	"errors"
 	"fmt"
-	"math/big"
 	"sync"
-	"time"
 
+	"github.com/gravitational/teleport"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/constants"
-	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	apiutils "github.com/gravitational/teleport/api/utils"
@@ -317,32 +311,6 @@ func (a *Server) SetClock(clock clockwork.Clock) {
 	a.clock = clock
 }
 
-// GetClusterCACert returns the PEM-encoded TLS certs for the local cluster. If
-// the cluster has multiple TLS certs, they will all be concatenated.
-func (a *Server) GetClusterCACert(ctx context.Context) (*proto.GetClusterCACertResponse, error) {
-	clusterName, err := a.GetClusterName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Extract the TLS CA for this cluster.
-	hostCA, err := a.GetCertAuthority(ctx, types.CertAuthID{
-		Type:       types.HostCA,
-		DomainName: clusterName.GetClusterName(),
-	}, false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	certs := services.GetTLSCerts(hostCA)
-	if len(certs) < 1 {
-		return nil, trace.NotFound("no tls certs found in host CA")
-	}
-	allCerts := bytes.Join(certs, []byte("\n"))
-
-	return &proto.GetClusterCACertResponse{
-		TLSCA: allCerts,
-	}, nil
-}
-
 func (a *Server) generateHostCert(p services.HostCertParams) ([]byte, error) {
 	authPref, err := a.GetAuthPreference(context.TODO())
 	if err != nil {
@@ -574,32 +542,6 @@ func (a *Server) MakeLocalInventoryControlStream(opts ...client.ICSPipeOption) c
 	return downstream
 }
 
-func (a *Server) GetInventoryStatus(ctx context.Context, req proto.InventoryStatusRequest) proto.InventoryStatusSummary {
-	var rsp proto.InventoryStatusSummary
-	if req.Connected {
-		a.inventory.Iter(func(handle inventory.UpstreamHandle) {
-			rsp.Connected = append(rsp.Connected, handle.Hello())
-		})
-	}
-	return rsp
-}
-
-func (a *Server) PingInventory(ctx context.Context, req proto.InventoryPingRequest) (proto.InventoryPingResponse, error) {
-	stream, ok := a.inventory.GetControlStream(req.ServerID)
-	if !ok {
-		return proto.InventoryPingResponse{}, trace.NotFound("no control stream found for server %q", req.ServerID)
-	}
-
-	d, err := stream.Ping(ctx)
-	if err != nil {
-		return proto.InventoryPingResponse{}, trace.Wrap(err)
-	}
-
-	return proto.InventoryPingResponse{
-		Duration: d,
-	}, nil
-}
-
 // TokenExpiredOrNotFound is a special message returned by the auth server when provisioning
 // tokens are either past their TTL, or could not be found.
 const TokenExpiredOrNotFound = "token expired or not found"
@@ -652,126 +594,6 @@ func (a *Server) checkTokenTTL(tok types.ProvisionToken) bool {
 		return false
 	}
 	return true
-}
-
-func (a *Server) DeleteNamespace(namespace string) error {
-	ctx := context.TODO()
-	if namespace == apidefaults.Namespace {
-		return trace.AccessDenied("can't delete default namespace")
-	}
-	nodes, err := a.GetNodes(ctx, namespace)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if len(nodes) != 0 {
-		return trace.BadParameter("can't delete namespace %v that has %v registered nodes", namespace, len(nodes))
-	}
-	return a.Services.DeleteNamespace(namespace)
-}
-
-func (a *Server) DeleteAccessRequest(ctx context.Context, name string) error {
-	if err := a.Services.DeleteAccessRequest(ctx, name); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.emitter.EmitAuditEvent(ctx, &apievents.AccessRequestDelete{
-		Metadata: apievents.Metadata{
-			Type: events.AccessRequestDeleteEvent,
-			Code: events.AccessRequestDeleteCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		RequestID:    name,
-	}); err != nil {
-		log.WithError(err).Warn("Failed to emit access request delete event.")
-	}
-	return nil
-}
-
-func (a *Server) SetAccessRequestState(ctx context.Context, params types.AccessRequestUpdate) error {
-	req, err := a.Services.SetAccessRequestState(ctx, params)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	event := &apievents.AccessRequestCreate{
-		Metadata: apievents.Metadata{
-			Type: events.AccessRequestUpdateEvent,
-			Code: events.AccessRequestUpdateCode,
-		},
-		ResourceMetadata: apievents.ResourceMetadata{
-			UpdatedBy: ClientUsername(ctx),
-			Expires:   req.GetAccessExpiry(),
-		},
-		RequestID:    params.RequestID,
-		RequestState: params.State.String(),
-		Reason:       params.Reason,
-		Roles:        params.Roles,
-	}
-
-	if delegator := apiutils.GetDelegator(ctx); delegator != "" {
-		event.Delegator = delegator
-	}
-
-	if len(params.Annotations) > 0 {
-		annotations, err := apievents.EncodeMapStrings(params.Annotations)
-		if err != nil {
-			log.WithError(err).Debugf("Failed to encode access request annotations.")
-		} else {
-			event.Annotations = annotations
-		}
-	}
-	err = a.emitter.EmitAuditEvent(a.closeCtx, event)
-	if err != nil {
-		log.WithError(err).Warn("Failed to emit access request update event.")
-	}
-	return trace.Wrap(err)
-}
-
-// GenerateCertAuthorityCRL generates an empty CRL for the local CA of a given type.
-func (a *Server) GenerateCertAuthorityCRL(ctx context.Context, caType types.CertAuthType) ([]byte, error) {
-	// Generate a CRL for the current cluster CA.
-	clusterName, err := a.GetClusterName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	ca, err := a.GetCertAuthority(ctx, types.CertAuthID{
-		Type:       caType,
-		DomainName: clusterName.GetClusterName(),
-	}, true)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// TODO(awly): this will only create a CRL for an active signer.
-	// If there are multiple signers (multiple HSMs), we won't have the full CRL coverage.
-	// Generate a CRL per signer and return all of them separately.
-
-	cert, signer, err := a.keyStore.GetTLSCertAndSigner(ca)
-	if trace.IsNotFound(err) {
-		// If there is no local TLS signer found in the host CA ActiveKeys, this
-		// auth server may have a newly configured HSM and has only populated
-		// local keys in the AdditionalTrustedKeys until the next CA rotation.
-		// This is the only case where we should be able to get a signer from
-		// AdditionalTrustedKeys but not ActiveKeys.
-		cert, signer, err = a.keyStore.GetAdditionalTrustedTLSCertAndSigner(ca)
-	}
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	tlsAuthority, err := tlsca.FromCertAndSigner(cert, signer)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Empty CRL valid for 1yr.
-	template := &x509.RevocationList{
-		Number:     big.NewInt(1),
-		ThisUpdate: time.Now().Add(-1 * time.Minute), // 1 min in the past to account for clock skew.
-		NextUpdate: time.Now().Add(365 * 24 * time.Hour),
-	}
-	crl, err := x509.CreateRevocationList(rand.Reader, template, tlsAuthority.Cert, tlsAuthority.Signer)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return crl, nil
 }
 
 // ErrDone indicates that resource iteration is complete
