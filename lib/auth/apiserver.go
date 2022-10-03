@@ -82,10 +82,6 @@ type generateHostCertReq struct {
 	TTL         time.Duration     `json:"ttl"`
 }
 
-type registerNewAuthServerReq struct {
-	Token string `json:"token"`
-}
-
 type upsertCertAuthorityRawReq struct {
 	CA  json.RawMessage `json:"ca"`
 	TTL time.Duration   `json:"ttl"`
