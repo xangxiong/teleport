@@ -858,19 +858,6 @@ func (a *Server) SetAccessRequestState(ctx context.Context, params types.AccessR
 	return trace.Wrap(err)
 }
 
-// NewKeepAliver returns a new instance of keep aliver
-func (a *Server) NewKeepAliver(ctx context.Context) (types.KeepAliver, error) {
-	cancelCtx, cancel := context.WithCancel(ctx)
-	k := &authKeepAliver{
-		a:           a,
-		ctx:         cancelCtx,
-		cancel:      cancel,
-		keepAlivesC: make(chan types.KeepAlive),
-	}
-	go k.forwardKeepAlives()
-	return k, nil
-}
-
 // GenerateCertAuthorityCRL generates an empty CRL for the local CA of a given type.
 func (a *Server) GenerateCertAuthorityCRL(ctx context.Context, caType types.CertAuthType) ([]byte, error) {
 	// Generate a CRL for the current cluster CA.
@@ -1161,66 +1148,6 @@ func (a *Server) deleteUnusedKeys(ctx context.Context) error {
 		}
 	}
 	return trace.Wrap(a.keyStore.DeleteUnusedKeys(usedKeys))
-}
-
-// authKeepAliver is a keep aliver using auth server directly
-type authKeepAliver struct {
-	sync.RWMutex
-	a           *Server
-	ctx         context.Context
-	cancel      context.CancelFunc
-	keepAlivesC chan types.KeepAlive
-	err         error
-}
-
-// KeepAlives returns a channel accepting keep alive requests
-func (k *authKeepAliver) KeepAlives() chan<- types.KeepAlive {
-	return k.keepAlivesC
-}
-
-func (k *authKeepAliver) forwardKeepAlives() {
-	for {
-		select {
-		case <-k.a.closeCtx.Done():
-			k.Close()
-			return
-		case <-k.ctx.Done():
-			return
-		case keepAlive := <-k.keepAlivesC:
-			err := k.a.KeepAliveServer(k.ctx, keepAlive)
-			if err != nil {
-				k.closeWithError(err)
-				return
-			}
-		}
-	}
-}
-
-func (k *authKeepAliver) closeWithError(err error) {
-	k.Close()
-	k.Lock()
-	defer k.Unlock()
-	k.err = err
-}
-
-// Error returns the error if keep aliver
-// has been closed
-func (k *authKeepAliver) Error() error {
-	k.RLock()
-	defer k.RUnlock()
-	return k.err
-}
-
-// Done returns channel that is closed whenever
-// keep aliver is closed
-func (k *authKeepAliver) Done() <-chan struct{} {
-	return k.ctx.Done()
-}
-
-// Close closes keep aliver and cancels all goroutines
-func (k *authKeepAliver) Close() error {
-	k.cancel()
-	return nil
 }
 
 // DefaultDNSNamesForRole returns default DNS names for the specified role.
