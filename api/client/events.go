@@ -106,22 +106,6 @@ func EventToGRPC(in types.Event) (*proto.Event, error) {
 		out.Resource = &proto.Event_RemoteCluster{
 			RemoteCluster: r,
 		}
-	case *types.AppServerV3:
-		out.Resource = &proto.Event_AppServer{
-			AppServer: r,
-		}
-	case *types.DatabaseServerV3:
-		out.Resource = &proto.Event_DatabaseServer{
-			DatabaseServer: r,
-		}
-	case *types.DatabaseV3:
-		out.Resource = &proto.Event_Database{
-			Database: r,
-		}
-	case *types.AppV3:
-		out.Resource = &proto.Event_App{
-			App: r,
-		}
 	case *types.ClusterAuditConfigV2:
 		out.Resource = &proto.Event_ClusterAuditConfig{
 			ClusterAuditConfig: r,
@@ -145,14 +129,6 @@ func EventToGRPC(in types.Event) (*proto.Event, error) {
 	case *types.NetworkRestrictionsV4:
 		out.Resource = &proto.Event_NetworkRestrictions{
 			NetworkRestrictions: r,
-		}
-	case *types.WindowsDesktopServiceV3:
-		out.Resource = &proto.Event_WindowsDesktopService{
-			WindowsDesktopService: r,
-		}
-	case *types.WindowsDesktopV3:
-		out.Resource = &proto.Event_WindowsDesktop{
-			WindowsDesktop: r,
 		}
 	default:
 		return nil, trace.BadParameter("resource type %T is not supported", in.Resource)
@@ -222,31 +198,10 @@ func EventFromGRPC(in proto.Event) (*types.Event, error) {
 	} else if r := in.GetAccessRequest(); r != nil {
 		out.Resource = r
 		return &out, nil
-	} else if r := in.GetSnowflakeSession(); r != nil {
-		out.Resource = r
-		return &out, nil
-	} else if r := in.GetAppSession(); r != nil {
-		out.Resource = r
-		return &out, nil
-	} else if r := in.GetWebSession(); r != nil {
-		out.Resource = r
-		return &out, nil
 	} else if r := in.GetWebToken(); r != nil {
 		out.Resource = r
 		return &out, nil
 	} else if r := in.GetRemoteCluster(); r != nil {
-		out.Resource = r
-		return &out, nil
-	} else if r := in.GetAppServer(); r != nil {
-		out.Resource = r
-		return &out, nil
-	} else if r := in.GetDatabaseServer(); r != nil {
-		out.Resource = r
-		return &out, nil
-	} else if r := in.GetApp(); r != nil {
-		out.Resource = r
-		return &out, nil
-	} else if r := in.GetDatabase(); r != nil {
 		out.Resource = r
 		return &out, nil
 	} else if r := in.GetClusterAuditConfig(); r != nil {
@@ -265,12 +220,6 @@ func EventFromGRPC(in proto.Event) (*types.Event, error) {
 		out.Resource = r
 		return &out, nil
 	} else if r := in.GetNetworkRestrictions(); r != nil {
-		out.Resource = r
-		return &out, nil
-	} else if r := in.GetWindowsDesktopService(); r != nil {
-		out.Resource = r
-		return &out, nil
-	} else if r := in.GetWindowsDesktop(); r != nil {
 		out.Resource = r
 		return &out, nil
 	} else {
