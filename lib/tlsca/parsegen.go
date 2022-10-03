@@ -96,7 +96,7 @@ func GenerateSelfSignedCAWithConfig(config GenerateCAConfig) (certPEM []byte, er
 		Subject:      config.Entity,
 		NotBefore:    notBefore,
 		NotAfter:     notAfter,
-		// Note: KeyUsageCRLSign is set only to generate empty CRLs for Desktop
+		// Note: KeyUsageCRLSign is set only to generate empty CRLs
 		// Access authentication with Windows.
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		BasicConstraintsValid: true,
