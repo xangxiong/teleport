@@ -49,22 +49,6 @@ type GRPCServer struct {
 	collectortracepb.TraceServiceServer
 }
 
-// Export forwards OTLP traces to the upstream collector configured in the tracing service. This allows for
-// tsh, tctl, etc to be able to export traces without having to know how to connect to the upstream collector
-// for the cluster.
-func (g *GRPCServer) Export(ctx context.Context, req *collectortracepb.ExportTraceServiceRequest) (*collectortracepb.ExportTraceServiceResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if len(req.ResourceSpans) == 0 {
-		return &collectortracepb.ExportTraceServiceResponse{}, nil
-	}
-
-	return auth.Export(ctx, req)
-}
-
 // GetServer returns an instance of grpc server
 func (g *GRPCServer) GetServer() (*grpc.Server, error) {
 	if g.server == nil {
