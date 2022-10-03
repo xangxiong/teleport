@@ -24,12 +24,10 @@ import (
 	"time"
 
 	"github.com/gravitational/teleport/api/utils"
-	awsutils "github.com/gravitational/teleport/api/utils/aws"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/gravitational/trace"
-	"github.com/sirupsen/logrus"
 )
 
 // Database represents a database proxied by a database server.
@@ -458,68 +456,6 @@ func (d *DatabaseV3) CheckAndSetDefaults() error {
 	if d.Spec.MySQL.ServerVersion != "" && d.Spec.Protocol != "mysql" {
 		return trace.BadParameter("MySQL ServerVersion can be only set for MySQL database")
 	}
-	// In case of RDS, Aurora or Redshift, AWS information such as region or
-	// cluster ID can be extracted from the endpoint if not provided.
-	switch {
-	case awsutils.IsRDSEndpoint(d.Spec.URI):
-		instanceID, region, err := awsutils.ParseRDSEndpoint(d.Spec.URI)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if d.Spec.AWS.RDS.InstanceID == "" {
-			d.Spec.AWS.RDS.InstanceID = instanceID
-		}
-		if d.Spec.AWS.Region == "" {
-			d.Spec.AWS.Region = region
-		}
-	case awsutils.IsRedshiftEndpoint(d.Spec.URI):
-		clusterID, region, err := awsutils.ParseRedshiftEndpoint(d.Spec.URI)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if d.Spec.AWS.Redshift.ClusterID == "" {
-			d.Spec.AWS.Redshift.ClusterID = clusterID
-		}
-		if d.Spec.AWS.Region == "" {
-			d.Spec.AWS.Region = region
-		}
-	case awsutils.IsElastiCacheEndpoint(d.Spec.URI):
-		endpointInfo, err := awsutils.ParseElastiCacheEndpoint(d.Spec.URI)
-		if err != nil {
-			logrus.WithError(err).Warnf("Failed to parse %v as ElastiCache endpoint", d.Spec.URI)
-			break
-		}
-		if d.Spec.AWS.ElastiCache.ReplicationGroupID == "" {
-			d.Spec.AWS.ElastiCache.ReplicationGroupID = endpointInfo.ID
-		}
-		if d.Spec.AWS.Region == "" {
-			d.Spec.AWS.Region = endpointInfo.Region
-		}
-		d.Spec.AWS.ElastiCache.TransitEncryptionEnabled = endpointInfo.TransitEncryptionEnabled
-		d.Spec.AWS.ElastiCache.EndpointType = endpointInfo.EndpointType
-	case awsutils.IsMemoryDBEndpoint(d.Spec.URI):
-		endpointInfo, err := awsutils.ParseMemoryDBEndpoint(d.Spec.URI)
-		if err != nil {
-			logrus.WithError(err).Warnf("Failed to parse %v as MemoryDB endpoint", d.Spec.URI)
-			break
-		}
-		if d.Spec.AWS.MemoryDB.ClusterName == "" {
-			d.Spec.AWS.MemoryDB.ClusterName = endpointInfo.ID
-		}
-		if d.Spec.AWS.Region == "" {
-			d.Spec.AWS.Region = endpointInfo.Region
-		}
-		d.Spec.AWS.MemoryDB.TLSEnabled = endpointInfo.TransitEncryptionEnabled
-		d.Spec.AWS.MemoryDB.EndpointType = endpointInfo.EndpointType
-	case strings.Contains(d.Spec.URI, AzureEndpointSuffix):
-		name, err := parseAzureEndpoint(d.Spec.URI)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if d.Spec.Azure.Name == "" {
-			d.Spec.Azure.Name = name
-		}
-	}
 	return nil
 }
 
@@ -562,27 +498,6 @@ func (d *DatabaseV3) GetIAMAction() string {
 
 // GetIAMResources returns AWS IAM resources that provide access to the database.
 func (d *DatabaseV3) GetIAMResources() []string {
-	aws := d.GetAWS()
-	partition := awsutils.GetPartitionFromRegion(aws.Region)
-	if d.IsRDS() {
-		if aws.Region != "" && aws.AccountID != "" && aws.RDS.ResourceID != "" {
-			return []string{
-				fmt.Sprintf("arn:%v:rds-db:%v:%v:dbuser:%v/*",
-					partition, aws.Region, aws.AccountID, aws.RDS.ResourceID),
-			}
-		}
-	} else if d.IsRedshift() {
-		if aws.Region != "" && aws.AccountID != "" && aws.Redshift.ClusterID != "" {
-			return []string{
-				fmt.Sprintf("arn:%v:redshift:%v:%v:dbuser:%v/*",
-					partition, aws.Region, aws.AccountID, aws.Redshift.ClusterID),
-				fmt.Sprintf("arn:%v:redshift:%v:%v:dbname:%v/*",
-					partition, aws.Region, aws.AccountID, aws.Redshift.ClusterID),
-				fmt.Sprintf("arn:%v:redshift:%v:%v:dbgroup:%v/*",
-					partition, aws.Region, aws.AccountID, aws.Redshift.ClusterID),
-			}
-		}
-	}
 	return nil
 }
 
@@ -603,58 +518,12 @@ func (d *DatabaseV3) SetManagedUsers(users []string) {
 
 // getRDSPolicy returns IAM policy document for this RDS database.
 func (d *DatabaseV3) getRDSPolicy() (string, error) {
-	region := d.GetAWS().Region
-	if region == "" {
-		region = "<region>"
-	}
-	accountID := d.GetAWS().AccountID
-	if accountID == "" {
-		accountID = "<account_id>"
-	}
-	resourceID := d.GetAWS().RDS.ResourceID
-	if resourceID == "" {
-		resourceID = "<resource_id>"
-	}
-
-	var sb strings.Builder
-	err := rdsPolicyTemplate.Execute(&sb, arnTemplateInput{
-		Partition:  awsutils.GetPartitionFromRegion(region),
-		Region:     region,
-		AccountID:  accountID,
-		ResourceID: resourceID,
-	})
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-	return sb.String(), nil
+	return "", nil
 }
 
 // getRedshiftPolicy returns IAM policy document for this Redshift database.
 func (d *DatabaseV3) getRedshiftPolicy() (string, error) {
-	region := d.GetAWS().Region
-	if region == "" {
-		region = "<region>"
-	}
-	accountID := d.GetAWS().AccountID
-	if accountID == "" {
-		accountID = "<account_id>"
-	}
-	clusterID := d.GetAWS().Redshift.ClusterID
-	if clusterID == "" {
-		clusterID = "<cluster_id>"
-	}
-
-	var sb strings.Builder
-	err := redshiftPolicyTemplate.Execute(&sb, arnTemplateInput{
-		Partition:  awsutils.GetPartitionFromRegion(region),
-		Region:     region,
-		AccountID:  accountID,
-		ResourceID: clusterID,
-	})
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-	return sb.String(), nil
+	return "", nil
 }
 
 const (
