@@ -50,33 +50,12 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
 var ctxID int32
 
-var (
-	serverTX = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "tx",
-			Help: "Number of bytes transmitted.",
-		},
-	)
-	serverRX = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "rx",
-			Help: "Number of bytes received.",
-		},
-	)
-)
-
 var ErrNodeFileCopyingNotPermitted = trace.AccessDenied("node does not allow file copying via SCP or SFTP")
-
-func init() {
-	prometheus.MustRegister(serverTX)
-	prometheus.MustRegister(serverRX)
-}
 
 // AccessPoint is the access point contract required by a Server
 type AccessPoint interface {
@@ -861,10 +840,6 @@ func (c *ServerContext) reportStats(conn utils.Stater) {
 	if err := c.GetServer().EmitAuditEvent(c.GetServer().Context(), sessionDataEvent); err != nil {
 		c.WithError(err).Warn("Failed to emit session data event.")
 	}
-
-	// Emit TX and RX bytes to their respective Prometheus counters.
-	serverTX.Add(float64(txBytes))
-	serverRX.Add(float64(rxBytes))
 }
 
 func (c *ServerContext) Close() error {
