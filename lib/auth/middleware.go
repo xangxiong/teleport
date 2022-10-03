@@ -417,7 +417,7 @@ func (a *Middleware) GetUser(connState tls.ConnectionState) (IdentityGetter, err
 	peers := connState.PeerCertificates
 	if len(peers) > 1 {
 		// when turning intermediaries on, don't forget to verify
-		// https://github.com/kubernetes/kubernetes/pull/34524/files#diff-2b283dde198c92424df5355f39544aa4R59
+		// https://github.com/kub-ernetes/kub-ernetes/pull/34524/files#diff-2b283dde198c92424df5355f39544aa4R59
 		return nil, trace.AccessDenied("access denied: intermediaries are not supported")
 	}
 	localClusterName, err := a.AccessPoint.GetClusterName()
@@ -457,7 +457,7 @@ func (a *Middleware) GetUser(connState tls.ConnectionState) (IdentityGetter, err
 	}
 	// If there is any restriction on the certificate usage
 	// reject the API server request. This is done so some classes
-	// of certificates issued for kubernetes usage by proxy, can not be used
+	// of certificates issued for kub-ernetes usage by proxy, can not be used
 	// against auth server. Later on we can extend more
 	// advanced cert usage, but for now this is the safest option.
 	if len(identity.Usage) != 0 && !apiutils.StringSlicesEqual(a.AcceptedUsage, identity.Usage) {

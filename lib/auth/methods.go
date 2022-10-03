@@ -104,9 +104,6 @@ type AuthenticateSSHRequest struct {
 	// CompatibilityMode sets certificate compatibility mode with old SSH clients
 	CompatibilityMode string `json:"compatibility_mode"`
 	RouteToCluster    string `json:"route_to_cluster"`
-	// KubernetesCluster sets the target kubernetes cluster for the TLS
-	// certificate. This can be empty on older clients.
-	KubernetesCluster string `json:"kubernetes_cluster"`
 }
 
 // CheckAndSetDefaults checks and sets default certificate values

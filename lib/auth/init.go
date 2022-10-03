@@ -213,7 +213,7 @@ func Init(cfg InitConfig, opts ...ServerOption) (*Server, error) {
 
 	// INTERNAL: Authorities (plus Roles) and ReverseTunnels don't follow the
 	// same pattern as the rest of the configuration (they are not configuration
-	// singletons). However, we need to keep them around while Telekube uses them.
+	// singletons). However, we need to keep them around while Telekub-e uses them.
 	for _, role := range cfg.Roles {
 		if err := asrv.UpsertRole(ctx, role); err != nil {
 			return nil, trace.Wrap(err)
