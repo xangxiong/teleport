@@ -232,19 +232,6 @@ func hasLocalUserRole(authContext Context) bool {
 	return ok
 }
 
-// CreateSessionTracker creates a tracker resource for an active session.
-func (a *ServerWithRoles) CreateSessionTracker(ctx context.Context, tracker types.SessionTracker) (types.SessionTracker, error) {
-	if err := a.serverAction(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	tracker, err := a.authServer.CreateSessionTracker(ctx, tracker)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return tracker, nil
-}
-
 func (a *ServerWithRoles) filterSessionTracker(ctx context.Context, joinerRoles []types.Role, tracker types.SessionTracker) bool {
 	evaluator := NewSessionAccessEvaluator(tracker.GetHostPolicySets(), tracker.GetSessionKind(), tracker.GetHostUser())
 	modes := evaluator.CanJoin(SessionAccessContext{Username: a.context.User.GetName(), Roles: joinerRoles})
@@ -443,18 +430,6 @@ func (a *ServerWithRoles) GetSession(ctx context.Context, namespace string, id s
 	return a.sessions.GetSession(ctx, namespace, id)
 }
 
-func (a *ServerWithRoles) CreateSession(ctx context.Context, s session.Session) error {
-	if err := a.action(s.Namespace, types.KindSSHSession, types.VerbCreate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.sessions.CreateSession(ctx, s)
-}
-
-// CreateCertAuthority not implemented: can only be called locally.
-func (a *ServerWithRoles) CreateCertAuthority(ca types.CertAuthority) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // RotateCertAuthority starts or restarts certificate authority rotation process.
 func (a *ServerWithRoles) RotateCertAuthority(ctx context.Context, req RotateRequest) error {
 	if err := req.CheckAndSetDefaults(a.authServer.clock); err != nil {
@@ -478,18 +453,6 @@ func (a *ServerWithRoles) RotateExternalCertAuthority(ctx context.Context, ca ty
 		return trace.Wrap(err)
 	}
 	return a.authServer.RotateExternalCertAuthority(ctx, ca)
-}
-
-// UpsertCertAuthority updates existing cert authority or updates the existing one.
-func (a *ServerWithRoles) UpsertCertAuthority(ca types.CertAuthority) error {
-	if ca == nil {
-		return trace.BadParameter("missing certificate authority")
-	}
-	ctx := &services.Context{User: a.context.User, Resource: ca}
-	if err := a.actionWithContext(ctx, apidefaults.Namespace, types.KindCertAuthority, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertCertAuthority(ca)
 }
 
 // CompareAndSwapCertAuthority updates existing cert authority if the existing cert authority
@@ -1049,13 +1012,6 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 	return resp, nil
 }
 
-// func (a *ServerWithRoles) UpsertReverseTunnel(r types.ReverseTunnel) error {
-// 	if err := a.action(apidefaults.Namespace, types.KindReverseTunnel, types.VerbCreate, types.VerbUpdate); err != nil {
-// 		return trace.Wrap(err)
-// 	}
-// 	return a.authServer.UpsertReverseTunnel(r)
-// }
-
 func (a *ServerWithRoles) GetReverseTunnel(name string, opts ...services.MarshalOption) (types.ReverseTunnel, error) {
 	if err := a.action(apidefaults.Namespace, types.KindReverseTunnel, types.VerbRead); err != nil {
 		return nil, trace.Wrap(err)
@@ -1102,20 +1058,6 @@ func (a *ServerWithRoles) GetAccessRequests(ctx context.Context, filter types.Ac
 		}
 	}
 	return filtered, nil
-}
-
-func (a *ServerWithRoles) CreateAccessRequest(ctx context.Context, req types.AccessRequest) error {
-	// An exception is made to allow users to create access *pending* requests for themselves.
-	if !req.GetState().IsPending() || a.currentUserAction(req.GetUser()) != nil {
-		if err := a.action(apidefaults.Namespace, types.KindAccessRequest, types.VerbCreate); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	// Ensure that an access request cannot outlive the identity that creates it.
-	if req.GetAccessExpiry().Before(a.authServer.GetClock().Now()) || req.GetAccessExpiry().After(a.context.Identity.GetIdentity().Expires) {
-		req.SetAccessExpiry(a.context.Identity.GetIdentity().Expires)
-	}
-	return a.authServer.CreateAccessRequest(ctx, req)
 }
 
 func (a *ServerWithRoles) SetAccessRequestState(ctx context.Context, params types.AccessRequestUpdate) error {
@@ -1276,26 +1218,6 @@ func (a *ServerWithRoles) EmitAuditEvent(ctx context.Context, event apievents.Au
 		return trace.AccessDenied("failed to validate event metadata")
 	}
 	return a.authServer.emitter.EmitAuditEvent(ctx, event)
-}
-
-// CreateAuditStream creates audit event stream
-func (a *ServerWithRoles) CreateAuditStream(ctx context.Context, sid session.ID) (apievents.Stream, error) {
-	if err := a.action(apidefaults.Namespace, types.KindEvent, types.VerbCreate, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	role, ok := a.context.Identity.(BuiltinRole)
-	if !ok || !role.IsServer() {
-		return nil, trace.AccessDenied("this request can be only executed by proxy, node or auth")
-	}
-	stream, err := a.authServer.CreateAuditStream(ctx, sid)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &streamWithRoles{
-		stream:   stream,
-		a:        a,
-		serverID: role.GetServerID(),
-	}, nil
 }
 
 // ResumeAuditStream resumes the stream that has been created

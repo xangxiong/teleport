@@ -24,7 +24,6 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/google/uuid"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/trace/trail"
 	"github.com/sirupsen/logrus"
@@ -41,10 +40,8 @@ import (
 	"github.com/gravitational/teleport/api/metadata"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/joinserver"
-	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/session"
 )
 
@@ -127,158 +124,6 @@ func (g *GRPCServer) SendKeepAlives(stream proto.AuthService_SendKeepAlivesServe
 		if firstIteration {
 			g.Debugf("Got heartbeat connection from %v.", auth.User.GetName())
 			firstIteration = false
-		}
-	}
-}
-
-// CreateAuditStream creates or resumes audit event stream
-func (g *GRPCServer) CreateAuditStream(stream proto.AuthService_CreateAuditStreamServer) error {
-	auth, err := g.authenticate(stream.Context())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	var eventStream apievents.Stream
-	var sessionID session.ID
-	g.Debugf("CreateAuditStream connection from %v.", auth.User.GetName())
-	streamStart := time.Now()
-	processed := int64(0)
-	counter := 0
-	forwardEvents := func(eventStream apievents.Stream) {
-		for {
-			select {
-			case <-stream.Context().Done():
-				return
-			case statusUpdate := <-eventStream.Status():
-				if err := stream.Send(&statusUpdate); err != nil {
-					g.WithError(err).Debugf("Failed to send status update.")
-				}
-			}
-		}
-	}
-
-	closeStream := func(eventStream apievents.Stream) {
-		if err := eventStream.Close(auth.CloseContext()); err != nil {
-			g.WithError(err).Warningf("Failed to flush close the stream.")
-		} else {
-			g.Debugf("Flushed and closed the stream.")
-		}
-	}
-
-	for {
-		request, err := stream.Recv()
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			g.WithError(err).Debugf("Failed to receive stream request.")
-			return trace.Wrap(err)
-		}
-		if create := request.GetCreateStream(); create != nil {
-			if eventStream != nil {
-				return trace.BadParameter("stream is already created or resumed")
-			}
-			eventStream, err = auth.CreateAuditStream(stream.Context(), session.ID(create.SessionID))
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			sessionID = session.ID(create.SessionID)
-			g.Debugf("Created stream: %v.", err)
-			go forwardEvents(eventStream)
-			defer closeStream(eventStream)
-		} else if resume := request.GetResumeStream(); resume != nil {
-			if eventStream != nil {
-				return trace.BadParameter("stream is already created or resumed")
-			}
-			eventStream, err = auth.ResumeAuditStream(stream.Context(), session.ID(resume.SessionID), resume.UploadID)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			g.Debugf("Resumed stream: %v.", err)
-			go forwardEvents(eventStream)
-			defer closeStream(eventStream)
-		} else if complete := request.GetCompleteStream(); complete != nil {
-			if eventStream == nil {
-				return trace.BadParameter("stream is not initialized yet, cannot complete")
-			}
-			// do not use stream context to give the auth server finish the upload
-			// even if the stream's context is cancelled
-			err := eventStream.Complete(auth.CloseContext())
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			clusterName, err := auth.GetClusterName()
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			if g.APIConfig.MetadataGetter != nil {
-				sessionData := g.APIConfig.MetadataGetter.GetUploadMetadata(sessionID)
-				event := &apievents.SessionUpload{
-					Metadata: apievents.Metadata{
-						Type:        events.SessionUploadEvent,
-						Code:        events.SessionUploadCode,
-						ID:          uuid.New().String(),
-						Index:       events.SessionUploadIndex,
-						ClusterName: clusterName.GetClusterName(),
-					},
-					SessionMetadata: apievents.SessionMetadata{
-						SessionID: string(sessionData.SessionID),
-					},
-					SessionURL: sessionData.URL,
-				}
-				if err := g.Emitter.EmitAuditEvent(auth.CloseContext(), event); err != nil {
-					return trace.Wrap(err)
-				}
-			}
-			g.Debugf("Completed stream: %v.", err)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			return nil
-		} else if flushAndClose := request.GetFlushAndCloseStream(); flushAndClose != nil {
-			if eventStream == nil {
-				return trace.BadParameter("stream is not initialized yet, cannot flush and close")
-			}
-			// flush and close is always done
-			return nil
-		} else if oneof := request.GetEvent(); oneof != nil {
-			if eventStream == nil {
-				return trace.BadParameter("stream cannot receive an event without first being created or resumed")
-			}
-			event, err := apievents.FromOneOf(*oneof)
-			if err != nil {
-				g.WithError(err).Debugf("Failed to decode event.")
-				return trace.Wrap(err)
-			}
-			start := time.Now()
-			err = eventStream.EmitAuditEvent(stream.Context(), event)
-			if err != nil {
-				switch {
-				case events.IsPermanentEmitError(err):
-					g.WithError(err).WithField("event", event).
-						Error("Failed to EmitAuditEvent due to a permanent error. Event wil be omitted.")
-					continue
-				default:
-					return trace.Wrap(err)
-				}
-			}
-			event.Size()
-			processed += int64(event.Size())
-			seconds := time.Since(streamStart) / time.Second
-			counter++
-			if counter%logInterval == 0 {
-				if seconds > 0 {
-					kbytes := float64(processed) / 1000
-					g.Debugf("Processed %v events, tx rate kbytes %v/second.", counter, kbytes/float64(seconds))
-				}
-			}
-			diff := time.Since(start)
-			if diff > 100*time.Millisecond {
-				log.Warningf("EmitAuditEvent(%v) took longer than 100ms: %v", event.GetType(), time.Since(event.GetTime()))
-			}
-		} else {
-			g.Errorf("Rejecting unsupported stream request: %v.", request)
-			return trace.BadParameter("unsupported stream request")
 		}
 	}
 }
@@ -562,20 +407,6 @@ func (g *GRPCServer) GetAccessRequestsV2(f *types.AccessRequestFilter, stream pr
 		}
 	}
 	return nil
-}
-
-func (g *GRPCServer) CreateAccessRequest(ctx context.Context, req *types.AccessRequestV3) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := services.ValidateAccessRequest(req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.ServerWithRoles.CreateAccessRequest(ctx, req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
 }
 
 func (g *GRPCServer) SetAccessRequestState(ctx context.Context, req *proto.RequestStateSetter) (*empty.Empty, error) {
@@ -1112,50 +943,6 @@ func (g *GRPCServer) ListResources(ctx context.Context, req *proto.ListResources
 	}
 
 	return protoResp, nil
-}
-
-// CreateSessionTracker creates a tracker resource for an active session.
-func (g *GRPCServer) CreateSessionTracker(ctx context.Context, req *proto.CreateSessionTrackerRequest) (*types.SessionTrackerV1, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	var createTracker types.SessionTracker = req.SessionTracker
-	// DELETE IN 11.0.0
-	// Early v9 versions use a flattened out types.SessionTrackerV1
-	if req.SessionTracker == nil {
-		spec := types.SessionTrackerSpecV1{
-			SessionID:    req.ID,
-			Kind:         req.Type,
-			State:        types.SessionState_SessionStatePending,
-			Reason:       req.Reason,
-			Invited:      req.Invited,
-			Hostname:     req.Hostname,
-			Address:      req.Address,
-			ClusterName:  req.ClusterName,
-			Login:        req.Login,
-			Participants: []types.Participant{*req.Initiator},
-			Expires:      req.Expires,
-			HostUser:     req.HostUser,
-		}
-		createTracker, err = types.NewSessionTracker(spec)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	tracker, err := auth.ServerWithRoles.CreateSessionTracker(ctx, createTracker)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	v1, ok := tracker.(*types.SessionTrackerV1)
-	if !ok {
-		return nil, trace.BadParameter("unexpected session type %T", tracker)
-	}
-
-	return v1, nil
 }
 
 // GetSessionTracker returns the current state of a session tracker for an active session.
