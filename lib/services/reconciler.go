@@ -86,7 +86,7 @@ func NewReconciler(cfg ReconcilerConfig) (*Reconciler, error) {
 // Reconciler reconciles currently registered resources with new resources and
 // creates/updates/deletes them appropriately.
 //
-// It's used in combination with watchers by agents (app, database, desktop)
+// It's used in combination with watchers by agents
 // to enable dynamically registered resources.
 type Reconciler struct {
 	cfg ReconcilerConfig

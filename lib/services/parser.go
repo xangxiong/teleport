@@ -266,7 +266,7 @@ type Context struct {
 	// Resource is an optional resource, in case if the rule
 	// checks access to the resource
 	Resource types.Resource
-	// Session is an optional session.end or windows.desktop.session.end event.
+	// Session is an optional session.end
 	// These events hold information about session recordings.
 	Session events.AuditEvent
 	// SSHSession is an optional (active) SSH session.
@@ -332,7 +332,7 @@ func (ctx *Context) GetIdentifier(fields []string) (interface{}, error) {
 	case SessionIdentifier:
 		var session events.AuditEvent = &events.SessionEnd{}
 		switch ctx.Session.(type) {
-		case *events.SessionEnd, *events.WindowsDesktopSessionEnd:
+		case *events.SessionEnd:
 			session = ctx.Session
 		}
 		return predicate.GetFieldByTag(session, teleport.JSON, fields[1:])
@@ -653,9 +653,10 @@ func newParserForIdentifierSubcondition(ctx RuleContext, identifier string) (pre
 // NewResourceParser returns a parser made for boolean expressions based on a
 // json-serialiable resource. Customized to allow short identifiers common in all
 // resources:
-//  - `metadata.name` can be referenced with `name` ie: `name == "jenkins"``
-//  - `metadata.labels + spec.dynamic_labels` can be referenced with `labels`
+//   - `metadata.name` can be referenced with `name` ie: `name == "jenkins"“
+//   - `metadata.labels + spec.dynamic_labels` can be referenced with `labels`
 //     ie: `labels.env == "prod"`
+//
 // All other fields can be referenced by starting expression with identifier `resource`
 // followed by the names of the json fields ie: `resource.spec.public_addr`.
 func NewResourceParser(resource types.ResourceWithLabels) (BoolPredicateParser, error) {
