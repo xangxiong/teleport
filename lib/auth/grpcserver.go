@@ -154,29 +154,6 @@ func (g *GRPCServer) GetCurrentUserRoles(_ *empty.Empty, stream proto.AuthServic
 	return nil
 }
 
-// AcquireSemaphore acquires lease with requested resources from semaphore.
-func (g *GRPCServer) AcquireSemaphore(ctx context.Context, params *types.AcquireSemaphoreRequest) (*types.SemaphoreLease, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	lease, err := auth.AcquireSemaphore(ctx, *params)
-	return lease, trace.Wrap(err)
-}
-
-// KeepAliveSemaphoreLease updates semaphore lease.
-func (g *GRPCServer) KeepAliveSemaphoreLease(ctx context.Context, req *types.SemaphoreLease) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.KeepAliveSemaphoreLease(ctx, *req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
-
 // CancelSemaphoreLease cancels semaphore lease early.
 func (g *GRPCServer) CancelSemaphoreLease(ctx context.Context, req *types.SemaphoreLease) (*empty.Empty, error) {
 	auth, err := g.authenticate(ctx)
