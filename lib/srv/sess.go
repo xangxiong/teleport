@@ -44,7 +44,6 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	"github.com/moby/term"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
@@ -65,13 +64,6 @@ const (
 	// sessionRecordingErrorMessage is sent when session recording has some
 	// error and the session is terminated.
 	sessionRecordingErrorMessage = "Session terminating due to node error."
-)
-
-var serverSessions = prometheus.NewGauge(
-	prometheus.GaugeOpts{
-		Name: teleport.MetricServerInteractiveSessions,
-		Help: "Number of active sessions to this host",
-	},
 )
 
 // SessionRegistry holds a map of all active sessions on a given
@@ -494,7 +486,6 @@ type session struct {
 
 // newSession creates a new session with a given ID within a given context.
 func newSession(ctx context.Context, id rsession.ID, r *SessionRegistry, scx *ServerContext) (*session, error) {
-	serverSessions.Inc()
 	startTime := time.Now().UTC()
 	rsess := rsession.Session{
 		ID: id,
@@ -670,8 +661,6 @@ func (s *session) Close() error {
 
 	s.BroadcastMessage("Closing session...")
 	s.log.Infof("Closing session %v.", s.id)
-
-	serverSessions.Dec()
 
 	// Remove session parties and close client connections.
 	for _, p := range s.getParties() {
