@@ -1574,48 +1574,30 @@ func (c *Client) IsMFARequired(ctx context.Context, req *proto.IsMFARequiredRequ
 
 // GetOIDCConnector returns an OIDC connector by name.
 func (c *Client) GetOIDCConnector(ctx context.Context, name string, withSecrets bool) (types.OIDCConnector, error) {
-	if name == "" {
-		return nil, trace.BadParameter("cannot get OIDC Connector, missing name")
-	}
-	req := &types.ResourceWithSecretsRequest{Name: name, WithSecrets: withSecrets}
-	resp, err := c.grpc.GetOIDCConnector(ctx, req, c.callOpts...)
-	if err != nil {
-		return nil, trail.FromGRPC(err)
-	}
-	// An old server would send RedirectURL instead of RedirectURLs
-	// DELETE IN 11.0.0
-	resp.CheckSetRedirectURL()
-	return resp, nil
+	// if name == "" {
+	// 	return nil, trace.BadParameter("cannot get OIDC Connector, missing name")
+	// }
+	// req := &types.ResourceWithSecretsRequest{Name: name, WithSecrets: withSecrets}
+	// resp, err := c.grpc.GetOIDCConnector(ctx, req, c.callOpts...)
+	// if err != nil {
+	// 	return nil, trail.FromGRPC(err)
+	// }
+	// // An old server would send RedirectURL instead of RedirectURLs
+	// // DELETE IN 11.0.0
+	// resp.CheckSetRedirectURL()
+	// return resp, nil
+	return nil, nil
 }
 
 // GetOIDCConnectors returns a list of OIDC connectors.
 func (c *Client) GetOIDCConnectors(ctx context.Context, withSecrets bool) ([]types.OIDCConnector, error) {
-	req := &types.ResourcesWithSecretsRequest{WithSecrets: withSecrets}
-	resp, err := c.grpc.GetOIDCConnectors(ctx, req, c.callOpts...)
-	if err != nil {
-		return nil, trail.FromGRPC(err)
-	}
-	oidcConnectors := make([]types.OIDCConnector, len(resp.OIDCConnectors))
-	for i, oidcConnector := range resp.OIDCConnectors {
-		// An old server would send RedirectURL instead of RedirectURLs
-		// DELETE IN 11.0.0
-		oidcConnector.CheckSetRedirectURL()
-		oidcConnectors[i] = oidcConnector
-	}
+	oidcConnectors := make([]types.OIDCConnector, 0)
 	return oidcConnectors, nil
 }
 
 // UpsertOIDCConnector creates or updates an OIDC connector.
 func (c *Client) UpsertOIDCConnector(ctx context.Context, oidcConnector types.OIDCConnector) error {
-	connector, ok := oidcConnector.(*types.OIDCConnectorV3)
-	if !ok {
-		return trace.BadParameter("invalid type %T", oidcConnector)
-	}
-	// An old server would expect RedirectURL instead of RedirectURLs
-	// DELETE IN 11.0.0
-	connector.CheckSetRedirectURL()
-	_, err := c.grpc.UpsertOIDCConnector(ctx, connector, c.callOpts...)
-	return trail.FromGRPC(err)
+	return nil
 }
 
 // DeleteOIDCConnector deletes an OIDC connector by name.
