@@ -706,44 +706,6 @@ func (a *ServerWithRoles) Close() error {
 	return a.authServer.Close()
 }
 
-// StreamSessionEvents streams all events from a given session recording. An error is returned on the first
-// channel if one is encountered. Otherwise the event channel is closed when the stream ends.
-// The event channel is not closed on error to prevent race conditions in downstream select statements.
-func (a *ServerWithRoles) StreamSessionEvents(ctx context.Context, sessionID session.ID, startIndex int64) (chan apievents.AuditEvent, chan error) {
-	createErrorChannel := func(err error) (chan apievents.AuditEvent, chan error) {
-		e := make(chan error, 1)
-		e <- trace.Wrap(err)
-		return nil, e
-	}
-
-	if err := a.actionForKindSession(apidefaults.Namespace, types.VerbList, sessionID); err != nil {
-		return createErrorChannel(err)
-	}
-
-	// StreamSessionEvents can be called internally, and when that happens we don't want to emit an event.
-	shouldEmitAuditEvent := true
-	if role, ok := a.context.Identity.(BuiltinRole); ok {
-		if role.IsServer() {
-			shouldEmitAuditEvent = false
-		}
-	}
-
-	if shouldEmitAuditEvent {
-		if err := a.authServer.emitter.EmitAuditEvent(a.authServer.closeCtx, &apievents.SessionRecordingAccess{
-			Metadata: apievents.Metadata{
-				Type: events.SessionRecordingAccessEvent,
-				Code: events.SessionRecordingAccessCode,
-			},
-			SessionID:    sessionID.String(),
-			UserMetadata: a.context.Identity.GetIdentity().GetUserMetadata(),
-		}); err != nil {
-			return createErrorChannel(err)
-		}
-	}
-
-	return a.alog.StreamSessionEvents(ctx, sessionID, startIndex)
-}
-
 func (a *ServerWithRoles) checkAccessToNode(node types.Server) error {
 	// For certain built-in roles, continue to allow full access and return
 	// the full set of nodes to not break existing clusters during migration.
@@ -763,19 +725,4 @@ func (a *ServerWithRoles) checkAccessToNode(node types.Server) error {
 		// MFA is not required for operations on node resources but
 		// will be enforced at the connection time.
 		services.AccessMFAParams{Verified: true})
-}
-
-// GenerateCertAuthorityCRL generates an empty CRL for a CA.
-func (a *ServerWithRoles) GenerateCertAuthorityCRL(ctx context.Context, caType types.CertAuthType) ([]byte, error) {
-	crl, err := a.authServer.GenerateCertAuthorityCRL(ctx, caType)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return crl, nil
-}
-
-// UpdatePresence is coupled to the service layer and must exist here but is never actually called
-// since it's handled by the session presence task. This is never valid to call.
-func (a *ServerWithRoles) MaintainSessionPresence(ctx context.Context) (proto.AuthService_MaintainSessionPresenceClient, error) {
-	return nil, trace.NotImplemented(notImplementedMessage)
 }

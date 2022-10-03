@@ -23,7 +23,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/gravitational/trace"
-	"github.com/gravitational/trace/trail"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -35,10 +34,8 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/joinserver"
-	"github.com/gravitational/teleport/lib/session"
 )
 
 // GRPCServer is GPRC Auth Server API
@@ -113,51 +110,6 @@ func (g *GRPCServer) GetCurrentUser(ctx context.Context, req *empty.Empty) (*typ
 		return nil, trace.Errorf("encountered unexpected user type")
 	}
 	return v2, nil
-}
-
-// StreamSessionEvents streams all events from a given session recording. An error is returned on the first
-// channel if one is encountered. Otherwise the event channel is closed when the stream ends.
-// The event channel is not closed on error to prevent race conditions in downstream select statements.
-func (g *GRPCServer) StreamSessionEvents(req *proto.StreamSessionEventsRequest, stream proto.AuthService_StreamSessionEventsServer) error {
-	auth, err := g.authenticate(stream.Context())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	c, e := auth.ServerWithRoles.StreamSessionEvents(stream.Context(), session.ID(req.SessionID), int64(req.StartIndex))
-
-	for {
-		select {
-		case event, more := <-c:
-			if !more {
-				return nil
-			}
-
-			oneOf, err := apievents.ToOneOf(event)
-			if err != nil {
-				return trail.ToGRPC(trace.Wrap(err))
-			}
-
-			if err := stream.Send(oneOf); err != nil {
-				return trail.ToGRPC(trace.Wrap(err))
-			}
-		case err := <-e:
-			return trail.ToGRPC(trace.Wrap(err))
-		}
-	}
-}
-
-// GenerateCertAuthorityCRL returns a CRL for a CA.
-func (g *GRPCServer) GenerateCertAuthorityCRL(ctx context.Context, req *proto.CertAuthorityRequest) (*proto.CRL, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	crl, err := auth.GenerateCertAuthorityCRL(ctx, req.Type)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &proto.CRL{CRL: crl}, nil
 }
 
 // ListResources retrieves a paginated list of resources.
