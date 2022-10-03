@@ -40,7 +40,6 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"golang.org/x/crypto/ssh"
@@ -212,50 +211,6 @@ type Services struct {
 	events.IAuditLog
 }
 
-var (
-	generateRequestsCount = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: teleport.MetricGenerateRequests,
-			Help: "Number of requests to generate new server keys",
-		},
-	)
-	generateThrottledRequestsCount = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: teleport.MetricGenerateRequestsThrottled,
-			Help: "Number of throttled requests to generate new server keys",
-		},
-	)
-	generateRequestsCurrent = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: teleport.MetricGenerateRequestsCurrent,
-			Help: "Number of current generate requests for server keys",
-		},
-	)
-	generateRequestsLatencies = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name: teleport.MetricGenerateRequestsHistogram,
-			Help: "Latency for generate requests for server keys",
-			// lowest bucket start of upper bound 0.001 sec (1 ms) with factor 2
-			// highest bucket start of 0.001 sec * 2^15 == 32.768 sec
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 16),
-		},
-	)
-	// UserLoginCount counts user logins
-	UserLoginCount = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: teleport.MetricUserLoginCount,
-			Help: "Number of times there was a user login",
-		},
-	)
-
-	heartbeatsMissedByAuth = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: teleport.MetricHeartbeatsMissed,
-			Help: "Number of hearbeats missed by auth server",
-		},
-	)
-)
-
 // Server keeps the cluster together. It acts as a certificate authority (CA) for
 // a cluster and:
 //   - generates the keypair for the node it's running on
@@ -393,8 +348,6 @@ func (a *Server) runPeriodicOperations() {
 					missedKeepAliveCount++
 				}
 			}
-			// Update prometheus gauge
-			heartbeatsMissedByAuth.Set(float64(missedKeepAliveCount))
 		}
 	}
 }
@@ -599,19 +552,10 @@ func (a *Server) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequ
 	}
 
 	if err := a.limiter.AcquireConnection(req.Role.String()); err != nil {
-		generateThrottledRequestsCount.Inc()
 		log.Debugf("Node %q [%v] is rate limited: %v.", req.NodeName, req.HostID, req.Role)
 		return nil, trace.Wrap(err)
 	}
 	defer a.limiter.ReleaseConnection(req.Role.String())
-
-	// only observe latencies for non-throttled requests
-	start := a.clock.Now()
-	defer generateRequestsLatencies.Observe(time.Since(start).Seconds())
-
-	generateRequestsCount.Inc()
-	generateRequestsCurrent.Inc()
-	defer generateRequestsCurrent.Dec()
 
 	clusterName, err := a.GetClusterName()
 	if err != nil {
