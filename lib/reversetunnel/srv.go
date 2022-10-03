@@ -628,20 +628,8 @@ func (s *server) handleHeartbeat(conn net.Conn, sconn *ssh.ServerConn, nch ssh.N
 	// Node is dialing back.
 	case types.RoleNode:
 		s.handleNewService(role, conn, sconn, nch, types.NodeTunnel)
-	// App is dialing back.
-	case types.RoleApp:
-		s.handleNewService(role, conn, sconn, nch, types.AppTunnel)
-	// Kubernetes service is dialing back.
-	case types.RoleKube:
-		s.handleNewService(role, conn, sconn, nch, types.KubeTunnel)
-	// Database proxy is dialing back.
-	case types.RoleDatabase:
-		s.handleNewService(role, conn, sconn, nch, types.DatabaseTunnel)
-	// Proxy is dialing back.
 	case types.RoleProxy:
 		s.handleNewCluster(conn, sconn, nch)
-	case types.RoleWindowsDesktop:
-		s.handleNewService(role, conn, sconn, nch, types.WindowsDesktopTunnel)
 	// Unknown role.
 	default:
 		s.log.Errorf("Unsupported role attempting to connect: %v", val)
