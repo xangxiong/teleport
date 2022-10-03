@@ -578,17 +578,6 @@ func (g *GRPCServer) CreateAccessRequest(ctx context.Context, req *types.AccessR
 	return &empty.Empty{}, nil
 }
 
-func (g *GRPCServer) DeleteAccessRequest(ctx context.Context, id *proto.RequestID) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.ServerWithRoles.DeleteAccessRequest(ctx, id.ID); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
-
 func (g *GRPCServer) SetAccessRequestState(ctx context.Context, req *proto.RequestStateSetter) (*empty.Empty, error) {
 	auth, err := g.authenticate(ctx)
 	if err != nil {
@@ -633,20 +622,6 @@ func (g *GRPCServer) GetPluginData(ctx context.Context, filter *types.PluginData
 	return &proto.PluginDataSeq{
 		PluginData: seq,
 	}, nil
-}
-
-// UpdatePluginData updates a per-resource PluginData entry.
-func (g *GRPCServer) UpdatePluginData(ctx context.Context, params *types.PluginDataUpdateParams) (*empty.Empty, error) {
-	// TODO(fspmarshall): Implement rate-limiting to prevent misbehaving plugins from
-	// consuming too many server resources.
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.ServerWithRoles.UpdatePluginData(ctx, *params); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
 }
 
 func (g *GRPCServer) Ping(ctx context.Context, req *proto.PingRequest) (*proto.PingResponse, error) {
@@ -725,18 +700,6 @@ func (g *GRPCServer) GetSemaphores(ctx context.Context, req *types.SemaphoreFilt
 	}, nil
 }
 
-// DeleteSemaphore deletes a semaphore matching the supplied filter.
-func (g *GRPCServer) DeleteSemaphore(ctx context.Context, req *types.SemaphoreFilter) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.DeleteSemaphore(ctx, *req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
-
 // GetTrustedCluster retrieves a Trusted Cluster by name.
 func (g *GRPCServer) GetTrustedCluster(ctx context.Context, req *types.ResourceRequest) (*types.TrustedClusterV2, error) {
 	auth, err := g.authenticate(ctx)
@@ -774,39 +737,6 @@ func (g *GRPCServer) GetTrustedClusters(ctx context.Context, _ *empty.Empty) (*t
 	return &types.TrustedClusterV2List{
 		TrustedClusters: trustedClustersV2,
 	}, nil
-}
-
-// UpsertTrustedCluster upserts a Trusted Cluster.
-func (g *GRPCServer) UpsertTrustedCluster(ctx context.Context, cluster *types.TrustedClusterV2) (*types.TrustedClusterV2, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err = services.ValidateTrustedCluster(cluster); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	tc, err := auth.ServerWithRoles.UpsertTrustedCluster(ctx, cluster)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	trustedClusterV2, ok := tc.(*types.TrustedClusterV2)
-	if !ok {
-		return nil, trace.Errorf("encountered unexpected Trusted Cluster type: %T", tc)
-	}
-	return trustedClusterV2, nil
-}
-
-// DeleteTrustedCluster deletes a Trusted Cluster by name.
-func (g *GRPCServer) DeleteTrustedCluster(ctx context.Context, req *types.ResourceRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.ServerWithRoles.DeleteTrustedCluster(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
 }
 
 // GenerateToken generates a new auth token.
@@ -1029,19 +959,6 @@ func (g *GRPCServer) SetNetworkRestrictions(ctx context.Context, nr *types.Netwo
 	return &empty.Empty{}, nil
 }
 
-// DeleteNetworkRestrictions deletes the network restrictions.
-func (g *GRPCServer) DeleteNetworkRestrictions(ctx context.Context, _ *empty.Empty) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-
-	if err = auth.ServerWithRoles.DeleteNetworkRestrictions(ctx); err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-	return &empty.Empty{}, nil
-}
-
 // GetEvents searches for events on the backend and sends them back in a response.
 func (g *GRPCServer) GetEvents(ctx context.Context, req *proto.GetEventsRequest) (*proto.Events, error) {
 	auth, err := g.authenticate(ctx)
@@ -1144,46 +1061,6 @@ func (g *GRPCServer) GetLocks(ctx context.Context, req *proto.GetLocksRequest) (
 	return &proto.GetLocksResponse{
 		Locks: lockV2s,
 	}, nil
-}
-
-// UpsertLock upserts a lock.
-func (g *GRPCServer) UpsertLock(ctx context.Context, lock *types.LockV2) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.UpsertLock(ctx, lock); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
-
-// DeleteLock deletes a lock.
-func (g *GRPCServer) DeleteLock(ctx context.Context, req *proto.DeleteLockRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.DeleteLock(ctx, req.Name); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
-
-// ReplaceRemoteLocks replaces the set of locks associated with a remote cluster.
-func (g *GRPCServer) ReplaceRemoteLocks(ctx context.Context, req *proto.ReplaceRemoteLocksRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	locks := make([]types.Lock, 0, len(req.Locks))
-	for _, lock := range req.Locks {
-		locks = append(locks, lock)
-	}
-	if err := auth.ReplaceRemoteLocks(ctx, req.ClusterName, locks); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
 }
 
 // GenerateCertAuthorityCRL returns a CRL for a CA.
@@ -1325,32 +1202,6 @@ func (g *GRPCServer) GetActiveSessionTrackers(_ *empty.Empty, stream proto.AuthS
 	}
 
 	return nil
-}
-
-// RemoveSessionTracker removes a tracker resource for an active session.
-func (g *GRPCServer) RemoveSessionTracker(ctx context.Context, req *proto.RemoveSessionTrackerRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = auth.ServerWithRoles.RemoveSessionTracker(ctx, req.SessionID)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
-
-// UpdateSessionTracker updates a tracker resource for an active session.
-func (g *GRPCServer) UpdateSessionTracker(ctx context.Context, req *proto.UpdateSessionTrackerRequest) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = auth.ServerWithRoles.UpdateSessionTracker(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
 }
 
 // GetDomainName returns local auth domain of the current auth server.

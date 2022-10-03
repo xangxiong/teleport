@@ -226,12 +226,6 @@ func HasRemoteBuiltinRole(authContext Context, name string) bool {
 	return true
 }
 
-// hasRemoteBuiltinRole checks if the identity is a remote builtin role and the
-// name matches.
-func (a *ServerWithRoles) hasRemoteBuiltinRole(name string) bool {
-	return HasRemoteBuiltinRole(a.context, name)
-}
-
 // hasLocalUserRole checks if the identity is a local user or not.
 func hasLocalUserRole(authContext Context) bool {
 	_, ok := authContext.UnmappedIdentity.(LocalUser)
@@ -442,24 +436,6 @@ func (a *ServerWithRoles) GetActiveSessionTrackers(ctx context.Context) ([]types
 	return filteredSessions, nil
 }
 
-// RemoveSessionTracker removes a tracker resource for an active session.
-func (a *ServerWithRoles) RemoveSessionTracker(ctx context.Context, sessionID string) error {
-	if err := a.serverAction(); err != nil {
-		return trace.Wrap(err)
-	}
-
-	return a.authServer.RemoveSessionTracker(ctx, sessionID)
-}
-
-// UpdateSessionTracker updates a tracker resource for an active session.
-func (a *ServerWithRoles) UpdateSessionTracker(ctx context.Context, req *proto.UpdateSessionTrackerRequest) error {
-	if err := a.serverAction(); err != nil {
-		return trace.Wrap(err)
-	}
-
-	return a.authServer.UpdateSessionTracker(ctx, req)
-}
-
 func (a *ServerWithRoles) GetSession(ctx context.Context, namespace string, id session.ID) (*session.Session, error) {
 	if err := a.actionForKindSSHSession(ctx, namespace, types.VerbRead, id); err != nil {
 		return nil, trace.Wrap(err)
@@ -472,21 +448,6 @@ func (a *ServerWithRoles) CreateSession(ctx context.Context, s session.Session) 
 		return trace.Wrap(err)
 	}
 	return a.sessions.CreateSession(ctx, s)
-}
-
-func (a *ServerWithRoles) UpdateSession(ctx context.Context, req session.UpdateRequest) error {
-	if err := a.actionForKindSSHSession(ctx, req.Namespace, types.VerbUpdate, req.ID); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.sessions.UpdateSession(ctx, req)
-}
-
-// DeleteSession removes an active session from the backend.
-func (a *ServerWithRoles) DeleteSession(ctx context.Context, namespace string, id session.ID) error {
-	if err := a.actionForKindSSHSession(ctx, namespace, types.VerbDelete, id); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.sessions.DeleteSession(ctx, namespace, id)
 }
 
 // CreateCertAuthority not implemented: can only be called locally.
@@ -1088,12 +1049,12 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 	return resp, nil
 }
 
-func (a *ServerWithRoles) UpsertReverseTunnel(r types.ReverseTunnel) error {
-	if err := a.action(apidefaults.Namespace, types.KindReverseTunnel, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertReverseTunnel(r)
-}
+// func (a *ServerWithRoles) UpsertReverseTunnel(r types.ReverseTunnel) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindReverseTunnel, types.VerbCreate, types.VerbUpdate); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return a.authServer.UpsertReverseTunnel(r)
+// }
 
 func (a *ServerWithRoles) GetReverseTunnel(name string, opts ...services.MarshalOption) (types.ReverseTunnel, error) {
 	if err := a.action(apidefaults.Namespace, types.KindReverseTunnel, types.VerbRead); err != nil {
@@ -1107,13 +1068,6 @@ func (a *ServerWithRoles) GetReverseTunnels(ctx context.Context, opts ...service
 		return nil, trace.Wrap(err)
 	}
 	return a.authServer.GetReverseTunnels(ctx, opts...)
-}
-
-func (a *ServerWithRoles) DeleteReverseTunnel(domainName string) error {
-	if err := a.action(apidefaults.Namespace, types.KindReverseTunnel, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteReverseTunnel(domainName)
 }
 
 func (a *ServerWithRoles) GetAccessRequests(ctx context.Context, filter types.AccessRequestFilter) ([]types.AccessRequest, error) {
@@ -1193,23 +1147,6 @@ func (a *ServerWithRoles) GetPluginData(ctx context.Context, filter types.Plugin
 	}
 }
 
-// UpdatePluginData updates a per-resource PluginData entry.
-func (a *ServerWithRoles) UpdatePluginData(ctx context.Context, params types.PluginDataUpdateParams) error {
-	switch params.Kind {
-	case types.KindAccessRequest:
-		// for backwards compatibility, we allow update against access requests to also grant update for
-		// access request related plugin data.
-		if a.withOptions(quietAction(true)).action(apidefaults.Namespace, types.KindAccessRequest, types.VerbUpdate) != nil {
-			if err := a.action(apidefaults.Namespace, types.KindAccessPluginData, types.VerbUpdate); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return a.authServer.UpdatePluginData(ctx, params)
-	default:
-		return trace.BadParameter("unsupported resource kind %q", params.Kind)
-	}
-}
-
 // Ping gets basic info about the auth server.
 func (a *ServerWithRoles) Ping(ctx context.Context) (proto.PingResponse, error) {
 	// The Ping method does not require special permissions since it only returns
@@ -1247,12 +1184,12 @@ func (a *ServerWithRoles) getProxyPublicAddr() string {
 	return ""
 }
 
-func (a *ServerWithRoles) DeleteAccessRequest(ctx context.Context, name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindAccessRequest, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAccessRequest(ctx, name)
-}
+// func (a *ServerWithRoles) DeleteAccessRequest(ctx context.Context, name string) error {
+// 	if err := a.action(apidefaults.Namespace, types.KindAccessRequest, types.VerbDelete); err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	return a.authServer.DeleteAccessRequest(ctx, name)
+// }
 
 // GetCurrentUser returns current user as seen by the server.
 // Useful especially in the context of remote clusters which perform role and trait mapping.
@@ -1486,54 +1423,12 @@ func (a *ServerWithRoles) GetNamespace(name string) (*types.Namespace, error) {
 	return a.authServer.GetNamespace(name)
 }
 
-// UpsertNamespace upserts namespace
-func (a *ServerWithRoles) UpsertNamespace(ns types.Namespace) error {
-	if err := a.action(apidefaults.Namespace, types.KindNamespace, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertNamespace(ns)
-}
-
-// DeleteNamespace deletes namespace by name
-func (a *ServerWithRoles) DeleteNamespace(name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindNamespace, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteNamespace(name)
-}
-
 // GetRoles returns a list of roles
 func (a *ServerWithRoles) GetRoles(ctx context.Context) ([]types.Role, error) {
 	if err := a.action(apidefaults.Namespace, types.KindRole, types.VerbList, types.VerbRead); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	return a.authServer.GetRoles(ctx)
-}
-
-// CreateRole not implemented: can only be called locally.
-func (a *ServerWithRoles) CreateRole(ctx context.Context, role types.Role) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// UpsertRole creates or updates role.
-func (a *ServerWithRoles) UpsertRole(ctx context.Context, role types.Role) error {
-	if err := a.action(apidefaults.Namespace, types.KindRole, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// Some options are only available with enterprise subscription
-	if err := checkRoleFeatureSupport(role); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// access predicate syntax is not checked as part of normal role validation in order
-	// to allow the available namespaces to be extended without breaking compatibility with
-	// older nodes/proxies (which do not need to ever evaluate said predicates).
-	if err := services.ValidateAccessPredicates(role); err != nil {
-		return trace.Wrap(err)
-	}
-
-	return a.authServer.UpsertRole(ctx, role)
 }
 
 func checkRoleFeatureSupport(role types.Role) error {
@@ -1582,35 +1477,12 @@ func (a *ServerWithRoles) GetRole(ctx context.Context, name string) (types.Role,
 	return a.authServer.GetRole(ctx, name)
 }
 
-// DeleteRole deletes role by name
-func (a *ServerWithRoles) DeleteRole(ctx context.Context, name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindRole, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	// DELETE IN (7.0)
-	// It's OK to delete this code alongside migrateOSS code in auth.
-	// It prevents 6.0 from migrating resources multiple times
-	// and the role is used for `tctl users add` code too.
-	if modules.GetModules().BuildType() == modules.BuildOSS && name == teleport.AdminRoleName {
-		return trace.AccessDenied("can not delete system role %q", name)
-	}
-	return a.authServer.DeleteRole(ctx, name)
-}
-
 // GetClusterName gets the name of the cluster.
 func (a *ServerWithRoles) GetClusterName(opts ...services.MarshalOption) (types.ClusterName, error) {
 	if err := a.action(apidefaults.Namespace, types.KindClusterName, types.VerbRead); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	return a.authServer.GetClusterName()
-}
-
-// DeleteStaticTokens deletes static tokens
-func (a *ServerWithRoles) DeleteStaticTokens() error {
-	if err := a.action(apidefaults.Namespace, types.KindStaticTokens, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteStaticTokens()
 }
 
 // GetStaticTokens gets the list of static tokens used to provision nodes.
@@ -1661,11 +1533,6 @@ func (a *ServerWithRoles) ResetAuthPreference(ctx context.Context) error {
 	return a.authServer.SetAuthPreference(ctx, types.DefaultAuthPreference())
 }
 
-// DeleteAuthPreference not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteAuthPreference(context.Context) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // GetClusterAuditConfig gets cluster audit configuration.
 func (a *ServerWithRoles) GetClusterAuditConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterAuditConfig, error) {
 	if err := a.action(apidefaults.Namespace, types.KindClusterAuditConfig, types.VerbRead); err != nil {
@@ -1678,11 +1545,6 @@ func (a *ServerWithRoles) GetClusterAuditConfig(ctx context.Context, opts ...ser
 
 // SetClusterAuditConfig not implemented: can only be called locally.
 func (a *ServerWithRoles) SetClusterAuditConfig(ctx context.Context, auditConfig types.ClusterAuditConfig) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeleteClusterAuditConfig not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteClusterAuditConfig(ctx context.Context) error {
 	return trace.NotImplemented(notImplementedMessage)
 }
 
@@ -1740,11 +1602,6 @@ func (a *ServerWithRoles) ResetClusterNetworkingConfig(ctx context.Context) erro
 	return a.authServer.SetClusterNetworkingConfig(ctx, types.DefaultClusterNetworkingConfig())
 }
 
-// DeleteClusterNetworkingConfig not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteClusterNetworkingConfig(ctx context.Context) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // GetSessionRecordingConfig gets session recording configuration.
 func (a *ServerWithRoles) GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error) {
 	if err := a.action(apidefaults.Namespace, types.KindSessionRecordingConfig, types.VerbRead); err != nil {
@@ -1790,41 +1647,6 @@ func (a *ServerWithRoles) ResetSessionRecordingConfig(ctx context.Context) error
 	return a.authServer.SetSessionRecordingConfig(ctx, types.DefaultSessionRecordingConfig())
 }
 
-// DeleteSessionRecordingConfig not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteSessionRecordingConfig(ctx context.Context) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeleteAllTokens not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteAllTokens() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeleteAllCertAuthorities not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteAllCertAuthorities(caType types.CertAuthType) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeleteAllCertNamespaces not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteAllNamespaces() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeleteAllReverseTunnels not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteAllReverseTunnels() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeleteAllRoles not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteAllRoles() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeleteAllUsers not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteAllUsers() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 func (a *ServerWithRoles) GetTrustedClusters(ctx context.Context) ([]types.TrustedCluster, error) {
 	if err := a.action(apidefaults.Namespace, types.KindTrustedCluster, types.VerbList, types.VerbRead); err != nil {
 		return nil, trace.Wrap(err)
@@ -1841,31 +1663,6 @@ func (a *ServerWithRoles) GetTrustedCluster(ctx context.Context, name string) (t
 	return a.authServer.GetTrustedCluster(ctx, name)
 }
 
-// UpsertTrustedCluster creates or updates a trusted cluster.
-func (a *ServerWithRoles) UpsertTrustedCluster(ctx context.Context, tc types.TrustedCluster) (types.TrustedCluster, error) {
-	if err := a.action(apidefaults.Namespace, types.KindTrustedCluster, types.VerbCreate, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return a.authServer.UpsertTrustedCluster(ctx, tc)
-}
-
-// DeleteTrustedCluster deletes a trusted cluster by name.
-func (a *ServerWithRoles) DeleteTrustedCluster(ctx context.Context, name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindTrustedCluster, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-
-	return a.authServer.DeleteTrustedCluster(ctx, name)
-}
-
-func (a *ServerWithRoles) UpsertTunnelConnection(conn types.TunnelConnection) error {
-	if err := a.action(apidefaults.Namespace, types.KindTunnelConnection, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertTunnelConnection(conn)
-}
-
 func (a *ServerWithRoles) GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
 	if err := a.action(apidefaults.Namespace, types.KindTunnelConnection, types.VerbList); err != nil {
 		return nil, trace.Wrap(err)
@@ -1878,27 +1675,6 @@ func (a *ServerWithRoles) GetAllTunnelConnections(opts ...services.MarshalOption
 		return nil, trace.Wrap(err)
 	}
 	return a.authServer.GetAllTunnelConnections(opts...)
-}
-
-func (a *ServerWithRoles) DeleteTunnelConnection(clusterName string, connName string) error {
-	if err := a.action(apidefaults.Namespace, types.KindTunnelConnection, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteTunnelConnection(clusterName, connName)
-}
-
-func (a *ServerWithRoles) DeleteTunnelConnections(clusterName string) error {
-	if err := a.action(apidefaults.Namespace, types.KindTunnelConnection, types.VerbList, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteTunnelConnections(clusterName)
-}
-
-func (a *ServerWithRoles) DeleteAllTunnelConnections() error {
-	if err := a.action(apidefaults.Namespace, types.KindTunnelConnection, types.VerbList, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteAllTunnelConnections()
 }
 
 func (a *ServerWithRoles) GetRemoteCluster(clusterName string) (types.RemoteCluster, error) {
@@ -1973,14 +1749,6 @@ func (a *ServerWithRoles) GetSemaphores(ctx context.Context, filter types.Semaph
 	return a.authServer.GetSemaphores(ctx, filter)
 }
 
-// DeleteSemaphore deletes a semaphore matching the supplied filter.
-func (a *ServerWithRoles) DeleteSemaphore(ctx context.Context, filter types.SemaphoreFilter) error {
-	if err := a.action(apidefaults.Namespace, types.KindSemaphore, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteSemaphore(ctx, filter)
-}
-
 func (a *ServerWithRoles) Close() error {
 	return a.authServer.Close()
 }
@@ -1999,14 +1767,6 @@ func (a *ServerWithRoles) SetNetworkRestrictions(ctx context.Context, nr types.N
 		return trace.Wrap(err)
 	}
 	return a.authServer.SetNetworkRestrictions(ctx, nr)
-}
-
-// DeleteNetworkRestrictions deletes the network restrictions.
-func (a *ServerWithRoles) DeleteNetworkRestrictions(ctx context.Context) error {
-	if err := a.action(apidefaults.Namespace, types.KindNetworkRestrictions, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteNetworkRestrictions(ctx)
 }
 
 // GenerateUserSingleUseCerts exists to satisfy auth.ClientI but is not
@@ -2066,36 +1826,6 @@ func (a *ServerWithRoles) GetLocks(ctx context.Context, inForceOnly bool, target
 		return nil, trace.Wrap(err)
 	}
 	return a.authServer.GetLocks(ctx, inForceOnly, targets...)
-}
-
-// UpsertLock upserts a lock.
-func (a *ServerWithRoles) UpsertLock(ctx context.Context, lock types.Lock) error {
-	if err := a.action(apidefaults.Namespace, types.KindLock, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.UpsertLock(ctx, lock)
-}
-
-// DeleteLock deletes a lock.
-func (a *ServerWithRoles) DeleteLock(ctx context.Context, name string) error {
-	if err := a.action(apidefaults.Namespace, types.KindLock, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteLock(ctx, name)
-}
-
-// DeleteAllLocks not implemented: can only be called locally.
-func (a *ServerWithRoles) DeleteAllLocks(context.Context) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// ReplaceRemoteLocks replaces the set of locks associated with a remote cluster.
-func (a *ServerWithRoles) ReplaceRemoteLocks(ctx context.Context, clusterName string, locks []types.Lock) error {
-	role, ok := a.context.Identity.(RemoteBuiltinRole)
-	if !a.hasRemoteBuiltinRole(string(types.RoleRemoteProxy)) || !ok || role.ClusterName != clusterName {
-		return trace.AccessDenied("this request can be only executed by a remote proxy of cluster %q", clusterName)
-	}
-	return a.authServer.ReplaceRemoteLocks(ctx, clusterName, locks)
 }
 
 // StreamSessionEvents streams all events from a given session recording. An error is returned on the first
@@ -2164,12 +1894,6 @@ func (a *ServerWithRoles) GenerateCertAuthorityCRL(ctx context.Context, caType t
 		return nil, trace.Wrap(err)
 	}
 	return crl, nil
-}
-
-// UpdatePresence is coupled to the service layer and must exist here but is never actually called
-// since it's handled by the session presence task. This is never valid to call.
-func (a *ServerWithRoles) UpdatePresence(ctx context.Context, sessionID, user string) error {
-	return trace.NotImplemented(notImplementedMessage)
 }
 
 // UpdatePresence is coupled to the service layer and must exist here but is never actually called
