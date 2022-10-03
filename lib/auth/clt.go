@@ -725,27 +725,6 @@ func (c *Client) GetProxies() ([]types.Server, error) {
 	return re, nil
 }
 
-// DeleteAllProxies deletes all proxies
-func (c *Client) DeleteAllProxies() error {
-	_, err := c.Delete(context.TODO(), c.Endpoint("proxies"))
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-// DeleteProxy deletes proxy by name
-func (c *Client) DeleteProxy(name string) error {
-	if name == "" {
-		return trace.BadParameter("missing parameter name")
-	}
-	_, err := c.Delete(context.TODO(), c.Endpoint("proxies", name))
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // GenerateHostCert takes the public key in the Open SSH “authorized_keys“
 // plain text format, signs it using Host Certificate Authority private key and returns the
 // resulting certificate.

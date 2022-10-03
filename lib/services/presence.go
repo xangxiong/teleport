@@ -84,12 +84,6 @@ type Presence interface {
 	// ProxyGetter gets a list of proxies
 	ProxyGetter
 
-	// DeleteProxy deletes proxy by name
-	DeleteProxy(name string) error
-
-	// DeleteAllProxies deletes all proxies
-	DeleteAllProxies() error
-
 	// UpsertReverseTunnel upserts reverse tunnel entry temporarily or permanently
 	UpsertReverseTunnel(tunnel types.ReverseTunnel) error
 

@@ -401,11 +401,6 @@ type proxy struct {
 
 // erase erases all data in the collection
 func (c *proxy) erase(ctx context.Context) error {
-	if err := c.presenceCache.DeleteAllProxies(); err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
 	return nil
 }
 
@@ -431,17 +426,6 @@ func (c *proxy) fetch(ctx context.Context) (apply func(ctx context.Context) erro
 
 func (c *proxy) processEvent(ctx context.Context, event types.Event) error {
 	switch event.Type {
-	case types.OpDelete:
-		err := c.presenceCache.DeleteProxy(event.Resource.GetName())
-		if err != nil {
-			// resource could be missing in the cache
-			// expired or not created, if the first consumed
-			// event is delete
-			if !trace.IsNotFound(err) {
-				c.Warningf("Failed to delete resource %v.", err)
-				return trace.Wrap(err)
-			}
-		}
 	case types.OpPut:
 		resource, ok := event.Resource.(types.Server)
 		if !ok {
