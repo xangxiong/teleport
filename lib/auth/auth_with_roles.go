@@ -22,7 +22,6 @@ import (
 
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
-	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
@@ -81,28 +80,6 @@ func (a *ServerWithRoles) action(namespace, resource string, verbs ...string) er
 	return a.withOptions().action(namespace, resource, verbs...)
 }
 
-// currentUserAction is a special checker that allows certain actions for users
-// even if they are not admins, e.g. update their own passwords,
-// or generate certificates, otherwise it will require admin privileges
-func (a *ServerWithRoles) currentUserAction(username string) error {
-	if hasLocalUserRole(a.context) && username == a.context.User.GetName() {
-		return nil
-	}
-	return a.context.Checker.CheckAccessToRule(&services.Context{User: a.context.User},
-		apidefaults.Namespace, types.KindUser, types.VerbCreate, true)
-}
-
-// hasBuiltinRole checks that the attached identity is a builtin role and
-// whether any of the given roles match the role set.
-func (a *ServerWithRoles) hasBuiltinRole(roles ...types.SystemRole) bool {
-	for _, role := range roles {
-		if HasBuiltinRole(a.context, string(role)) {
-			return true
-		}
-	}
-	return false
-}
-
 // HasBuiltinRole checks if the identity is a builtin role with the matching
 // name.
 func HasBuiltinRole(authContext Context, name string) bool {
@@ -126,12 +103,6 @@ func HasRemoteBuiltinRole(authContext Context, name string) bool {
 		return false
 	}
 	return true
-}
-
-// hasLocalUserRole checks if the identity is a local user or not.
-func hasLocalUserRole(authContext Context) bool {
-	_, ok := authContext.UnmappedIdentity.(LocalUser)
-	return ok
 }
 
 func (a *ServerWithRoles) GetDomainName(ctx context.Context) (string, error) {
