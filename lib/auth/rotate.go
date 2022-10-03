@@ -306,35 +306,6 @@ func (a *Server) RotateExternalCertAuthority(ctx context.Context, ca types.CertA
 	return nil
 }
 
-// autoRotateCertAuthorities automatically rotates cert authorities,
-// does nothing if no rotation parameters were set up
-// or it is too early to rotate per schedule
-func (a *Server) autoRotateCertAuthorities(ctx context.Context) error {
-	clusterName, err := a.GetClusterName()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, caType := range types.CertAuthTypes {
-		ca, err := a.Services.GetCertAuthority(ctx, types.CertAuthID{
-			Type:       caType,
-			DomainName: clusterName.GetClusterName(),
-		}, true)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if err := a.autoRotate(ca); err != nil {
-			return trace.Wrap(err)
-		}
-		// make sure there are local AdditionalKeys during init phase of rotation
-		if ca.GetRotation().Phase == types.RotationPhaseInit {
-			if err := a.ensureLocalAdditionalKeys(ctx, ca); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-	}
-	return nil
-}
-
 func (a *Server) autoRotate(ca types.CertAuthority) error {
 	rotation := ca.GetRotation()
 	// rotation mode is not automatic, nothing to do
