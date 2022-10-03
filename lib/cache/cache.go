@@ -28,7 +28,6 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/observability/tracing"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
 	"github.com/gravitational/teleport/lib/utils"
@@ -365,9 +364,6 @@ func (c *Config) CheckAndSetDefaults() error {
 	}
 	if c.Component == "" {
 		c.Component = teleport.ComponentCache
-	}
-	if c.Tracer == nil {
-		c.Tracer = tracing.NoopTracer(c.Component)
 	}
 	return nil
 }
