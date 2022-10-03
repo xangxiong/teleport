@@ -18,17 +18,14 @@ package auth
 
 import (
 	"context"
-	"time"
 
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/session"
 
 	"github.com/gravitational/trace"
-	"github.com/sirupsen/logrus"
 )
 
 // ServerWithRoles is a wrapper around auth service
@@ -121,67 +118,6 @@ func (a *ServerWithRoles) RegisterUsingIAMMethod(ctx context.Context, challengeR
 	return nil, nil
 }
 
-func (a *ServerWithRoles) GetNodes(ctx context.Context, namespace string) ([]types.Server, error) {
-	if err := a.action(namespace, types.KindNode, types.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Fetch full list of nodes in the backend.
-	startFetch := time.Now()
-	nodes, err := a.authServer.GetNodes(ctx, namespace)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	elapsedFetch := time.Since(startFetch)
-
-	// Filter nodes to return the ones for the connected identity.
-	filteredNodes := make([]types.Server, 0)
-	startFilter := time.Now()
-	for _, node := range nodes {
-		if err := a.checkAccessToNode(node); err != nil {
-			if trace.IsAccessDenied(err) {
-				continue
-			}
-
-			return nil, trace.Wrap(err)
-		}
-
-		filteredNodes = append(filteredNodes, node)
-	}
-	elapsedFilter := time.Since(startFilter)
-
-	log.WithFields(logrus.Fields{
-		"user":           a.context.User.GetName(),
-		"elapsed_fetch":  elapsedFetch,
-		"elapsed_filter": elapsedFilter,
-	}).Debugf(
-		"GetServers(%v->%v) in %v.",
-		len(nodes), len(filteredNodes), elapsedFetch+elapsedFilter)
-
-	return filteredNodes, nil
-}
-
 func (a *ServerWithRoles) Close() error {
 	return a.authServer.Close()
-}
-
-func (a *ServerWithRoles) checkAccessToNode(node types.Server) error {
-	// For certain built-in roles, continue to allow full access and return
-	// the full set of nodes to not break existing clusters during migration.
-	//
-	// In addition, allow proxy (and remote proxy) to access all nodes for its
-	// smart resolution address resolution. Once the smart resolution logic is
-	// moved to the auth server, this logic can be removed.
-	builtinRole := HasBuiltinRole(a.context, string(types.RoleAdmin)) ||
-		HasBuiltinRole(a.context, string(types.RoleProxy)) ||
-		HasRemoteBuiltinRole(a.context, string(types.RoleRemoteProxy))
-
-	if builtinRole {
-		return nil
-	}
-
-	return a.context.Checker.CheckAccess(node,
-		// MFA is not required for operations on node resources but
-		// will be enforced at the connection time.
-		services.AccessMFAParams{Verified: true})
 }
