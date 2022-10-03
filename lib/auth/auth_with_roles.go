@@ -667,20 +667,6 @@ func (a *ServerWithRoles) GetCurrentUser(ctx context.Context) (types.User, error
 	return nil, trace.BadParameter("expected types.User when fetching current user information, got %T", usrRes)
 }
 
-// GetCurrentUserRoles returns current user's roles.
-func (a *ServerWithRoles) GetCurrentUserRoles(ctx context.Context) ([]types.Role, error) {
-	roleNames := a.context.User.GetRoles()
-	roles := make([]types.Role, 0, len(roleNames))
-	for _, roleName := range roleNames {
-		role, err := a.GetRole(ctx, roleName)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		roles = append(roles, role)
-	}
-	return roles, nil
-}
-
 func (a *ServerWithRoles) GenerateHostCert(
 	key []byte, hostID, nodeName string, principals []string, clusterName string, role types.SystemRole, ttl time.Duration,
 ) ([]byte, error) {
