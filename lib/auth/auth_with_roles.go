@@ -154,18 +154,6 @@ func (a *ServerWithRoles) actionForKindSession(namespace, verb string, sid sessi
 	return trace.Wrap(a.actionWithExtendedContext(namespace, types.KindSession, verb, extendContext))
 }
 
-// actionForKindSSHSession is a special checker that grants access to active SSH
-// sessions.  It can allow access to a specific session based on the `where`
-// section of the user's access rule for kind `ssh_session`.
-func (a *ServerWithRoles) actionForKindSSHSession(ctx context.Context, namespace, verb string, sid session.ID) error {
-	extendContext := func(serviceContext *services.Context) error {
-		session, err := a.sessions.GetSession(ctx, namespace, sid)
-		serviceContext.SSHSession = session
-		return trace.Wrap(err)
-	}
-	return trace.Wrap(a.actionWithExtendedContext(namespace, types.KindSSHSession, verb, extendContext))
-}
-
 // hasBuiltinRole checks that the attached identity is a builtin role and
 // whether any of the given roles match the role set.
 func (a *ServerWithRoles) hasBuiltinRole(roles ...types.SystemRole) bool {
@@ -1381,14 +1369,4 @@ func (a *ServerWithRoles) GenerateCertAuthorityCRL(ctx context.Context, caType t
 // since it's handled by the session presence task. This is never valid to call.
 func (a *ServerWithRoles) MaintainSessionPresence(ctx context.Context) (proto.AuthService_MaintainSessionPresenceClient, error) {
 	return nil, trace.NotImplemented(notImplementedMessage)
-}
-
-// verbsToReplaceResourceWithOrigin determines the verbs/actions required of a role
-// to replace the resource currently stored in the backend.
-func verbsToReplaceResourceWithOrigin(stored types.ResourceWithOrigin) []string {
-	verbs := []string{types.VerbUpdate}
-	if stored.Origin() == types.OriginConfigFile {
-		verbs = append(verbs, types.VerbCreate)
-	}
-	return verbs
 }

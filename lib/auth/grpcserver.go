@@ -22,7 +22,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/trace/trail"
@@ -37,7 +36,6 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/metadata"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/httplib"
@@ -127,56 +125,6 @@ func (g *GRPCServer) SendKeepAlives(stream proto.AuthService_SendKeepAlivesServe
 		}
 	}
 }
-
-// maybeFilterCertAuthorityWatches will add filters to the CertAuthority
-// WatchKinds in the watch if the client is authenticated as just a `Node` with
-// no other roles and if the client is older than the cutoff version, and if the
-// WatchKind for KindCertAuthority is trivial, i.e. it's a WatchKind{Kind:
-// KindCertAuthority} with no other fields set. In any other case we will assume
-// that the client knows what it's doing and the cache watcher will still send
-// everything.
-//
-// DELETE IN 10.0, no supported clients should require this at that point
-func maybeFilterCertAuthorityWatches(ctx context.Context, clusterName string, roleNames []string, watch *types.Watch) {
-	if len(roleNames) != 1 || roleNames[0] != string(types.RoleNode) {
-		return
-	}
-
-	clientVersionString, ok := metadata.ClientVersionFromContext(ctx)
-	if !ok {
-		log.Debug("no client version found in grpc context")
-		return
-	}
-
-	clientVersion, err := semver.NewVersion(clientVersionString)
-	if err != nil {
-		log.WithError(err).Debugf("couldn't parse client version %q", clientVersionString)
-		return
-	}
-
-	// we treat the entire previous major version as "old" for this version
-	// check, even if there might have been backports; compliant clients will
-	// supply their own filter anyway
-	if !clientVersion.LessThan(certAuthorityFilterVersionCutoff) {
-		return
-	}
-
-	for i, k := range watch.Kinds {
-		if k.Kind != types.KindCertAuthority || !k.IsTrivial() {
-			continue
-		}
-
-		log.Debugf("Injecting filter for CertAuthority watch for Node-only watcher with version %v", clientVersion)
-		watch.Kinds[i].Filter = types.CertAuthorityFilter{
-			types.HostCA: clusterName,
-			types.UserCA: types.Wildcard,
-		}.IntoMap()
-	}
-}
-
-// certAuthorityFilterVersionCutoff is the version starting from which we stop
-// injecting filters for CertAuthority watches in maybeFilterCertAuthorityWatches.
-var certAuthorityFilterVersionCutoff = *semver.New("9.0.0")
 
 func (g *GRPCServer) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequest) (*proto.Certs, error) {
 	auth, err := g.authenticate(ctx)
