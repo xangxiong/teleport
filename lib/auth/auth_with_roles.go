@@ -25,7 +25,6 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/defaults"
@@ -114,18 +113,6 @@ func (a *ServerWithRoles) actionWithExtendedContext(namespace, kind, verb string
 		return trace.Wrap(origErr)
 	}
 	return trace.Wrap(a.context.Checker.CheckAccessToRule(ruleCtx, namespace, kind, verb, false))
-}
-
-// actionForKindSession is a special checker that grants access to session
-// recordings.  It can allow access to a specific recording based on the
-// `where` section of the user's access rule for kind `session`.
-func (a *ServerWithRoles) actionForKindSession(namespace, verb string, sid session.ID) error {
-	extendContext := func(ctx *services.Context) error {
-		sessionEnd, err := a.findSessionEndEvent(namespace, sid)
-		ctx.Session = sessionEnd
-		return trace.Wrap(err)
-	}
-	return trace.Wrap(a.actionWithExtendedContext(namespace, types.KindSession, verb, extendContext))
 }
 
 // hasBuiltinRole checks that the attached identity is a builtin role and
@@ -669,24 +656,6 @@ func (a *ServerWithRoles) GenerateHostCert(
 	}
 
 	return a.authServer.GenerateHostCert(key, hostID, nodeName, principals, clusterName, role, ttl)
-}
-
-func (a *ServerWithRoles) findSessionEndEvent(namespace string, sid session.ID) (apievents.AuditEvent, error) {
-	sessionEvents, _, err := a.alog.SearchSessionEvents(time.Time{}, a.authServer.clock.Now().UTC(),
-		defaults.EventsIterationLimit, types.EventOrderAscending, "",
-		&types.WhereExpr{Equals: types.WhereExpr2{
-			L: &types.WhereExpr{Field: events.SessionEventID},
-			R: &types.WhereExpr{Literal: sid.String()},
-		}}, sid.String(),
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if len(sessionEvents) == 1 {
-		return sessionEvents[0], nil
-	}
-
-	return nil, trace.NotFound("session end event not found for session ID %q", sid)
 }
 
 // GetRole returns role by name
