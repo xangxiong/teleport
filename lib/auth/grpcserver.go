@@ -26,7 +26,8 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/grpc"
-	_ "google.golang.org/grpc/encoding/gzip" // gzip compressor for gRPC.
+
+	// _ "google.golang.org/grpc/encoding/gzip" // gzip compressor for gRPC.
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/gravitational/teleport"
