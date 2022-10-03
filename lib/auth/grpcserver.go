@@ -147,36 +147,6 @@ func (g *GRPCServer) StreamSessionEvents(req *proto.StreamSessionEventsRequest, 
 	}
 }
 
-// GetNetworkRestrictions retrieves all the network restrictions (allow/deny lists).
-func (g *GRPCServer) GetNetworkRestrictions(ctx context.Context, _ *empty.Empty) (*types.NetworkRestrictionsV4, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-	nr, err := auth.ServerWithRoles.GetNetworkRestrictions(ctx)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-	restrictionsV4, ok := nr.(*types.NetworkRestrictionsV4)
-	if !ok {
-		return nil, trace.Wrap(trace.BadParameter("unexpected type %T", nr))
-	}
-	return restrictionsV4, nil
-}
-
-// SetNetworkRestrictions updates the network restrictions.
-func (g *GRPCServer) SetNetworkRestrictions(ctx context.Context, nr *types.NetworkRestrictionsV4) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-
-	if err = auth.ServerWithRoles.SetNetworkRestrictions(ctx, nr); err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-	return &empty.Empty{}, nil
-}
-
 // GetEvents searches for events on the backend and sends them back in a response.
 func (g *GRPCServer) GetEvents(ctx context.Context, req *proto.GetEventsRequest) (*proto.Events, error) {
 	auth, err := g.authenticate(ctx)

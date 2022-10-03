@@ -728,22 +728,6 @@ func (a *ServerWithRoles) Close() error {
 	return a.authServer.Close()
 }
 
-// GetNetworkRestrictions retrieves all the network restrictions (allow/deny lists).
-func (a *ServerWithRoles) GetNetworkRestrictions(ctx context.Context) (types.NetworkRestrictions, error) {
-	if err := a.action(apidefaults.Namespace, types.KindNetworkRestrictions, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetNetworkRestrictions(ctx)
-}
-
-// SetNetworkRestrictions updates the network restrictions.
-func (a *ServerWithRoles) SetNetworkRestrictions(ctx context.Context, nr types.NetworkRestrictions) error {
-	if err := a.action(apidefaults.Namespace, types.KindNetworkRestrictions, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.SetNetworkRestrictions(ctx, nr)
-}
-
 // GenerateUserSingleUseCerts exists to satisfy auth.ClientI but is not
 // implemented here.
 //
