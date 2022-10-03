@@ -41,7 +41,6 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	"github.com/sirupsen/logrus"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/gravitational/teleport"
@@ -276,10 +275,6 @@ type Server struct {
 	lockWatcher *services.LockWatcher
 
 	inventory *inventory.Controller
-
-	// traceClient is used to forward spans to the upstream collector for components
-	// within the cluster that don't have a direct connection to said collector
-	traceClient otlptrace.Client
 }
 
 func (a *Server) CloseContext() context.Context {

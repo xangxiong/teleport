@@ -138,10 +138,6 @@ func hasLocalUserRole(authContext Context) bool {
 	return ok
 }
 
-const (
-	forwardedTag = "teleport.forwarded.for"
-)
-
 func (a *ServerWithRoles) GetDomainName(ctx context.Context) (string, error) {
 	// anyone can read it, no harm in that
 	return a.authServer.GetDomainName()
