@@ -70,20 +70,6 @@ type GRPCServerConfig struct {
 	StreamInterceptor grpc.StreamServerInterceptor
 }
 
-// CheckAndSetDefaults checks and sets default values
-func (cfg *GRPCServerConfig) CheckAndSetDefaults() error {
-	if cfg.TLS == nil {
-		return trace.BadParameter("missing parameter TLS")
-	}
-	if cfg.UnaryInterceptor == nil {
-		return trace.BadParameter("missing parameter UnaryInterceptor")
-	}
-	if cfg.StreamInterceptor == nil {
-		return trace.BadParameter("missing parameter StreamInterceptor")
-	}
-	return nil
-}
-
 // NewGRPCServer returns a new instance of GRPC server
 func NewGRPCServer(cfg GRPCServerConfig) (*GRPCServer, error) {
 	if err := cfg.CheckAndSetDefaults(); err != nil {
