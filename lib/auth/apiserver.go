@@ -80,21 +80,6 @@ type upsertReverseTunnelRawReq struct {
 	TTL           time.Duration   `json:"ttl"`
 }
 
-type WebSessionReq struct {
-	// User is the user name associated with the session id.
-	User string `json:"user"`
-	// PrevSessionID is the id of current session.
-	PrevSessionID string `json:"prev_session_id"`
-	// AccessRequestID is an optional field that holds the id of an approved access request.
-	AccessRequestID string `json:"access_request_id"`
-	// Switchback is a flag to indicate if user is wanting to switchback from an assumed role
-	// back to their default role.
-	Switchback bool `json:"switchback"`
-	// ReloadUser is a flag to indicate if user needs to be refetched from the backend
-	// to apply new user changes e.g. user traits were updated.
-	ReloadUser bool `json:"reload_user"`
-}
-
 type generateHostCertReq struct {
 	Key         []byte            `json:"key"`
 	HostID      string            `json:"hostname"`
