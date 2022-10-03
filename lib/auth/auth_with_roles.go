@@ -59,21 +59,6 @@ func (a *ServerWithRoles) CloseContext() context.Context {
 	return a.authServer.closeCtx
 }
 
-func (a *ServerWithRoles) actionWithContext(ctx *services.Context, namespace, resource string, verbs ...string) error {
-	if len(verbs) == 0 {
-		return trace.BadParameter("no verbs provided for authorization check on resource %q", resource)
-	}
-	var errs []error
-	for _, verb := range verbs {
-		errs = append(errs, a.context.Checker.CheckAccessToRule(ctx, namespace, resource, verb, false))
-	}
-	// Convert generic aggregate error to AccessDenied.
-	if err := trace.NewAggregate(errs...); err != nil {
-		return trace.AccessDenied(err.Error())
-	}
-	return nil
-}
-
 type actionConfig struct {
 	quiet   bool
 	context Context
@@ -428,31 +413,6 @@ func (a *ServerWithRoles) GetSession(ctx context.Context, namespace string, id s
 		return nil, trace.Wrap(err)
 	}
 	return a.sessions.GetSession(ctx, namespace, id)
-}
-
-// RotateCertAuthority starts or restarts certificate authority rotation process.
-func (a *ServerWithRoles) RotateCertAuthority(ctx context.Context, req RotateRequest) error {
-	if err := req.CheckAndSetDefaults(a.authServer.clock); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := a.action(apidefaults.Namespace, types.KindCertAuthority, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.RotateCertAuthority(ctx, req)
-}
-
-// RotateExternalCertAuthority rotates external certificate authority,
-// this method is called by a remote trusted cluster and is used to update
-// only public keys and certificates of the certificate authority.
-func (a *ServerWithRoles) RotateExternalCertAuthority(ctx context.Context, ca types.CertAuthority) error {
-	if ca == nil {
-		return trace.BadParameter("missing certificate authority")
-	}
-	sctx := &services.Context{User: a.context.User, Resource: ca}
-	if err := a.actionWithContext(sctx, apidefaults.Namespace, types.KindCertAuthority, types.VerbRotate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.RotateExternalCertAuthority(ctx, ca)
 }
 
 // CompareAndSwapCertAuthority updates existing cert authority if the existing cert authority
