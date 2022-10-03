@@ -98,8 +98,8 @@ func NewImplicitRole() types.Role {
 				// Explicitly disable options that default to true, otherwise the option
 				// will always be enabled, as this implicit role is part of every role set.
 				PortForwarding: types.NewBoolOption(false),
-				RecordSession: &types.RecordSession{
-					Desktop: types.NewBoolOption(false),
+				RecordSession:  &types.RecordSession{
+					// Desktop: types.NewBoolOption(false),
 				},
 			},
 			Allow: types.RoleConditions{
