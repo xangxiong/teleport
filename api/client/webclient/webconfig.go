@@ -18,26 +18,6 @@ package webclient
 
 import "github.com/gravitational/teleport/api/constants"
 
-const (
-	// WebConfigAuthProviderOIDCType is OIDC provider type
-	WebConfigAuthProviderOIDCType = "oidc"
-	// WebConfigAuthProviderOIDCURL is OIDC webapi endpoint.
-	// redirect_url MUST be the last query param, see the comment in parseSSORequestParams for an explanation.
-	WebConfigAuthProviderOIDCURL = "/v1/webapi/oidc/login/web?connector_id=:providerName&redirect_url=:redirect"
-
-	// WebConfigAuthProviderSAMLType is SAML provider type
-	WebConfigAuthProviderSAMLType = "saml"
-	// WebConfigAuthProviderSAMLURL is SAML webapi endpoint.
-	// redirect_url MUST be the last query param, see the comment in parseSSORequestParams for an explanation.
-	WebConfigAuthProviderSAMLURL = "/v1/webapi/saml/sso?connector_id=:providerName&redirect_url=:redirect"
-
-	// WebConfigAuthProviderGitHubType is GitHub provider type
-	WebConfigAuthProviderGitHubType = "github"
-	// WebConfigAuthProviderGitHubURL is GitHub webapi endpoint
-	// redirect_url MUST be the last query param, see the comment in parseSSORequestParams for an explanation.
-	WebConfigAuthProviderGitHubURL = "/v1/webapi/github/login/web?connector_id=:providerName&redirect_url=:redirect"
-)
-
 // WebConfig is web application configuration served by the backend to be used in frontend apps.
 type WebConfig struct {
 	// Auth contains Teleport auth. preferences
@@ -46,8 +26,6 @@ type WebConfig struct {
 	CanJoinSessions bool `json:"canJoinSessions"`
 	// ProxyClusterName is the name of the local cluster
 	ProxyClusterName string `json:"proxyCluster,omitempty"`
-	// IsCloud is a flag that determines if cloud features are enabled.
-	IsCloud bool `json:"isCloud,omitempty"`
 	// TunnelPublicAddress is the public ssh tunnel address
 	TunnelPublicAddress string `json:"tunnelPublicAddress,omitempty"`
 }
