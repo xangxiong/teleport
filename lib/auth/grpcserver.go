@@ -1220,20 +1220,6 @@ func (g *GRPCServer) ListResources(ctx context.Context, req *proto.ListResources
 	for i, resource := range resp.Resources {
 		var protoResource *proto.PaginatedResource
 		switch req.ResourceType {
-		case types.KindDatabaseServer:
-			database, ok := resource.(*types.DatabaseServerV3)
-			if !ok {
-				return nil, trace.BadParameter("database server has invalid type %T", resource)
-			}
-
-			protoResource = &proto.PaginatedResource{Resource: &proto.PaginatedResource_DatabaseServer{DatabaseServer: database}}
-		case types.KindAppServer:
-			app, ok := resource.(*types.AppServerV3)
-			if !ok {
-				return nil, trace.BadParameter("application server has invalid type %T", resource)
-			}
-
-			protoResource = &proto.PaginatedResource{Resource: &proto.PaginatedResource_AppServer{AppServer: app}}
 		case types.KindNode:
 			srv, ok := resource.(*types.ServerV2)
 			if !ok {
@@ -1241,27 +1227,6 @@ func (g *GRPCServer) ListResources(ctx context.Context, req *proto.ListResources
 			}
 
 			protoResource = &proto.PaginatedResource{Resource: &proto.PaginatedResource_Node{Node: srv}}
-		case types.KindKubeService:
-			srv, ok := resource.(*types.ServerV2)
-			if !ok {
-				return nil, trace.BadParameter("kubernetes service has invalid type %T", resource)
-			}
-
-			protoResource = &proto.PaginatedResource{Resource: &proto.PaginatedResource_KubeService{KubeService: srv}}
-		case types.KindWindowsDesktop:
-			desktop, ok := resource.(*types.WindowsDesktopV3)
-			if !ok {
-				return nil, trace.BadParameter("windows desktop has invalid type %T", resource)
-			}
-
-			protoResource = &proto.PaginatedResource{Resource: &proto.PaginatedResource_WindowsDesktop{WindowsDesktop: desktop}}
-		case types.KindKubernetesCluster:
-			cluster, ok := resource.(*types.KubernetesClusterV3)
-			if !ok {
-				return nil, trace.BadParameter("kubernetes cluster has invalid type %T", resource)
-			}
-
-			protoResource = &proto.PaginatedResource{Resource: &proto.PaginatedResource_KubeCluster{KubeCluster: cluster}}
 		default:
 			return nil, trace.NotImplemented("resource type %s doesn't support pagination", req.ResourceType)
 		}
@@ -1284,19 +1249,18 @@ func (g *GRPCServer) CreateSessionTracker(ctx context.Context, req *proto.Create
 	// Early v9 versions use a flattened out types.SessionTrackerV1
 	if req.SessionTracker == nil {
 		spec := types.SessionTrackerSpecV1{
-			SessionID:         req.ID,
-			Kind:              req.Type,
-			State:             types.SessionState_SessionStatePending,
-			Reason:            req.Reason,
-			Invited:           req.Invited,
-			Hostname:          req.Hostname,
-			Address:           req.Address,
-			ClusterName:       req.ClusterName,
-			Login:             req.Login,
-			Participants:      []types.Participant{*req.Initiator},
-			Expires:           req.Expires,
-			KubernetesCluster: req.KubernetesCluster,
-			HostUser:          req.HostUser,
+			SessionID:    req.ID,
+			Kind:         req.Type,
+			State:        types.SessionState_SessionStatePending,
+			Reason:       req.Reason,
+			Invited:      req.Invited,
+			Hostname:     req.Hostname,
+			Address:      req.Address,
+			ClusterName:  req.ClusterName,
+			Login:        req.Login,
+			Participants: []types.Participant{*req.Initiator},
+			Expires:      req.Expires,
+			HostUser:     req.HostUser,
 		}
 		createTracker, err = types.NewSessionTracker(spec)
 		if err != nil {

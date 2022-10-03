@@ -324,10 +324,6 @@ func (a *AuditWriter) EmitAuditEvent(ctx context.Context, event apievents.AuditE
 	// Try slower write with the timeout, and initiate backoff
 	// if unsuccessful.
 	//
-	// Code borrows logic from this commit by rsc:
-	//
-	// https://github.com/rsc/kubernetes/commit/6a19e46ed69a62a6d10b5092b179ef517aee65f8#diff-b1da25b7ac375964cd28c5f8cf5f1a2e37b6ec72a48ac0dd3e4b80f38a2e8e1e
-	//
 	// Block sending with a timeout. Reuse timers
 	// to avoid allocating on high frequency calls.
 	//
