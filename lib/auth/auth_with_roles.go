@@ -164,59 +164,6 @@ func (a *ServerWithRoles) RegisterUsingIAMMethod(ctx context.Context, challengeR
 	return nil, nil
 }
 
-// checkAdditionalSystemRoles verifies additional system roles in host cert request.
-func (a *ServerWithRoles) checkAdditionalSystemRoles(ctx context.Context, req *proto.HostCertsRequest) error {
-	// ensure requesting cert's primary role is a server role.
-	role, ok := a.context.Identity.(BuiltinRole)
-	if !ok || !role.IsServer() {
-		return trace.AccessDenied("additional system roles can only be claimed by a teleport built-in server")
-	}
-
-	// check that additional system roles are theoretically valid (distinct from permissibility, which
-	// is checked in the following loop).
-	for _, r := range req.SystemRoles {
-		if r.Check() != nil {
-			return trace.AccessDenied("additional system role %q cannot be applied (not a valid system role)", r)
-		}
-		if !r.IsLocalService() {
-			return trace.AccessDenied("additional system role %q cannot be applied (not a builtin service role)", r)
-		}
-	}
-
-	// load system role assertions if relevant
-	var assertions proto.UnstableSystemRoleAssertionSet
-	var err error
-	if req.UnstableSystemRoleAssertionID != "" {
-		assertions, err = a.authServer.UnstableGetSystemRoleAssertions(ctx, req.HostID, req.UnstableSystemRoleAssertionID)
-		if err != nil {
-			// include this error in the logs, since it might be indicative of a bug if it occurs outside of the context
-			// of a general backend outage.
-			log.Warnf("Failed to load system role assertion set %q for instance %q: %v", req.UnstableSystemRoleAssertionID, req.HostID, err)
-			return trace.AccessDenied("failed to load system role assertion set with ID %q", req.UnstableSystemRoleAssertionID)
-		}
-	}
-
-	// check if additional system roles are permissible
-Outer:
-	for _, requestedRole := range req.SystemRoles {
-		if a.hasBuiltinRole(requestedRole) {
-			// instance is already known to hold this role
-			continue Outer
-		}
-
-		for _, assertedRole := range assertions.SystemRoles {
-			if requestedRole == assertedRole {
-				// instance recently demonstrated that it holds this role
-				continue Outer
-			}
-		}
-
-		return trace.AccessDenied("additional system role %q cannot be applied (not authorized)", requestedRole)
-	}
-
-	return nil
-}
-
 // NewWatcher returns a new event watcher
 func (a *ServerWithRoles) NewWatcher(ctx context.Context, watch types.Watch) (types.Watcher, error) {
 	if len(watch.Kinds) == 0 {
