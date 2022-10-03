@@ -50,14 +50,6 @@ const (
 	RoleNop SystemRole = "Nop"
 	// RoleRemoteProxy is a role for remote SSH proxy in the cluster
 	RoleRemoteProxy SystemRole = "RemoteProxy"
-	// RoleKube is a role for a kubernetes service.
-	RoleKube SystemRole = "Kube"
-	// RoleApp is a role for a app proxy in the cluster.
-	RoleApp SystemRole = "App"
-	// RoleDatabase is a role for a database proxy in the cluster.
-	RoleDatabase SystemRole = "Db"
-	// RoleWindowsDesktop is a role for a Windows desktop service.
-	RoleWindowsDesktop SystemRole = "WindowsDesktop"
 	// RoleBot is a role for a bot.
 	RoleBot SystemRole = "Bot"
 	// RoleInstance is a role implicitly held by teleport servers (i.e. any teleport
@@ -80,15 +72,9 @@ var roleMappings = map[string]SystemRole{
 	"provisiontoken":  RoleProvisionToken,
 	"trusted_cluster": RoleTrustedCluster,
 	"trustedcluster":  RoleTrustedCluster,
-	"signup":          RoleSignup,
 	"nop":             RoleNop,
 	"remoteproxy":     RoleRemoteProxy,
 	"remote_proxy":    RoleRemoteProxy,
-	"kube":            RoleKube,
-	"app":             RoleApp,
-	"db":              RoleDatabase,
-	"windowsdesktop":  RoleWindowsDesktop,
-	"windows_desktop": RoleWindowsDesktop,
 	"bot":             RoleBot,
 	"instance":        RoleInstance,
 }
@@ -97,13 +83,9 @@ var roleMappings = map[string]SystemRole{
 // teleport services (e.g. db, kube, etc), excluding those which represent remote
 // services (i.e. remoteproxy).
 var localServiceMappings = map[SystemRole]struct{}{
-	RoleAuth:           struct{}{},
-	RoleNode:           struct{}{},
-	RoleProxy:          struct{}{},
-	RoleKube:           struct{}{},
-	RoleApp:            struct{}{},
-	RoleDatabase:       struct{}{},
-	RoleWindowsDesktop: struct{}{},
+	RoleAuth:  struct{}{},
+	RoleNode:  struct{}{},
+	RoleProxy: struct{}{},
 }
 
 // NewTeleportRoles return a list of teleport roles from slice of strings
