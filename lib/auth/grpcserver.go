@@ -29,7 +29,6 @@ import (
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip" // gzip compressor for gRPC.
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/peer"
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client/proto"
@@ -56,27 +55,6 @@ func (g *GRPCServer) GetServer() (*grpc.Server, error) {
 	}
 
 	return g.server, nil
-}
-
-func (g *GRPCServer) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequest) (*proto.Certs, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Pass along the remote address the request came from to the registration function.
-	p, ok := peer.FromContext(ctx)
-	if !ok {
-		return nil, trace.BadParameter("unable to find peer")
-	}
-	req.RemoteAddr = p.Addr.String()
-
-	certs, err := auth.ServerWithRoles.GenerateHostCerts(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return certs, nil
 }
 
 func (g *GRPCServer) GetCurrentUser(ctx context.Context, req *empty.Empty) (*types.UserV2, error) {

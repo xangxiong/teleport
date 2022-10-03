@@ -164,40 +164,6 @@ func (a *ServerWithRoles) RegisterUsingIAMMethod(ctx context.Context, challengeR
 	return nil, nil
 }
 
-// GenerateHostCerts generates new host certificates (signed
-// by the host certificate authority) for a node.
-func (a *ServerWithRoles) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequest) (*proto.Certs, error) {
-	clusterName, err := a.authServer.GetDomainName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// username is hostID + cluster name, so make sure server requests new keys for itself
-	if a.context.User.GetName() != HostFQDN(req.HostID, clusterName) {
-		return nil, trace.AccessDenied("username mismatch %q and %q", a.context.User.GetName(), HostFQDN(req.HostID, clusterName))
-	}
-
-	if req.Role == types.RoleInstance {
-		if err := a.checkAdditionalSystemRoles(ctx, req); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	} else {
-		if len(req.SystemRoles) != 0 {
-			return nil, trace.AccessDenied("additional system role encoding not supported for certs of type %q", req.Role)
-		}
-	}
-
-	existingRoles, err := types.NewTeleportRoles(a.context.User.GetRoles())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// prohibit privilege escalations through role changes (except the instance cert exception, handled above).
-	if !a.hasBuiltinRole(req.Role) && req.Role != types.RoleInstance {
-		return nil, trace.AccessDenied("roles do not match: %v and %v", existingRoles, req.Role)
-	}
-	return a.authServer.GenerateHostCerts(ctx, req)
-}
-
 // checkAdditionalSystemRoles verifies additional system roles in host cert request.
 func (a *ServerWithRoles) checkAdditionalSystemRoles(ctx context.Context, req *proto.HostCertsRequest) error {
 	// ensure requesting cert's primary role is a server role.
