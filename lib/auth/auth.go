@@ -189,7 +189,6 @@ type Services struct {
 	services.ClusterConfiguration
 	services.Restrictions
 	services.SessionTrackerService
-	services.ConnectionsDiagnostic
 	services.StatusInternal
 	types.Events
 	events.IAuditLog

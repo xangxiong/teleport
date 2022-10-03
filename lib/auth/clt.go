@@ -1077,7 +1077,6 @@ type ClientI interface {
 	services.Status
 	services.ClusterConfiguration
 	services.SessionTrackerService
-	services.ConnectionsDiagnostic
 	types.Events
 
 	// NewKeepAliver returns a new instance of keep aliver
