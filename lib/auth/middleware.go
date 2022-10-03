@@ -64,8 +64,6 @@ type TLSServerConfig struct {
 	AcceptedUsage []string
 	// ID is an optional debugging ID
 	ID string
-	// Metrics are optional TLSServer metrics
-	Metrics *Metrics
 }
 
 // CheckAndSetDefaults checks and sets default values
@@ -95,15 +93,7 @@ func (c *TLSServerConfig) CheckAndSetDefaults() error {
 	if c.Component == "" {
 		c.Component = teleport.ComponentAuth
 	}
-	if c.Metrics == nil {
-		c.Metrics = &Metrics{}
-	}
 	return nil
-}
-
-// Metrics handles optional metrics for TLSServerConfig
-type Metrics struct {
-	GRPCServerLatency bool
 }
 
 // TLSServer is TLS auth server
