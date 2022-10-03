@@ -19,7 +19,6 @@ package auth
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"time"
 
@@ -379,20 +378,6 @@ func maybeFilterCertAuthorityWatches(ctx context.Context, clusterName string, ro
 // certAuthorityFilterVersionCutoff is the version starting from which we stop
 // injecting filters for CertAuthority watches in maybeFilterCertAuthorityWatches.
 var certAuthorityFilterVersionCutoff = *semver.New("9.0.0")
-
-// resourceLabel returns the label for the provided types.Event
-func resourceLabel(event types.Event) string {
-	if event.Resource == nil {
-		return event.Type.String()
-	}
-
-	sub := event.Resource.GetSubKind()
-	if sub == "" {
-		return fmt.Sprintf("/%s", event.Resource.GetKind())
-	}
-
-	return fmt.Sprintf("/%s/%s", event.Resource.GetKind(), sub)
-}
 
 func (g *GRPCServer) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequest) (*proto.Certs, error) {
 	auth, err := g.authenticate(ctx)
