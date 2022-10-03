@@ -35,11 +35,6 @@ type ServerWithRoles struct {
 	context Context
 }
 
-// CloseContext is closed when the auth server shuts down
-func (a *ServerWithRoles) CloseContext() context.Context {
-	return a.authServer.closeCtx
-}
-
 // HasBuiltinRole checks if the identity is a builtin role with the matching
 // name.
 func HasBuiltinRole(authContext Context, name string) bool {
@@ -79,8 +74,4 @@ func (a *ServerWithRoles) GetDomainName(ctx context.Context) (string, error) {
 // its own authz mechanism.
 func (a *ServerWithRoles) RegisterUsingIAMMethod(ctx context.Context, challengeResponse client.RegisterChallengeResponseFunc) (*proto.Certs, error) {
 	return nil, nil
-}
-
-func (a *ServerWithRoles) Close() error {
-	return a.authServer.Close()
 }
