@@ -24,7 +24,6 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/session"
@@ -149,57 +148,6 @@ func (a *ServerWithRoles) GetDomainName(ctx context.Context) (string, error) {
 // its own authz mechanism.
 func (a *ServerWithRoles) RegisterUsingIAMMethod(ctx context.Context, challengeResponse client.RegisterChallengeResponseFunc) (*proto.Certs, error) {
 	return nil, nil
-}
-
-// NewWatcher returns a new event watcher
-func (a *ServerWithRoles) NewWatcher(ctx context.Context, watch types.Watch) (types.Watcher, error) {
-	if len(watch.Kinds) == 0 {
-		return nil, trace.AccessDenied("can't setup global watch")
-	}
-	for _, kind := range watch.Kinds {
-		// Check the permissions for data of each kind. For watching, most
-		// kinds of data just need a Read permission, but some have more
-		// complicated logic.
-		switch kind.Kind {
-		case types.KindCertAuthority:
-			verb := types.VerbReadNoSecrets
-			if kind.LoadSecrets {
-				verb = types.VerbRead
-			}
-			if err := a.action(apidefaults.Namespace, types.KindCertAuthority, verb); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		case types.KindAccessRequest:
-			var filter types.AccessRequestFilter
-			if err := filter.FromMap(kind.Filter); err != nil {
-				return nil, trace.Wrap(err)
-			}
-			if filter.User == "" || a.currentUserAction(filter.User) != nil {
-				if err := a.action(apidefaults.Namespace, types.KindAccessRequest, types.VerbRead); err != nil {
-					return nil, trace.Wrap(err)
-				}
-			}
-		case types.KindWebToken:
-			if err := a.action(apidefaults.Namespace, types.KindWebToken, types.VerbRead); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		case types.KindRemoteCluster:
-			if err := a.action(apidefaults.Namespace, types.KindRemoteCluster, types.VerbRead); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		default:
-			if err := a.action(apidefaults.Namespace, kind.Kind, types.VerbRead); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		}
-	}
-	switch {
-	case a.hasBuiltinRole(types.RoleProxy):
-		watch.QueueSize = defaults.ProxyQueueSize
-	case a.hasBuiltinRole(types.RoleNode):
-		watch.QueueSize = defaults.NodeQueueSize
-	}
-	return a.authServer.NewWatcher(ctx, watch)
 }
 
 func (a *ServerWithRoles) GetNodes(ctx context.Context, namespace string) ([]types.Server, error) {
