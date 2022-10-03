@@ -19,7 +19,6 @@ package auth
 import (
 	"context"
 	"crypto/tls"
-	"io"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -95,35 +94,35 @@ func (g *GRPCServer) EmitAuditEvent(ctx context.Context, req *apievents.OneOf) (
 	return &empty.Empty{}, nil
 }
 
-// SendKeepAlives allows node to send a stream of keep alive requests
-func (g *GRPCServer) SendKeepAlives(stream proto.AuthService_SendKeepAlivesServer) error {
-	defer stream.SendAndClose(&empty.Empty{})
-	firstIteration := true
-	for {
-		// Authenticate within the loop to block locked-out nodes from heartbeating.
-		auth, err := g.authenticate(stream.Context())
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		keepAlive, err := stream.Recv()
-		if err == io.EOF {
-			g.Debugf("Connection closed.")
-			return nil
-		}
-		if err != nil {
-			g.Debugf("Failed to receive heartbeat: %v", err)
-			return trace.Wrap(err)
-		}
-		err = auth.KeepAliveServer(stream.Context(), *keepAlive)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if firstIteration {
-			g.Debugf("Got heartbeat connection from %v.", auth.User.GetName())
-			firstIteration = false
-		}
-	}
-}
+// // SendKeepAlives allows node to send a stream of keep alive requests
+// func (g *GRPCServer) SendKeepAlives(stream proto.AuthService_SendKeepAlivesServer) error {
+// 	defer stream.SendAndClose(&empty.Empty{})
+// 	firstIteration := true
+// 	for {
+// 		// Authenticate within the loop to block locked-out nodes from heartbeating.
+// 		auth, err := g.authenticate(stream.Context())
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		keepAlive, err := stream.Recv()
+// 		if err == io.EOF {
+// 			g.Debugf("Connection closed.")
+// 			return nil
+// 		}
+// 		if err != nil {
+// 			g.Debugf("Failed to receive heartbeat: %v", err)
+// 			return trace.Wrap(err)
+// 		}
+// 		err = auth.KeepAliveServer(stream.Context(), *keepAlive)
+// 		if err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 		if firstIteration {
+// 			g.Debugf("Got heartbeat connection from %v.", auth.User.GetName())
+// 			firstIteration = false
+// 		}
+// 	}
+// }
 
 func (g *GRPCServer) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequest) (*proto.Certs, error) {
 	auth, err := g.authenticate(ctx)

@@ -24,7 +24,6 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/constants"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
@@ -405,34 +404,34 @@ Outer:
 	return nil
 }
 
-// KeepAliveServer updates expiry time of a server resource.
-func (a *ServerWithRoles) KeepAliveServer(ctx context.Context, handle types.KeepAlive) error {
-	clusterName, err := a.GetDomainName(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	serverName, err := ExtractHostID(a.context.User.GetName(), clusterName)
-	if err != nil {
-		return trace.AccessDenied("access denied")
-	}
+// // KeepAliveServer updates expiry time of a server resource.
+// func (a *ServerWithRoles) KeepAliveServer(ctx context.Context, handle types.KeepAlive) error {
+// 	clusterName, err := a.GetDomainName(ctx)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	serverName, err := ExtractHostID(a.context.User.GetName(), clusterName)
+// 	if err != nil {
+// 		return trace.AccessDenied("access denied")
+// 	}
 
-	switch handle.GetType() {
-	case constants.KeepAliveNode:
-		if serverName != handle.Name {
-			return trace.AccessDenied("access denied")
-		}
-		if !a.hasBuiltinRole(types.RoleNode) {
-			return trace.AccessDenied("access denied")
-		}
-		if err := a.action(apidefaults.Namespace, types.KindNode, types.VerbUpdate); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		return trace.BadParameter("unknown keep alive type %q", handle.Type)
-	}
+// 	switch handle.GetType() {
+// 	case constants.KeepAliveNode:
+// 		if serverName != handle.Name {
+// 			return trace.AccessDenied("access denied")
+// 		}
+// 		if !a.hasBuiltinRole(types.RoleNode) {
+// 			return trace.AccessDenied("access denied")
+// 		}
+// 		if err := a.action(apidefaults.Namespace, types.KindNode, types.VerbUpdate); err != nil {
+// 			return trace.Wrap(err)
+// 		}
+// 	default:
+// 		return trace.BadParameter("unknown keep alive type %q", handle.Type)
+// 	}
 
-	return a.authServer.KeepAliveServer(ctx, handle)
-}
+// 	return a.authServer.KeepAliveServer(ctx, handle)
+// }
 
 // NewWatcher returns a new event watcher
 func (a *ServerWithRoles) NewWatcher(ctx context.Context, watch types.Watch) (types.Watcher, error) {
