@@ -27,7 +27,6 @@ import (
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/services/local"
 	"github.com/gravitational/teleport/lib/session"
 
 	"github.com/gravitational/trace"
@@ -241,74 +240,6 @@ func (a *ServerWithRoles) GetNodes(ctx context.Context, namespace string) ([]typ
 		len(nodes), len(filteredNodes), elapsedFetch+elapsedFilter)
 
 	return filteredNodes, nil
-}
-
-// resourceAccessChecker allows access to be checked differently per resource type.
-type resourceAccessChecker interface {
-	CanAccess(resource types.Resource) error
-}
-
-// resourceChecker is a pass through checker that utilizes the provided
-// services.AccessChecker to check access
-type resourceChecker struct {
-	services.AccessChecker
-}
-
-// CanAccess handles providing the proper services.AccessCheckable resource
-// to the services.AccessChecker
-func (r resourceChecker) CanAccess(resource types.Resource) error {
-	// MFA is not required for operations on app resources but
-	// will be enforced at the connection time.
-	mfaParams := services.AccessMFAParams{Verified: true}
-	switch rr := resource.(type) {
-	case types.Server:
-		return r.CheckAccess(rr, mfaParams)
-	default:
-		return trace.BadParameter("could not check access to resource type %T", r)
-	}
-}
-
-// newResourceAccessChecker creates a resourceAccessChecker for the provided resource type
-func (a *ServerWithRoles) newResourceAccessChecker(resource string) (resourceAccessChecker, error) {
-	switch resource {
-	case types.KindNode:
-		return &resourceChecker{AccessChecker: a.context.Checker}, nil
-	default:
-		return nil, trace.BadParameter("could not check access to resource type %s", resource)
-	}
-}
-
-// listResourcesWithSort retrieves all resources of a certain resource type with rbac applied
-// then afterwards applies request sorting and filtering.
-func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	var resources []types.ResourceWithLabels
-	switch req.ResourceType {
-	case types.KindNode:
-		nodes, err := a.GetNodes(ctx, req.Namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		servers := types.Servers(nodes)
-		if err := servers.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = servers.AsResources()
-	default:
-		return nil, trace.NotImplemented("resource type %q is not supported for listResourcesWithSort", req.ResourceType)
-	}
-
-	// Apply request filters and get pagination info.
-	resp, err := local.FakePaginate(resources, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return resp, nil
 }
 
 func (a *ServerWithRoles) Close() error {
