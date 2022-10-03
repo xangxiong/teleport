@@ -695,69 +695,6 @@ func (a *ServerWithRoles) GenerateHostCert(
 	return a.authServer.GenerateHostCert(key, hostID, nodeName, principals, clusterName, role, ttl)
 }
 
-// ResumeAuditStream resumes the stream that has been created
-func (a *ServerWithRoles) ResumeAuditStream(ctx context.Context, sid session.ID, uploadID string) (apievents.Stream, error) {
-	if err := a.action(apidefaults.Namespace, types.KindEvent, types.VerbCreate, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	role, ok := a.context.Identity.(BuiltinRole)
-	if !ok || !role.IsServer() {
-		return nil, trace.AccessDenied("this request can be only executed by proxy, node or auth")
-	}
-	stream, err := a.authServer.ResumeAuditStream(ctx, sid, uploadID)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &streamWithRoles{
-		stream:   stream,
-		a:        a,
-		serverID: role.GetServerID(),
-	}, nil
-}
-
-type streamWithRoles struct {
-	a        *ServerWithRoles
-	serverID string
-	stream   apievents.Stream
-}
-
-// Status returns channel receiving updates about stream status
-// last event index that was uploaded and upload ID
-func (s *streamWithRoles) Status() <-chan apievents.StreamStatus {
-	return s.stream.Status()
-}
-
-// Done returns channel closed when streamer is closed
-// should be used to detect sending errors
-func (s *streamWithRoles) Done() <-chan struct{} {
-	return s.stream.Done()
-}
-
-// Complete closes the stream and marks it finalized
-func (s *streamWithRoles) Complete(ctx context.Context) error {
-	return s.stream.Complete(ctx)
-}
-
-// Close flushes non-uploaded flight stream data without marking
-// the stream completed and closes the stream instance
-func (s *streamWithRoles) Close(ctx context.Context) error {
-	return s.stream.Close(ctx)
-}
-
-func (s *streamWithRoles) EmitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
-	err := events.ValidateServerMetadata(event, s.serverID, s.a.hasBuiltinRole(types.RoleProxy))
-	if err != nil {
-		// TODO: this should be a proper audit event
-		// notifying about access violation
-		log.Warningf("Rejecting audit event %v from %v: %v. A node is attempting to "+
-			"submit events for an identity other than the one on its x509 certificate.",
-			event.GetID(), s.serverID, err)
-		// this message is sparse on purpose to avoid conveying extra data to an attacker
-		return trace.AccessDenied("failed to validate event metadata")
-	}
-	return s.stream.EmitAuditEvent(ctx, event)
-}
-
 func (a *ServerWithRoles) findSessionEndEvent(namespace string, sid session.ID) (apievents.AuditEvent, error) {
 	sessionEvents, _, err := a.alog.SearchSessionEvents(time.Time{}, a.authServer.clock.Now().UTC(),
 		defaults.EventsIterationLimit, types.EventOrderAscending, "",
