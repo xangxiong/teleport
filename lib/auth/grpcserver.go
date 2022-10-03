@@ -167,28 +167,6 @@ func (g *GRPCServer) GetTrustedCluster(ctx context.Context, req *types.ResourceR
 	return trustedClusterV2, nil
 }
 
-// GetTrustedClusters retrieves all Trusted Clusters.
-func (g *GRPCServer) GetTrustedClusters(ctx context.Context, _ *empty.Empty) (*types.TrustedClusterV2List, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	tcs, err := auth.ServerWithRoles.GetTrustedClusters(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	trustedClustersV2 := make([]*types.TrustedClusterV2, len(tcs))
-	for i, tc := range tcs {
-		var ok bool
-		if trustedClustersV2[i], ok = tc.(*types.TrustedClusterV2); !ok {
-			return nil, trace.Errorf("encountered unexpected Trusted Cluster type: %T", tc)
-		}
-	}
-	return &types.TrustedClusterV2List{
-		TrustedClusters: trustedClustersV2,
-	}, nil
-}
-
 // StreamSessionEvents streams all events from a given session recording. An error is returned on the first
 // channel if one is encountered. Otherwise the event channel is closed when the stream ends.
 // The event channel is not closed on error to prevent race conditions in downstream select statements.
