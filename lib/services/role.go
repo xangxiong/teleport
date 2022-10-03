@@ -811,36 +811,6 @@ func MatchNamespace(selectors []string, namespace string) (bool, string) {
 	return false, fmt.Sprintf("no match, role selectors %v, server namespace: %v", selectors, namespace)
 }
 
-// MatchAWSRoleARN returns true if provided role ARN matches selectors.
-func MatchAWSRoleARN(selectors []string, roleARN string) (bool, string) {
-	for _, l := range selectors {
-		if l == roleARN {
-			return true, "matched"
-		}
-	}
-	return false, fmt.Sprintf("no match, role selectors %v, role ARN: %v", selectors, roleARN)
-}
-
-// MatchDatabaseName returns true if provided database name matches selectors.
-func MatchDatabaseName(selectors []string, name string) (bool, string) {
-	for _, n := range selectors {
-		if n == name || n == types.Wildcard {
-			return true, "matched"
-		}
-	}
-	return false, fmt.Sprintf("no match, role selectors %v, database name: %v", selectors, name)
-}
-
-// MatchDatabaseUser returns true if provided database user matches selectors.
-func MatchDatabaseUser(selectors []string, user string) (bool, string) {
-	for _, u := range selectors {
-		if u == user || u == types.Wildcard {
-			return true, "matched"
-		}
-	}
-	return false, fmt.Sprintf("no match, role selectors %v, database user: %v", selectors, user)
-}
-
 // MatchLabels matches selector against target. Empty selector matches
 // nothing, wildcard matches everything.
 func MatchLabels(selector types.Labels, target map[string]string) (bool, string, error) {
