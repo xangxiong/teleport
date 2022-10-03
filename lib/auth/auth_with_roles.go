@@ -614,34 +614,6 @@ func (a *ServerWithRoles) GetCurrentUser(ctx context.Context) (types.User, error
 	return nil, trace.BadParameter("expected types.User when fetching current user information, got %T", usrRes)
 }
 
-func (a *ServerWithRoles) GenerateHostCert(
-	key []byte, hostID, nodeName string, principals []string, clusterName string, role types.SystemRole, ttl time.Duration,
-) ([]byte, error) {
-	ctx := services.Context{
-		User: a.context.User,
-		HostCert: &services.HostCertContext{
-			HostID:      hostID,
-			NodeName:    nodeName,
-			Principals:  principals,
-			ClusterName: clusterName,
-			Role:        role,
-			TTL:         ttl,
-		},
-	}
-
-	// Instead of the usual RBAC checks, we'll manually call CheckAccessToRule
-	// here as we'll be evaluating `where` predicates with a custom RuleContext
-	// to expose cert request fields.
-	// We've only got a single verb to check so luckily it's pretty concise.
-	if err := a.withOptions().context.Checker.CheckAccessToRule(
-		&ctx, apidefaults.Namespace, types.KindHostCert, types.VerbCreate, false,
-	); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return a.authServer.GenerateHostCert(key, hostID, nodeName, principals, clusterName, role, ttl)
-}
-
 // GetRole returns role by name
 func (a *ServerWithRoles) GetRole(ctx context.Context, name string) (types.Role, error) {
 	// Current-user exception: we always allow users to read roles
