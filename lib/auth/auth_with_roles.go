@@ -33,7 +33,6 @@ import (
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
 	"github.com/gravitational/teleport/lib/session"
-	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
@@ -723,92 +722,6 @@ func (a *ServerWithRoles) GetRole(ctx context.Context, name string) (types.Role,
 		}
 	}
 	return a.authServer.GetRole(ctx, name)
-}
-
-func (a *ServerWithRoles) GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
-	if err := a.action(apidefaults.Namespace, types.KindTunnelConnection, types.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetTunnelConnections(clusterName, opts...)
-}
-
-func (a *ServerWithRoles) GetAllTunnelConnections(opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
-	if err := a.action(apidefaults.Namespace, types.KindTunnelConnection, types.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetAllTunnelConnections(opts...)
-}
-
-func (a *ServerWithRoles) GetRemoteCluster(clusterName string) (types.RemoteCluster, error) {
-	if err := a.action(apidefaults.Namespace, types.KindRemoteCluster, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	cluster, err := a.authServer.GetRemoteCluster(clusterName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := a.context.Checker.CheckAccessToRemoteCluster(cluster); err != nil {
-		return nil, utils.OpaqueAccessDenied(err)
-	}
-	return cluster, nil
-}
-
-func (a *ServerWithRoles) GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error) {
-	if err := a.action(apidefaults.Namespace, types.KindRemoteCluster, types.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	remoteClusters, err := a.authServer.GetRemoteClusters(opts...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.filterRemoteClustersForUser(remoteClusters)
-}
-
-// filterRemoteClustersForUser filters remote clusters based on what the current user is authorized to access
-func (a *ServerWithRoles) filterRemoteClustersForUser(remoteClusters []types.RemoteCluster) ([]types.RemoteCluster, error) {
-	filteredClusters := make([]types.RemoteCluster, 0, len(remoteClusters))
-	for _, rc := range remoteClusters {
-		if err := a.context.Checker.CheckAccessToRemoteCluster(rc); err != nil {
-			if trace.IsAccessDenied(err) {
-				continue
-			}
-			return nil, trace.Wrap(err)
-		}
-		filteredClusters = append(filteredClusters, rc)
-	}
-	return filteredClusters, nil
-}
-
-// AcquireSemaphore acquires lease with requested resources from semaphore.
-func (a *ServerWithRoles) AcquireSemaphore(ctx context.Context, params types.AcquireSemaphoreRequest) (*types.SemaphoreLease, error) {
-	if err := a.action(apidefaults.Namespace, types.KindSemaphore, types.VerbCreate, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.AcquireSemaphore(ctx, params)
-}
-
-// KeepAliveSemaphoreLease updates semaphore lease.
-func (a *ServerWithRoles) KeepAliveSemaphoreLease(ctx context.Context, lease types.SemaphoreLease) error {
-	if err := a.action(apidefaults.Namespace, types.KindSemaphore, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.KeepAliveSemaphoreLease(ctx, lease)
-}
-
-// CancelSemaphoreLease cancels semaphore lease early.
-func (a *ServerWithRoles) CancelSemaphoreLease(ctx context.Context, lease types.SemaphoreLease) error {
-	if err := a.action(apidefaults.Namespace, types.KindSemaphore, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.CancelSemaphoreLease(ctx, lease)
-}
-
-// GetSemaphores returns a list of all semaphores matching the supplied filter.
-func (a *ServerWithRoles) GetSemaphores(ctx context.Context, filter types.SemaphoreFilter) ([]types.Semaphore, error) {
-	if err := a.action(apidefaults.Namespace, types.KindSemaphore, types.VerbReadNoSecrets, types.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetSemaphores(ctx, filter)
 }
 
 func (a *ServerWithRoles) Close() error {

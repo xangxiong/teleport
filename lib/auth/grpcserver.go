@@ -115,41 +115,6 @@ func (g *GRPCServer) GetCurrentUser(ctx context.Context, req *empty.Empty) (*typ
 	return v2, nil
 }
 
-// CancelSemaphoreLease cancels semaphore lease early.
-func (g *GRPCServer) CancelSemaphoreLease(ctx context.Context, req *types.SemaphoreLease) (*empty.Empty, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := auth.CancelSemaphoreLease(ctx, *req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &empty.Empty{}, nil
-}
-
-// GetSemaphores returns a list of all semaphores matching the supplied filter.
-func (g *GRPCServer) GetSemaphores(ctx context.Context, req *types.SemaphoreFilter) (*proto.Semaphores, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	semaphores, err := auth.GetSemaphores(ctx, *req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	ss := make([]*types.SemaphoreV3, 0, len(semaphores))
-	for _, sem := range semaphores {
-		s, ok := sem.(*types.SemaphoreV3)
-		if !ok {
-			return nil, trace.BadParameter("unexpected semaphore type: %T", sem)
-		}
-		ss = append(ss, s)
-	}
-	return &proto.Semaphores{
-		Semaphores: ss,
-	}, nil
-}
-
 // StreamSessionEvents streams all events from a given session recording. An error is returned on the first
 // channel if one is encountered. Otherwise the event channel is closed when the stream ends.
 // The event channel is not closed on error to prevent race conditions in downstream select statements.
