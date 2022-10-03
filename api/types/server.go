@@ -435,7 +435,7 @@ func (s *ServerV2) DeepCopy() Server {
 
 // IsAWSConsole returns true if this app is AWS management console.
 func (a *App) IsAWSConsole() bool {
-	return strings.HasPrefix(a.URI, constants.AWSConsoleURL)
+	return false
 }
 
 // GetAWSAccountID returns value of label containing AWS account ID on this app.

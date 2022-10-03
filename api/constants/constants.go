@@ -82,28 +82,8 @@ const (
 	// DurationNever is human friendly shortcut that is interpreted as a Duration of 0
 	DurationNever = "never"
 
-	// OIDCPromptSelectAccount instructs the Authorization Server to
-	// prompt the End-User to select a user account.
-	OIDCPromptSelectAccount = "select_account"
-
-	// OIDCPromptNone instructs the Authorization Server to skip the prompt.
-	OIDCPromptNone = "none"
-
 	// KeepAliveNode is the keep alive type for SSH servers.
 	KeepAliveNode = "node"
-
-	// KeepAliveApp is the keep alive type for application server.
-	KeepAliveApp = "app"
-
-	// KeepAliveDatabase is the keep alive type for database server.
-	KeepAliveDatabase = "db"
-
-	// KeepAliveWindowsDesktopService is the keep alive type for a Windows
-	// desktop service.
-	KeepAliveWindowsDesktopService = "windows_desktop_service"
-
-	// KeepAliveKube is the keep alive type for Kubernetes server
-	KeepAliveKube = "kube"
 
 	// WindowsOS is the GOOS constant used for Microsoft Windows.
 	WindowsOS = "windows"
@@ -123,15 +103,6 @@ const (
 	// FailedToSendCloseNotify is an error message from Go net package
 	// indicating that the connection was closed by the server.
 	FailedToSendCloseNotify = "tls: failed to send closeNotify alert (but connection was closed anyway)"
-
-	// AWSConsoleURL is the URL of AWS management console.
-	AWSConsoleURL = "https://console.aws.amazon.com"
-	// AWSUSGovConsoleURL is the URL of AWS management console for AWS GovCloud
-	// (US) Partition.
-	AWSUSGovConsoleURL = "https://console.amazonaws-us-gov.com"
-	// AWSCNConsoleURL is the URL of AWS management console for AWS China
-	// Partition.
-	AWSCNConsoleURL = "https://console.amazonaws.cn"
 
 	// AWSAccountIDLabel is the key of the label containing AWS account ID.
 	AWSAccountIDLabel = "aws_account_id"
