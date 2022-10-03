@@ -37,7 +37,6 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
@@ -527,8 +526,6 @@ func (s *localSite) handleHeartbeat(rconn *remoteConn, ch ssh.Channel, reqC <-ch
 				if len(current) > 0 {
 					rconn.updateProxies(current)
 				}
-				reverseSSHTunnels.WithLabelValues(rconn.tunnelType).Inc()
-				defer reverseSSHTunnels.WithLabelValues(rconn.tunnelType).Dec()
 				firstHeartbeat = false
 			}
 			var timeSent time.Time
@@ -655,9 +652,6 @@ func (s *localSite) sshTunnelStats() error {
 		return err != nil
 	})
 
-	// Update Prometheus metrics and also log if any tunnels are missing.
-	missingSSHTunnels.Set(float64(len(missing)))
-
 	if len(missing) > 0 {
 		// Don't show all the missing nodes, thousands could be missing, just show
 		// the first 10.
@@ -669,22 +663,3 @@ func (s *localSite) sshTunnelStats() error {
 	}
 	return nil
 }
-
-var (
-	missingSSHTunnels = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: teleport.MetricMissingSSHTunnels,
-			Help: "Number of missing SSH tunnels",
-		},
-	)
-	reverseSSHTunnels = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: teleport.MetricNamespace,
-			Name:      teleport.MetricReverseSSHTunnels,
-			Help:      "Number of reverse SSH tunnels connected to the Teleport Proxy Service by Teleport instances",
-		},
-		[]string{teleport.TagType},
-	)
-
-	localClusterCollectors = []prometheus.Collector{missingSSHTunnels, reverseSSHTunnels, connLatency}
-)
