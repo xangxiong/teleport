@@ -48,9 +48,6 @@ const (
 	EventProtocol = "proto"
 	// EventProtocolsSSH specifies SSH as a type of captured protocol
 	EventProtocolSSH = "ssh"
-	// EventProtocolTDP specifies Teleport Desktop Protocol (TDP)
-	// as a type of captured protocol
-	EventProtocolTDP = "tdp"
 	// LocalAddr is a target address on the host
 	LocalAddr = "addr.local"
 	// RemoteAddr is a client (user's) address
