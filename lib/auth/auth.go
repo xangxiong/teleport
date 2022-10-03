@@ -31,7 +31,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 	"sync"
 	"time"
 
@@ -193,7 +192,6 @@ type Services struct {
 	services.Trust
 	services.Presence
 	services.Provisioner
-	// services.Identity
 	services.Access
 	services.DynamicAccessExt
 	services.ClusterConfiguration
@@ -319,21 +317,6 @@ func (a *Server) SetClock(clock clockwork.Clock) {
 	a.clock = clock
 }
 
-// SetAuditLog sets the server's audit log
-func (a *Server) SetAuditLog(auditLog events.IAuditLog) {
-	a.Services.IAuditLog = auditLog
-}
-
-// GetDomainName returns the domain name that identifies this authority server.
-// Also known as "cluster name"
-func (a *Server) GetDomainName() (string, error) {
-	clusterName, err := a.GetClusterName()
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-	return clusterName.GetClusterName(), nil
-}
-
 // GetClusterCACert returns the PEM-encoded TLS certs for the local cluster. If
 // the cluster has multiple TLS certs, they will all be concatenated.
 func (a *Server) GetClusterCACert(ctx context.Context) (*proto.GetClusterCACertResponse, error) {
@@ -360,41 +343,6 @@ func (a *Server) GetClusterCACert(ctx context.Context) (*proto.GetClusterCACertR
 	}, nil
 }
 
-// GenerateHostCert uses the private key of the CA to sign the public key of the host
-// (along with meta data like host ID, node name, roles, and ttl) to generate a host certificate.
-func (a *Server) GenerateHostCert(hostPublicKey []byte, hostID, nodeName string, principals []string, clusterName string, role types.SystemRole, ttl time.Duration) ([]byte, error) {
-	domainName, err := a.GetDomainName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// get the certificate authority that will be signing the public key of the host
-	ca, err := a.Services.GetCertAuthority(context.TODO(), types.CertAuthID{
-		Type:       types.HostCA,
-		DomainName: domainName,
-	}, true)
-	if err != nil {
-		return nil, trace.BadParameter("failed to load host CA for %q: %v", domainName, err)
-	}
-
-	caSigner, err := a.keyStore.GetSSHSigner(ca)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// create and sign!
-	return a.generateHostCert(services.HostCertParams{
-		CASigner:      caSigner,
-		PublicHostKey: hostPublicKey,
-		HostID:        hostID,
-		NodeName:      nodeName,
-		Principals:    principals,
-		ClusterName:   clusterName,
-		Role:          role,
-		TTL:           ttl,
-	})
-}
-
 func (a *Server) generateHostCert(p services.HostCertParams) ([]byte, error) {
 	authPref, err := a.GetAuthPreference(context.TODO())
 	if err != nil {
@@ -408,20 +356,6 @@ func (a *Server) generateHostCert(p services.HostCertParams) ([]byte, error) {
 		}
 	}
 	return a.Authority.GenerateHostCert(p)
-}
-
-// GetKeyStore returns the KeyStore used by the auth server
-func (a *Server) GetKeyStore() keystore.KeyStore {
-	return a.keyStore
-}
-
-// ExtractHostID returns host id based on the hostname
-func ExtractHostID(hostName string, clusterName string) (string, error) {
-	suffix := "." + clusterName
-	if !strings.HasSuffix(hostName, suffix) {
-		return "", trace.BadParameter("expected suffix %q in %q", suffix, hostName)
-	}
-	return strings.TrimSuffix(hostName, suffix), nil
 }
 
 // HostFQDN consists of host UUID and cluster name joined via .
@@ -598,18 +532,6 @@ func (a *Server) GenerateHostCerts(ctx context.Context, req *proto.HostCertsRequ
 		TLSCACerts: services.GetTLSCerts(ca),
 		SSHCACerts: services.GetSSHCheckingKeys(ca),
 	}, nil
-}
-
-// UnstableAssertSystemRole is not a stable part of the public API. Used by older
-// instances to prove that they hold a given system role.
-// DELETE IN: 12.0 (deprecated in v11, but required for back-compat with v10 clients)
-func (a *Server) UnstableAssertSystemRole(ctx context.Context, req proto.UnstableSystemRoleAssertion) error {
-	return trace.Wrap(a.unstable.AssertSystemRole(ctx, req))
-}
-
-func (a *Server) UnstableGetSystemRoleAssertions(ctx context.Context, serverID string, assertionID string) (proto.UnstableSystemRoleAssertionSet, error) {
-	set, err := a.unstable.GetSystemRoleAssertions(ctx, serverID, assertionID)
-	return set, trace.Wrap(err)
 }
 
 func (a *Server) RegisterInventoryControlStream(ics client.UpstreamInventoryControlStream, hello proto.UpstreamInventoryHello) error {
