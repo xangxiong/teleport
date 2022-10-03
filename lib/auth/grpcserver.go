@@ -21,7 +21,6 @@ import (
 	"crypto/tls"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -55,21 +54,6 @@ func (g *GRPCServer) GetServer() (*grpc.Server, error) {
 	}
 
 	return g.server, nil
-}
-
-// GetDomainName returns local auth domain of the current auth server.
-func (g *GRPCServer) GetDomainName(ctx context.Context, req *empty.Empty) (*proto.GetDomainNameResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	dn, err := auth.ServerWithRoles.GetDomainName(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &proto.GetDomainNameResponse{
-		DomainName: dn,
-	}, nil
 }
 
 // GRPCServerConfig specifies GRPC server configuration

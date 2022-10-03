@@ -35,11 +35,6 @@ type ServerWithRoles struct {
 	context Context
 }
 
-func (a *ServerWithRoles) GetDomainName(ctx context.Context) (string, error) {
-	// anyone can read it, no harm in that
-	return a.authServer.GetDomainName()
-}
-
 // RegisterUsingIAMMethod registers the caller using the IAM join method and
 // returns signed certs to join the cluster.
 //
