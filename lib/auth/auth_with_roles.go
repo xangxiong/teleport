@@ -35,31 +35,6 @@ type ServerWithRoles struct {
 	context Context
 }
 
-// HasBuiltinRole checks if the identity is a builtin role with the matching
-// name.
-func HasBuiltinRole(authContext Context, name string) bool {
-	if _, ok := authContext.Identity.(BuiltinRole); !ok {
-		return false
-	}
-	if !authContext.Checker.HasRole(name) {
-		return false
-	}
-
-	return true
-}
-
-// HasRemoteBuiltinRole checks if the identity is a remote builtin role with the
-// matching name.
-func HasRemoteBuiltinRole(authContext Context, name string) bool {
-	if _, ok := authContext.UnmappedIdentity.(RemoteBuiltinRole); !ok {
-		return false
-	}
-	if !authContext.Checker.HasRole(name) {
-		return false
-	}
-	return true
-}
-
 func (a *ServerWithRoles) GetDomainName(ctx context.Context) (string, error) {
 	// anyone can read it, no harm in that
 	return a.authServer.GetDomainName()
