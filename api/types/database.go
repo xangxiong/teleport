@@ -18,9 +18,7 @@ package types
 
 import (
 	"fmt"
-	"net"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/gravitational/teleport/api/utils"
@@ -459,40 +457,13 @@ func (d *DatabaseV3) CheckAndSetDefaults() error {
 	return nil
 }
 
-// parseAzureEndpoint extracts database server name from Azure endpoint.
-func parseAzureEndpoint(endpoint string) (name string, err error) {
-	host, _, err := net.SplitHostPort(endpoint)
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-	// Azure endpoint looks like this:
-	// name.mysql.database.azure.com
-	parts := strings.Split(host, ".")
-	if !strings.HasSuffix(host, AzureEndpointSuffix) || len(parts) != 5 {
-		return "", trace.BadParameter("failed to parse %v as Azure endpoint", endpoint)
-	}
-	return parts[0], nil
-}
-
 // GetIAMPolicy returns AWS IAM policy for this database.
 func (d *DatabaseV3) GetIAMPolicy() (string, error) {
-	if d.IsRDS() {
-		policy, err := d.getRDSPolicy()
-		return policy, trace.Wrap(err)
-	} else if d.IsRedshift() {
-		policy, err := d.getRedshiftPolicy()
-		return policy, trace.Wrap(err)
-	}
-	return "", trace.BadParameter("GetIAMPolicy is not supported policy for database type %s", d.GetType())
+	return "", nil
 }
 
 // GetIAMAction returns AWS IAM action needed to connect to the database.
 func (d *DatabaseV3) GetIAMAction() string {
-	if d.IsRDS() {
-		return "rds-db:connect"
-	} else if d.IsRedshift() {
-		return "redshift:GetClusterCredentials"
-	}
 	return ""
 }
 
@@ -514,16 +485,6 @@ func (d *DatabaseV3) GetManagedUsers() []string {
 // SetManagedUsers sets a list of database users that are managed by Teleport.
 func (d *DatabaseV3) SetManagedUsers(users []string) {
 	d.Status.ManagedUsers = users
-}
-
-// getRDSPolicy returns IAM policy document for this RDS database.
-func (d *DatabaseV3) getRDSPolicy() (string, error) {
-	return "", nil
-}
-
-// getRedshiftPolicy returns IAM policy document for this Redshift database.
-func (d *DatabaseV3) getRedshiftPolicy() (string, error) {
-	return "", nil
 }
 
 const (
@@ -584,41 +545,3 @@ func (d Databases) Less(i, j int) bool { return d[i].GetName() < d[j].GetName() 
 
 // Swap swaps two databases.
 func (d Databases) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
-
-const (
-	// AzureEndpointSuffix is the Azure database endpoint suffix.
-	AzureEndpointSuffix = ".database.azure.com"
-)
-
-type arnTemplateInput struct {
-	Partition, Region, AccountID, ResourceID string
-}
-
-var (
-	// rdsPolicyTemplate is the IAM policy template for RDS databases access.
-	rdsPolicyTemplate = template.Must(template.New("").Parse(`{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "rds-db:connect",
-      "Resource": "arn:{{.Partition}}:rds-db:{{.Region}}:{{.AccountID}}:dbuser:{{.ResourceID}}/*"
-    }
-  ]
-}`))
-	// redshiftPolicyTemplate is the IAM policy template for Redshift databases access.
-	redshiftPolicyTemplate = template.Must(template.New("").Parse(`{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "redshift:GetClusterCredentials",
-      "Resource": [
-        "arn:{{.Partition}}:redshift:{{.Region}}:{{.AccountID}}:dbuser:{{.ResourceID}}/*",
-        "arn:{{.Partition}}:redshift:{{.Region}}:{{.AccountID}}:dbname:{{.ResourceID}}/*",
-        "arn:{{.Partition}}:redshift:{{.Region}}:{{.AccountID}}:dbgroup:{{.ResourceID}}/*"
-      ]
-    }
-  ]
-}`))
-)
