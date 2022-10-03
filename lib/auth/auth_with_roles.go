@@ -24,7 +24,6 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
@@ -398,19 +397,6 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 	}
 
 	return resp, nil
-}
-
-// GetRole returns role by name
-func (a *ServerWithRoles) GetRole(ctx context.Context, name string) (types.Role, error) {
-	// Current-user exception: we always allow users to read roles
-	// that they hold.  This requirement is checked first to avoid
-	// misleading denial messages in the logs.
-	if !apiutils.SliceContainsStr(a.context.User.GetRoles(), name) {
-		if err := a.action(apidefaults.Namespace, types.KindRole, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return a.authServer.GetRole(ctx, name)
 }
 
 func (a *ServerWithRoles) Close() error {
