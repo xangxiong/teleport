@@ -213,13 +213,6 @@ func (a *authorizer) authorizeRemoteUser(ctx context.Context, u RemoteUser) (*Co
 	ttl := time.Until(u.Identity.Expires)
 	ttl = checker.AdjustSessionTTL(ttl)
 
-	// kubeUsers, kubeGroups, err := checker.CheckKubeGroupsAndUsers(ttl, false)
-	// // IsNotFound means that the user has no k8s users or groups, which is fine
-	// // in many cases. The downstream k8s handler will ensure that users/groups
-	// // are set if this is a k8s request.
-	// if err != nil && !trace.IsNotFound(err) {
-	// 	return nil, trace.Wrap(err)
-	// }
 	principals, err := checker.CheckLoginDuration(ttl)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -287,7 +280,6 @@ func (a *authorizer) authorizeRemoteBuiltinRole(r RemoteBuiltinRole) (*Context, 
 					types.NewRule(types.KindClusterNetworkingConfig, services.RO()),
 					types.NewRule(types.KindSessionRecordingConfig, services.RO()),
 					types.NewRule(types.KindClusterAuthPreference, services.RO()),
-					types.NewRule(types.KindKubeService, services.RO()),
 					// this rule allows remote proxy to update the cluster's certificate authorities
 					// during certificates renewal
 					{
