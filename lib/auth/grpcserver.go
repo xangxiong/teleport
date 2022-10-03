@@ -156,39 +156,3 @@ func serverWithNopRole(cfg GRPCServerConfig) (*ServerWithRoles, error) {
 		alog:       cfg.AuthServer,
 	}, nil
 }
-
-// type grpcContext struct {
-// 	*Context
-// 	*ServerWithRoles
-// }
-
-// // authenticate extracts authentication context and returns initialized auth server
-// func (g *GRPCServer) authenticate(ctx context.Context) (*grpcContext, error) {
-// 	// HTTPS server expects auth context to be set by the auth middleware
-// 	authContext, err := g.Authorizer.Authorize(ctx)
-// 	if err != nil {
-// 		// propagate connection problem error so we can differentiate
-// 		// between connection failed and access denied
-// 		if trace.IsConnectionProblem(err) {
-// 			return nil, trace.ConnectionProblem(err, "[10] failed to connect to the database")
-// 		} else if trace.IsNotFound(err) {
-// 			// user not found, wrap error with access denied
-// 			return nil, trace.Wrap(err, "[10] access denied")
-// 		} else if trace.IsAccessDenied(err) {
-// 			// don't print stack trace, just log the warning
-// 			log.Warn(err)
-// 		} else {
-// 			log.Warn(trace.DebugReport(err))
-// 		}
-// 		return nil, trace.AccessDenied("[10] access denied")
-// 	}
-// 	return &grpcContext{
-// 		Context: authContext,
-// 		ServerWithRoles: &ServerWithRoles{
-// 			authServer: g.AuthServer,
-// 			context:    *authContext,
-// 			sessions:   g.SessionService,
-// 			alog:       g.AuthServer,
-// 		},
-// 	}, nil
-// }
