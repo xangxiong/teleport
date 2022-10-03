@@ -249,9 +249,6 @@ type Server struct {
 	// privateKey is used in tests to use pre-generated private keys
 	privateKey []byte
 
-	// cipherSuites is a list of ciphersuites that the auth server supports.
-	cipherSuites []uint16
-
 	// limiter limits the number of active connections per client IP.
 	limiter *limiter.ConnectionsLimiter
 
