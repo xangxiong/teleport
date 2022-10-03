@@ -49,25 +49,12 @@ const (
 //
 // Profiles can be stored in a profile file, allowing TSH users to
 // type fewer CLI args.
-//
 type Profile struct {
 	// WebProxyAddr is the host:port the web proxy can be accessed at.
 	WebProxyAddr string `yaml:"web_proxy_addr,omitempty"`
 
 	// SSHProxyAddr is the host:port the SSH proxy can be accessed at.
 	SSHProxyAddr string `yaml:"ssh_proxy_addr,omitempty"`
-
-	// KubeProxyAddr is the host:port the Kubernetes proxy can be accessed at.
-	KubeProxyAddr string `yaml:"kube_proxy_addr,omitempty"`
-
-	// PostgresProxyAddr is the host:port the Postgres proxy can be accessed at.
-	PostgresProxyAddr string `yaml:"postgres_proxy_addr,omitempty"`
-
-	// MySQLProxyAddr is the host:port the MySQL proxy can be accessed at.
-	MySQLProxyAddr string `yaml:"mysql_proxy_addr,omitempty"`
-
-	// MongoProxyAddr is the host:port the Mongo proxy can be accessed at.
-	MongoProxyAddr string `yaml:"mongo_proxy_addr,omitempty"`
 
 	// Username is the Teleport username for the client.
 	Username string `yaml:"user,omitempty"`

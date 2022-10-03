@@ -218,9 +218,9 @@ type ServerConfig struct {
 	// LockWatcher is a lock watcher.
 	LockWatcher *services.LockWatcher
 
-	// TracerProvider is used to create tracers capable
-	// of starting spans.
-	TracerProvider oteltrace.TracerProvider
+	// // TracerProvider is used to create tracers capable
+	// // of starting spans.
+	// TracerProvider oteltrace.TracerProvider
 
 	TargetID, TargetAddr, TargetHostname string
 }
@@ -260,9 +260,9 @@ func (s *ServerConfig) CheckDefaults() error {
 	if s.LockWatcher == nil {
 		return trace.BadParameter("missing parameter LockWatcher")
 	}
-	if s.TracerProvider == nil {
-		s.TracerProvider = tracing.DefaultProvider()
-	}
+	// if s.TracerProvider == nil {
+	// 	s.TracerProvider = tracing.DefaultProvider()
+	// }
 	return nil
 }
 
@@ -307,10 +307,10 @@ func New(c ServerConfig) (*Server, error) {
 		StreamEmitter:   c.Emitter,
 		parentContext:   c.ParentContext,
 		lockWatcher:     c.LockWatcher,
-		tracerProvider:  c.TracerProvider,
-		targetID:        c.TargetID,
-		targetAddr:      c.TargetAddr,
-		targetHostname:  c.TargetHostname,
+		// tracerProvider:  c.TracerProvider,
+		targetID:       c.TargetID,
+		targetAddr:     c.TargetAddr,
+		targetHostname: c.TargetHostname,
 	}
 
 	// Set the ciphers, KEX, and MACs that the in-memory server will send to the
