@@ -47,10 +47,8 @@ import (
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/limiter"
-	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
-	"github.com/gravitational/teleport/lib/session"
 	"github.com/gravitational/teleport/lib/sshca"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
@@ -598,89 +596,6 @@ func (a *Server) checkTokenTTL(tok types.ProvisionToken) bool {
 
 // ErrDone indicates that resource iteration is complete
 var ErrDone = errors.New("done iterating")
-
-// IterateResources loads all resources matching the provided request and passes them one by one to the provided
-// callback function. To stop iteration callers may return ErrDone from the callback function, which will result in
-// a nil return from IterateResources. Any other errors returned from the callback function cause iteration to stop
-// and the error to be returned.
-func (a *Server) IterateResources(ctx context.Context, req proto.ListResourcesRequest, f func(resource types.ResourceWithLabels) error) error {
-	for {
-		resp, err := a.ListResources(ctx, req)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		for _, resource := range resp.Resources {
-			if err := f(resource); err != nil {
-				if errors.Is(err, ErrDone) {
-					return nil
-				}
-				return trace.Wrap(err)
-			}
-		}
-
-		if resp.NextKey == "" {
-			return nil
-		}
-
-		req.StartKey = resp.NextKey
-	}
-}
-
-// CreateAuditStream creates audit event stream
-func (a *Server) CreateAuditStream(ctx context.Context, sid session.ID) (apievents.Stream, error) {
-	streamer, err := a.modeStreamer(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return streamer.CreateAuditStream(ctx, sid)
-}
-
-// ResumeAuditStream resumes the stream that has been created
-func (a *Server) ResumeAuditStream(ctx context.Context, sid session.ID, uploadID string) (apievents.Stream, error) {
-	streamer, err := a.modeStreamer(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return streamer.ResumeAuditStream(ctx, sid, uploadID)
-}
-
-// modeStreamer creates streamer based on the event mode
-func (a *Server) modeStreamer(ctx context.Context) (events.Streamer, error) {
-	recConfig, err := a.GetSessionRecordingConfig(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// In sync mode, auth server forwards session control to the event log
-	// in addition to sending them and data events to the record storage.
-	if services.IsRecordSync(recConfig.GetMode()) {
-		return events.NewTeeStreamer(a.streamer, a.emitter), nil
-	}
-	// In async mode, clients submit session control events
-	// during the session in addition to writing a local
-	// session recording to be uploaded at the end of the session,
-	// so forwarding events here will result in duplicate events.
-	return a.streamer, nil
-}
-
-// CreateSessionTracker creates a tracker resource for an active session.
-func (a *Server) CreateSessionTracker(ctx context.Context, tracker types.SessionTracker) (types.SessionTracker, error) {
-	// Don't allow sessions that require moderation without the enterprise feature enabled.
-	for _, policySet := range tracker.GetHostPolicySets() {
-		if len(policySet.RequireSessionJoin) != 0 {
-			if !modules.GetModules().Features().ModeratedSessions {
-				return nil, trace.AccessDenied("this Teleport cluster is not licensed for moderated sessions, please contact the cluster administrator")
-			}
-		}
-	}
-
-	return a.Services.CreateSessionTracker(ctx, tracker)
-}
-
-// ListResources returns paginated resources depending on the resource type..
-func (a *Server) ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	return a.Cache.ListResources(ctx, req)
-}
 
 func mergeKeySets(a, b types.CAKeySet) types.CAKeySet {
 	newKeySet := a.Clone()
