@@ -43,29 +43,8 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
-)
-
-var (
-	remoteClustersStats = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: teleport.MetricRemoteClusters,
-			Help: "Number inbound connections from remote clusters and clusters stats",
-		},
-		[]string{"cluster"},
-	)
-
-	trustedClustersStats = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: teleport.MetricTrustedClusters,
-			Help: "Number of tunnels per state",
-		},
-		[]string{"cluster", "state"},
-	)
-
-	prometheusCollectors = []prometheus.Collector{remoteClustersStats, trustedClustersStats}
 )
 
 // server is a "reverse tunnel server". it exposes the cluster capabilities
@@ -396,10 +375,6 @@ func (s *server) periodicFunctions() {
 			if err != nil {
 				s.log.Warningf("Failed to disconnect clusters: %v.", err)
 			}
-			err = s.reportClusterStats()
-			if err != nil {
-				s.log.Warningf("Failed to report cluster stats: %v.", err)
-			}
 		}
 	}
 }
@@ -438,25 +413,6 @@ func (s *server) fetchClusterPeers() error {
 	s.removeClusterPeers(connsToRemove)
 	s.updateClusterPeers(connsToUpdate)
 	return s.addClusterPeers(connsToAdd)
-}
-
-func (s *server) reportClusterStats() error {
-	clusters, err := s.GetSites()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, cluster := range clusters {
-		if _, ok := cluster.(*localSite); ok {
-			// Don't count local cluster tunnels.
-			continue
-		}
-		gauge, err := remoteClustersStats.GetMetricWithLabelValues(cluster.GetName())
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		gauge.Set(float64(cluster.GetTunnelsCount()))
-	}
-	return nil
 }
 
 func (s *server) addClusterPeers(conns map[string]types.TunnelConnection) error {
