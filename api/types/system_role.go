@@ -83,9 +83,9 @@ var roleMappings = map[string]SystemRole{
 // teleport services (e.g. db, kube, etc), excluding those which represent remote
 // services (i.e. remoteproxy).
 var localServiceMappings = map[SystemRole]struct{}{
-	RoleAuth:  struct{}{},
-	RoleNode:  struct{}{},
-	RoleProxy: struct{}{},
+	RoleAuth:  {},
+	RoleNode:  {},
+	RoleProxy: {},
 }
 
 // NewTeleportRoles return a list of teleport roles from slice of strings
