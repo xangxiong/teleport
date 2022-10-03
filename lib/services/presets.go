@@ -46,21 +46,13 @@ func NewPresetEditorRole() types.Role {
 				PortForwarding:    types.NewBoolOption(true),
 				ForwardAgent:      types.NewBool(true),
 				BPF:               apidefaults.EnhancedEvents(),
-				RecordSession: &types.RecordSession{
-					Desktop: types.NewBoolOption(false),
-				},
+				RecordSession:     &types.RecordSession{},
 			},
 			Allow: types.RoleConditions{
 				Namespaces: []string{apidefaults.Namespace},
 				Rules: []types.Rule{
 					types.NewRule(types.KindUser, RW()),
 					types.NewRule(types.KindRole, RW()),
-					types.NewRule(types.KindOIDC, RW()),
-					types.NewRule(types.KindSAML, RW()),
-					types.NewRule(types.KindGithub, RW()),
-					types.NewRule(types.KindOIDCRequest, RW()),
-					types.NewRule(types.KindSAMLRequest, RW()),
-					types.NewRule(types.KindGithubRequest, RW()),
 					types.NewRule(types.KindClusterAuditConfig, RW()),
 					types.NewRule(types.KindClusterAuthPreference, RW()),
 					types.NewRule(types.KindAuthConnector, RW()),
@@ -70,9 +62,6 @@ func NewPresetEditorRole() types.Role {
 					types.NewRule(types.KindTrustedCluster, RW()),
 					types.NewRule(types.KindRemoteCluster, RW()),
 					types.NewRule(types.KindToken, RW()),
-					types.NewRule(types.KindDatabaseCertificate, RW()),
-					types.NewRule(types.KindConnectionDiagnostic, RW()),
-					// Please see defaultAllowRules when adding a new rule.
 				},
 			},
 		},
@@ -98,17 +87,11 @@ func NewPresetAccessRole() types.Role {
 				PortForwarding:    types.NewBoolOption(true),
 				ForwardAgent:      types.NewBool(true),
 				BPF:               apidefaults.EnhancedEvents(),
-				RecordSession:     &types.RecordSession{Desktop: types.NewBoolOption(true)},
+				RecordSession:     &types.RecordSession{},
 			},
 			Allow: types.RoleConditions{
-				Namespaces:           []string{apidefaults.Namespace},
-				NodeLabels:           types.Labels{types.Wildcard: []string{types.Wildcard}},
-				AppLabels:            types.Labels{types.Wildcard: []string{types.Wildcard}},
-				KubernetesLabels:     types.Labels{types.Wildcard: []string{types.Wildcard}},
-				WindowsDesktopLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
-				DatabaseLabels:       types.Labels{types.Wildcard: []string{types.Wildcard}},
-				DatabaseNames:        []string{teleport.TraitInternalDBNamesVariable},
-				DatabaseUsers:        []string{teleport.TraitInternalDBUsersVariable},
+				Namespaces: []string{apidefaults.Namespace},
+				NodeLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
 				Rules: []types.Rule{
 					types.NewRule(types.KindEvent, RO()),
 					{
@@ -122,10 +105,6 @@ func NewPresetAccessRole() types.Role {
 		},
 	}
 	role.SetLogins(types.Allow, []string{teleport.TraitInternalLoginsVariable})
-	role.SetWindowsLogins(types.Allow, []string{teleport.TraitInternalWindowsLoginsVariable})
-	role.SetKubeUsers(types.Allow, []string{teleport.TraitInternalKubeUsersVariable})
-	role.SetKubeGroups(types.Allow, []string{teleport.TraitInternalKubeGroupsVariable})
-	role.SetAWSRoleARNs(types.Allow, []string{teleport.TraitInternalAWSRoleARNs})
 	return role
 }
 
@@ -145,16 +124,13 @@ func NewPresetAuditorRole() types.Role {
 			Options: types.RoleOptions{
 				CertificateFormat: constants.CertificateFormatStandard,
 				MaxSessionTTL:     types.NewDuration(apidefaults.MaxCertDuration),
-				RecordSession: &types.RecordSession{
-					Desktop: types.NewBoolOption(false),
-				},
+				RecordSession:     &types.RecordSession{},
 			},
 			Allow: types.RoleConditions{
 				Namespaces: []string{apidefaults.Namespace},
 				Rules: []types.Rule{
 					types.NewRule(types.KindSession, RO()),
 					types.NewRule(types.KindEvent, RO()),
-					// Please see defaultAllowRules when adding a new rule.
 				},
 			},
 		},
