@@ -341,17 +341,10 @@ func (s *localSite) skipDirectDial(params DialParams) (bool, error) {
 	// Connections to application and database servers should never occur
 	// over a direct dial.
 	switch params.ConnType {
-	case types.KubeTunnel, types.NodeTunnel, types.ProxyTunnel, types.WindowsDesktopTunnel:
-	case types.AppTunnel, types.DatabaseTunnel:
+	case types.NodeTunnel, types.ProxyTunnel:
 		return true, nil
 	default:
 		return true, trace.BadParameter("unknown tunnel type: %s", params.ConnType)
-	}
-
-	// Never direct dial when the client is already connecting from
-	// a peer proxy.
-	if params.FromPeerProxy {
-		return true, nil
 	}
 
 	// This node can only be reached over a tunnel, don't attempt to dial
