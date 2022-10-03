@@ -968,8 +968,6 @@ type accessCacheConfig struct {
 	setup cache.SetupConfigFn
 	// cacheName is a cache name
 	cacheName []string
-	// events is true if cache should turn on events
-	events bool
 	// unstarted is true if the cache should not be started
 	unstarted bool
 }
