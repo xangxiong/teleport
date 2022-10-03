@@ -99,22 +99,6 @@ func (a *ServerWithRoles) currentUserAction(username string) error {
 		apidefaults.Namespace, types.KindUser, types.VerbCreate, true)
 }
 
-// actionWithExtendedContext performs an additional RBAC check with extended
-// rule context after a simple resource check fails.
-func (a *ServerWithRoles) actionWithExtendedContext(namespace, kind, verb string, extendContext func(*services.Context) error) error {
-	ruleCtx := &services.Context{User: a.context.User}
-	origErr := a.context.Checker.CheckAccessToRule(ruleCtx, namespace, kind, verb, true)
-	if origErr == nil || !trace.IsAccessDenied(origErr) {
-		return trace.Wrap(origErr)
-	}
-	if err := extendContext(ruleCtx); err != nil {
-		log.WithError(err).Warning("Failed to extend context for second RBAC check.")
-		// Return the original AccessDenied to avoid leaking information.
-		return trace.Wrap(origErr)
-	}
-	return trace.Wrap(a.context.Checker.CheckAccessToRule(ruleCtx, namespace, kind, verb, false))
-}
-
 // hasBuiltinRole checks that the attached identity is a builtin role and
 // whether any of the given roles match the role set.
 func (a *ServerWithRoles) hasBuiltinRole(roles ...types.SystemRole) bool {
