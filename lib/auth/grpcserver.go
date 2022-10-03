@@ -150,23 +150,6 @@ func (g *GRPCServer) GetSemaphores(ctx context.Context, req *types.SemaphoreFilt
 	}, nil
 }
 
-// GetTrustedCluster retrieves a Trusted Cluster by name.
-func (g *GRPCServer) GetTrustedCluster(ctx context.Context, req *types.ResourceRequest) (*types.TrustedClusterV2, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	tc, err := auth.ServerWithRoles.GetTrustedCluster(ctx, req.Name)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	trustedClusterV2, ok := tc.(*types.TrustedClusterV2)
-	if !ok {
-		return nil, trace.Errorf("encountered unexpected Trusted Cluster type %T", tc)
-	}
-	return trustedClusterV2, nil
-}
-
 // StreamSessionEvents streams all events from a given session recording. An error is returned on the first
 // channel if one is encountered. Otherwise the event channel is closed when the stream ends.
 // The event channel is not closed on error to prevent race conditions in downstream select statements.

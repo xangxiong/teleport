@@ -725,14 +725,6 @@ func (a *ServerWithRoles) GetRole(ctx context.Context, name string) (types.Role,
 	return a.authServer.GetRole(ctx, name)
 }
 
-func (a *ServerWithRoles) GetTrustedCluster(ctx context.Context, name string) (types.TrustedCluster, error) {
-	if err := a.action(apidefaults.Namespace, types.KindTrustedCluster, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return a.authServer.GetTrustedCluster(ctx, name)
-}
-
 func (a *ServerWithRoles) GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
 	if err := a.action(apidefaults.Namespace, types.KindTunnelConnection, types.VerbList); err != nil {
 		return nil, trace.Wrap(err)
