@@ -1711,43 +1711,6 @@ func (c *Client) GetSAMLAuthRequest(ctx context.Context, id string) (*types.SAML
 	return resp, nil
 }
 
-// GetGithubConnector returns a Github connector by name.
-func (c *Client) GetGithubConnector(ctx context.Context, name string, withSecrets bool) (types.GithubConnector, error) {
-	if name == "" {
-		return nil, trace.BadParameter("cannot get Github Connector, missing name")
-	}
-	req := &types.ResourceWithSecretsRequest{Name: name, WithSecrets: withSecrets}
-	resp, err := c.grpc.GetGithubConnector(ctx, req, c.callOpts...)
-	if err != nil {
-		return nil, trail.FromGRPC(err)
-	}
-	return resp, nil
-}
-
-// GetGithubConnectors returns a list of Github connectors.
-func (c *Client) GetGithubConnectors(ctx context.Context, withSecrets bool) ([]types.GithubConnector, error) {
-	req := &types.ResourcesWithSecretsRequest{WithSecrets: withSecrets}
-	resp, err := c.grpc.GetGithubConnectors(ctx, req, c.callOpts...)
-	if err != nil {
-		return nil, trail.FromGRPC(err)
-	}
-	githubConnectors := make([]types.GithubConnector, len(resp.GithubConnectors))
-	for i, githubConnector := range resp.GithubConnectors {
-		githubConnectors[i] = githubConnector
-	}
-	return githubConnectors, nil
-}
-
-// UpsertGithubConnector creates or updates a Github connector.
-func (c *Client) UpsertGithubConnector(ctx context.Context, connector types.GithubConnector) error {
-	githubConnector, ok := connector.(*types.GithubConnectorV3)
-	if !ok {
-		return trace.BadParameter("invalid type %T", connector)
-	}
-	_, err := c.grpc.UpsertGithubConnector(ctx, githubConnector, c.callOpts...)
-	return trail.FromGRPC(err)
-}
-
 // DeleteGithubConnector deletes a Github connector by name.
 func (c *Client) DeleteGithubConnector(ctx context.Context, name string) error {
 	if name == "" {
