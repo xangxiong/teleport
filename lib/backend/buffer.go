@@ -240,9 +240,6 @@ func (c *CircularBuffer) emit(r Event) {
 func (c *CircularBuffer) fanOutEvent(r Event) {
 	var watchersToDelete []*BufferWatcher
 	c.watchers.walkPath(string(r.Item.Key), func(watcher *BufferWatcher) {
-		if watcher.MetricComponent != "" {
-			watcherQueues.WithLabelValues(watcher.MetricComponent).Set(float64(len(watcher.eventsC)))
-		}
 		if !watcher.emit(r) {
 			watchersToDelete = append(watchersToDelete, watcher)
 		}
