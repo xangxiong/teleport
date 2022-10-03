@@ -29,7 +29,6 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/utils"
 )
 
 // RemoteClusterTunnelManager manages AgentPools for trusted (remote) clusters. It
@@ -72,8 +71,6 @@ type RemoteClusterTunnelManagerConfig struct {
 	ReverseTunnelServer Server
 	// Clock is a mock-able clock.
 	Clock clockwork.Clock
-	// KubeDialAddr is an optional address of a local kubernetes proxy.
-	KubeDialAddr utils.NetAddr
 	// FIPS indicates if Teleport was started in FIPS mode.
 	FIPS bool
 	// Log is the logger
