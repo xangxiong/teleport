@@ -154,50 +154,6 @@ func (g *GRPCServer) GetCurrentUserRoles(_ *empty.Empty, stream proto.AuthServic
 	return nil
 }
 
-// GetPluginData loads all plugin data matching the supplied filter.
-func (g *GRPCServer) GetPluginData(ctx context.Context, filter *types.PluginDataFilter) (*proto.PluginDataSeq, error) {
-	// TODO(fspmarshall): Implement rate-limiting to prevent misbehaving plugins from
-	// consuming too many server resources.
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	data, err := auth.ServerWithRoles.GetPluginData(ctx, *filter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var seq []*types.PluginDataV3
-	for _, rsc := range data {
-		d, ok := rsc.(*types.PluginDataV3)
-		if !ok {
-			err = trace.BadParameter("unexpected plugin data type %T", rsc)
-			return nil, trace.Wrap(err)
-		}
-		seq = append(seq, d)
-	}
-	return &proto.PluginDataSeq{
-		PluginData: seq,
-	}, nil
-}
-
-func (g *GRPCServer) Ping(ctx context.Context, req *proto.PingRequest) (*proto.PingResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	rsp, err := auth.Ping(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// attempt to set remote addr.
-	if p, ok := peer.FromContext(ctx); ok {
-		rsp.RemoteAddr = p.Addr.String()
-	}
-
-	return &rsp, nil
-}
-
 // AcquireSemaphore acquires lease with requested resources from semaphore.
 func (g *GRPCServer) AcquireSemaphore(ctx context.Context, params *types.AcquireSemaphoreRequest) (*types.SemaphoreLease, error) {
 	auth, err := g.authenticate(ctx)
