@@ -260,7 +260,6 @@ func (c *Client) updateConnections(proxies []types.Server) error {
 		// establish new connections
 		conn, err := c.connect(id, proxy.GetPeerAddr())
 		if err != nil {
-			// c.metrics.reportTunnelError(errorProxyPeerTunnelDial)
 			c.config.Log.Debugf("Error dialing peer proxy %+v at %+v", id, proxy.GetPeerAddr())
 			errs = append(errs, err)
 			continue
@@ -393,7 +392,6 @@ func (c *Client) dial(proxyIDs []string, dialRequest *clientapi.DialRequest) (cl
 	for _, conn := range conns {
 		stream, err := c.startStream(conn)
 		if err != nil {
-			// c.metrics.reportTunnelError(errorProxyPeerTunnelRPC)
 			c.config.Log.Debugf("Error opening tunnel rpc to proxy %+v at %+v", conn.id, conn.addr)
 			errs = append(errs, trace.ConnectionProblem(err, "error starting stream: %v", err))
 			continue
