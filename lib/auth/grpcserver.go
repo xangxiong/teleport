@@ -128,9 +128,6 @@ func (g *GRPCServer) SendKeepAlives(stream proto.AuthService_SendKeepAlivesServe
 	}
 }
 
-// logInterval is used to log stats after this many events
-const logInterval = 10000
-
 // WatchEvents returns a new stream of cluster events
 func (g *GRPCServer) WatchEvents(watch *proto.Watch, stream proto.AuthService_WatchEventsServer) error {
 	auth, err := g.authenticate(stream.Context())
