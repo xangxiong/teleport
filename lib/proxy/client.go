@@ -35,7 +35,6 @@ import (
 	"github.com/jonboulle/clockwork"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 )
@@ -160,10 +159,10 @@ type Client struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	config   ClientConfig
-	conns    map[string]*clientConn
-	metrics  *clientMetrics
-	reporter *reporter
+	config ClientConfig
+	conns  map[string]*clientConn
+	// metrics  *clientMetrics
+	// reporter *reporter
 }
 
 // NewClient creats a new peer proxy client.
@@ -173,25 +172,25 @@ func NewClient(config ClientConfig) (*Client, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	metrics, err := newClientMetrics()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// metrics, err := newClientMetrics()
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
-	reporter := newReporter(metrics)
+	// reporter := newReporter(metrics)
 
 	closeContext, cancel := context.WithCancel(config.Context)
 
 	c := &Client{
-		config:   config,
-		ctx:      closeContext,
-		cancel:   cancel,
-		conns:    make(map[string]*clientConn),
-		metrics:  metrics,
-		reporter: reporter,
+		config: config,
+		ctx:    closeContext,
+		cancel: cancel,
+		conns:  make(map[string]*clientConn),
+		// metrics:  metrics,
+		// reporter: reporter,
 	}
 
-	go c.monitor()
+	// go c.monitor()
 
 	if c.config.sync != nil {
 		go c.config.sync()
@@ -202,35 +201,35 @@ func NewClient(config ClientConfig) (*Client, error) {
 	return c, nil
 }
 
-// monitor monitors the status of peer proxy grpc connections.
-func (c *Client) monitor() {
-	ticker := c.config.Clock.NewTicker(defaults.ResyncInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-c.ctx.Done():
-			return
-		case <-ticker.Chan():
-			c.RLock()
-			c.reporter.resetConnections()
-			for _, conn := range c.conns {
-				switch conn.GetState() {
-				case connectivity.Idle:
-					c.reporter.incConnection(c.config.ID, conn.id, connectivity.Idle.String())
-				case connectivity.Connecting:
-					c.reporter.incConnection(c.config.ID, conn.id, connectivity.Connecting.String())
-				case connectivity.Ready:
-					c.reporter.incConnection(c.config.ID, conn.id, connectivity.Ready.String())
-				case connectivity.TransientFailure:
-					c.reporter.incConnection(c.config.ID, conn.id, connectivity.TransientFailure.String())
-				case connectivity.Shutdown:
-					c.reporter.incConnection(c.config.ID, conn.id, connectivity.Shutdown.String())
-				}
-			}
-			c.RUnlock()
-		}
-	}
-}
+// // monitor monitors the status of peer proxy grpc connections.
+// func (c *Client) monitor() {
+// 	// ticker := c.config.Clock.NewTicker(defaults.ResyncInterval)
+// 	// defer ticker.Stop()
+// 	for {
+// 		select {
+// 		case <-c.ctx.Done():
+// 			return
+// 		// case <-ticker.Chan():
+// 		// 	c.RLock()
+// 		// 	c.reporter.resetConnections()
+// 		// 	for _, conn := range c.conns {
+// 		// 		switch conn.GetState() {
+// 		// 		case connectivity.Idle:
+// 		// 			c.reporter.incConnection(c.config.ID, conn.id, connectivity.Idle.String())
+// 		// 		case connectivity.Connecting:
+// 		// 			c.reporter.incConnection(c.config.ID, conn.id, connectivity.Connecting.String())
+// 		// 		case connectivity.Ready:
+// 		// 			c.reporter.incConnection(c.config.ID, conn.id, connectivity.Ready.String())
+// 		// 		case connectivity.TransientFailure:
+// 		// 			c.reporter.incConnection(c.config.ID, conn.id, connectivity.TransientFailure.String())
+// 		// 		case connectivity.Shutdown:
+// 		// 			c.reporter.incConnection(c.config.ID, conn.id, connectivity.Shutdown.String())
+// 		// 		}
+// 		// 	}
+// 		// 	c.RUnlock()
+// 		}
+// 	}
+// }
 
 // sync runs the peer proxy watcher functionality.
 func (c *Client) sync() {
@@ -309,7 +308,7 @@ func (c *Client) updateConnections(proxies []types.Server) error {
 		// establish new connections
 		conn, err := c.connect(id, proxy.GetPeerAddr())
 		if err != nil {
-			c.metrics.reportTunnelError(errorProxyPeerTunnelDial)
+			// c.metrics.reportTunnelError(errorProxyPeerTunnelDial)
 			c.config.Log.Debugf("Error dialing peer proxy %+v at %+v", id, proxy.GetPeerAddr())
 			errs = append(errs, err)
 			continue
@@ -442,7 +441,7 @@ func (c *Client) dial(proxyIDs []string, dialRequest *clientapi.DialRequest) (cl
 	for _, conn := range conns {
 		stream, err := c.startStream(conn)
 		if err != nil {
-			c.metrics.reportTunnelError(errorProxyPeerTunnelRPC)
+			// c.metrics.reportTunnelError(errorProxyPeerTunnelRPC)
 			c.config.Log.Debugf("Error opening tunnel rpc to proxy %+v at %+v", conn.id, conn.addr)
 			errs = append(errs, trace.ConnectionProblem(err, "error starting stream: %v", err))
 			continue
@@ -508,12 +507,12 @@ func (c *Client) getConnections(proxyIDs []string) ([]*clientConn, bool, error) 
 		return conns, true, nil
 	}
 
-	c.metrics.reportTunnelError(errorProxyPeerTunnelNotFound)
+	// c.metrics.reportTunnelError(errorProxyPeerTunnelNotFound)
 
 	// try to establish new connections otherwise.
 	proxies, err := c.config.AuthClient.GetProxies()
 	if err != nil {
-		c.metrics.reportTunnelError(errorProxyPeerFetchProxies)
+		// c.metrics.reportTunnelError(errorProxyPeerFetchProxies)
 		return nil, false, trace.Wrap(err)
 	}
 
@@ -526,7 +525,7 @@ func (c *Client) getConnections(proxyIDs []string) ([]*clientConn, bool, error) 
 
 		conn, err := c.connect(id, proxy.GetPeerAddr())
 		if err != nil {
-			c.metrics.reportTunnelError(errorProxyPeerTunnelDirectDial)
+			// c.metrics.reportTunnelError(errorProxyPeerTunnelDirectDial)
 			c.config.Log.Debugf("Error direct dialing peer proxy %+v at %+v", id, proxy.GetPeerAddr())
 			errs = append(errs, err)
 			continue
@@ -536,7 +535,7 @@ func (c *Client) getConnections(proxyIDs []string) ([]*clientConn, bool, error) 
 	}
 
 	if len(conns) == 0 {
-		c.metrics.reportTunnelError(errorProxyPeerProxiesUnreachable)
+		// c.metrics.reportTunnelError(errorProxyPeerProxiesUnreachable)
 		return nil, false, trace.ConnectionProblem(trace.NewAggregate(errs...), "Error dialing all proxies")
 	}
 
@@ -566,7 +565,7 @@ func (c *Client) connect(id string, proxyPeerAddr string) (*clientConn, error) {
 		connCtx,
 		proxyPeerAddr,
 		grpc.WithTransportCredentials(transportCreds),
-		grpc.WithStatsHandler(newStatsHandler(c.reporter)),
+		// grpc.WithStatsHandler(newStatsHandler(c.reporter)),
 		grpc.WithChainStreamInterceptor(metadata.StreamClientInterceptor, utils.GRPCClientStreamErrorInterceptor, streamCounterInterceptor(wg)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                peerKeepAlive,
