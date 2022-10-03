@@ -728,65 +728,6 @@ func (a *ServerWithRoles) Close() error {
 	return a.authServer.Close()
 }
 
-// GenerateUserSingleUseCerts exists to satisfy auth.ClientI but is not
-// implemented here.
-//
-// Use auth.GRPCServer.GenerateUserSingleUseCerts or
-// client.Client.GenerateUserSingleUseCerts instead.
-func (a *ServerWithRoles) GenerateUserSingleUseCerts(ctx context.Context) (proto.AuthService_GenerateUserSingleUseCertsClient, error) {
-	return nil, trace.NotImplemented("bug: GenerateUserSingleUseCerts must not be called on auth.ServerWithRoles")
-}
-
-// SearchEvents allows searching audit events with pagination support.
-func (a *ServerWithRoles) SearchEvents(fromUTC, toUTC time.Time, namespace string, eventTypes []string, limit int, order types.EventOrder, startKey string) (events []apievents.AuditEvent, lastKey string, err error) {
-	if err := a.action(apidefaults.Namespace, types.KindEvent, types.VerbList); err != nil {
-		return nil, "", trace.Wrap(err)
-	}
-
-	events, lastKey, err = a.alog.SearchEvents(fromUTC, toUTC, namespace, eventTypes, limit, order, startKey)
-	if err != nil {
-		return nil, "", trace.Wrap(err)
-	}
-
-	return events, lastKey, nil
-}
-
-// SearchSessionEvents allows searching session audit events with pagination support.
-func (a *ServerWithRoles) SearchSessionEvents(fromUTC, toUTC time.Time, limit int, order types.EventOrder, startKey string, cond *types.WhereExpr, sessionID string) (events []apievents.AuditEvent, lastKey string, err error) {
-	if cond != nil {
-		return nil, "", trace.BadParameter("cond is an internal parameter, should not be set by client")
-	}
-
-	cond, err = a.actionForListWithCondition(apidefaults.Namespace, types.KindSession, services.SessionIdentifier)
-	if err != nil {
-		return nil, "", trace.Wrap(err)
-	}
-
-	// TODO(codingllama): Refactor cond out of SearchSessionEvents and simplify signature.
-	events, lastKey, err = a.alog.SearchSessionEvents(fromUTC, toUTC, limit, order, startKey, cond, sessionID)
-	if err != nil {
-		return nil, "", trace.Wrap(err)
-	}
-
-	return events, lastKey, nil
-}
-
-// GetLock gets a lock by name.
-func (a *ServerWithRoles) GetLock(ctx context.Context, name string) (types.Lock, error) {
-	if err := a.action(apidefaults.Namespace, types.KindLock, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetLock(ctx, name)
-}
-
-// GetLocks gets all/in-force locks that match at least one of the targets when specified.
-func (a *ServerWithRoles) GetLocks(ctx context.Context, inForceOnly bool, targets ...types.LockTarget) ([]types.Lock, error) {
-	if err := a.action(apidefaults.Namespace, types.KindLock, types.VerbList, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetLocks(ctx, inForceOnly, targets...)
-}
-
 // StreamSessionEvents streams all events from a given session recording. An error is returned on the first
 // channel if one is encountered. Otherwise the event channel is closed when the stream ends.
 // The event channel is not closed on error to prevent race conditions in downstream select statements.
