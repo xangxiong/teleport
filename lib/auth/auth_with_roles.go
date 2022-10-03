@@ -62,12 +62,6 @@ type actionConfig struct {
 
 type actionOption func(*actionConfig)
 
-func quietAction(quiet bool) actionOption {
-	return func(cfg *actionConfig) {
-		cfg.quiet = quiet
-	}
-}
-
 func (a *ServerWithRoles) withOptions(opts ...actionOption) actionConfig {
 	cfg := actionConfig{context: a.context}
 	for _, opt := range opts {
@@ -104,22 +98,6 @@ func (a *ServerWithRoles) currentUserAction(username string) error {
 	}
 	return a.context.Checker.CheckAccessToRule(&services.Context{User: a.context.User},
 		apidefaults.Namespace, types.KindUser, types.VerbCreate, true)
-}
-
-// actionForListWithCondition extracts a restrictive filter condition to be
-// added to a list query after a simple resource check fails.
-func (a *ServerWithRoles) actionForListWithCondition(namespace, resource, identifier string) (*types.WhereExpr, error) {
-	origErr := a.withOptions(quietAction(true)).action(namespace, resource, types.VerbList)
-	if origErr == nil || !trace.IsAccessDenied(origErr) {
-		return nil, trace.Wrap(origErr)
-	}
-	cond, err := a.context.Checker.ExtractConditionForIdentifier(&services.Context{User: a.context.User}, namespace, resource, types.VerbList, identifier)
-	if trace.IsAccessDenied(err) {
-		log.WithError(err).Infof("Access to %v %v in namespace %v denied to %v.", types.VerbList, resource, namespace, a.context.Checker)
-		// Return the original AccessDenied to avoid leaking information.
-		return nil, trace.Wrap(origErr)
-	}
-	return cond, trace.Wrap(err)
 }
 
 // actionWithExtendedContext performs an additional RBAC check with extended
