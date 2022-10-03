@@ -26,7 +26,6 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gravitational/teleport"
@@ -61,37 +60,6 @@ const (
 	// SymlinkFilename is a name of the symlink pointing to the last
 	// current log file
 	SymlinkFilename = "events.log"
-)
-
-var (
-	auditDiskUsed = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "audit_percentage_disk_space_used",
-			Help: "Percentage disk space used.",
-		},
-	)
-
-	auditFailedDisk = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "audit_failed_disk_monitoring",
-			Help: "Number of times disk monitoring failed.",
-		},
-	)
-	// AuditFailedEmit increments the counter if audit event failed to emit
-	AuditFailedEmit = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "audit_failed_emit_events",
-			Help: "Number of times emitting audit event failed.",
-		},
-	)
-
-	auditEmitEvent = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: teleport.MetricNamespace,
-			Name:      "audit_emit_events",
-			Help:      "Number of audit events emitted",
-		},
-	)
 )
 
 // AuditLog is a new combined facility to record Teleport events and
@@ -491,7 +459,7 @@ func (l *AuditLog) Close() error {
 }
 
 // periodicSpaceMonitor run forever monitoring how much disk space has been
-// used on disk. Values are emitted to a Prometheus gauge.
+// used on disk.
 func (l *AuditLog) periodicSpaceMonitor() {
 	ticker := time.NewTicker(defaults.DiskAlertInterval)
 	defer ticker.Stop()
@@ -499,17 +467,12 @@ func (l *AuditLog) periodicSpaceMonitor() {
 	for {
 		select {
 		case <-ticker.C:
-			// Find out what percentage of disk space is used. If the syscall fails,
-			// emit that to prometheus as well.
+			// Find out what percentage of disk space is used.
 			usedPercent, err := utils.PercentUsed(l.DataDir)
 			if err != nil {
-				auditFailedDisk.Inc()
 				log.Warnf("Disk space monitoring failed: %v.", err)
 				continue
 			}
-
-			// Update prometheus gauge with the percentage disk space used.
-			auditDiskUsed.Set(usedPercent)
 
 			// If used percentage goes above the alerting level, write to logs as well.
 			if usedPercent > float64(defaults.DiskAlertThreshold) {
