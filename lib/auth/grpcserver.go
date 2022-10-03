@@ -942,52 +942,6 @@ func (g *GRPCServer) ListResources(ctx context.Context, req *proto.ListResources
 	return protoResp, nil
 }
 
-// GetSessionTracker returns the current state of a session tracker for an active session.
-func (g *GRPCServer) GetSessionTracker(ctx context.Context, req *proto.GetSessionTrackerRequest) (*types.SessionTrackerV1, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	session, err := auth.ServerWithRoles.GetSessionTracker(ctx, req.SessionID)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	defined, ok := session.(*types.SessionTrackerV1)
-	if !ok {
-		return nil, trace.BadParameter("unexpected session type %T", session)
-	}
-
-	return defined, nil
-}
-
-// GetActiveSessionTrackers returns a list of active session trackers.
-func (g *GRPCServer) GetActiveSessionTrackers(_ *empty.Empty, stream proto.AuthService_GetActiveSessionTrackersServer) error {
-	ctx := stream.Context()
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	sessions, err := auth.ServerWithRoles.GetActiveSessionTrackers(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	for _, session := range sessions {
-		defined, ok := session.(*types.SessionTrackerV1)
-		if !ok {
-			return trace.BadParameter("unexpected session type %T", session)
-		}
-
-		err := stream.Send(defined)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
-
-	return nil
-}
-
 // GetDomainName returns local auth domain of the current auth server.
 func (g *GRPCServer) GetDomainName(ctx context.Context, req *empty.Empty) (*proto.GetDomainNameResponse, error) {
 	auth, err := g.authenticate(ctx)
