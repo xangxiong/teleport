@@ -57,44 +57,6 @@ func (g *GRPCServer) GetServer() (*grpc.Server, error) {
 	return g.server, nil
 }
 
-// ListResources retrieves a paginated list of resources.
-func (g *GRPCServer) ListResources(ctx context.Context, req *proto.ListResourcesRequest) (*proto.ListResourcesResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	resp, err := auth.ListResources(ctx, *req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	protoResp := &proto.ListResourcesResponse{
-		NextKey:    resp.NextKey,
-		Resources:  make([]*proto.PaginatedResource, len(resp.Resources)),
-		TotalCount: int32(resp.TotalCount),
-	}
-
-	for i, resource := range resp.Resources {
-		var protoResource *proto.PaginatedResource
-		switch req.ResourceType {
-		case types.KindNode:
-			srv, ok := resource.(*types.ServerV2)
-			if !ok {
-				return nil, trace.BadParameter("node has invalid type %T", resource)
-			}
-
-			protoResource = &proto.PaginatedResource{Resource: &proto.PaginatedResource_Node{Node: srv}}
-		default:
-			return nil, trace.NotImplemented("resource type %s doesn't support pagination", req.ResourceType)
-		}
-
-		protoResp.Resources[i] = protoResource
-	}
-
-	return protoResp, nil
-}
-
 // GetDomainName returns local auth domain of the current auth server.
 func (g *GRPCServer) GetDomainName(ctx context.Context, req *empty.Empty) (*proto.GetDomainNameResponse, error) {
 	auth, err := g.authenticate(ctx)

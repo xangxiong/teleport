@@ -24,7 +24,6 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
@@ -242,93 +241,6 @@ func (a *ServerWithRoles) GetNodes(ctx context.Context, namespace string) ([]typ
 		len(nodes), len(filteredNodes), elapsedFetch+elapsedFilter)
 
 	return filteredNodes, nil
-}
-
-// ListResources returns a paginated list of resources filtered by user access.
-func (a *ServerWithRoles) ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	// ListResources request coming through this auth layer gets request filters
-	// stripped off and saved to be applied later after items go through rbac checks.
-	// The list that gets returned from the backend comes back unfiltered and as
-	// we apply request filters, we might make multiple trips to get more subsets to
-	// reach our limit, which is fine b/c we can start query with our next key.
-	//
-	// But since sorting and counting totals requires us to work with entire list upfront,
-	// special handling is needed in this layer b/c if we try to mimic the "subset" here,
-	// we will be making unnecessary trips and doing needless work of deserializing every
-	// item for every subset.
-	if req.RequiresFakePagination() {
-		resp, err := a.listResourcesWithSort(ctx, req)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		return resp, nil
-	}
-
-	// Start real pagination.
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	limit := int(req.Limit)
-	actionVerbs := []string{}
-	if req.ResourceType == types.KindNode {
-		actionVerbs = append(actionVerbs, types.VerbList)
-	} else {
-		return nil, trace.NotImplemented("resource type %s does not support pagination", req.ResourceType)
-	}
-
-	if err := a.action(req.Namespace, req.ResourceType, actionVerbs...); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Perform the label/search/expr filtering here (instead of at the backend
-	// `ListResources`) to ensure that it will be applied only to resources
-	// the user has access to.
-	filter := services.MatchResourceFilter{
-		ResourceKind:        req.ResourceType,
-		Labels:              req.Labels,
-		SearchKeywords:      req.SearchKeywords,
-		PredicateExpression: req.PredicateExpression,
-	}
-	req.Labels = nil
-	req.SearchKeywords = nil
-	req.PredicateExpression = ""
-
-	resourceChecker, err := a.newResourceAccessChecker(req.ResourceType)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	var resp types.ListResourcesResponse
-	if err := a.authServer.IterateResources(ctx, req, func(resource types.ResourceWithLabels) error {
-		if len(resp.Resources) == limit {
-			resp.NextKey = backend.GetPaginationKey(resource)
-			return ErrDone
-		}
-
-		if err := resourceChecker.CanAccess(resource); err != nil {
-			if trace.IsAccessDenied(err) {
-				return nil
-			}
-
-			return trace.Wrap(err)
-		}
-
-		switch match, err := services.MatchResourceByFilters(resource, filter, nil /* ignore dup matches  */); {
-		case err != nil:
-			return trace.Wrap(err)
-		case match:
-			resp.Resources = append(resp.Resources, resource)
-			return nil
-		}
-
-		return nil
-	}); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return &resp, nil
 }
 
 // resourceAccessChecker allows access to be checked differently per resource type.
