@@ -2157,15 +2157,6 @@ func (a *ServerWithRoles) checkAccessToNode(node types.Server) error {
 		services.AccessMFAParams{Verified: true})
 }
 
-// AppendDiagnosticTrace adds a new trace for the given ConnectionDiagnostic.
-func (a *ServerWithRoles) AppendDiagnosticTrace(ctx context.Context, name string, t *types.ConnectionDiagnosticTrace) (types.ConnectionDiagnostic, error) {
-	if err := a.action(apidefaults.Namespace, types.KindConnectionDiagnostic, types.VerbUpdate); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return a.authServer.AppendDiagnosticTrace(ctx, name, t)
-}
-
 // GenerateCertAuthorityCRL generates an empty CRL for a CA.
 func (a *ServerWithRoles) GenerateCertAuthorityCRL(ctx context.Context, caType types.CertAuthType) ([]byte, error) {
 	crl, err := a.authServer.GenerateCertAuthorityCRL(ctx, caType)
