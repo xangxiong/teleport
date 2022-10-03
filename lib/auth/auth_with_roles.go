@@ -650,61 +650,6 @@ func (a *ServerWithRoles) listResourcesWithSort(ctx context.Context, req proto.L
 	return resp, nil
 }
 
-func (a *ServerWithRoles) GetReverseTunnel(name string, opts ...services.MarshalOption) (types.ReverseTunnel, error) {
-	if err := a.action(apidefaults.Namespace, types.KindReverseTunnel, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetReverseTunnel(name, opts...)
-}
-
-func (a *ServerWithRoles) GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error) {
-	if err := a.action(apidefaults.Namespace, types.KindReverseTunnel, types.VerbList, types.VerbRead); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetReverseTunnels(ctx, opts...)
-}
-
-func (a *ServerWithRoles) GetAccessRequests(ctx context.Context, filter types.AccessRequestFilter) ([]types.AccessRequest, error) {
-	// users can always view their own access requests
-	if filter.User != "" && a.currentUserAction(filter.User) == nil {
-		return a.authServer.GetAccessRequests(ctx, filter)
-	}
-
-	// users with read + list permissions can get all requests
-	if a.withOptions(quietAction(true)).action(apidefaults.Namespace, types.KindAccessRequest, types.VerbList) == nil {
-		if a.withOptions(quietAction(true)).action(apidefaults.Namespace, types.KindAccessRequest, types.VerbRead) == nil {
-			return a.authServer.GetAccessRequests(ctx, filter)
-		}
-	}
-
-	// user does not have read/list permissions and is not specifically requesting only
-	// their own requests.  we therefore subselect the filter results to show only those requests
-	// that the user *is* allowed to see (specifically, their own requests + requests that they
-	// are allowed to review).
-
-	reqs, err := a.authServer.GetAccessRequests(ctx, filter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// filter in place
-	filtered := reqs[:0]
-	for _, req := range reqs {
-		if req.GetUser() == a.context.User.GetName() {
-			filtered = append(filtered, req)
-			continue
-		}
-	}
-	return filtered, nil
-}
-
-func (a *ServerWithRoles) SetAccessRequestState(ctx context.Context, params types.AccessRequestUpdate) error {
-	if err := a.action(apidefaults.Namespace, types.KindAccessRequest, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.SetAccessRequestState(ctx, params)
-}
-
 // GetPluginData loads all plugin data matching the supplied filter.
 func (a *ServerWithRoles) GetPluginData(ctx context.Context, filter types.PluginDataFilter) ([]types.PluginData, error) {
 	switch filter.Kind {
