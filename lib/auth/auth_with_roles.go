@@ -405,50 +405,6 @@ Outer:
 	return nil
 }
 
-func (a *ServerWithRoles) RegisterInventoryControlStream(ics client.UpstreamInventoryControlStream) error {
-	// Ensure that caller is a teleport server
-	role, ok := a.context.Identity.(BuiltinRole)
-	if !ok || !role.IsServer() {
-		return trace.AccessDenied("inventory control streams can only be created by a teleport built-in server")
-	}
-
-	// wait for upstream hello
-	var upstreamHello proto.UpstreamInventoryHello
-	select {
-	case msg := <-ics.Recv():
-		switch m := msg.(type) {
-		case proto.UpstreamInventoryHello:
-			upstreamHello = m
-		default:
-			return trace.BadParameter("expected upstream hello, got: %T", m)
-		}
-	case <-ics.Done():
-		return trace.Wrap(ics.Error())
-	case <-a.CloseContext().Done():
-		return trace.Errorf("auth server shutdown")
-	}
-
-	// verify that server is creating stream on behalf of itself.
-	if upstreamHello.ServerID != role.GetServerID() {
-		return trace.AccessDenied("control streams do not support impersonation (%q -> %q)", role.GetServerID(), upstreamHello.ServerID)
-	}
-
-	// in order to reduce sensitivity to downgrades/misconfigurations, we simply filter out
-	// services that are unrecognized or unauthorized, rather than rejecting hellos that claim them.
-	var filteredServices []types.SystemRole
-	for _, service := range upstreamHello.Services {
-		if !a.hasBuiltinRole(service) {
-			log.Warnf("Omitting service %q for control stream of instance %q (unknown or unauthorized).", service, role.GetServerID())
-			continue
-		}
-		filteredServices = append(filteredServices, service)
-	}
-
-	upstreamHello.Services = filteredServices
-
-	return a.authServer.RegisterInventoryControlStream(ics, upstreamHello)
-}
-
 func (a *ServerWithRoles) GetInventoryStatus(ctx context.Context, req proto.InventoryStatusRequest) (proto.InventoryStatusSummary, error) {
 	// only support builtin roles for now, but we'll eventually want to develop an RBAC syntax for
 	// the inventory APIs once they are more developed.

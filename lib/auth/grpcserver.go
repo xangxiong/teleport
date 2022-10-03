@@ -34,7 +34,6 @@ import (
 	"google.golang.org/grpc/peer"
 
 	"github.com/gravitational/teleport"
-	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
@@ -145,33 +144,6 @@ func (g *GRPCServer) GenerateHostCerts(ctx context.Context, req *proto.HostCerts
 	}
 
 	return certs, nil
-}
-
-func (g *GRPCServer) InventoryControlStream(stream proto.AuthService_InventoryControlStreamServer) error {
-	auth, err := g.authenticate(stream.Context())
-	if err != nil {
-		return trail.ToGRPC(err)
-	}
-
-	p, ok := peer.FromContext(stream.Context())
-	if !ok {
-		return trace.BadParameter("unable to find peer")
-	}
-
-	ics := client.NewUpstreamInventoryControlStream(stream, p.Addr.String())
-
-	if err := auth.RegisterInventoryControlStream(ics); err != nil {
-		return trail.ToGRPC(err)
-	}
-
-	// hold open the stream until it completes
-	<-ics.Done()
-
-	if trace.IsEOF(ics.Error()) {
-		return nil
-	}
-
-	return trail.ToGRPC(ics.Error())
 }
 
 func (g *GRPCServer) GetInventoryStatus(ctx context.Context, req *proto.InventoryStatusRequest) (*proto.InventoryStatusSummary, error) {
