@@ -28,7 +28,6 @@ import (
 	"github.com/gravitational/teleport/lib/plugin"
 	"github.com/gravitational/teleport/lib/session"
 
-	"github.com/jonboulle/clockwork"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -58,13 +57,6 @@ func (a *APIConfig) CheckAndSetDefaults() error {
 		a.KeepAliveCount = apidefaults.KeepAliveCountMax
 	}
 	return nil
-}
-
-// APIServer implements http API server for AuthServer interface
-type APIServer struct {
-	APIConfig
-	httprouter.Router
-	clockwork.Clock
 }
 
 // HandlerWithAuthFunc is http handler with passed auth context
