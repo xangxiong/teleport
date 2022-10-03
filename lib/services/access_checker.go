@@ -358,12 +358,9 @@ func AccessInfoFromRemoteCertificate(cert *ssh.Certificate, roleMap types.RoleMa
 // local roles based on the given roleMap.
 func AccessInfoFromRemoteIdentity(identity tlsca.Identity, roleMap types.RoleMap) (*AccessInfo, error) {
 	// Set internal traits for the remote user. This allows Teleport to work by
-	// passing exact logins, Kubernetes users/groups and database users/names
-	// to the remote cluster.
+	// passing exact logins to the remote cluster.
 	traits := map[string][]string{
-		constants.TraitLogins:  identity.Principals,
-		constants.TraitDBNames: identity.DatabaseNames,
-		constants.TraitDBUsers: identity.DatabaseUsers,
+		constants.TraitLogins: identity.Principals,
 	}
 	// Prior to Teleport 6.2 no user traits were passed to remote clusters
 	// except for the internal ones specified above.
