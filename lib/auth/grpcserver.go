@@ -567,20 +567,20 @@ func (g *GRPCServer) GetTrustedClusters(ctx context.Context, _ *empty.Empty) (*t
 	}, nil
 }
 
-// GenerateToken generates a new auth token.
-func (g *GRPCServer) GenerateToken(ctx context.Context, req *proto.GenerateTokenRequest) (*proto.GenerateTokenResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // GenerateToken generates a new auth token.
+// func (g *GRPCServer) GenerateToken(ctx context.Context, req *proto.GenerateTokenRequest) (*proto.GenerateTokenResponse, error) {
+// 	auth, err := g.authenticate(ctx)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	token, err := auth.ServerWithRoles.GenerateToken(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// 	token, err := auth.ServerWithRoles.GenerateToken(ctx, req)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	return &proto.GenerateTokenResponse{Token: token}, nil
-}
+// 	return &proto.GenerateTokenResponse{Token: token}, nil
+// }
 
 // GetClusterAuditConfig gets cluster audit configuration.
 func (g *GRPCServer) GetClusterAuditConfig(ctx context.Context, _ *empty.Empty) (*types.ClusterAuditConfigV2, error) {

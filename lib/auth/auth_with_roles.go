@@ -304,46 +304,6 @@ func (a *ServerWithRoles) Export(ctx context.Context, req *collectortracev1.Expo
 	return &collectortracev1.ExportTraceServiceResponse{}, nil
 }
 
-func (a *ServerWithRoles) GetSession(ctx context.Context, namespace string, id session.ID) (*session.Session, error) {
-	if err := a.actionForKindSSHSession(ctx, namespace, types.VerbRead, id); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.sessions.GetSession(ctx, namespace, id)
-}
-
-// CompareAndSwapCertAuthority updates existing cert authority if the existing cert authority
-// value matches the value stored in the backend.
-func (a *ServerWithRoles) CompareAndSwapCertAuthority(new, existing types.CertAuthority) error {
-	if err := a.action(apidefaults.Namespace, types.KindCertAuthority, types.VerbCreate, types.VerbUpdate); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.CompareAndSwapCertAuthority(new, existing)
-}
-
-func (a *ServerWithRoles) GetCertAuthorities(ctx context.Context, caType types.CertAuthType, loadKeys bool, opts ...services.MarshalOption) ([]types.CertAuthority, error) {
-	if err := a.action(apidefaults.Namespace, types.KindCertAuthority, types.VerbList, types.VerbReadNoSecrets); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if loadKeys {
-		if err := a.action(apidefaults.Namespace, types.KindCertAuthority, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return a.authServer.GetCertAuthorities(ctx, caType, loadKeys, opts...)
-}
-
-func (a *ServerWithRoles) GetCertAuthority(ctx context.Context, id types.CertAuthID, loadKeys bool, opts ...services.MarshalOption) (types.CertAuthority, error) {
-	if err := a.action(apidefaults.Namespace, types.KindCertAuthority, types.VerbReadNoSecrets); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if loadKeys {
-		if err := a.action(apidefaults.Namespace, types.KindCertAuthority, types.VerbRead); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return a.authServer.GetCertAuthority(ctx, id, loadKeys, opts...)
-}
-
 func (a *ServerWithRoles) GetDomainName(ctx context.Context) (string, error) {
 	// anyone can read it, no harm in that
 	return a.authServer.GetDomainName()
@@ -357,41 +317,6 @@ func (a *ServerWithRoles) GetClusterCACert(
 ) (*proto.GetClusterCACertResponse, error) {
 	// Allow all roles to get the CA certs.
 	return a.authServer.GetClusterCACert(ctx)
-}
-
-func (a *ServerWithRoles) DeleteCertAuthority(id types.CertAuthID) error {
-	if err := a.action(apidefaults.Namespace, types.KindCertAuthority, types.VerbDelete); err != nil {
-		return trace.Wrap(err)
-	}
-	return a.authServer.DeleteCertAuthority(id)
-}
-
-// ActivateCertAuthority not implemented: can only be called locally.
-func (a *ServerWithRoles) ActivateCertAuthority(id types.CertAuthID) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeactivateCertAuthority not implemented: can only be called locally.
-func (a *ServerWithRoles) DeactivateCertAuthority(id types.CertAuthID) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// GenerateToken generates multi-purpose authentication token.
-func (a *ServerWithRoles) GenerateToken(ctx context.Context, req *proto.GenerateTokenRequest) (string, error) {
-	if err := a.action(apidefaults.Namespace, types.KindToken, types.VerbCreate); err != nil {
-		return "", trace.Wrap(err)
-	}
-	return a.authServer.GenerateToken(ctx, req)
-}
-
-func (a *ServerWithRoles) RegisterUsingToken(ctx context.Context, req *types.RegisterUsingTokenRequest) (*proto.Certs, error) {
-	// tokens have authz mechanism  on their own, no need to check
-	return a.authServer.RegisterUsingToken(ctx, req)
-}
-
-func (a *ServerWithRoles) RegisterNewAuthServer(ctx context.Context, token string) error {
-	// tokens have authz mechanism  on their own, no need to check
-	return a.authServer.RegisterNewAuthServer(ctx, token)
 }
 
 // RegisterUsingIAMMethod registers the caller using the IAM join method and
