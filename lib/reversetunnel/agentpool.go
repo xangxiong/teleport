@@ -549,7 +549,6 @@ func (p *AgentPool) transport(ctx context.Context, channel ssh.Channel, requests
 		closeContext:        ctx,
 		component:           p.Component,
 		localClusterName:    p.LocalCluster,
-		kubeDialAddr:        p.KubeDialAddr,
 		authClient:          p.Client,
 		reverseTunnelServer: p.ReverseTunnelServer,
 		server:              p.Server,

@@ -151,9 +151,6 @@ type transport struct {
 	// running in.
 	localClusterName string
 
-	// kubeDialAddr is the address of the Kubernetes proxy.
-	kubeDialAddr utils.NetAddr
-
 	// sconn is a SSH connection to the remote host. Used for dial back nodes.
 	sconn sshutils.Conn
 
@@ -221,44 +218,8 @@ func (p *transport) start() {
 		}
 
 		directAddress = utils.ChooseRandomString(p.authServers)
-	// Connect to the Kubernetes proxy.
-	case LocalKubernetes:
-		switch p.component {
-		case teleport.ComponentReverseTunnelServer:
-			p.reply(req, false, []byte("connection rejected: no remote kubernetes proxy"))
-			return
-		case teleport.ComponentKube:
-			// kubernetes_service can directly handle the connection, via
-			// p.server.
-			if p.server == nil {
-				p.reply(req, false, []byte("connection rejected: server missing"))
-				return
-			}
-			if p.sconn == nil {
-				p.reply(req, false, []byte("connection rejected: server connection missing"))
-				return
-			}
-			if err := req.Reply(true, []byte("Connected.")); err != nil {
-				p.log.Errorf("Failed responding OK to %q request: %v", req.Type, err)
-				return
-			}
-
-			p.log.Debug("Handing off connection to a local kubernetes service")
-			p.server.HandleConnection(sshutils.NewChConn(p.sconn, p.channel))
-			return
-		default:
-			// This must be a proxy.
-			// If Kubernetes endpoint is not configured, reject the connection.
-			if p.kubeDialAddr.IsEmpty() {
-				p.reply(req, false, []byte("connection rejected: configure kubernetes proxy for this cluster."))
-				return
-			}
-			p.log.Debugf("Forwarding connection to %q", p.kubeDialAddr.Addr)
-			directAddress = p.kubeDialAddr.Addr
-		}
-
 	// LocalNode requests are for the single server running in the agent pool.
-	case LocalNode, LocalWindowsDesktop:
+	case LocalNode:
 		// Transport is allocated with both teleport.ComponentReverseTunnelAgent
 		// and teleport.ComponentReverseTunnelServer. However, dialing to this address
 		// only makes sense when running within a teleport.ComponentReverseTunnelAgent.
