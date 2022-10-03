@@ -127,12 +127,6 @@ func ParseShortcut(in string) (string, error) {
 		return types.KindProxy, nil
 	case types.KindNode, "nodes":
 		return types.KindNode, nil
-	case types.KindOIDCConnector:
-		return types.KindOIDCConnector, nil
-	case types.KindSAMLConnector:
-		return types.KindSAMLConnector, nil
-	case types.KindGithubConnector:
-		return types.KindGithubConnector, nil
 	case types.KindConnectors, "connector":
 		return types.KindConnectors, nil
 	case types.KindUser, "users":
@@ -153,22 +147,10 @@ func ParseShortcut(in string) (string, error) {
 		return types.KindRemoteCluster, nil
 	case types.KindSemaphore, "semaphores", "sem", "sems":
 		return types.KindSemaphore, nil
-	case types.KindKubeService, "kube_services":
-		return types.KindKubeService, nil
 	case types.KindLock, "locks":
 		return types.KindLock, nil
-	case types.KindDatabaseServer:
-		return types.KindDatabaseServer, nil
 	case types.KindNetworkRestrictions:
 		return types.KindNetworkRestrictions, nil
-	case types.KindDatabase:
-		return types.KindDatabase, nil
-	case types.KindApp, "apps":
-		return types.KindApp, nil
-	case types.KindWindowsDesktopService, "windows_service", "win_desktop_service", "win_service":
-		return types.KindWindowsDesktopService, nil
-	case types.KindWindowsDesktop, "win_desktop":
-		return types.KindWindowsDesktop, nil
 	case types.KindToken, "tokens":
 		return types.KindToken, nil
 	}
