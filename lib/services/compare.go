@@ -27,7 +27,6 @@ import (
 func CompareResources(resA, resB types.Resource) int {
 	equal := cmp.Equal(resA, resB,
 		cmpopts.IgnoreFields(types.Metadata{}, "ID"),
-		cmpopts.IgnoreFields(types.DatabaseV3{}, "Status"),
 		cmpopts.EquateEmpty())
 	if equal {
 		return Equal

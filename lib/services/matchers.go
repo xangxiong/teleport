@@ -62,8 +62,6 @@ type ResourceSeenKey struct{ name string }
 func MatchResourceByFilters(resource types.ResourceWithLabels, filter MatchResourceFilter, seenMap map[ResourceSeenKey]struct{}) (bool, error) {
 	var specResource types.ResourceWithLabels
 
-	// We assume when filtering for services like KubeService, AppServer, and DatabaseServer
-	// the user is wanting to filter the contained resource ie. KubeClusters, Application, and Database.
 	resourceKey := ResourceSeenKey{}
 	switch filter.ResourceKind {
 	case types.KindNode:
