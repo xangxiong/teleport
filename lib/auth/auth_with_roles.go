@@ -695,11 +695,6 @@ func (a *ServerWithRoles) GenerateHostCert(
 	return a.authServer.GenerateHostCert(key, hostID, nodeName, principals, clusterName, role, ttl)
 }
 
-// NewKeepAliver not implemented: can only be called locally.
-func (a *ServerWithRoles) NewKeepAliver(ctx context.Context) (types.KeepAliver, error) {
-	return nil, trace.NotImplemented(notImplementedMessage)
-}
-
 // EmitAuditEvent emits a single audit event
 func (a *ServerWithRoles) EmitAuditEvent(ctx context.Context, event apievents.AuditEvent) error {
 	if err := a.action(apidefaults.Namespace, types.KindEvent, types.VerbCreate); err != nil {
