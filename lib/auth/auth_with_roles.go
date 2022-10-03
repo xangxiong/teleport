@@ -22,10 +22,7 @@ import (
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/session"
-
-	"github.com/gravitational/trace"
 )
 
 // ServerWithRoles is a wrapper around auth service
@@ -41,40 +38,6 @@ type ServerWithRoles struct {
 // CloseContext is closed when the auth server shuts down
 func (a *ServerWithRoles) CloseContext() context.Context {
 	return a.authServer.closeCtx
-}
-
-type actionConfig struct {
-	quiet   bool
-	context Context
-}
-
-type actionOption func(*actionConfig)
-
-func (a *ServerWithRoles) withOptions(opts ...actionOption) actionConfig {
-	cfg := actionConfig{context: a.context}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-	return cfg
-}
-
-func (c actionConfig) action(namespace, resource string, verbs ...string) error {
-	if len(verbs) == 0 {
-		return trace.BadParameter("no verbs provided for authorization check on resource %q", resource)
-	}
-	var errs []error
-	for _, verb := range verbs {
-		errs = append(errs, c.context.Checker.CheckAccessToRule(&services.Context{User: c.context.User}, namespace, resource, verb, c.quiet))
-	}
-	// Convert generic aggregate error to AccessDenied.
-	if err := trace.NewAggregate(errs...); err != nil {
-		return trace.AccessDenied(err.Error())
-	}
-	return nil
-}
-
-func (a *ServerWithRoles) action(namespace, resource string, verbs ...string) error {
-	return a.withOptions().action(namespace, resource, verbs...)
 }
 
 // HasBuiltinRole checks if the identity is a builtin role with the matching
