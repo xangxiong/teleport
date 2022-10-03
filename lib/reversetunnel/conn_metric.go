@@ -57,37 +57,12 @@ func newMetricConn(conn net.Conn, dt dialType, start time.Time, clock clockwork.
 		clock:    clock,
 	}
 
-	// connLatency.WithLabelValues(string(c.dialType), "established").Observe(c.duration().Seconds())
 	return c
 }
-
-// // duration returns the duration since c.start and updates c.start to now.
-// func (c *metricConn) duration() time.Duration {
-// 	now := c.clock.Now()
-// 	d := now.Sub(c.start)
-// 	c.start = now
-// 	return d
-// }
 
 // Read wraps a net.Conn.Read to report the time between the connection being established
 // and the connection being used.
 func (c *metricConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
-	// c.firstUse.Do(func() {
-	// 	connLatency.WithLabelValues(string(c.dialType), "first_read").Observe(c.duration().Seconds())
-	// })
 	return n, err
 }
-
-// var (
-// 	connLatency = prometheus.NewHistogramVec(
-// 		prometheus.HistogramOpts{
-// 			Name: "reversetunnel_conn_latency",
-// 			Help: "Latency metrics for reverse tunnel connections",
-// 			// lowest bucket start of upper bound 0.001 sec (1 ms) with factor 2
-// 			// highest bucket start of 0.001 sec * 2^15 == 32.768 sec
-// 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 16),
-// 		},
-// 		[]string{"dial_type", "state"},
-// 	)
-// )
