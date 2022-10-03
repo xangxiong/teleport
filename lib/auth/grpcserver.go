@@ -146,34 +146,6 @@ func (g *GRPCServer) GenerateHostCerts(ctx context.Context, req *proto.HostCerts
 	return certs, nil
 }
 
-func (g *GRPCServer) GetInventoryStatus(ctx context.Context, req *proto.InventoryStatusRequest) (*proto.InventoryStatusSummary, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-
-	rsp, err := auth.GetInventoryStatus(ctx, *req)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-
-	return &rsp, nil
-}
-
-func (g *GRPCServer) PingInventory(ctx context.Context, req *proto.InventoryPingRequest) (*proto.InventoryPingResponse, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-
-	rsp, err := auth.PingInventory(ctx, *req)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-
-	return &rsp, nil
-}
-
 func (g *GRPCServer) GetCurrentUser(ctx context.Context, req *empty.Empty) (*types.UserV2, error) {
 	auth, err := g.authenticate(ctx)
 	if err != nil {

@@ -405,18 +405,6 @@ Outer:
 	return nil
 }
 
-func (a *ServerWithRoles) GetInventoryStatus(ctx context.Context, req proto.InventoryStatusRequest) (proto.InventoryStatusSummary, error) {
-	// only support builtin roles for now, but we'll eventually want to develop an RBAC syntax for
-	// the inventory APIs once they are more developed.
-	return a.authServer.GetInventoryStatus(ctx, req), nil
-}
-
-func (a *ServerWithRoles) PingInventory(ctx context.Context, req proto.InventoryPingRequest) (proto.InventoryPingResponse, error) {
-	// admin-only for now, but we'll eventually want to develop an RBAC syntax for
-	// the inventory APIs once they are more developed.
-	return a.authServer.PingInventory(ctx, req)
-}
-
 // DELETE IN: 5.1.0
 //
 // This logic has moved to KeepAliveServer.
