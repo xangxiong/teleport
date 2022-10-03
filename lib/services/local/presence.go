@@ -336,18 +336,6 @@ func (s *PresenceService) GetProxies() ([]types.Server, error) {
 	return s.getServers(context.TODO(), types.KindProxy, proxiesPrefix)
 }
 
-// DeleteAllProxies deletes all proxies
-func (s *PresenceService) DeleteAllProxies() error {
-	startKey := backend.Key(proxiesPrefix)
-	return s.DeleteRange(context.TODO(), startKey, backend.RangeEnd(startKey))
-}
-
-// DeleteProxy deletes proxy
-func (s *PresenceService) DeleteProxy(name string) error {
-	key := backend.Key(proxiesPrefix, name)
-	return s.Delete(context.TODO(), key)
-}
-
 // DeleteAllReverseTunnels deletes all reverse tunnels
 func (s *PresenceService) DeleteAllReverseTunnels() error {
 	startKey := backend.Key(reverseTunnelsPrefix)
