@@ -83,11 +83,6 @@ func randomConnShuffler() connShuffler {
 	}
 }
 
-// noopConnShutffler returns a conn shuffler that keeps the original connection ordering.
-func noopConnShuffler() connShuffler {
-	return func([]*clientConn) {}
-}
-
 // checkAndSetDefaults checks and sets default values
 func (c *ClientConfig) checkAndSetDefaults() error {
 	if c.Log == nil {
