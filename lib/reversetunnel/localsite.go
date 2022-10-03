@@ -342,9 +342,14 @@ func (s *localSite) skipDirectDial(params DialParams) (bool, error) {
 	// over a direct dial.
 	switch params.ConnType {
 	case types.NodeTunnel, types.ProxyTunnel:
-		return true, nil
 	default:
 		return true, trace.BadParameter("unknown tunnel type: %s", params.ConnType)
+	}
+
+	// Never direct dial when the client is already connecting from
+	// a peer proxy.
+	if params.FromPeerProxy {
+		return true, nil
 	}
 
 	// This node can only be reached over a tunnel, don't attempt to dial
