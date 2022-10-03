@@ -388,8 +388,6 @@ func checkResourceConsistency(keyStore keystore.KeyStore, clusterName string, re
 			switch r.GetType() {
 			case types.HostCA, types.UserCA:
 				_, signerErr = keyStore.GetSSHSigner(r)
-			case types.DatabaseCA:
-				_, _, signerErr = keyStore.GetTLSCertAndSigner(r)
 			case types.JWTSigner:
 				_, signerErr = keyStore.GetJWTSigner(r)
 			default:
