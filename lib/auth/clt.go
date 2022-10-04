@@ -727,11 +727,6 @@ func (c *Client) GetSessionRecordingConfig(ctx context.Context, opts ...services
 	return c.APIClient.GetSessionRecordingConfig(ctx)
 }
 
-// DeleteSessionRecordingConfig not implemented: can only be called locally.
-func (c *Client) DeleteSessionRecordingConfig(ctx context.Context) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // DeleteAuthPreference not implemented: can only be called locally.
 func (c *Client) DeleteAuthPreference(context.Context) error {
 	return trace.NotImplemented(notImplementedMessage)

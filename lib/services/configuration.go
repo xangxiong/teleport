@@ -43,8 +43,6 @@ type ClusterConfiguration interface {
 	GetSessionRecordingConfig(context.Context, ...MarshalOption) (types.SessionRecordingConfig, error)
 	// SetSessionRecordingConfig sets SessionRecordingConfig from the backend.
 	SetSessionRecordingConfig(context.Context, types.SessionRecordingConfig) error
-	// DeleteSessionRecordingConfig deletes SessionRecordingConfig from the backend.
-	DeleteSessionRecordingConfig(ctx context.Context) error
 
 	// GetClusterAuditConfig gets ClusterAuditConfig from the backend.
 	GetClusterAuditConfig(context.Context, ...MarshalOption) (types.ClusterAuditConfig, error)

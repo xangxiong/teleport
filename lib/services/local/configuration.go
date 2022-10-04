@@ -237,18 +237,6 @@ func (s *ClusterConfigurationService) SetSessionRecordingConfig(ctx context.Cont
 	return nil
 }
 
-// DeleteSessionRecordingConfig deletes SessionRecordingConfig from the backend.
-func (s *ClusterConfigurationService) DeleteSessionRecordingConfig(ctx context.Context) error {
-	err := s.Delete(ctx, backend.Key(clusterConfigPrefix, sessionRecordingPrefix))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("session recording config not found")
-		}
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 const (
 	clusterConfigPrefix    = "cluster_configuration"
 	namePrefix             = "name"
