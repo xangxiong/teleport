@@ -69,9 +69,6 @@ type InitConfig struct {
 	// name embedded). It is usually set to the GUID of the host the Auth service runs on
 	ClusterName types.ClusterName
 
-	// Authorities is a list of pre-configured authorities to supply on first start
-	Authorities []types.CertAuthority
-
 	// Resources is a list of previously backed-up resources used to
 	// bootstrap backend on first start.
 	Resources []types.Resource
