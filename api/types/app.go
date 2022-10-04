@@ -33,42 +33,12 @@ import (
 type Application interface {
 	// ResourceWithLabels provides common resource methods.
 	ResourceWithLabels
-	// GetNamespace returns the app namespace.
-	GetNamespace() string
-	// GetStaticLabels returns the app static labels.
-	GetStaticLabels() map[string]string
-	// SetStaticLabels sets the app static labels.
-	SetStaticLabels(map[string]string)
-	// GetDynamicLabels returns the app dynamic labels.
-	GetDynamicLabels() map[string]CommandLabel
-	// SetDynamicLabels sets the app dynamic labels.
-	SetDynamicLabels(map[string]CommandLabel)
-	// LabelsString returns all labels as a string.
-	LabelsString() string
 	// String returns string representation of the app.
 	String() string
 	// GetDescription returns the app description.
 	GetDescription() string
-	// GetURI returns the app connection endpoint.
-	GetURI() string
-	// SetURI sets the app endpoint.
-	SetURI(string)
 	// GetPublicAddr returns the app public address.
 	GetPublicAddr() string
-	// GetInsecureSkipVerify returns the app insecure setting.
-	GetInsecureSkipVerify() bool
-	// GetRewrite returns the app rewrite configuration.
-	GetRewrite() *Rewrite
-	// IsAWSConsole returns true if this app is AWS management console.
-	IsAWSConsole() bool
-	// IsTCP returns true if this app represents a TCP endpoint.
-	IsTCP() bool
-	// GetProtocol returns the application protocol.
-	GetProtocol() string
-	// GetAWSAccountID returns value of label containing AWS account ID on this app.
-	GetAWSAccountID() string
-	// GetAWSExternalID returns the AWS External ID configured for this app.
-	GetAWSExternalID() string
 	// Copy returns a copy of this app resource.
 	Copy() *AppV3
 }
@@ -182,19 +152,6 @@ func (a *AppV3) SetStaticLabels(sl map[string]string) {
 	a.Metadata.Labels = sl
 }
 
-// GetDynamicLabels returns the app dynamic labels.
-func (a *AppV3) GetDynamicLabels() map[string]CommandLabel {
-	if a.Spec.DynamicLabels == nil {
-		return nil
-	}
-	return V2ToLabels(a.Spec.DynamicLabels)
-}
-
-// SetDynamicLabels sets the app dynamic labels
-func (a *AppV3) SetDynamicLabels(dl map[string]CommandLabel) {
-	a.Spec.DynamicLabels = LabelsToV2(dl)
-}
-
 // GetAllLabels returns the app combined static and dynamic labels.
 func (a *AppV3) GetAllLabels() map[string]string {
 	return CombineLabels(a.Metadata.Labels, a.Spec.DynamicLabels)
@@ -223,47 +180,6 @@ func (a *AppV3) SetURI(uri string) {
 // GetPublicAddr returns the app public address.
 func (a *AppV3) GetPublicAddr() string {
 	return a.Spec.PublicAddr
-}
-
-// GetInsecureSkipVerify returns the app insecure setting.
-func (a *AppV3) GetInsecureSkipVerify() bool {
-	return a.Spec.InsecureSkipVerify
-}
-
-// GetRewrite returns the app rewrite configuration.
-func (a *AppV3) GetRewrite() *Rewrite {
-	return a.Spec.Rewrite
-}
-
-// IsAWSConsole returns true if this app is AWS management console.
-func (a *AppV3) IsAWSConsole() bool {
-	return false
-}
-
-// IsTCP returns true if this app represents a TCP endpoint.
-func (a *AppV3) IsTCP() bool {
-	return strings.HasPrefix(a.Spec.URI, "tcp://")
-}
-
-// GetProtocol returns the application protocol.
-func (a *AppV3) GetProtocol() string {
-	if a.IsTCP() {
-		return "TCP"
-	}
-	return "HTTP"
-}
-
-// GetAWSAccountID returns value of label containing AWS account ID on this app.
-func (a *AppV3) GetAWSAccountID() string {
-	return a.Metadata.Labels[constants.AWSAccountIDLabel]
-}
-
-// GetAWSExternalID returns the AWS External ID configured for this app.
-func (a *AppV3) GetAWSExternalID() string {
-	if a.Spec.AWS == nil {
-		return ""
-	}
-	return a.Spec.AWS.ExternalID
 }
 
 // String returns the app string representation.
