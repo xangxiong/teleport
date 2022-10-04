@@ -264,22 +264,6 @@ func (s *PresenceService) UpsertNode(ctx context.Context, server types.Server) (
 	}, nil
 }
 
-// DELETE IN: 5.1.0.
-//
-// This logic has been moved to KeepAliveServer.
-//
-// KeepAliveNode updates node expiry
-func (s *PresenceService) KeepAliveNode(ctx context.Context, h types.KeepAlive) error {
-	if err := h.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
-	err := s.KeepAlive(ctx, backend.Lease{
-		ID:  h.LeaseID,
-		Key: backend.Key(nodesPrefix, h.Namespace, h.Name),
-	}, h.Expires)
-	return trace.Wrap(err)
-}
-
 // KeepAliveServer updates expiry time of a server resource.
 func (s *PresenceService) KeepAliveServer(ctx context.Context, h types.KeepAlive) error {
 	if err := h.CheckAndSetDefaults(); err != nil {
