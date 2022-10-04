@@ -71,10 +71,6 @@ type server struct {
 	// localSite is the  local (our own cluster) tunnel client.
 	localSite *localSite
 
-	// clusterPeers is a map of clusters connected to peer proxies
-	// via reverse tunnels
-	clusterPeers map[string]*clusterPeers
-
 	// cancel function will cancel the
 	cancel context.CancelFunc
 
@@ -282,7 +278,6 @@ func NewServer(cfg Config) (Server, error) {
 		ctx:              ctx,
 		cancel:           cancel,
 		proxyWatcher:     proxyWatcher,
-		clusterPeers:     make(map[string]*clusterPeers),
 		log:              cfg.Log,
 		offlineThreshold: offlineThreshold,
 	}
@@ -315,7 +310,6 @@ func NewServer(cfg Config) (Server, error) {
 		return nil, err
 	}
 	srv.srv = s
-	go srv.periodicFunctions()
 	return srv, nil
 }
 
@@ -349,138 +343,6 @@ func (s *server) disconnectClusters() error {
 		}
 	}
 	return nil
-}
-
-func (s *server) periodicFunctions() {
-	ticker := time.NewTicker(defaults.ResyncInterval)
-	defer ticker.Stop()
-
-	if err := s.fetchClusterPeers(); err != nil {
-		s.log.Warningf("Failed to fetch cluster peers: %v.", err)
-	}
-	for {
-		select {
-		case <-s.ctx.Done():
-			s.log.Debugf("Closing.")
-			return
-		// Proxies have been updated, notify connected agents about the update.
-		case proxies := <-s.proxyWatcher.ProxiesC:
-			s.fanOutProxies(proxies)
-		case <-ticker.C:
-			err := s.fetchClusterPeers()
-			if err != nil {
-				s.log.Warningf("Failed to fetch cluster peers: %v.", err)
-			}
-			err = s.disconnectClusters()
-			if err != nil {
-				s.log.Warningf("Failed to disconnect clusters: %v.", err)
-			}
-		}
-	}
-}
-
-// fetchClusterPeers pulls back all proxies that have registered themselves
-// (created a services.TunnelConnection) in the backend and compares them to
-// what was found in the previous iteration and updates the in-memory cluster
-// peer map. This map is used later by GetSite(s) to return either local or
-// remote site, or if non match, a cluster peer.
-func (s *server) fetchClusterPeers() error {
-	conns, err := s.LocalAccessPoint.GetAllTunnelConnections()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	newConns := make(map[string]types.TunnelConnection)
-	for i := range conns {
-		newConn := conns[i]
-		// Filter out non-proxy tunnels.
-		if newConn.GetType() != types.ProxyTunnel {
-			continue
-		}
-		// Filter out peer records for own proxy.
-		if newConn.GetProxyName() == s.ID {
-			continue
-		}
-
-		// Filter out tunnels which are not online.
-		if services.TunnelConnectionStatus(s.Clock, newConn, s.offlineThreshold) != teleport.RemoteClusterStatusOnline {
-			continue
-		}
-
-		newConns[newConn.GetName()] = newConn
-	}
-	existingConns := s.existingConns()
-	connsToAdd, connsToUpdate, connsToRemove := s.diffConns(newConns, existingConns)
-	s.removeClusterPeers(connsToRemove)
-	s.updateClusterPeers(connsToUpdate)
-	return s.addClusterPeers(connsToAdd)
-}
-
-func (s *server) addClusterPeers(conns map[string]types.TunnelConnection) error {
-	for key := range conns {
-		connInfo := conns[key]
-		peer, err := newClusterPeer(s, connInfo, s.offlineThreshold)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		s.addClusterPeer(peer)
-	}
-	return nil
-}
-
-func (s *server) updateClusterPeers(conns map[string]types.TunnelConnection) {
-	for key := range conns {
-		connInfo := conns[key]
-		s.updateClusterPeer(connInfo)
-	}
-}
-
-func (s *server) addClusterPeer(peer *clusterPeer) {
-	s.Lock()
-	defer s.Unlock()
-	clusterName := peer.connInfo.GetClusterName()
-	peers, ok := s.clusterPeers[clusterName]
-	if !ok {
-		peers = newClusterPeers(clusterName)
-		s.clusterPeers[clusterName] = peers
-	}
-	peers.addPeer(peer)
-}
-
-func (s *server) updateClusterPeer(conn types.TunnelConnection) bool {
-	s.Lock()
-	defer s.Unlock()
-	clusterName := conn.GetClusterName()
-	peers, ok := s.clusterPeers[clusterName]
-	if !ok {
-		return false
-	}
-	return peers.updatePeer(conn)
-}
-
-func (s *server) removeClusterPeers(conns []types.TunnelConnection) {
-	s.Lock()
-	defer s.Unlock()
-	for _, conn := range conns {
-		peers, ok := s.clusterPeers[conn.GetClusterName()]
-		if !ok {
-			s.log.Warningf("failed to remove cluster peer, not found peers for %v.", conn)
-			continue
-		}
-		peers.removePeer(conn)
-		s.log.Debugf("Removed cluster peer %v.", conn)
-	}
-}
-
-func (s *server) existingConns() map[string]types.TunnelConnection {
-	s.RLock()
-	defer s.RUnlock()
-	conns := make(map[string]types.TunnelConnection)
-	for _, peers := range s.clusterPeers {
-		for _, cluster := range peers.peers {
-			conns[cluster.connInfo.GetName()] = cluster.connInfo
-		}
-	}
-	return conns
 }
 
 func (s *server) diffConns(newConns, existingConns map[string]types.TunnelConnection) (map[string]types.TunnelConnection, map[string]types.TunnelConnection, []types.TunnelConnection) {
@@ -864,7 +726,7 @@ func (s *server) upsertRemoteCluster(conn net.Conn, sshConn *ssh.ServerConn) (*r
 func (s *server) GetSites() ([]RemoteSite, error) {
 	s.RLock()
 	defer s.RUnlock()
-	out := make([]RemoteSite, 0, len(s.remoteSites)+len(s.clusterPeers)+1)
+	out := make([]RemoteSite, 0, len(s.remoteSites)+1)
 	out = append(out, s.localSite)
 
 	haveLocalConnection := make(map[string]bool)
@@ -872,12 +734,6 @@ func (s *server) GetSites() ([]RemoteSite, error) {
 		site := s.remoteSites[i]
 		haveLocalConnection[site.GetName()] = true
 		out = append(out, site)
-	}
-	for i := range s.clusterPeers {
-		cluster := s.clusterPeers[i]
-		if _, ok := haveLocalConnection[cluster.GetName()]; !ok {
-			out = append(out, cluster)
-		}
 	}
 	return out, nil
 }
@@ -907,11 +763,6 @@ func (s *server) GetSite(name string) (RemoteSite, error) {
 	for i := range s.remoteSites {
 		if s.remoteSites[i].GetName() == name {
 			return s.remoteSites[i], nil
-		}
-	}
-	for i := range s.clusterPeers {
-		if s.clusterPeers[i].GetName() == name {
-			return s.clusterPeers[i], nil
 		}
 	}
 	return nil, trace.NotFound("cluster %q is not found", name)
