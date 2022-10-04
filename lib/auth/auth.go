@@ -142,7 +142,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		ServerID:        cfg.HostUUID,
 		cancelFunc:      cancelFunc,
 		closeCtx:        closeCtx,
-		unstable:        local.NewUnstableService(cfg.Backend, cfg.AssertionReplayService),
 		Services:        services,
 		Cache:           services,
 		keyStore:        keyStore,
@@ -198,10 +197,6 @@ type Server struct {
 
 	// ServerID is the server ID of this auth server.
 	ServerID string
-
-	// unstable implements unstable backend methods not suitable
-	// for inclusion in Services.
-	unstable local.UnstableService
 
 	// Services encapsulate services - provisioner, trust, etc. used by the auth
 	// server in a separate structure. Reads through Services hit the backend.
