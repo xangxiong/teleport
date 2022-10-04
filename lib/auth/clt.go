@@ -762,16 +762,6 @@ func (c *Client) GetStaticTokens() (types.StaticTokens, error) {
 	return st, err
 }
 
-// DeleteAllCertNamespaces not implemented: can only be called locally.
-func (c *Client) DeleteAllNamespaces() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
-// DeleteAllRoles not implemented: can only be called locally.
-func (c *Client) DeleteAllRoles() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // ResumeAuditStream resumes existing audit stream.
 // This is a wrapper on the grpc endpoint and is deprecated.
 // DELETE IN 7.0.0

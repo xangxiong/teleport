@@ -36,8 +36,6 @@ type Access interface {
 	GetRoles(ctx context.Context) ([]types.Role, error)
 	// UpsertRole creates or updates role.
 	UpsertRole(ctx context.Context, role types.Role) error
-	// DeleteAllRoles deletes all roles.
-	DeleteAllRoles() error
 	// GetRole returns role by name.
 	GetRole(ctx context.Context, name string) (types.Role, error)
 	// DeleteRole deletes role by name.

@@ -40,11 +40,6 @@ func NewAccessService(backend backend.Backend) *AccessService {
 	return &AccessService{Backend: backend}
 }
 
-// DeleteAllRoles deletes all roles
-func (s *AccessService) DeleteAllRoles() error {
-	return s.DeleteRange(context.TODO(), backend.Key(rolesPrefix), backend.RangeEnd(backend.Key(rolesPrefix)))
-}
-
 // GetRoles returns a list of roles registered with the local auth server
 func (s *AccessService) GetRoles(ctx context.Context) ([]types.Role, error) {
 	result, err := s.GetRange(ctx, backend.Key(rolesPrefix), backend.RangeEnd(backend.Key(rolesPrefix)), backend.NoLimit)
