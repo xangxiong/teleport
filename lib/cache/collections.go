@@ -79,11 +79,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter Restrictions")
 			}
 			collections[resourceKind] = &networkRestrictions{watch: watch, Cache: c}
-		case types.KindLock:
-			if c.Access == nil {
-				return nil, trace.BadParameter("missing parameter Access")
-			}
-			collections[resourceKind] = &lock{watch: watch, Cache: c}
 		default:
 			return nil, trace.BadParameter("resource %q is not supported", watch.Kind)
 		}
@@ -500,61 +495,4 @@ func (r *networkRestrictions) processEvent(ctx context.Context, event types.Even
 
 func (r *networkRestrictions) watchKind() types.WatchKind {
 	return r.watch
-}
-
-type lock struct {
-	*Cache
-	watch types.WatchKind
-}
-
-func (c *lock) erase(ctx context.Context) error {
-	err := c.accessCache.DeleteAllLocks(ctx)
-	if err != nil && !trace.IsNotFound(err) {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-func (c *lock) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := c.Access.GetLocks(ctx, false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := c.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-		for _, resource := range resources {
-			if err := c.accessCache.UpsertLock(ctx, resource); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	}, nil
-}
-
-func (c *lock) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.accessCache.DeleteLock(ctx, event.Resource.GetName())
-		if err != nil && !trace.IsNotFound(err) {
-			c.Warningf("Failed to delete resource %v.", err)
-			return trace.Wrap(err)
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(types.Lock)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		if err := c.accessCache.UpsertLock(ctx, resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warnf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *lock) watchKind() types.WatchKind {
-	return c.watch
 }

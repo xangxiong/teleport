@@ -200,12 +200,6 @@ func (s *AccessService) DeleteLock(ctx context.Context, name string) error {
 	return trace.Wrap(err)
 }
 
-// DeleteLock deletes all/in-force locks.
-func (s *AccessService) DeleteAllLocks(ctx context.Context) error {
-	startKey := backend.Key(locksPrefix)
-	return s.DeleteRange(ctx, startKey, backend.RangeEnd(startKey))
-}
-
 // ReplaceRemoteLocks replaces the set of locks associated with a remote cluster.
 func (s *AccessService) ReplaceRemoteLocks(ctx context.Context, clusterName string, newRemoteLocks []types.Lock) error {
 	return backend.RunWhileLocked(ctx, s.Backend, "ReplaceRemoteLocks/"+clusterName, time.Minute, func(ctx context.Context) error {
