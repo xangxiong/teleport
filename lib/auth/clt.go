@@ -762,11 +762,6 @@ func (c *Client) GetStaticTokens() (types.StaticTokens, error) {
 	return st, err
 }
 
-// DeleteClusterName not implemented: can only be called locally.
-func (c *Client) DeleteClusterName() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // DeleteAllCertAuthorities not implemented: can only be called locally.
 func (c *Client) DeleteAllCertAuthorities(caType types.CertAuthType) error {
 	return trace.NotImplemented(notImplementedMessage)

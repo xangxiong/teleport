@@ -52,18 +52,6 @@ func (s *ClusterConfigurationService) GetClusterName(opts ...services.MarshalOpt
 		services.AddOptions(opts, services.WithResourceID(item.ID))...)
 }
 
-// DeleteClusterName deletes types.ClusterName from the backend.
-func (s *ClusterConfigurationService) DeleteClusterName() error {
-	err := s.Delete(context.TODO(), backend.Key(clusterConfigPrefix, namePrefix))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("cluster configuration not found")
-		}
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // GetStaticTokens gets the list of static tokens used to provision nodes.
 func (s *ClusterConfigurationService) GetStaticTokens() (types.StaticTokens, error) {
 	item, err := s.Get(context.TODO(), backend.Key(clusterConfigPrefix, staticTokensPrefix))
