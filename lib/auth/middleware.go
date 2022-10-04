@@ -266,17 +266,6 @@ func (a *Middleware) withAuthenticatedUser(ctx context.Context) (context.Context
 	return context.WithValue(ctx, ContextUser, user), nil
 }
 
-// withAuthenticatedUserUnaryInterceptor is a gRPC unary server interceptor
-// which sets the ContextUser field on the request context to the caller's user
-// identity as authenticated by their client TLS certificate.
-func (a *Middleware) withAuthenticatedUserUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	ctx, err := a.withAuthenticatedUser(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return handler(ctx, req)
-}
-
 // withAuthenticatedUserUnaryInterceptor is a gRPC stream server interceptor
 // which sets the ContextUser field on the request context to the caller's user
 // identity as authenticated by their client TLS certificate.
