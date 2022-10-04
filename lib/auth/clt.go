@@ -539,11 +539,6 @@ func (c *Client) DeleteTunnelConnection(clusterName string, connName string) err
 	return trace.Wrap(err)
 }
 
-// DeleteAllTokens not implemented: can only be called locally.
-func (c *Client) DeleteAllTokens() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // DeleteAllTunnelConnections deletes all tunnel connections
 func (c *Client) DeleteAllTunnelConnections() error {
 	_, err := c.Delete(context.TODO(), c.Endpoint("tunnelconnections"))
@@ -850,9 +845,6 @@ type ProvisioningService interface {
 	// DeleteToken deletes a given provisioning token on the auth server (CA). It
 	// could be a reset password token or a machine token
 	DeleteToken(ctx context.Context, token string) error
-
-	// DeleteAllTokens deletes all provisioning tokens
-	DeleteAllTokens() error
 
 	// UpsertToken adds provisioning tokens for the auth server
 	UpsertToken(ctx context.Context, token types.ProvisionToken) error

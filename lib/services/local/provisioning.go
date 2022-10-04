@@ -87,12 +87,6 @@ func (s *ProvisioningService) tokenToItem(p types.ProvisionToken) (*backend.Item
 	return item, nil
 }
 
-// DeleteAllTokens deletes all provisioning tokens
-func (s *ProvisioningService) DeleteAllTokens() error {
-	startKey := backend.Key(tokensPrefix)
-	return s.DeleteRange(context.TODO(), startKey, backend.RangeEnd(startKey))
-}
-
 // GetToken finds and returns token by ID
 func (s *ProvisioningService) GetToken(ctx context.Context, token string) (types.ProvisionToken, error) {
 	if token == "" {
