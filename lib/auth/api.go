@@ -167,9 +167,6 @@ type ReadProxyAccessPoint interface {
 	// GetProxies returns a list of proxy servers registered in the cluster
 	GetProxies() ([]types.Server, error)
 
-	// GetAuthServers returns a list of auth servers registered in the cluster
-	GetAuthServers() ([]types.Server, error)
-
 	// GetReverseTunnels returns  a list of reverse tunnels
 	GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error)
 
@@ -245,9 +242,6 @@ type ReadRemoteProxyAccessPoint interface {
 
 	// GetProxies returns a list of proxy servers registered in the cluster
 	GetProxies() ([]types.Server, error)
-
-	// GetAuthServers returns a list of auth servers registered in the cluster
-	GetAuthServers() ([]types.Server, error)
 
 	// GetReverseTunnels returns  a list of reverse tunnels
 	GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error)
@@ -331,9 +325,6 @@ type Cache interface {
 
 	// GetProxies returns a list of proxy servers registered in the cluster
 	GetProxies() ([]types.Server, error)
-
-	// GetAuthServers returns a list of auth servers registered in the cluster
-	GetAuthServers() ([]types.Server, error)
 
 	// GetCertAuthority returns cert authority by id
 	GetCertAuthority(ctx context.Context, id types.CertAuthID, loadKeys bool, opts ...services.MarshalOption) (types.CertAuthority, error)

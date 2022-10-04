@@ -586,27 +586,6 @@ func (c *Client) UpsertAuthServer(s types.Server) error {
 	return trace.Wrap(err)
 }
 
-// GetAuthServers returns the list of auth servers registered in the cluster.
-func (c *Client) GetAuthServers() ([]types.Server, error) {
-	out, err := c.Get(context.TODO(), c.Endpoint("authservers"), url.Values{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var items []json.RawMessage
-	if err := json.Unmarshal(out.Bytes(), &items); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	re := make([]types.Server, len(items))
-	for i, raw := range items {
-		server, err := services.UnmarshalServer(raw, types.KindAuthServer)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		re[i] = server
-	}
-	return re, nil
-}
-
 // DeleteAllAuthServers not implemented: can only be called locally.
 func (c *Client) DeleteAllAuthServers() error {
 	return trace.NotImplemented(notImplementedMessage)

@@ -1310,19 +1310,6 @@ func (c *Cache) getNodesWithTTLCache(ctx context.Context, rg readGuard, namespac
 	return cachedNodes, nil
 }
 
-// GetAuthServers returns a list of registered servers
-func (c *Cache) GetAuthServers() ([]types.Server, error) {
-	_, span := c.Tracer.Start(context.TODO(), "cache/GetAuthServers")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetAuthServers()
-}
-
 // GetReverseTunnels is a part of auth.Cache implementation
 func (c *Cache) GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error) {
 	ctx, span := c.Tracer.Start(ctx, "cache/GetReverseTunnels")

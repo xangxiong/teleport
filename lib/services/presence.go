@@ -57,9 +57,6 @@ type Presence interface {
 	// specified duration with second resolution if it's >= 1 second.
 	UpsertNode(ctx context.Context, server types.Server) (*types.KeepAlive, error)
 
-	// GetAuthServers returns a list of registered servers
-	GetAuthServers() ([]types.Server, error)
-
 	// UpsertAuthServer registers auth server presence, permanently if ttl is 0 or
 	// for the specified duration with second resolution if it's >= 1 second
 	UpsertAuthServer(server types.Server) error
