@@ -36,8 +36,6 @@ type ClusterConfiguration interface {
 	GetAuthPreference(context.Context) (types.AuthPreference, error)
 	// SetAuthPreference sets types.AuthPreference from the backend.
 	SetAuthPreference(context.Context, types.AuthPreference) error
-	// DeleteAuthPreference deletes types.AuthPreference from the backend.
-	DeleteAuthPreference(ctx context.Context) error
 
 	// GetSessionRecordingConfig gets SessionRecordingConfig from the backend.
 	GetSessionRecordingConfig(context.Context, ...MarshalOption) (types.SessionRecordingConfig, error)

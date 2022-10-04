@@ -51,11 +51,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter ClusterConfig")
 			}
 			collections[resourceKind] = &clusterAuditConfig{watch: watch, Cache: c}
-		case types.KindClusterAuthPreference:
-			if c.ClusterConfig == nil {
-				return nil, trace.BadParameter("missing parameter ClusterConfig")
-			}
-			collections[resourceKind] = &authPreference{watch: watch, Cache: c}
 		case types.KindNode:
 			if c.Presence == nil {
 				return nil, trace.BadParameter("missing parameter Presence")
@@ -457,74 +452,6 @@ func (r *webToken) processEvent(ctx context.Context, event types.Event) error {
 
 func (r *webToken) watchKind() types.WatchKind {
 	return r.watch
-}
-
-type authPreference struct {
-	*Cache
-	watch types.WatchKind
-}
-
-func (c *authPreference) erase(ctx context.Context) error {
-	if err := c.clusterConfigCache.DeleteAuthPreference(ctx); err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (c *authPreference) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	var noConfig bool
-	resource, err := c.ClusterConfig.GetAuthPreference(ctx)
-	if err != nil {
-		if !trace.IsNotFound(err) {
-			return nil, trace.Wrap(err)
-		}
-		noConfig = true
-	}
-	return func(ctx context.Context) error {
-		// either zero or one instance exists, so we either erase or
-		// update, but not both.
-		if noConfig {
-			if err := c.erase(ctx); err != nil {
-				return trace.Wrap(err)
-			}
-			return nil
-		}
-
-		if err := c.clusterConfigCache.SetAuthPreference(ctx, resource); err != nil {
-			return trace.Wrap(err)
-		}
-		return nil
-	}, nil
-}
-
-func (c *authPreference) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.clusterConfigCache.DeleteAuthPreference(ctx)
-		if err != nil {
-			if !trace.IsNotFound(err) {
-				c.Warningf("Failed to delete resource %v.", err)
-				return trace.Wrap(err)
-			}
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(types.AuthPreference)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		if err := c.clusterConfigCache.SetAuthPreference(ctx, resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warningf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *authPreference) watchKind() types.WatchKind {
-	return c.watch
 }
 
 type clusterAuditConfig struct {
