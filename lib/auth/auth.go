@@ -45,7 +45,6 @@ import (
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
@@ -123,7 +122,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		Services:        services,
 		Cache:           services,
 		keyStore:        keyStore,
-		inventory:       inventory.NewController(cfg.Presence),
 	}
 	for _, o := range opts {
 		if err := o(&as); err != nil {
@@ -200,8 +198,6 @@ type Server struct {
 
 	// lockWatcher is a lock watcher, used to verify cert generation requests.
 	lockWatcher *services.LockWatcher
-
-	inventory *inventory.Controller
 }
 
 func (a *Server) CloseContext() context.Context {
@@ -228,10 +224,6 @@ func (a *Server) Close() error {
 	a.cancelFunc()
 
 	var errs []error
-
-	if err := a.inventory.Close(); err != nil {
-		errs = append(errs, err)
-	}
 
 	if a.bk != nil {
 		if err := a.bk.Close(); err != nil {
@@ -457,7 +449,6 @@ func (a *Server) RegisterInventoryControlStream(ics client.UpstreamInventoryCont
 	if err := ics.Send(a.CloseContext(), downstreamHello); err != nil {
 		return trace.Wrap(err)
 	}
-	a.inventory.RegisterControlStream(ics, hello)
 	return nil
 }
 
