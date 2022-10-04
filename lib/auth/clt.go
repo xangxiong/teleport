@@ -521,30 +521,6 @@ func (c *Client) UpsertTunnelConnection(conn types.TunnelConnection) error {
 	return trace.Wrap(err)
 }
 
-// GetTunnelConnections returns tunnel connections for a given cluster
-func (c *Client) GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
-	if clusterName == "" {
-		return nil, trace.BadParameter("missing cluster name parameter")
-	}
-	out, err := c.Get(context.TODO(), c.Endpoint("tunnelconnections", clusterName), url.Values{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var items []json.RawMessage
-	if err := json.Unmarshal(out.Bytes(), &items); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	conns := make([]types.TunnelConnection, len(items))
-	for i, raw := range items {
-		conn, err := services.UnmarshalTunnelConnection(raw)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		conns[i] = conn
-	}
-	return conns, nil
-}
-
 // GetAllTunnelConnections returns all tunnel connections
 func (c *Client) GetAllTunnelConnections(opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
 	out, err := c.Get(context.TODO(), c.Endpoint("tunnelconnections"), url.Values{})

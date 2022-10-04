@@ -185,9 +185,6 @@ type ReadProxyAccessPoint interface {
 	// GetAllTunnelConnections returns all tunnel connections
 	GetAllTunnelConnections(opts ...services.MarshalOption) ([]types.TunnelConnection, error)
 
-	// GetTunnelConnections returns tunnel connections for a given cluster
-	GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error)
-
 	// GetNetworkRestrictions returns networking restrictions for restricted shell to enforce
 	GetNetworkRestrictions(ctx context.Context) (types.NetworkRestrictions, error)
 
@@ -269,9 +266,6 @@ type ReadRemoteProxyAccessPoint interface {
 
 	// GetAllTunnelConnections returns all tunnel connections
 	GetAllTunnelConnections(opts ...services.MarshalOption) ([]types.TunnelConnection, error)
-
-	// GetTunnelConnections returns tunnel connections for a given cluster
-	GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error)
 
 	// GetRemoteClusters returns a list of remote clusters
 	GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error)
@@ -370,9 +364,6 @@ type Cache interface {
 
 	// GetAllTunnelConnections returns all tunnel connections
 	GetAllTunnelConnections(opts ...services.MarshalOption) ([]types.TunnelConnection, error)
-
-	// GetTunnelConnections returns tunnel connections for a given cluster
-	GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error)
 
 	// GetRemoteClusters returns a list of remote clusters
 	GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error)

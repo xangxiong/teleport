@@ -119,9 +119,6 @@ type Presence interface {
 	// UpsertTunnelConnection upserts tunnel connection
 	UpsertTunnelConnection(types.TunnelConnection) error
 
-	// GetTunnelConnections returns tunnel connections for a given cluster
-	GetTunnelConnections(clusterName string, opts ...MarshalOption) ([]types.TunnelConnection, error)
-
 	// GetAllTunnelConnections returns all tunnel connections
 	GetAllTunnelConnections(opts ...MarshalOption) ([]types.TunnelConnection, error)
 

@@ -1436,19 +1436,6 @@ func (c *Cache) GetRemoteCluster(clusterName string) (types.RemoteCluster, error
 	return rc, trace.Wrap(err)
 }
 
-// GetTunnelConnections is a part of auth.Cache implementation
-func (c *Cache) GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
-	_, span := c.Tracer.Start(context.TODO(), "cache/GetTunnelConnections")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetTunnelConnections(clusterName, opts...)
-}
-
 // GetAllTunnelConnections is a part of auth.Cache implementation
 func (c *Cache) GetAllTunnelConnections(opts ...services.MarshalOption) (conns []types.TunnelConnection, err error) {
 	_, span := c.Tracer.Start(context.TODO(), "cache/GetAllTunnelConnections")

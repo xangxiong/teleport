@@ -481,29 +481,6 @@ func (s *PresenceService) GetTunnelConnection(clusterName, connectionName string
 	return conn, nil
 }
 
-// GetTunnelConnections returns connections for a trusted cluster
-func (s *PresenceService) GetTunnelConnections(clusterName string, opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
-	if clusterName == "" {
-		return nil, trace.BadParameter("missing cluster name")
-	}
-	startKey := backend.Key(tunnelConnectionsPrefix, clusterName)
-	result, err := s.GetRange(context.TODO(), startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	conns := make([]types.TunnelConnection, len(result.Items))
-	for i, item := range result.Items {
-		conn, err := services.UnmarshalTunnelConnection(item.Value,
-			services.AddOptions(opts, services.WithResourceID(item.ID), services.WithExpires(item.Expires))...)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		conns[i] = conn
-	}
-
-	return conns, nil
-}
-
 // GetAllTunnelConnections returns all tunnel connections
 func (s *PresenceService) GetAllTunnelConnections(opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
 	startKey := backend.Key(tunnelConnectionsPrefix)
