@@ -791,14 +791,14 @@ func (c *Client) GetSessionRecordingConfig(ctx context.Context, opts ...services
 	return c.APIClient.GetSessionRecordingConfig(ctx)
 }
 
-// GenerateCertAuthorityCRL generates an empty CRL for a CA.
-func (c *Client) GenerateCertAuthorityCRL(ctx context.Context, caType types.CertAuthType) ([]byte, error) {
-	resp, err := c.APIClient.GenerateCertAuthorityCRL(ctx, &proto.CertAuthorityRequest{Type: caType})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return resp.CRL, nil
-}
+// // GenerateCertAuthorityCRL generates an empty CRL for a CA.
+// func (c *Client) GenerateCertAuthorityCRL(ctx context.Context, caType types.CertAuthType) ([]byte, error) {
+// 	resp, err := c.APIClient.GenerateCertAuthorityCRL(ctx, &proto.CertAuthorityRequest{Type: caType})
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	return resp.CRL, nil
+// }
 
 // DeleteClusterNetworkingConfig not implemented: can only be called locally.
 func (c *Client) DeleteClusterNetworkingConfig(ctx context.Context) error {
@@ -938,9 +938,6 @@ type ClientI interface {
 
 	// ResetSessionRecordingConfig resets session recording configuration to defaults.
 	ResetSessionRecordingConfig(ctx context.Context) error
-
-	// GenerateCertAuthorityCRL generates an empty CRL for a CA.
-	GenerateCertAuthorityCRL(context.Context, types.CertAuthType) ([]byte, error)
 
 	// GetInventoryStatus gets basic status info about instance inventory.
 	GetInventoryStatus(ctx context.Context, req proto.InventoryStatusRequest) (proto.InventoryStatusSummary, error)

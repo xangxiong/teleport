@@ -60,9 +60,6 @@ type accessPoint interface {
 
 	// DeleteTunnelConnection deletes tunnel connection
 	DeleteTunnelConnection(clusterName, connName string) error
-
-	// GenerateCertAuthorityCRL returns an empty CRL for a CA.
-	GenerateCertAuthorityCRL(ctx context.Context, caType types.CertAuthType) ([]byte, error)
 }
 
 // ReadNodeAccessPoint is a read only API interface implemented by a certificate authority (CA) to be
