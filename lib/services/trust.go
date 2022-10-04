@@ -58,9 +58,6 @@ type Trust interface {
 	// DeleteCertAuthority deletes particular certificate authority
 	DeleteCertAuthority(id types.CertAuthID) error
 
-	// DeleteAllCertAuthorities deletes cert authorities of a certain type
-	DeleteAllCertAuthorities(caType types.CertAuthType) error
-
 	// ActivateCertAuthority moves a CertAuthority from the deactivated list to
 	// the normal list.
 	ActivateCertAuthority(id types.CertAuthID) error
