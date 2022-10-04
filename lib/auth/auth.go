@@ -99,9 +99,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Events == nil {
 		cfg.Events = local.NewEventsService(cfg.Backend)
 	}
-	if cfg.AuditLog == nil {
-		cfg.AuditLog = events.NewDiscardAuditLog()
-	}
 	if cfg.Emitter == nil {
 		cfg.Emitter = events.NewDiscardEmitter()
 	}
@@ -138,14 +135,14 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	}
 
 	services := &Services{
-		Trust:                 cfg.Trust,
-		Presence:              cfg.Presence,
-		Provisioner:           cfg.Provisioner,
-		Access:                cfg.Access,
-		DynamicAccessExt:      cfg.DynamicAccessExt,
-		ClusterConfiguration:  cfg.ClusterConfiguration,
-		Restrictions:          cfg.Restrictions,
-		IAuditLog:             cfg.AuditLog,
+		Trust:                cfg.Trust,
+		Presence:             cfg.Presence,
+		Provisioner:          cfg.Provisioner,
+		Access:               cfg.Access,
+		DynamicAccessExt:     cfg.DynamicAccessExt,
+		ClusterConfiguration: cfg.ClusterConfiguration,
+		Restrictions:         cfg.Restrictions,
+		// IAuditLog:             cfg.AuditLog,
 		Events:                cfg.Events,
 		SessionTrackerService: cfg.SessionTrackerService,
 		StatusInternal:        cfg.Status,

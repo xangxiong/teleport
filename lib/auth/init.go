@@ -129,9 +129,6 @@ type InitConfig struct {
 	// factor passed in from a configuration file.
 	AuthPreference types.AuthPreference
 
-	// AuditLog is used for emitting events to audit log.
-	AuditLog events.IAuditLog
-
 	// ClusterAuditConfig holds cluster audit configuration.
 	ClusterAuditConfig types.ClusterAuditConfig
 
