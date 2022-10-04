@@ -21,7 +21,6 @@ import (
 
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/utils"
-
 	"github.com/gravitational/trace"
 )
 
@@ -29,81 +28,6 @@ import (
 type SAMLConnector interface {
 	// ResourceWithSecrets provides common methods for objects
 	ResourceWithSecrets
-	// GetDisplay returns display - friendly name for this provider.
-	GetDisplay() string
-	// SetDisplay sets friendly name for this provider.
-	SetDisplay(string)
-	// GetAttributesToRoles returns attributes to roles mapping
-	GetAttributesToRoles() []AttributeMapping
-	// SetAttributesToRoles sets attributes to roles mapping
-	SetAttributesToRoles(mapping []AttributeMapping)
-	// GetAttributes returns list of attributes expected by mappings
-	GetAttributes() []string
-	// GetTraitMappings converts gets all attribute mappings in the
-	// generic trait mapping format.
-	GetTraitMappings() TraitMappingSet
-	// SetIssuer sets issuer
-	SetIssuer(issuer string)
-	// GetIssuer returns issuer
-	GetIssuer() string
-	// GetSigningKeyPair returns signing key pair
-	GetSigningKeyPair() *AsymmetricKeyPair
-	// GetSigningKeyPair sets signing key pair
-	SetSigningKeyPair(k *AsymmetricKeyPair)
-	// GetSSO returns SSO service
-	GetSSO() string
-	// SetSSO sets SSO service
-	SetSSO(string)
-	// GetEntityDescriptor returns XML entity descriptor of the service
-	GetEntityDescriptor() string
-	// SetEntityDescriptor sets entity descriptor of the service
-	SetEntityDescriptor(v string)
-	// GetEntityDescriptorURL returns the URL to obtain the entity descriptor.
-	GetEntityDescriptorURL() string
-	// SetEntityDescriptorURL sets the entity descriptor url.
-	SetEntityDescriptorURL(string)
-	// GetCert returns identity provider checking x509 certificate
-	GetCert() string
-	// SetCert sets identity provider checking certificate
-	SetCert(string)
-	// GetServiceProviderIssuer returns service provider issuer
-	GetServiceProviderIssuer() string
-	// SetServiceProviderIssuer sets service provider issuer
-	SetServiceProviderIssuer(v string)
-	// GetAudience returns audience
-	GetAudience() string
-	// SetAudience sets audience
-	SetAudience(v string)
-	// GetAssertionConsumerService returns assertion consumer service URL
-	GetAssertionConsumerService() string
-	// SetAssertionConsumerService sets assertion consumer service URL
-	SetAssertionConsumerService(v string)
-	// GetProvider returns the identity provider.
-	GetProvider() string
-	// SetProvider sets the identity provider.
-	SetProvider(string)
-	// GetEncryptionKeyPair returns the key pair for SAML assertions.
-	GetEncryptionKeyPair() *AsymmetricKeyPair
-	// SetEncryptionKeyPair sets the key pair for SAML assertions.
-	SetEncryptionKeyPair(k *AsymmetricKeyPair)
-	// GetAllowIDPInitiated returns whether the identity provider can initiate a login or not.
-	GetAllowIDPInitiated() bool
-	// SetAllowIDPInitiated sets whether the identity provider can initiate a login or not.
-	SetAllowIDPInitiated(bool)
-}
-
-// NewSAMLConnector returns a new SAMLConnector based off a name and SAMLConnectorSpecV2.
-func NewSAMLConnector(name string, spec SAMLConnectorSpecV2) (SAMLConnector, error) {
-	o := &SAMLConnectorV2{
-		Metadata: Metadata{
-			Name: name,
-		},
-		Spec: spec,
-	}
-	if err := o.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return o, nil
 }
 
 // GetVersion returns resource version
@@ -154,81 +78,6 @@ func (o *SAMLConnectorV2) WithoutSecrets() Resource {
 	return &o2
 }
 
-// GetServiceProviderIssuer returns service provider issuer
-func (o *SAMLConnectorV2) GetServiceProviderIssuer() string {
-	return o.Spec.ServiceProviderIssuer
-}
-
-// SetServiceProviderIssuer sets service provider issuer
-func (o *SAMLConnectorV2) SetServiceProviderIssuer(v string) {
-	o.Spec.ServiceProviderIssuer = v
-}
-
-// GetAudience returns audience
-func (o *SAMLConnectorV2) GetAudience() string {
-	return o.Spec.Audience
-}
-
-// SetAudience sets audience
-func (o *SAMLConnectorV2) SetAudience(v string) {
-	o.Spec.Audience = v
-}
-
-// GetCert returns identity provider checking x509 certificate
-func (o *SAMLConnectorV2) GetCert() string {
-	return o.Spec.Cert
-}
-
-// SetCert sets identity provider checking certificate
-func (o *SAMLConnectorV2) SetCert(cert string) {
-	o.Spec.Cert = cert
-}
-
-// GetSSO returns SSO service
-func (o *SAMLConnectorV2) GetSSO() string {
-	return o.Spec.SSO
-}
-
-// SetSSO sets SSO service
-func (o *SAMLConnectorV2) SetSSO(sso string) {
-	o.Spec.SSO = sso
-}
-
-// GetEntityDescriptor returns XML entity descriptor of the service
-func (o *SAMLConnectorV2) GetEntityDescriptor() string {
-	return o.Spec.EntityDescriptor
-}
-
-// SetEntityDescriptor sets entity descriptor of the service
-func (o *SAMLConnectorV2) SetEntityDescriptor(v string) {
-	o.Spec.EntityDescriptor = v
-}
-
-// GetEntityDescriptorURL returns the URL to obtain the entity descriptor.
-func (o *SAMLConnectorV2) GetEntityDescriptorURL() string {
-	return o.Spec.EntityDescriptorURL
-}
-
-// SetEntityDescriptorURL sets the entity descriptor url.
-func (o *SAMLConnectorV2) SetEntityDescriptorURL(v string) {
-	o.Spec.EntityDescriptorURL = v
-}
-
-// GetAssertionConsumerService returns assertion consumer service URL
-func (o *SAMLConnectorV2) GetAssertionConsumerService() string {
-	return o.Spec.AssertionConsumerService
-}
-
-// SetAssertionConsumerService sets assertion consumer service URL
-func (o *SAMLConnectorV2) SetAssertionConsumerService(v string) {
-	o.Spec.AssertionConsumerService = v
-}
-
-// SetDisplay sets friendly name for this provider.
-func (o *SAMLConnectorV2) SetDisplay(display string) {
-	o.Spec.Display = display
-}
-
 // GetMetadata returns object metadata
 func (o *SAMLConnectorV2) GetMetadata() Metadata {
 	return o.Metadata
@@ -254,66 +103,6 @@ func (o *SAMLConnectorV2) SetName(name string) {
 	o.Metadata.SetName(name)
 }
 
-// SetIssuer sets issuer
-func (o *SAMLConnectorV2) SetIssuer(issuer string) {
-	o.Spec.Issuer = issuer
-}
-
-// GetIssuer returns issuer
-func (o *SAMLConnectorV2) GetIssuer() string {
-	return o.Spec.Issuer
-}
-
-// GetDisplay returns the friendly name for this provider.
-func (o *SAMLConnectorV2) GetDisplay() string {
-	if o.Spec.Display != "" {
-		return o.Spec.Display
-	}
-	return o.GetName()
-}
-
-// GetAttributesToRoles returns attributes to roles mapping
-func (o *SAMLConnectorV2) GetAttributesToRoles() []AttributeMapping {
-	return o.Spec.AttributesToRoles
-}
-
-// SetAttributesToRoles sets attributes to roles mapping
-func (o *SAMLConnectorV2) SetAttributesToRoles(mapping []AttributeMapping) {
-	o.Spec.AttributesToRoles = mapping
-}
-
-// SetProvider sets the identity provider.
-func (o *SAMLConnectorV2) SetProvider(identityProvider string) {
-	o.Spec.Provider = identityProvider
-}
-
-// GetProvider returns the identity provider.
-func (o *SAMLConnectorV2) GetProvider() string {
-	return o.Spec.Provider
-}
-
-// GetAttributes returns list of attributes expected by mappings
-func (o *SAMLConnectorV2) GetAttributes() []string {
-	var out []string
-	for _, mapping := range o.Spec.AttributesToRoles {
-		out = append(out, mapping.Name)
-	}
-	return utils.Deduplicate(out)
-}
-
-// GetTraitMappings returns the SAMLConnector's TraitMappingSet
-func (o *SAMLConnectorV2) GetTraitMappings() TraitMappingSet {
-	tms := make([]TraitMapping, 0, len(o.Spec.AttributesToRoles))
-	for _, mapping := range o.Spec.AttributesToRoles {
-		tms = append(tms, TraitMapping{
-			Trait: mapping.Name,
-			Value: mapping.Value,
-			Roles: mapping.Roles,
-		})
-	}
-	return TraitMappingSet(tms)
-}
-
 // GetSigningKeyPair returns signing key pair
 func (o *SAMLConnectorV2) GetSigningKeyPair() *AsymmetricKeyPair {
 	return o.Spec.SigningKeyPair
@@ -332,16 +121,6 @@ func (o *SAMLConnectorV2) GetEncryptionKeyPair() *AsymmetricKeyPair {
 // SetEncryptionKeyPair sets the key pair for SAML assertions.
 func (o *SAMLConnectorV2) SetEncryptionKeyPair(k *AsymmetricKeyPair) {
 	o.Spec.EncryptionKeyPair = k
-}
-
-// GetAllowIDPInitiated returns whether the identity provider can initiate a login or not.
-func (o *SAMLConnectorV2) GetAllowIDPInitiated() bool {
-	return o.Spec.AllowIDPInitiated
-}
-
-// SetAllowIDPInitiated sets whether the identity provider can initiate a login or not.
-func (o *SAMLConnectorV2) SetAllowIDPInitiated(allow bool) {
-	o.Spec.AllowIDPInitiated = allow
 }
 
 // setStaticFields sets static resource header and metadata fields.
@@ -379,10 +158,5 @@ func (o *SAMLConnectorV2) CheckAndSetDefaults() error {
 			return trace.BadParameter("need roles field in attributes_to_roles")
 		}
 	}
-	return nil
-}
-
-// Check returns nil if all parameters are great, err otherwise
-func (i *SAMLAuthRequest) Check() error {
 	return nil
 }
