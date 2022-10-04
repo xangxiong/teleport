@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"math"
 	"net"
 	"net/http"
 	"time"
@@ -148,7 +147,6 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 			trace.Component: cfg.Component,
 		}),
 	}
-	server.cfg.TLS.GetConfigForClient = server.GetConfigForClient
 
 	server.grpcServer, err = NewGRPCServer(GRPCServerConfig{
 		TLS:               server.cfg.TLS,
@@ -229,62 +227,6 @@ func (t *TLSServer) Serve() error {
 		errors = append(errors, <-errC)
 	}
 	return trace.NewAggregate(errors...)
-}
-
-// GetConfigForClient is getting called on every connection
-// and server's GetConfigForClient reloads the list of trusted
-// local and remote certificate authorities
-func (t *TLSServer) GetConfigForClient(info *tls.ClientHelloInfo) (*tls.Config, error) {
-	var clusterName string
-	var err error
-	switch info.ServerName {
-	case "":
-		// Client does not use SNI, will validate against all known CAs.
-	default:
-		clusterName, err = apiutils.DecodeClusterName(info.ServerName)
-		if err != nil {
-			if !trace.IsNotFound(err) {
-				t.log.Warningf("Client sent unsupported cluster name %q, what resulted in error %v.", info.ServerName, err)
-				return nil, trace.AccessDenied("access is denied")
-			}
-		}
-	}
-
-	// update client certificate pool based on currently trusted TLS
-	// certificate authorities.
-	// TODO(klizhentas) drop connections of the TLS cert authorities
-	// that are not trusted
-	pool, totalSubjectsLen, err := DefaultClientCertPool(t.cfg.AccessPoint, clusterName)
-	if err != nil {
-		var ourClusterName string
-		if clusterName, err := t.cfg.AccessPoint.GetClusterName(); err == nil {
-			ourClusterName = clusterName.GetClusterName()
-		}
-		t.log.Errorf("Failed to retrieve client pool for client %v, client cluster %v, target cluster %v, error:  %v.",
-			info.Conn.RemoteAddr().String(), clusterName, ourClusterName, trace.DebugReport(err))
-		// this falls back to the default config
-		return nil, nil
-	}
-
-	// Per https://tools.ietf.org/html/rfc5246#section-7.4.4 the total size of
-	// the known CA subjects sent to the client can't exceed 2^16-1 (due to
-	// 2-byte length encoding). The crypto/tls stack will panic if this
-	// happens. To make the error less cryptic, catch this condition and return
-	// a better error.
-	//
-	// This may happen with a very large (>500) number of trusted clusters, if
-	// the client doesn't send the correct ServerName in its ClientHelloInfo
-	// (see the switch at the top of this func).
-	if totalSubjectsLen >= int64(math.MaxUint16) {
-		return nil, trace.BadParameter("number of CAs in client cert pool is too large and cannot be encoded in a TLS handshake; this is due to a large number of trusted clusters; try updating tsh to the latest version; if that doesn't help, remove some trusted clusters")
-	}
-
-	tlsCopy := t.cfg.TLS.Clone()
-	tlsCopy.ClientCAs = pool
-	for _, cert := range tlsCopy.Certificates {
-		t.log.Debugf("Server certificate %v.", TLSCertInfo(&cert))
-	}
-	return tlsCopy, nil
 }
 
 // Middleware is authentication middleware checking every request
