@@ -104,10 +104,6 @@ type InitConfig struct {
 	// environments where paranoid security is not needed
 	StaticTokens types.StaticTokens
 
-	// AuthPreference defines the authentication type (local, oidc) and second
-	// factor passed in from a configuration file.
-	AuthPreference types.AuthPreference
-
 	// SkipPeriodicOperations turns off periodic operations
 	// used in tests that don't need periodic operations.
 	SkipPeriodicOperations bool
