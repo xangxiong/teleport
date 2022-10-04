@@ -181,9 +181,6 @@ type Server struct {
 	// method on Services instead.
 	Cache
 
-	// privateKey is used in tests to use pre-generated private keys
-	privateKey []byte
-
 	// limiter limits the number of active connections per client IP.
 	limiter *limiter.ConnectionsLimiter
 
@@ -527,40 +524,6 @@ func (a *Server) checkTokenTTL(tok types.ProvisionToken) bool {
 
 // ErrDone indicates that resource iteration is complete
 var ErrDone = errors.New("done iterating")
-
-func mergeKeySets(a, b types.CAKeySet) types.CAKeySet {
-	newKeySet := a.Clone()
-	newKeySet.SSH = append(newKeySet.SSH, b.SSH...)
-	newKeySet.TLS = append(newKeySet.TLS, b.TLS...)
-	newKeySet.JWT = append(newKeySet.JWT, b.JWT...)
-	return newKeySet
-}
-
-func newKeySet(keyStore keystore.KeyStore, caID types.CertAuthID) (types.CAKeySet, error) {
-	var keySet types.CAKeySet
-	switch caID.Type {
-	case types.UserCA, types.HostCA:
-		sshKeyPair, err := keyStore.NewSSHKeyPair()
-		if err != nil {
-			return keySet, trace.Wrap(err)
-		}
-		tlsKeyPair, err := keyStore.NewTLSKeyPair(caID.DomainName)
-		if err != nil {
-			return keySet, trace.Wrap(err)
-		}
-		keySet.SSH = append(keySet.SSH, sshKeyPair)
-		keySet.TLS = append(keySet.TLS, tlsKeyPair)
-	case types.JWTSigner:
-		jwtKeyPair, err := keyStore.NewJWTKeyPair()
-		if err != nil {
-			return keySet, trace.Wrap(err)
-		}
-		keySet.JWT = append(keySet.JWT, jwtKeyPair)
-	default:
-		return keySet, trace.BadParameter("unknown ca type: %s", caID.Type)
-	}
-	return keySet, nil
-}
 
 // DefaultDNSNamesForRole returns default DNS names for the specified role.
 func DefaultDNSNamesForRole(role types.SystemRole) []string {
