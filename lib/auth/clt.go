@@ -328,16 +328,6 @@ func (c *Client) CreateCertAuthority(ca types.CertAuthority) error {
 	return trace.NotImplemented(notImplementedMessage)
 }
 
-// RotateCertAuthority starts or restarts certificate authority rotation process.
-func (c *Client) RotateCertAuthority(ctx context.Context, req RotateRequest) error {
-	caType := "all"
-	if req.Type != "" {
-		caType = string(req.Type)
-	}
-	_, err := c.PostJSON(ctx, c.Endpoint("authorities", caType, "rotate"), req)
-	return trace.Wrap(err)
-}
-
 // RotateExternalCertAuthority rotates external certificate authority,
 // this method is used to update only public keys and certificates of the
 // the certificate authorities of trusted clusters.
@@ -797,9 +787,6 @@ type ClientI interface {
 
 	// NewKeepAliver returns a new instance of keep aliver
 	NewKeepAliver(ctx context.Context) (types.KeepAliver, error)
-
-	// RotateCertAuthority starts or restarts certificate authority rotation process.
-	RotateCertAuthority(ctx context.Context, req RotateRequest) error
 
 	// RotateExternalCertAuthority rotates external certificate authority,
 	// this method is used to update only public keys and certificates of the
