@@ -26,34 +26,6 @@ import (
 	"github.com/gravitational/teleport/lib/services"
 )
 
-// AuthenticateUserRequest is a request to authenticate interactive user
-type AuthenticateUserRequest struct {
-	// Username is a username
-	Username string `json:"username"`
-	// Pass is a password used in local authentication schemes
-	Pass *PassCreds `json:"pass,omitempty"`
-	// Session is a web session credential used to authenticate web sessions
-	Session *SessionCreds `json:"session,omitempty"`
-	// ClientMetadata includes forwarded information about a client
-	ClientMetadata *ForwardedClientMetadata `json:"client_metadata,omitempty"`
-}
-
-// ForwardedClientMetadata can be used by the proxy web API to forward information about
-// the client to the auth service for logging purposes.
-type ForwardedClientMetadata struct {
-	UserAgent  string `json:"user_agent,omitempty"`
-	RemoteAddr string `json:"remote_addr,omitempty"`
-}
-
-// CheckAndSetDefaults checks and sets defaults
-func (a *AuthenticateUserRequest) CheckAndSetDefaults() error {
-	switch {
-	case a.Username == "":
-		return trace.BadParameter("missing parameter 'username'")
-	}
-	return nil
-}
-
 // PassCreds is a password credential
 type PassCreds struct {
 	// Password is a user password
