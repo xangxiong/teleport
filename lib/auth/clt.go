@@ -747,12 +747,6 @@ func (c *Client) GetClusterName(opts ...services.MarshalOption) (types.ClusterNa
 	return cn, err
 }
 
-// DeleteStaticTokens deletes static tokens
-func (c *Client) DeleteStaticTokens() error {
-	_, err := c.Delete(context.TODO(), c.Endpoint("configuration", "static_tokens"))
-	return trace.Wrap(err)
-}
-
 // GetStaticTokens returns a list of static register tokens
 func (c *Client) GetStaticTokens() (types.StaticTokens, error) {
 	out, err := c.Get(context.TODO(), c.Endpoint("configuration", "static_tokens"), url.Values{})

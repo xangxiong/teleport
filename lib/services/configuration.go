@@ -31,8 +31,6 @@ type ClusterConfiguration interface {
 
 	// GetStaticTokens gets services.StaticTokens from the backend.
 	GetStaticTokens() (types.StaticTokens, error)
-	// DeleteStaticTokens deletes static tokens resource
-	DeleteStaticTokens() error
 
 	// GetAuthPreference gets types.AuthPreference from the backend.
 	GetAuthPreference(context.Context) (types.AuthPreference, error)

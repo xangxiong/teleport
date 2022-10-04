@@ -77,18 +77,6 @@ func (s *ClusterConfigurationService) GetStaticTokens() (types.StaticTokens, err
 		services.WithResourceID(item.ID), services.WithExpires(item.Expires))
 }
 
-// DeleteStaticTokens deletes static tokens
-func (s *ClusterConfigurationService) DeleteStaticTokens() error {
-	err := s.Delete(context.TODO(), backend.Key(clusterConfigPrefix, staticTokensPrefix))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("static tokens are not found")
-		}
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // GetAuthPreference fetches the cluster authentication preferences
 // from the backend and return them.
 func (s *ClusterConfigurationService) GetAuthPreference(ctx context.Context) (types.AuthPreference, error) {
