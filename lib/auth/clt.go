@@ -732,11 +732,6 @@ func (c *Client) GetNamespace(name string) (*types.Namespace, error) {
 	return services.UnmarshalNamespace(out.Bytes())
 }
 
-// CreateRole not implemented: can only be called locally.
-func (c *Client) CreateRole(ctx context.Context, role types.Role) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // GetClusterName returns a cluster name
 func (c *Client) GetClusterName(opts ...services.MarshalOption) (types.ClusterName, error) {
 	out, err := c.Get(context.TODO(), c.Endpoint("configuration", "name"), url.Values{})

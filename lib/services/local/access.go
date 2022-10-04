@@ -68,31 +68,6 @@ func (s *AccessService) GetRoles(ctx context.Context) ([]types.Role, error) {
 	return out, nil
 }
 
-// CreateRole creates a role on the backend.
-func (s *AccessService) CreateRole(ctx context.Context, role types.Role) error {
-	err := services.ValidateRoleName(role)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	value, err := services.MarshalRole(role)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	item := backend.Item{
-		Key:     backend.Key(rolesPrefix, role.GetName(), paramsPrefix),
-		Value:   value,
-		Expires: role.Expiry(),
-	}
-
-	_, err = s.Create(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // UpsertRole updates parameters about role
 func (s *AccessService) UpsertRole(ctx context.Context, role types.Role) error {
 	err := services.ValidateRoleName(role)
