@@ -819,10 +819,4 @@ type ClientI interface {
 
 	// Ping gets basic info about the auth server.
 	Ping(ctx context.Context) (proto.PingResponse, error)
-
-	// ResetAuthPreference resets cluster auth preference to defaults.
-	ResetAuthPreference(ctx context.Context) error
-
-	// ResetClusterNetworkingConfig resets cluster networking configuration to defaults.
-	ResetClusterNetworkingConfig(ctx context.Context) error
 }
