@@ -200,18 +200,6 @@ func (s *ClusterConfigurationService) SetClusterNetworkingConfig(ctx context.Con
 	return nil
 }
 
-// DeleteClusterNetworkingConfig deletes ClusterNetworkingConfig from the backend.
-func (s *ClusterConfigurationService) DeleteClusterNetworkingConfig(ctx context.Context) error {
-	err := s.Delete(ctx, backend.Key(clusterConfigPrefix, networkingPrefix))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("cluster networking config not found")
-		}
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // GetSessionRecordingConfig gets session recording config from the backend.
 func (s *ClusterConfigurationService) GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error) {
 	item, err := s.Get(ctx, backend.Key(clusterConfigPrefix, sessionRecordingPrefix))

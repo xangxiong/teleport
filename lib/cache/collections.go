@@ -51,11 +51,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter ClusterConfig")
 			}
 			collections[resourceKind] = &clusterAuditConfig{watch: watch, Cache: c}
-		case types.KindClusterNetworkingConfig:
-			if c.ClusterConfig == nil {
-				return nil, trace.BadParameter("missing parameter ClusterConfig")
-			}
-			collections[resourceKind] = &clusterNetworkingConfig{watch: watch, Cache: c}
 		case types.KindClusterAuthPreference:
 			if c.ClusterConfig == nil {
 				return nil, trace.BadParameter("missing parameter ClusterConfig")
@@ -343,70 +338,6 @@ func (c *node) watchKind() types.WatchKind {
 	return c.watch
 }
 
-// type provisionToken struct {
-// 	*Cache
-// 	watch types.WatchKind
-// }
-
-// // erase erases all data in the collection
-// func (c *provisionToken) erase(ctx context.Context) error {
-// 	if err := c.provisionerCache.DeleteAllTokens(); err != nil {
-// 		if !trace.IsNotFound(err) {
-// 			return trace.Wrap(err)
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func (c *provisionToken) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-// 	tokens, err := c.Provisioner.GetTokens(ctx)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	return func(ctx context.Context) error {
-// 		if err := c.erase(ctx); err != nil {
-// 			return trace.Wrap(err)
-// 		}
-// 		for _, resource := range tokens {
-// 			if err := c.provisionerCache.UpsertToken(ctx, resource); err != nil {
-// 				return trace.Wrap(err)
-// 			}
-// 		}
-// 		return nil
-// 	}, nil
-// }
-
-// func (c *provisionToken) processEvent(ctx context.Context, event types.Event) error {
-// 	switch event.Type {
-// 	case types.OpDelete:
-// 		err := c.provisionerCache.DeleteToken(ctx, event.Resource.GetName())
-// 		if err != nil {
-// 			// resource could be missing in the cache
-// 			// expired or not created, if the first consumed
-// 			// event is delete
-// 			if !trace.IsNotFound(err) {
-// 				c.Warningf("Failed to delete provisioning token %v.", err)
-// 				return trace.Wrap(err)
-// 			}
-// 		}
-// 	case types.OpPut:
-// 		resource, ok := event.Resource.(types.ProvisionToken)
-// 		if !ok {
-// 			return trace.BadParameter("unexpected type %T", event.Resource)
-// 		}
-// 		if err := c.provisionerCache.UpsertToken(ctx, resource); err != nil {
-// 			return trace.Wrap(err)
-// 		}
-// 	default:
-// 		c.Warningf("Skipping unsupported event type %v.", event.Type)
-// 	}
-// 	return nil
-// }
-
-// func (c *provisionToken) watchKind() types.WatchKind {
-// 	return c.watch
-// }
-
 type webSession struct {
 	*Cache
 	watch types.WatchKind
@@ -666,74 +597,6 @@ func (c *clusterAuditConfig) processEvent(ctx context.Context, event types.Event
 }
 
 func (c *clusterAuditConfig) watchKind() types.WatchKind {
-	return c.watch
-}
-
-type clusterNetworkingConfig struct {
-	*Cache
-	watch types.WatchKind
-}
-
-func (c *clusterNetworkingConfig) erase(ctx context.Context) error {
-	if err := c.clusterConfigCache.DeleteClusterNetworkingConfig(ctx); err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (c *clusterNetworkingConfig) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	var noConfig bool
-	resource, err := c.ClusterConfig.GetClusterNetworkingConfig(ctx)
-	if err != nil {
-		if !trace.IsNotFound(err) {
-			return nil, trace.Wrap(err)
-		}
-		noConfig = true
-	}
-	return func(ctx context.Context) error {
-		// either zero or one instance exists, so we either erase or
-		// update, but not both.
-		if noConfig {
-			if err := c.erase(ctx); err != nil {
-				return trace.Wrap(err)
-			}
-			return nil
-		}
-
-		if err := c.clusterConfigCache.SetClusterNetworkingConfig(ctx, resource); err != nil {
-			return trace.Wrap(err)
-		}
-		return nil
-	}, nil
-}
-
-func (c *clusterNetworkingConfig) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.clusterConfigCache.DeleteClusterNetworkingConfig(ctx)
-		if err != nil {
-			if !trace.IsNotFound(err) {
-				c.Warningf("Failed to delete resource %v.", err)
-				return trace.Wrap(err)
-			}
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(types.ClusterNetworkingConfig)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		if err := c.clusterConfigCache.SetClusterNetworkingConfig(ctx, resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warningf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *clusterNetworkingConfig) watchKind() types.WatchKind {
 	return c.watch
 }
 

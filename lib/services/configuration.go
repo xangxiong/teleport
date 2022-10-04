@@ -57,6 +57,4 @@ type ClusterConfiguration interface {
 	GetClusterNetworkingConfig(context.Context, ...MarshalOption) (types.ClusterNetworkingConfig, error)
 	// SetClusterNetworkingConfig sets ClusterNetworkingConfig from the backend.
 	SetClusterNetworkingConfig(context.Context, types.ClusterNetworkingConfig) error
-	// DeleteClusterNetworkingConfig deletes ClusterNetworkingConfig from the backend.
-	DeleteClusterNetworkingConfig(ctx context.Context) error
 }
