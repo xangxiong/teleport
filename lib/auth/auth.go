@@ -102,9 +102,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 			return nil, trace.Wrap(err)
 		}
 	}
-	if cfg.AssertionReplayService == nil {
-		cfg.AssertionReplayService = local.NewAssertionReplayService(cfg.Backend)
-	}
 	if cfg.KeyStoreConfig.RSAKeyPairSource == nil {
 		native.PrecomputeKeys()
 		cfg.KeyStoreConfig.RSAKeyPairSource = native.GenerateKeyPair
