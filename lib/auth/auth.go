@@ -224,10 +224,6 @@ type Server struct {
 	// Emitter is events emitter, used to submit discrete events
 	emitter apievents.Emitter
 
-	// streamer is events sessionstreamer, used to create continuous
-	// session related streams
-	streamer events.Streamer
-
 	// keyStore is an interface for interacting with private keys in CAs which
 	// may be backed by HSMs
 	keyStore keystore.KeyStore
