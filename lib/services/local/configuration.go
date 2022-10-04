@@ -118,18 +118,6 @@ func (s *ClusterConfigurationService) GetClusterAuditConfig(ctx context.Context,
 	return services.UnmarshalClusterAuditConfig(item.Value, append(opts, services.WithResourceID(item.ID), services.WithExpires(item.Expires))...)
 }
 
-// DeleteClusterAuditConfig deletes ClusterAuditConfig from the backend.
-func (s *ClusterConfigurationService) DeleteClusterAuditConfig(ctx context.Context) error {
-	err := s.Delete(ctx, backend.Key(clusterConfigPrefix, auditPrefix))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("cluster audit config not found")
-		}
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // GetClusterNetworkingConfig gets cluster networking config from the backend.
 func (s *ClusterConfigurationService) GetClusterNetworkingConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterNetworkingConfig, error) {
 	item, err := s.Get(ctx, backend.Key(clusterConfigPrefix, networkingPrefix))
