@@ -65,9 +65,6 @@ type RegisterParams struct {
 	Clock clockwork.Clock
 	// JoinMethod is the joining method used for this register request.
 	JoinMethod types.JoinMethod
-	// // ec2IdentityDocument is used for Simplified Node Joining to prove the
-	// // identity of a joining EC2 instance.
-	// ec2IdentityDocument []byte
 	// CircuitBreakerConfig defines how the circuit breaker should behave.
 	CircuitBreakerConfig breaker.Config
 	// FIPS means FedRAMP/FIPS 140-2 compliant configuration was requested.
@@ -163,7 +160,6 @@ func registerThroughProxy(token string, params RegisterParams) (*proto.Certs, er
 			DNSNames:             params.DNSNames,
 			PublicTLSKey:         params.PublicTLSKey,
 			PublicSSHKey:         params.PublicSSHKey,
-			// EC2IdentityDocument:  params.ec2IdentityDocument,
 		})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -204,7 +200,6 @@ func registerThroughAuth(token string, params RegisterParams) (*proto.Certs, err
 			DNSNames:             params.DNSNames,
 			PublicTLSKey:         params.PublicTLSKey,
 			PublicSSHKey:         params.PublicSSHKey,
-			// EC2IdentityDocument:  params.ec2IdentityDocument,
 		})
 	return certs, trace.Wrap(err)
 }
