@@ -37,8 +37,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/peer"
 )
 
 // TLSServerConfig is a configuration for TLS server
@@ -146,9 +144,8 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 	}
 
 	server.grpcServer, err = NewGRPCServer(GRPCServerConfig{
-		TLS:               server.cfg.TLS,
-		APIConfig:         cfg.APIConfig,
-		StreamInterceptor: authMiddleware.StreamInterceptor(),
+		TLS:       server.cfg.TLS,
+		APIConfig: cfg.APIConfig,
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -171,60 +168,6 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 	return server, nil
 }
 
-// Close closes TLS server non-gracefully - terminates in flight connections
-func (t *TLSServer) Close() error {
-	errC := make(chan error, 2)
-	go func() {
-		errC <- t.httpServer.Close()
-	}()
-	go func() {
-		t.grpcServer.server.Stop()
-		errC <- nil
-	}()
-	errors := []error{}
-	for i := 0; i < 2; i++ {
-		errors = append(errors, <-errC)
-	}
-	return trace.NewAggregate(errors...)
-}
-
-// Shutdown shuts down TLS server
-func (t *TLSServer) Shutdown(ctx context.Context) error {
-	errC := make(chan error, 2)
-	go func() {
-		errC <- t.httpServer.Shutdown(ctx)
-	}()
-	go func() {
-		t.grpcServer.server.GracefulStop()
-		errC <- nil
-	}()
-	errors := []error{}
-	for i := 0; i < 2; i++ {
-		errors = append(errors, <-errC)
-	}
-	return trace.NewAggregate(errors...)
-}
-
-// Serve starts GRPC and HTTP1.1 services on the mux listener
-func (t *TLSServer) Serve() error {
-	errC := make(chan error, 2)
-	go func() {
-		err := t.mux.Serve()
-		t.log.WithError(err).Warningf("Mux serve failed.")
-	}()
-	go func() {
-		errC <- t.httpServer.Serve(t.mux.HTTP())
-	}()
-	go func() {
-		errC <- t.grpcServer.server.Serve(t.mux.HTTP2())
-	}()
-	errors := []error{}
-	for i := 0; i < 2; i++ {
-		errors = append(errors, <-errC)
-	}
-	return trace.NewAggregate(errors...)
-}
-
 // Middleware is authentication middleware checking every request
 type Middleware struct {
 	// AccessPoint is a caching access point for auth server
@@ -245,46 +188,6 @@ type Middleware struct {
 // Wrap sets next handler in chain
 func (a *Middleware) Wrap(h http.Handler) {
 	a.Handler = h
-}
-
-// withAuthenticatedUser returns a new context with the ContextUser field set to
-// the caller's user identity as authenticated by their client TLS certificate.
-func (a *Middleware) withAuthenticatedUser(ctx context.Context) (context.Context, error) {
-	peerInfo, ok := peer.FromContext(ctx)
-	if !ok {
-		return nil, trace.AccessDenied("missing authentication")
-	}
-	tlsInfo, ok := peerInfo.AuthInfo.(credentials.TLSInfo)
-	if !ok {
-		return nil, trace.AccessDenied("missing authentication")
-	}
-	user, err := a.GetUser(tlsInfo.State)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	ctx = context.WithValue(ctx, ContextClientAddr, peerInfo.Addr)
-	return context.WithValue(ctx, ContextUser, user), nil
-}
-
-// withAuthenticatedUserUnaryInterceptor is a gRPC stream server interceptor
-// which sets the ContextUser field on the request context to the caller's user
-// identity as authenticated by their client TLS certificate.
-func (a *Middleware) withAuthenticatedUserStreamInterceptor(srv interface{}, serverStream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	ctx, err := a.withAuthenticatedUser(serverStream.Context())
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return handler(srv, &authenticatedStream{ctx: ctx, ServerStream: serverStream})
-}
-
-// StreamInterceptor returns a gPRC stream interceptor which performs rate
-// limiting, authenticates requests, and passes the user information as context
-// metadata.
-func (a *Middleware) StreamInterceptor() grpc.StreamServerInterceptor {
-	return utils.ChainStreamServerInterceptors(
-		utils.GRPCServerStreamErrorInterceptor,
-		a.Limiter.StreamServerInterceptor,
-		a.withAuthenticatedUserStreamInterceptor)
 }
 
 // authenticatedStream wraps around the embedded grpc.ServerStream
