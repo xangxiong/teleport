@@ -24,7 +24,6 @@ package auth
 
 import (
 	"context"
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"sync"
@@ -471,56 +470,6 @@ func (a *Server) MakeLocalInventoryControlStream(opts ...client.ICSPipeOption) c
 // TokenExpiredOrNotFound is a special message returned by the auth server when provisioning
 // tokens are either past their TTL, or could not be found.
 const TokenExpiredOrNotFound = "token expired or not found"
-
-// ValidateToken takes a provisioning token value and finds if it's valid. Returns
-// a list of roles this token allows its owner to assume and token labels, or an error if the token
-// cannot be found.
-func (a *Server) ValidateToken(ctx context.Context, token string) (types.ProvisionToken, error) {
-	tkns, err := a.GetStaticTokens()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// First check if the token is a static token. If it is, return right away.
-	// Static tokens have no expiration.
-	for _, st := range tkns.GetStaticTokens() {
-		if subtle.ConstantTimeCompare([]byte(st.GetName()), []byte(token)) == 1 {
-			return st, nil
-		}
-	}
-
-	// If it's not a static token, check if it's a ephemeral token in the backend.
-	// If a ephemeral token is found, make sure it's still valid.
-	tok, err := a.GetToken(ctx, token)
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return nil, trace.AccessDenied(TokenExpiredOrNotFound)
-		}
-		return nil, trace.Wrap(err)
-	}
-	if !a.checkTokenTTL(tok) {
-		return nil, trace.AccessDenied(TokenExpiredOrNotFound)
-	}
-
-	return tok, nil
-}
-
-// checkTokenTTL checks if the token is still valid. If it is not, the token
-// is removed from the backend and returns false. Otherwise returns true.
-func (a *Server) checkTokenTTL(tok types.ProvisionToken) bool {
-	ctx := context.TODO()
-	now := a.clock.Now().UTC()
-	if tok.Expiry().Before(now) {
-		err := a.DeleteToken(ctx, tok.GetName())
-		if err != nil {
-			if !trace.IsNotFound(err) {
-				log.Warnf("Unable to delete token from backend: %v.", err)
-			}
-		}
-		return false
-	}
-	return true
-}
 
 // ErrDone indicates that resource iteration is complete
 var ErrDone = errors.New("done iterating")

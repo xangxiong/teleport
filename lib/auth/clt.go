@@ -752,10 +752,6 @@ type ProvisioningService interface {
 	// GetToken returns provisioning token
 	GetToken(ctx context.Context, token string) (types.ProvisionToken, error)
 
-	// DeleteToken deletes a given provisioning token on the auth server (CA). It
-	// could be a reset password token or a machine token
-	DeleteToken(ctx context.Context, token string) error
-
 	// UpsertToken adds provisioning tokens for the auth server
 	UpsertToken(ctx context.Context, token types.ProvisionToken) error
 
