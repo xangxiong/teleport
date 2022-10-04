@@ -59,14 +59,6 @@ const (
 )
 
 const (
-	// TOTPValidityPeriod is the number of seconds a TOTP token is valid.
-	TOTPValidityPeriod uint = 30
-
-	// TOTPSkew adds that many periods before and after to the validity window.
-	TOTPSkew uint = 1
-)
-
-const (
 	// ComponentMemory is a memory backend
 	ComponentMemory = "memory"
 
@@ -95,17 +87,11 @@ const (
 	// ComponentLabel is a component label name used in reporting
 	ComponentLabel = "component"
 
-	// ComponentProxyKube is a kubernetes proxy
-	ComponentProxyKube = "proxy:kube"
-
 	// ComponentAuth is the cluster CA node (auth server API)
 	ComponentAuth = "auth"
 
 	// ComponentGRPC is grpc server
 	ComponentGRPC = "grpc"
-
-	// ComponentMigrate is responsible for data migrations
-	ComponentMigrate = "migrate"
 
 	// ComponentNode is SSH node (SSH server serving requests)
 	ComponentNode = "node"
@@ -118,21 +104,6 @@ const (
 
 	// ComponentProxyPeer is the proxy peering component of the proxy service
 	ComponentProxyPeer = "proxy:peer"
-
-	// ComponentApp is the application proxy service.
-	ComponentApp = "app:service"
-
-	// ComponentDatabase is the database proxy service.
-	ComponentDatabase = "db:service"
-
-	// ComponentAppProxy is the application handler within the web proxy service.
-	ComponentAppProxy = "app:web"
-
-	// ComponentWebProxy is the web handler within the web proxy service.
-	ComponentWebProxy = "web"
-
-	// ComponentDiagnostic is a diagnostic service
-	ComponentDiagnostic = "diag"
 
 	// ComponentClient is a client
 	ComponentClient = "client"
@@ -164,14 +135,6 @@ const (
 	// ComponentAuditLog is audit log component
 	ComponentAuditLog = "audit"
 
-	// ComponentKeyAgent is an agent that has loaded the sessions keys and
-	// certificates for a user connected to a proxy.
-	ComponentKeyAgent = "keyagent"
-
-	// ComponentKeyStore is all sessions keys and certificates a user has on disk
-	// for all proxies.
-	ComponentKeyStore = "keystore"
-
 	// ComponentConnectProxy is the HTTP CONNECT proxy used to tunnel connection.
 	ComponentConnectProxy = "http:proxy"
 
@@ -181,26 +144,11 @@ const (
 	// ComponentKeyGen is the public/private keypair generator.
 	ComponentKeyGen = "keygen"
 
-	// ComponentFirestore represents firestore clients
-	ComponentFirestore = "firestore"
-
 	// ComponentSession is an active session.
 	ComponentSession = "session"
 
-	// ComponentDynamoDB represents dynamodb clients
-	ComponentDynamoDB = "dynamodb"
-
-	// Component pluggable authentication module (PAM)
-	ComponentPAM = "pam"
-
 	// ComponentUpload is a session recording upload server
 	ComponentUpload = "upload"
-
-	// ComponentWeb is a web server
-	ComponentWeb = "web"
-
-	// ComponentWebsocket is websocket server that the web client connects to.
-	ComponentWebsocket = "websocket"
 
 	// ComponentRBAC is role-based access control.
 	ComponentRBAC = "rbac"
@@ -209,60 +157,18 @@ const (
 	// and vice versa.
 	ComponentKeepAlive = "keepalive"
 
-	// ComponentTeleport is the "teleport" binary.
-	ComponentTeleport = "teleport"
-
-	// ComponentTSH is the "tsh" binary.
-	ComponentTSH = "tsh"
-
-	// ComponentTBot is the "tbot" binary
-	ComponentTBot = "tbot"
-
-	// ComponentKubeClient is the Kubernetes client.
-	ComponentKubeClient = "client:kube"
-
 	// ComponentBuffer is in-memory event circular buffer
 	// used to broadcast events to subscribers.
 	ComponentBuffer = "buffer"
 
-	// ComponentBPF is the eBPF packagae.
-	ComponentBPF = "bpf"
-
-	// ComponentRestrictedSession is restriction of user access to kernel objects
-	ComponentRestrictedSession = "restrictedsess"
-
 	// ComponentCgroup is the cgroup package.
 	ComponentCgroup = "cgroups"
-
-	// ComponentKube is an Kubernetes API gateway.
-	ComponentKube = "kubernetes"
-
-	// ComponentSAML is a SAML service provider.
-	ComponentSAML = "saml"
-
-	// ComponentMetrics is a metrics server
-	ComponentMetrics = "metrics"
-
-	// ComponentWindowsDesktop is a Windows desktop access server.
-	ComponentWindowsDesktop = "windows_desktop"
-
-	// ComponentTracing is a tracing exporter
-	ComponentTracing = "tracing"
 
 	// ComponentInstance is an abstract component common to all services.
 	ComponentInstance = "instance"
 
-	// ComponentVersionControl is the component common to all version control operations.
-	ComponentVersionControl = "version-control"
-
 	// DebugEnvVar tells tests to use verbose debug output
 	DebugEnvVar = "DEBUG"
-
-	// DebugAssetsPath allows users to set the path of the webassets if debug
-	// mode is enabled.
-	// For example,
-	// `DEBUG=1 DEBUG_ASSETS_PATH=/path/to/webassets/ teleport start`.
-	DebugAssetsPath = "DEBUG_ASSETS_PATH"
 
 	// VerboseLogEnvVar forces all logs to be verbose (down to DEBUG level)
 	VerboseLogsEnvVar = "TELEPORT_DEBUG"
@@ -537,30 +443,6 @@ const (
 	// logins for local accounts.
 	TraitInternalLoginsVariable = "{{internal.logins}}"
 
-	// TraitInternalWindowsLoginsVariable is the variable used to store
-	// allowed Windows Desktop logins for local accounts.
-	TraitInternalWindowsLoginsVariable = "{{internal.windows_logins}}"
-
-	// TraitInternalKubeGroupsVariable is the variable used to store allowed
-	// kubernetes groups for local accounts.
-	TraitInternalKubeGroupsVariable = "{{internal.kubernetes_groups}}"
-
-	// TraitInternalKubeUsersVariable is the variable used to store allowed
-	// kubernetes users for local accounts.
-	TraitInternalKubeUsersVariable = "{{internal.kubernetes_users}}"
-
-	// TraitInternalDBNamesVariable is the variable used to store allowed
-	// database names for local accounts.
-	TraitInternalDBNamesVariable = "{{internal.db_names}}"
-
-	// TraitInternalDBUsersVariable is the variable used to store allowed
-	// database users for local accounts.
-	TraitInternalDBUsersVariable = "{{internal.db_users}}"
-
-	// TraitInternalAWSRoleARNs is the variable used to store allowed AWS
-	// role ARNs for local accounts.
-	TraitInternalAWSRoleARNs = "{{internal.aws_role_arns}}"
-
 	// TraitInternalJWTVariable is the variable used to store JWT token for
 	// app sessions.
 	TraitInternalJWTVariable = "{{internal.jwt}}"
@@ -651,38 +533,16 @@ const (
 )
 
 const (
-	// EnvKubeConfig is environment variable for kubeconfig
-	EnvKubeConfig = "KUBECONFIG"
-
 	// KubeConfigDir is a default directory where k8s stores its user local config
 	KubeConfigDir = ".kube"
 
 	// KubeConfigFile is a default filename where k8s stores its user local config
 	KubeConfigFile = "config"
 
-	// KubeRunTests turns on kubernetes tests
-	KubeRunTests = "TEST_KUBE"
-
 	// KubeSystemAuthenticated is a builtin group that allows
 	// any user to access common API methods, e.g. discovery methods
 	// required for initial client usage
 	KubeSystemAuthenticated = "system:authenticated"
-
-	// UsageKubeOnly specifies certificate usage metadata
-	// that limits certificate to be only used for kubernetes proxying
-	UsageKubeOnly = "usage:kube"
-
-	// UsageAppOnly specifies a certificate metadata that only allows it to be
-	// used for proxying applications.
-	UsageAppsOnly = "usage:apps"
-
-	// UsageDatabaseOnly specifies certificate usage metadata that only allows
-	// it to be used for proxying database connections.
-	UsageDatabaseOnly = "usage:db"
-
-	// UsageWindowsDesktopOnly specifies certificate usage metadata that limits
-	// certificate to be only used for Windows desktop access
-	UsageWindowsDesktopOnly = "usage:windows_desktop"
 )
 
 const (
