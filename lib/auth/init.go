@@ -35,7 +35,6 @@ import (
 	"github.com/gravitational/teleport/api/utils/keys"
 	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
 	"github.com/gravitational/teleport/lib/auth/keystore"
-	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/sshca"
@@ -107,34 +106,6 @@ type InitConfig struct {
 
 	// CipherSuites is a list of ciphersuites that the auth server supports.
 	CipherSuites []uint16
-}
-
-// GenerateIdentity generates identity for the auth server
-func GenerateIdentity(a *Server, id IdentityID, additionalPrincipals, dnsNames []string) (*Identity, error) {
-	priv, pub, err := native.GenerateKeyPair()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	tlsPub, err := PrivateKeyToPublicKeyTLS(priv)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	certs, err := a.GenerateHostCerts(context.Background(),
-		&proto.HostCertsRequest{
-			HostID:               id.HostUUID,
-			NodeName:             id.NodeName,
-			Role:                 id.Role,
-			AdditionalPrincipals: additionalPrincipals,
-			DNSNames:             dnsNames,
-			PublicSSHKey:         pub,
-			PublicTLSKey:         tlsPub,
-		})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return ReadIdentityFromKeyPair(priv, certs)
 }
 
 // Identity is collection of certificates and signers that represent server identity

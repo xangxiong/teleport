@@ -17,24 +17,13 @@ limitations under the License.
 package auth
 
 import (
-	"context"
 	"crypto/tls"
-	"time"
 
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/grpc"
-
 	// _ "google.golang.org/grpc/encoding/gzip" // gzip compressor for gRPC.
-	"google.golang.org/grpc/keepalive"
-
-	"github.com/gravitational/teleport"
-	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/types"
-	"github.com/gravitational/teleport/lib/httplib"
-	"github.com/gravitational/teleport/lib/joinserver"
 )
 
 // GRPCServer is GPRC Auth Server API
@@ -69,77 +58,4 @@ type GRPCServerConfig struct {
 	// UnaryInterceptor intercepts GRPC streams
 	// for authentication and rate limiting
 	StreamInterceptor grpc.StreamServerInterceptor
-}
-
-// NewGRPCServer returns a new instance of GRPC server
-func NewGRPCServer(cfg GRPCServerConfig) (*GRPCServer, error) {
-	if err := cfg.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	log.Debugf("GRPC(SERVER): keep alive %v count: %v.", cfg.KeepAlivePeriod, cfg.KeepAliveCount)
-	opts := []grpc.ServerOption{
-		grpc.Creds(&httplib.TLSCreds{
-			Config: cfg.TLS,
-		}),
-		grpc.ChainUnaryInterceptor(otelgrpc.UnaryServerInterceptor(), cfg.UnaryInterceptor),
-		grpc.ChainStreamInterceptor(otelgrpc.StreamServerInterceptor(), cfg.StreamInterceptor),
-		grpc.KeepaliveParams(
-			keepalive.ServerParameters{
-				Time:    cfg.KeepAlivePeriod,
-				Timeout: cfg.KeepAlivePeriod * time.Duration(cfg.KeepAliveCount),
-			},
-		),
-		grpc.KeepaliveEnforcementPolicy(
-			keepalive.EnforcementPolicy{
-				MinTime:             cfg.KeepAlivePeriod,
-				PermitWithoutStream: true,
-			},
-		),
-	}
-	server := grpc.NewServer(opts...)
-	authServer := &GRPCServer{
-		APIConfig: cfg.APIConfig,
-		Entry: logrus.WithFields(logrus.Fields{
-			trace.Component: teleport.Component(teleport.ComponentAuth, teleport.ComponentGRPC),
-		}),
-		server: server,
-	}
-	//proto.RegisterAuthServiceServer(server, authServer)
-	collectortracepb.RegisterTraceServiceServer(server, authServer)
-
-	// create server with no-op role to pass to JoinService server
-	serverWithNopRole, err := serverWithNopRole(cfg)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	joinServiceServer := joinserver.NewJoinServiceGRPCServer(serverWithNopRole)
-	proto.RegisterJoinServiceServer(server, joinServiceServer)
-
-	return authServer, nil
-}
-
-func serverWithNopRole(cfg GRPCServerConfig) (*ServerWithRoles, error) {
-	clusterName, err := cfg.AuthServer.GetClusterName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	nopRole := BuiltinRole{
-		Role:        types.RoleNop,
-		Username:    string(types.RoleNop),
-		ClusterName: clusterName.GetClusterName(),
-	}
-	recConfig, err := cfg.AuthServer.GetSessionRecordingConfig(context.Background())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	nopCtx, err := contextForBuiltinRole(nopRole, recConfig)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &ServerWithRoles{
-		authServer: cfg.AuthServer,
-		context:    *nopCtx,
-		sessions:   cfg.SessionService,
-		alog:       cfg.AuthServer,
-	}, nil
 }

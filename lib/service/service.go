@@ -201,9 +201,6 @@ type TeleportProcess struct {
 	// PluginsRegistry handles plugin registrations with Teleport services
 	PluginRegistry plugin.Registry
 
-	// localAuth has local auth server listed in case if this process
-	// has started with auth server role enabled
-	localAuth *auth.Server
 	// backend is the process' backend
 	backend backend.Backend
 	// auditLog is the initialized audit log
@@ -286,11 +283,6 @@ var processID int32
 
 func nextProcessID() int32 {
 	return atomic.AddInt32(&processID, 1)
-}
-
-// GetAuthServer returns the process' auth server
-func (process *TeleportProcess) GetAuthServer() *auth.Server {
-	return process.localAuth
 }
 
 // GetAuditLog returns the process' audit log
@@ -427,14 +419,6 @@ func (process *TeleportProcess) setAuthSubjectiveAddr(ip string) {
 	if ip != "" {
 		process.authSubjectiveAddr = ip
 	}
-}
-
-// getAuthSubjectiveAddr accesses the peer address reported by the auth server
-// during the most recent ping. May be empty.
-func (process *TeleportProcess) getAuthSubjectiveAddr() string {
-	process.Lock()
-	defer process.Unlock()
-	return process.authSubjectiveAddr
 }
 
 // GetIdentity returns the process identity (credentials to the auth server) for a given
@@ -874,12 +858,6 @@ func (process *TeleportProcess) notifyParent() {
 	}
 }
 
-func (process *TeleportProcess) getLocalAuth() *auth.Server {
-	process.Lock()
-	defer process.Unlock()
-	return process.localAuth
-}
-
 func (process *TeleportProcess) setInstanceClient(clt *auth.Client) {
 	process.Lock()
 	defer process.Unlock()
@@ -902,14 +880,6 @@ func (process *TeleportProcess) makeInventoryControlStreamWhenReady(ctx context.
 }
 
 func (process *TeleportProcess) makeInventoryControlStream(ctx context.Context) (client.DownstreamInventoryControlStream, error) {
-	// if local auth exists, create an in-memory control stream
-	if auth := process.getLocalAuth(); auth != nil {
-		// we use getAuthSubjectiveAddr to guess our peer address even through we are
-		// using an in-memory pipe. this works because heartbeat operations don't start
-		// until after their respective services have successfully pinged the auth server.
-		return auth.MakeLocalInventoryControlStream(client.ICSPipePeerAddrFn(process.getAuthSubjectiveAddr)), nil
-	}
-
 	// fallback to using the instance client
 	clt := process.getInstanceClient()
 	if clt == nil {
@@ -1563,12 +1533,6 @@ func (process *TeleportProcess) StartShutdown(ctx context.Context) context.Conte
 		}
 		process.log.Debug("All supervisor functions are completed.")
 
-		if localAuth := process.getLocalAuth(); localAuth != nil {
-			if err := localAuth.Close(); err != nil {
-				process.log.Warningf("Failed closing auth server: %v.", err)
-			}
-		}
-
 		if process.storage != nil {
 			if err := process.storage.Close(); err != nil {
 				process.log.Warningf("Failed closing process storage: %v.", err)
@@ -1599,10 +1563,6 @@ func (process *TeleportProcess) Close() error {
 	process.Config.Keygen.Close()
 
 	var errors []error
-
-	if localAuth := process.getLocalAuth(); localAuth != nil {
-		errors = append(errors, localAuth.Close())
-	}
 
 	if process.storage != nil {
 		errors = append(errors, process.storage.Close())

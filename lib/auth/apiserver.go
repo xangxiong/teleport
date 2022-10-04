@@ -33,7 +33,6 @@ import (
 
 type APIConfig struct {
 	PluginRegistry plugin.Registry
-	AuthServer     *Server
 	SessionService session.Service
 	AuditLog       events.IAuditLog
 	Authorizer     Authorizer
