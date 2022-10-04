@@ -203,19 +203,6 @@ type messageSizeTrimmer interface {
 	TrimToMaxSize(int) apievents.AuditEvent
 }
 
-// SearchEvents is a flexible way to find events.
-//
-// Event types to filter can be specified and pagination is handled by an iterator key that allows
-// a query to be resumed.
-//
-// The only mandatory requirement is a date range (UTC).
-//
-// This function may never return more than 1 MiB of event data.
-func (l *FileLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, eventTypes []string, limit int, order types.EventOrder, startAfter string) ([]apievents.AuditEvent, string, error) {
-	l.Debugf("SearchEvents(%v, %v, namespace=%v, eventType=%v, limit=%v)", fromUTC, toUTC, namespace, eventTypes, limit)
-	return l.searchEventsWithFilter(fromUTC, toUTC, namespace, limit, order, startAfter, searchEventsFilter{eventTypes: eventTypes})
-}
-
 func (l *FileLog) searchEventsWithFilter(fromUTC, toUTC time.Time, namespace string, limit int, order types.EventOrder, startAfter string, filter searchEventsFilter) ([]apievents.AuditEvent, string, error) {
 	if limit <= 0 {
 		limit = defaults.EventsIterationLimit

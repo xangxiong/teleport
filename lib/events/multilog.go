@@ -60,24 +60,6 @@ func (m *MultiLog) Close() error {
 	return trace.NewAggregate(errors...)
 }
 
-// SearchEvents is a flexible way to find events.
-//
-// Event types to filter can be specified and pagination is handled by an iterator key that allows
-// a query to be resumed.
-//
-// The only mandatory requirement is a date range (UTC).
-//
-// This function may never return more than 1 MiB of event data.
-func (m *MultiLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, eventTypes []string, limit int, order types.EventOrder, startKey string) (events []apievents.AuditEvent, lastKey string, err error) {
-	for _, log := range m.loggers {
-		events, lastKey, err := log.SearchEvents(fromUTC, toUTC, namespace, eventTypes, limit, order, startKey)
-		if !trace.IsNotImplemented(err) {
-			return events, lastKey, err
-		}
-	}
-	return events, lastKey, err
-}
-
 // SearchSessionEvents is a flexible way to find session events.
 // Only session.end events are returned by this function.
 // This is used to find completed sessions.

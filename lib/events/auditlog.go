@@ -319,21 +319,6 @@ func (l *AuditLog) auditDirs() ([]string, error) {
 	return out, nil
 }
 
-func (l *AuditLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, eventType []string, limit int, order types.EventOrder, startKey string) ([]apievents.AuditEvent, string, error) {
-	g := l.log.WithFields(log.Fields{"namespace": namespace, "eventType": eventType, "limit": limit})
-	g.Debugf("SearchEvents(%v, %v)", fromUTC, toUTC)
-	if limit <= 0 {
-		limit = defaults.EventsIterationLimit
-	}
-	if limit > defaults.EventsMaxIterationLimit {
-		return nil, "", trace.BadParameter("limit %v exceeds max iteration limit %v", limit, defaults.MaxIterationLimit)
-	}
-	if l.ExternalLog != nil {
-		return l.ExternalLog.SearchEvents(fromUTC, toUTC, namespace, eventType, limit, order, startKey)
-	}
-	return l.localLog.SearchEvents(fromUTC, toUTC, namespace, eventType, limit, order, startKey)
-}
-
 func (l *AuditLog) SearchSessionEvents(fromUTC, toUTC time.Time, limit int, order types.EventOrder, startKey string, cond *types.WhereExpr, sessionID string) ([]apievents.AuditEvent, string, error) {
 	l.log.Debugf("SearchSessionEvents(%v, %v, %v)", fromUTC, toUTC, limit)
 	if l.ExternalLog != nil {
