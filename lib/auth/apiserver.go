@@ -18,17 +18,11 @@ package auth
 
 import (
 	"encoding/json"
-	"net/http"
 	"time"
 
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/session"
-
-	"github.com/julienschmidt/httprouter"
 )
-
-// HandlerWithAuthFunc is http handler with passed auth context
-type HandlerWithAuthFunc func(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error)
 
 type upsertServerRawReq struct {
 	Server json.RawMessage `json:"server"`
