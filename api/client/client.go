@@ -2725,49 +2725,6 @@ func (c *Client) GetClusterCACert(ctx context.Context) (*proto.GetClusterCACertR
 	return resp, nil
 }
 
-// GetConnectionDiagnostic reads a connection diagnostic
-func (c *Client) GetConnectionDiagnostic(ctx context.Context, name string) (types.ConnectionDiagnostic, error) {
-	req := &proto.GetConnectionDiagnosticRequest{
-		Name: name,
-	}
-	res, err := c.grpc.GetConnectionDiagnostic(ctx, req, c.callOpts...)
-	return res, trail.FromGRPC(err)
-}
-
-// CreateConnectionDiagnostic creates a new connection diagnostic.
-func (c *Client) CreateConnectionDiagnostic(ctx context.Context, connectionDiagnostic types.ConnectionDiagnostic) error {
-	connectionDiagnosticV1, ok := connectionDiagnostic.(*types.ConnectionDiagnosticV1)
-	if !ok {
-		return trace.BadParameter("invalid type %T", connectionDiagnostic)
-	}
-	_, err := c.grpc.CreateConnectionDiagnostic(ctx, connectionDiagnosticV1, c.callOpts...)
-	return trail.FromGRPC(err)
-}
-
-// UpdateConnectionDiagnostic updates a connection diagnostic.
-func (c *Client) UpdateConnectionDiagnostic(ctx context.Context, connectionDiagnostic types.ConnectionDiagnostic) error {
-	connectionDiagnosticV1, ok := connectionDiagnostic.(*types.ConnectionDiagnosticV1)
-	if !ok {
-		return trace.BadParameter("invalid type %T", connectionDiagnostic)
-	}
-	_, err := c.grpc.UpdateConnectionDiagnostic(ctx, connectionDiagnosticV1, c.callOpts...)
-	return trail.FromGRPC(err)
-}
-
-// AppendDiagnosticTrace adds a new trace for the given ConnectionDiagnostic.
-func (c *Client) AppendDiagnosticTrace(ctx context.Context, name string, t *types.ConnectionDiagnosticTrace) (types.ConnectionDiagnostic, error) {
-	req := &proto.AppendDiagnosticTraceRequest{
-		Name:  name,
-		Trace: t,
-	}
-	connectionDiagnostic, err := c.grpc.AppendDiagnosticTrace(ctx, req, c.callOpts...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return connectionDiagnostic, nil
-}
-
 // GetClusterAlerts loads matching cluster alerts.
 func (c *Client) GetClusterAlerts(ctx context.Context, query types.GetClusterAlertsRequest) ([]types.ClusterAlert, error) {
 	rsp, err := c.grpc.GetClusterAlerts(ctx, &query, c.callOpts...)
