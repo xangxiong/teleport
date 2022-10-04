@@ -20,7 +20,6 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -45,7 +44,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	ggzip "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
@@ -441,30 +439,6 @@ func (c *Client) grpcDialer() func(ctx context.Context, addr string) (net.Conn, 
 			return nil, trace.ConnectionProblem(err, "failed to dial: %v", err)
 		}
 		return conn, nil
-	}
-}
-
-// waitForConnectionReady waits for the client's grpc connection finish dialing, returning an error
-// if the ctx is canceled or the client's gRPC connection enters an unexpected state. This can be used
-// alongside the DialInBackground client config option to wait until background dialing has completed.
-func (c *Client) waitForConnectionReady(ctx context.Context) error {
-	for {
-		if c.conn == nil {
-			return errors.New("conn was closed")
-		}
-		switch state := c.conn.GetState(); state {
-		case connectivity.Ready:
-			return nil
-		case connectivity.TransientFailure, connectivity.Connecting, connectivity.Idle:
-			// Wait for expected state transitions. For details about grpc.ClientConn state changes
-			// see https://github.com/grpc/grpc/blob/master/doc/connectivity-semantics-and-api.md
-			if !c.conn.WaitForStateChange(ctx, state) {
-				// ctx canceled
-				return trace.Wrap(ctx.Err())
-			}
-		case connectivity.Shutdown:
-			return trace.Errorf("client gRPC connection entered an unexpected state: %v", state)
-		}
 	}
 }
 
@@ -998,73 +972,10 @@ func (c *Client) GetKubeServices(ctx context.Context) ([]types.Server, error) {
 	return nil, nil
 }
 
-// // getKubeServicesFallback previous implementation of `GetKubeServices` function
-// // using `GetKubeServices` RPC call.
-// // DELETE IN 10.0
-// func (c *Client) getKubeServicesFallback(ctx context.Context) ([]types.Server, error) {
-// 	resp, err := c.grpc.GetKubeServices(ctx, &proto.GetKubeServicesRequest{}, c.callOpts...)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-
-// 	servers := make([]types.Server, len(resp.GetServers()))
-// 	for i, server := range resp.GetServers() {
-// 		servers[i] = server
-// 	}
-
-// 	return servers, nil
-// }
-
 // GetApplicationServers returns all registered application servers.
 func (c *Client) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
 	return nil, nil
 }
-
-// // getAppServersFallback fetches app servers using deprecated API call
-// // `GetApplicationServers`.
-// //
-// // DELETE IN 10.0
-// func (c *Client) getApplicationServersFallback(ctx context.Context, namespace string) ([]types.AppServer, error) {
-// 	resp, err := c.grpc.GetApplicationServers(ctx, &proto.GetApplicationServersRequest{
-// 		Namespace: namespace,
-// 	}, c.callOpts...)
-// 	if err != nil {
-// 		if trace.IsNotImplemented(trail.FromGRPC(err)) {
-// 			servers, err := c.getAppServersFallback(ctx, namespace)
-// 			if err != nil {
-// 				return nil, trace.Wrap(err)
-// 			}
-// 			return servers, nil
-// 		}
-// 		return nil, trail.FromGRPC(err)
-// 	}
-// 	var servers []types.AppServer
-// 	for _, server := range resp.GetServers() {
-// 		servers = append(servers, server)
-// 	}
-
-// 	return servers, nil
-// }
-
-// // getAppServersFallback fetches app servers using legacy API call
-// // `GetAppServers`.
-// //
-// // DELETE IN 9.0.
-// func (c *Client) getAppServersFallback(ctx context.Context, namespace string) ([]types.AppServer, error) {
-// 	legacyServers, err := c.GetAppServers(ctx, namespace)
-// 	if err != nil {
-// 		return nil, trace.Wrap(err)
-// 	}
-// 	var servers []types.AppServer
-// 	for _, legacyServer := range legacyServers {
-// 		converted, err := types.NewAppServersV3FromServer(legacyServer)
-// 		if err != nil {
-// 			return nil, trace.Wrap(err)
-// 		}
-// 		servers = append(servers, converted...)
-// 	}
-// 	return servers, nil
-// }
 
 // UpsertApplicationServer registers an application server.
 func (c *Client) UpsertApplicationServer(ctx context.Context, server types.AppServer) (*types.KeepAlive, error) {
@@ -1320,25 +1231,6 @@ func (c *Client) GetDatabaseServers(ctx context.Context, namespace string) ([]ty
 	return nil, nil
 }
 
-// // getDatabaseServersFallback fetches database servers using legacy API call
-// // `GetDatabaseServers`.
-// //
-// // DELETE IN 10.0.
-// func (c *Client) getDatabaseServersFallback(ctx context.Context, namespace string) ([]types.DatabaseServer, error) {
-// 	resp, err := c.grpc.GetDatabaseServers(ctx, &proto.GetDatabaseServersRequest{
-// 		Namespace: namespace,
-// 	}, c.callOpts...)
-// 	if err != nil {
-// 		return nil, trail.FromGRPC(err)
-// 	}
-// 	servers := make([]types.DatabaseServer, 0, len(resp.GetServers()))
-// 	for _, server := range resp.GetServers() {
-// 		servers = append(servers, server)
-// 	}
-
-// 	return servers, nil
-// }
-
 // UpsertDatabaseServer registers a new database proxy server.
 func (c *Client) UpsertDatabaseServer(ctx context.Context, server types.DatabaseServer) (*types.KeepAlive, error) {
 	s, ok := server.(*types.DatabaseServerV3)
@@ -1496,18 +1388,6 @@ func (c *Client) IsMFARequired(ctx context.Context, req *proto.IsMFARequiredRequ
 
 // GetOIDCConnector returns an OIDC connector by name.
 func (c *Client) GetOIDCConnector(ctx context.Context, name string, withSecrets bool) (types.OIDCConnector, error) {
-	// if name == "" {
-	// 	return nil, trace.BadParameter("cannot get OIDC Connector, missing name")
-	// }
-	// req := &types.ResourceWithSecretsRequest{Name: name, WithSecrets: withSecrets}
-	// resp, err := c.grpc.GetOIDCConnector(ctx, req, c.callOpts...)
-	// if err != nil {
-	// 	return nil, trail.FromGRPC(err)
-	// }
-	// // An old server would send RedirectURL instead of RedirectURLs
-	// // DELETE IN 11.0.0
-	// resp.CheckSetRedirectURL()
-	// return resp, nil
 	return nil, nil
 }
 
