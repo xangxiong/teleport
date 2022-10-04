@@ -94,9 +94,6 @@ type InitConfig struct {
 	// Presence service is a discovery and heartbeat tracker
 	Presence services.Presence
 
-	// Provisioner is a service that keeps track of provisioning tokens
-	Provisioner services.Provisioner
-
 	// Access is service controlling access to resources
 	Access services.Access
 

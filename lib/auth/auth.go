@@ -74,9 +74,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Presence == nil {
 		cfg.Presence = local.NewPresenceService(cfg.Backend)
 	}
-	if cfg.Provisioner == nil {
-		cfg.Provisioner = local.NewProvisioningService(cfg.Backend)
-	}
 	if cfg.Access == nil {
 		cfg.Access = local.NewAccessService(cfg.Backend)
 	}
@@ -125,7 +122,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	services := &Services{
 		Trust:                cfg.Trust,
 		Presence:             cfg.Presence,
-		Provisioner:          cfg.Provisioner,
 		Access:               cfg.Access,
 		DynamicAccessExt:     cfg.DynamicAccessExt,
 		ClusterConfiguration: cfg.ClusterConfiguration,
