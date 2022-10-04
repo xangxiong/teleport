@@ -18,9 +18,7 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"strings"
-	"time"
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/types"
@@ -32,41 +30,6 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/vulcand/predicate/builder"
 )
-
-// NewAdminContext returns new admin auth context
-func NewAdminContext() (*Context, error) {
-	return NewBuiltinRoleContext(types.RoleAdmin)
-}
-
-// NewBuiltinRoleContext create auth context for the provided builtin role.
-func NewBuiltinRoleContext(role types.SystemRole) (*Context, error) {
-	authContext, err := contextForBuiltinRole(BuiltinRole{Role: role, Username: fmt.Sprintf("%v", role)}, nil)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return authContext, nil
-}
-
-// NewAuthorizer returns new authorizer using backends
-func NewAuthorizer(clusterName string, accessPoint AuthorizerAccessPoint, lockWatcher *services.LockWatcher) (Authorizer, error) {
-	if clusterName == "" {
-		return nil, trace.BadParameter("missing parameter clusterName")
-	}
-	if accessPoint == nil {
-		return nil, trace.BadParameter("missing parameter accessPoint")
-	}
-	return &authorizer{
-		clusterName: clusterName,
-		accessPoint: accessPoint,
-		lockWatcher: lockWatcher,
-	}, nil
-}
-
-// Authorizer authorizes identity and returns auth context
-type Authorizer interface {
-	// Authorize authorizes user based on identity supplied via context
-	Authorize(ctx context.Context) (*Context, error)
-}
 
 // AuthorizerAccessPoint is the access point contract required by an Authorizer
 type AuthorizerAccessPoint interface {
@@ -93,13 +56,6 @@ type AuthorizerAccessPoint interface {
 
 	// GetSessionRecordingConfig returns session recording configuration.
 	GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error)
-}
-
-// authorizer creates new local authorizer
-type authorizer struct {
-	clusterName string
-	accessPoint AuthorizerAccessPoint
-	lockWatcher *services.LockWatcher
 }
 
 // Context is authorization context
@@ -143,175 +99,6 @@ Loop:
 			types.LockTarget{Node: r.Identity.Username})
 	}
 	return lockTargets
-}
-
-// Authorize authorizes user based on identity supplied via context
-func (a *authorizer) Authorize(ctx context.Context) (*Context, error) {
-	if ctx == nil {
-		return nil, trace.AccessDenied("missing authentication context")
-	}
-	userI := ctx.Value(ContextUser)
-	authContext, err := a.fromUser(ctx, userI)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Enforce applicable locks.
-	authPref, err := a.accessPoint.GetAuthPreference(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if lockErr := a.lockWatcher.CheckLockInForce(
-		authContext.Checker.LockingMode(authPref.GetLockingMode()),
-		authContext.LockTargets()...); lockErr != nil {
-		return nil, trace.Wrap(lockErr)
-	}
-	return authContext, nil
-}
-
-func (a *authorizer) fromUser(ctx context.Context, userI interface{}) (*Context, error) {
-	switch user := userI.(type) {
-	case RemoteUser:
-		return a.authorizeRemoteUser(ctx, user)
-	case BuiltinRole:
-		return a.authorizeBuiltinRole(ctx, user)
-	case RemoteBuiltinRole:
-		return a.authorizeRemoteBuiltinRole(user)
-	default:
-		return nil, trace.AccessDenied("unsupported context type %T", userI)
-	}
-}
-
-// authorizeRemoteUser returns checker based on cert authority roles
-func (a *authorizer) authorizeRemoteUser(ctx context.Context, u RemoteUser) (*Context, error) {
-	ca, err := a.accessPoint.GetCertAuthority(ctx, types.CertAuthID{
-		Type:       types.UserCA,
-		DomainName: u.ClusterName,
-	}, false)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	accessInfo, err := services.AccessInfoFromRemoteIdentity(u.Identity, ca.CombinedMapping())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	checker, err := services.NewAccessChecker(accessInfo, a.clusterName, a.accessPoint)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// The user is prefixed with "remote-" and suffixed with cluster name with
-	// the hope that it does not match a real local user.
-	user, err := types.NewUser(fmt.Sprintf("remote-%v-%v", u.Username, u.ClusterName))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	user.SetTraits(accessInfo.Traits)
-	user.SetRoles(accessInfo.Roles)
-
-	// Adjust expiry based on locally mapped roles.
-	ttl := time.Until(u.Identity.Expires)
-	ttl = checker.AdjustSessionTTL(ttl)
-
-	principals, err := checker.CheckLoginDuration(ttl)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Convert u.Identity into the mapped local identity.
-	//
-	// This prevents downstream users from accidentally using the unmapped
-	// identity information and confusing who's accessing a resource.
-	identity := tlsca.Identity{
-		Username:        user.GetName(),
-		Groups:          user.GetRoles(),
-		Traits:          accessInfo.Traits,
-		Principals:      principals,
-		TeleportCluster: a.clusterName,
-		Expires:         time.Now().Add(ttl),
-
-		// These fields are for routing and restrictions, safe to re-use from
-		// unmapped identity.
-		Usage:          u.Identity.Usage,
-		RouteToCluster: u.Identity.RouteToCluster,
-		MFAVerified:    u.Identity.MFAVerified,
-		ClientIP:       u.Identity.ClientIP,
-	}
-
-	return &Context{
-		User:             user,
-		Checker:          checker,
-		Identity:         WrapIdentity(identity),
-		UnmappedIdentity: u,
-	}, nil
-}
-
-// authorizeBuiltinRole authorizes builtin role
-func (a *authorizer) authorizeBuiltinRole(ctx context.Context, r BuiltinRole) (*Context, error) {
-	recConfig, err := a.accessPoint.GetSessionRecordingConfig(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return contextForBuiltinRole(r, recConfig)
-}
-
-func (a *authorizer) authorizeRemoteBuiltinRole(r RemoteBuiltinRole) (*Context, error) {
-	if r.Role != types.RoleProxy {
-		return nil, trace.AccessDenied("access denied for remote %v connecting to cluster", r.Role)
-	}
-	roleSet, err := services.RoleSetFromSpec(
-		string(types.RoleRemoteProxy),
-		types.RoleSpecV5{
-			Allow: types.RoleConditions{
-				Namespaces: []string{types.Wildcard},
-				Rules: []types.Rule{
-					types.NewRule(types.KindNode, services.RO()),
-					types.NewRule(types.KindProxy, services.RO()),
-					types.NewRule(types.KindCertAuthority, services.ReadNoSecrets()),
-					types.NewRule(types.KindNamespace, services.RO()),
-					types.NewRule(types.KindUser, services.RO()),
-					types.NewRule(types.KindRole, services.RO()),
-					types.NewRule(types.KindAuthServer, services.RO()),
-					types.NewRule(types.KindReverseTunnel, services.RO()),
-					types.NewRule(types.KindTunnelConnection, services.RO()),
-					types.NewRule(types.KindClusterName, services.RO()),
-					types.NewRule(types.KindClusterAuditConfig, services.RO()),
-					types.NewRule(types.KindClusterNetworkingConfig, services.RO()),
-					types.NewRule(types.KindSessionRecordingConfig, services.RO()),
-					types.NewRule(types.KindClusterAuthPreference, services.RO()),
-					// this rule allows remote proxy to update the cluster's certificate authorities
-					// during certificates renewal
-					{
-						Resources: []string{types.KindCertAuthority},
-						// It is important that remote proxy can only rotate
-						// existing certificate authority, and not create or update new ones
-						Verbs: []string{types.VerbRead, types.VerbRotate},
-						// allow administrative access to the certificate authority names
-						// matching the cluster name only
-						Where: builder.Equals(services.ResourceNameExpr, builder.String(r.ClusterName)).String(),
-					},
-				},
-			},
-		})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	user, err := types.NewUser(r.Username)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	roles := []string{string(types.RoleRemoteProxy)}
-	user.SetRoles(roles)
-	checker := services.NewAccessCheckerWithRoleSet(&services.AccessInfo{
-		Roles:              roles,
-		Traits:             nil,
-		AllowedResourceIDs: nil,
-	}, a.clusterName, roleSet)
-	return &Context{
-		User:             user,
-		Checker:          checker,
-		Identity:         r,
-		UnmappedIdentity: r,
-	}, nil
 }
 
 func roleSpecForProxyWithRecordAtProxy(clusterName string) types.RoleSpecV5 {
@@ -474,46 +261,6 @@ func definitionForBuiltinRole(clusterName string, recConfig types.SessionRecordi
 	}
 
 	return nil, trace.NotFound("builtin role %q is not recognized", role.String())
-}
-
-func contextForBuiltinRole(r BuiltinRole, recConfig types.SessionRecordingConfig) (*Context, error) {
-	var systemRoles []types.SystemRole
-	if r.Role == types.RoleInstance {
-		// instance certs encode multiple system roles in a separate field
-		systemRoles = r.AdditionalSystemRoles
-		if len(systemRoles) == 0 {
-			// note: previous parsing skipped unknown roles for this field, so its possible that some
-			// system roles were defined, but they were all unknown to us.
-			return nil, trace.BadParameter("cannot create instance context, no additional system roles recognized")
-		}
-	} else {
-		// all other certs encode a single system role
-		systemRoles = []types.SystemRole{r.Role}
-	}
-	roleSet, err := RoleSetForBuiltinRoles(r.ClusterName, recConfig, systemRoles...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	user, err := types.NewUser(r.Username)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var roles []string
-	for _, r := range systemRoles {
-		roles = append(roles, string(r))
-	}
-	user.SetRoles(roles)
-	checker := services.NewAccessCheckerWithRoleSet(&services.AccessInfo{
-		Roles:              roles,
-		Traits:             nil,
-		AllowedResourceIDs: nil,
-	}, r.ClusterName, roleSet)
-	return &Context{
-		User:             user,
-		Checker:          checker,
-		Identity:         r,
-		UnmappedIdentity: r,
-	}, nil
 }
 
 type contextKey string
