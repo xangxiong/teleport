@@ -732,12 +732,6 @@ func (c *Client) GetNamespace(name string) (*types.Namespace, error) {
 	return services.UnmarshalNamespace(out.Bytes())
 }
 
-// DeleteNamespace deletes namespace by name
-func (c *Client) DeleteNamespace(name string) error {
-	_, err := c.Delete(context.TODO(), c.Endpoint("namespaces", name))
-	return trace.Wrap(err)
-}
-
 // CreateRole not implemented: can only be called locally.
 func (c *Client) CreateRole(ctx context.Context, role types.Role) error {
 	return trace.NotImplemented(notImplementedMessage)

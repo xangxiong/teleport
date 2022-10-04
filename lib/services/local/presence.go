@@ -75,20 +75,6 @@ func (s *PresenceService) GetNamespace(name string) (*types.Namespace, error) {
 		item.Value, services.WithResourceID(item.ID), services.WithExpires(item.Expires))
 }
 
-// DeleteNamespace deletes a namespace with all the keys from the backend
-func (s *PresenceService) DeleteNamespace(namespace string) error {
-	if namespace == "" {
-		return trace.BadParameter("missing namespace name")
-	}
-	err := s.Delete(context.TODO(), backend.Key(namespacesPrefix, namespace, paramsPrefix))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("namespace %q is not found", namespace)
-		}
-	}
-	return trace.Wrap(err)
-}
-
 func (s *PresenceService) getServers(ctx context.Context, kind, prefix string) ([]types.Server, error) {
 	result, err := s.GetRange(ctx, backend.Key(prefix), backend.RangeEnd(backend.Key(prefix)), backend.NoLimit)
 	if err != nil {

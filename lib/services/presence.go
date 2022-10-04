@@ -95,9 +95,6 @@ type Presence interface {
 	// DeleteAllNamespaces deletes all namespaces
 	DeleteAllNamespaces() error
 
-	// DeleteNamespace deletes namespace by name
-	DeleteNamespace(name string) error
-
 	// UpsertTrustedCluster creates or updates a TrustedCluster in the backend.
 	UpsertTrustedCluster(ctx context.Context, tc types.TrustedCluster) (types.TrustedCluster, error)
 
