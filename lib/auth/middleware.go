@@ -26,12 +26,10 @@ import (
 	"github.com/gravitational/teleport"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/multiplexer"
 	"github.com/gravitational/teleport/lib/tlsca"
-	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
@@ -116,17 +114,6 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// authMiddleware authenticates request assuming TLS client authentication
-	// adds authentication information to the context
-	// and passes it to the API server
-	authMiddleware := &Middleware{
-		AccessPoint:   cfg.AccessPoint,
-		AcceptedUsage: cfg.AcceptedUsage,
-		Limiter:       limiter,
-	}
-
-	// Wrap sets the next middleware in chain to the authMiddleware
-	limiter.WrapHandle(authMiddleware)
 	// force client auth if given
 	cfg.TLS.ClientAuth = tls.VerifyClientCertIfGiven
 	cfg.TLS.NextProtos = []string{http2.NextProtoTLS}
@@ -184,117 +171,6 @@ type Middleware struct {
 	Limiter *limiter.Limiter
 }
 
-// Wrap sets next handler in chain
-func (a *Middleware) Wrap(h http.Handler) {
-	a.Handler = h
-}
-
-// GetUser returns authenticated user based on request metadata set by HTTP server
-func (a *Middleware) GetUser(connState tls.ConnectionState) (IdentityGetter, error) {
-	peers := connState.PeerCertificates
-	if len(peers) > 1 {
-		// when turning intermediaries on, don't forget to verify
-		// https://github.com/kub-ernetes/kub-ernetes/pull/34524/files#diff-2b283dde198c92424df5355f39544aa4R59
-		return nil, trace.AccessDenied("access denied: intermediaries are not supported")
-	}
-	localClusterName, err := a.AccessPoint.GetClusterName()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// with no client authentication in place, middleware
-	// assumes not-privileged Nop role.
-	// it theoretically possible to use bearer token auth even
-	// for connections without auth, but this is not active use-case
-	// therefore it is not allowed to reduce scope
-	if len(peers) == 0 {
-		return BuiltinRole{
-			Role:        types.RoleNop,
-			Username:    string(types.RoleNop),
-			ClusterName: localClusterName.GetClusterName(),
-			Identity:    tlsca.Identity{},
-		}, nil
-	}
-	clientCert := peers[0]
-
-	identity, err := tlsca.FromSubject(clientCert.Subject, clientCert.NotAfter)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Since 5.0, teleport TLS certs include the origin teleport cluster in the
-	// subject (identity). Before 5.0, origin teleport cluster was inferred
-	// from the cert issuer.
-	certClusterName := identity.TeleportCluster
-	if certClusterName == "" {
-		certClusterName, err = tlsca.ClusterName(clientCert.Issuer)
-		if err != nil {
-			log.Warnf("Failed to parse client certificate %v.", err)
-			return nil, trace.AccessDenied("access denied: invalid client certificate")
-		}
-		identity.TeleportCluster = certClusterName
-	}
-	// If there is any restriction on the certificate usage
-	// reject the API server request. This is done so some classes
-	// of certificates issued for kub-ernetes usage by proxy, can not be used
-	// against auth server. Later on we can extend more
-	// advanced cert usage, but for now this is the safest option.
-	if len(identity.Usage) != 0 && !apiutils.StringSlicesEqual(a.AcceptedUsage, identity.Usage) {
-		log.Warningf("Restricted certificate of user %q with usage %v rejected while accessing the auth endpoint with acceptable usage %v.",
-			identity.Username, identity.Usage, a.AcceptedUsage)
-		return nil, trace.AccessDenied("access denied: invalid client certificate")
-	}
-
-	// this block assumes interactive user from remote cluster
-	// based on the remote certificate authority cluster name encoded in
-	// x509 organization name. This is a safe check because:
-	// 1. Trust and verification is established during TLS handshake
-	// by creating a cert pool constructed of trusted certificate authorities
-	// 2. Remote CAs are not allowed to have the same cluster name
-	// as the local certificate authority
-	if certClusterName != localClusterName.GetClusterName() {
-		// make sure that this user does not have system role
-		// the local auth server can not truste remote servers
-		// to issue certificates with system roles (e.g. Admin),
-		// to get unrestricted access to the local cluster
-		systemRole := findPrimarySystemRole(identity.Groups)
-		if systemRole != nil {
-			return RemoteBuiltinRole{
-				Role:        *systemRole,
-				Username:    identity.Username,
-				ClusterName: certClusterName,
-				Identity:    *identity,
-			}, nil
-		}
-		return RemoteUser{
-			ClusterName: certClusterName,
-			Username:    identity.Username,
-			Principals:  identity.Principals,
-			RemoteRoles: identity.Groups,
-			Identity:    *identity,
-		}, nil
-	}
-	// code below expects user or service from local cluster, to distinguish between
-	// interactive users and services (e.g. proxies), the code below
-	// checks for presence of system roles issued in certificate identity
-	systemRole := findPrimarySystemRole(identity.Groups)
-	// in case if the system role is present, assume this is a service
-	// agent, e.g. Proxy, connecting to the cluster
-	if systemRole != nil {
-		return BuiltinRole{
-			Role:                  *systemRole,
-			AdditionalSystemRoles: extractAdditionalSystemRoles(identity.SystemRoles),
-			Username:              identity.Username,
-			ClusterName:           localClusterName.GetClusterName(),
-			Identity:              *identity,
-		}, nil
-	}
-	// otherwise assume that is a local role, no need to pass the roles
-	// as it will be fetched from the local database
-	return LocalUser{
-		Username: identity.Username,
-		Identity: *identity,
-	}, nil
-}
-
 func findPrimarySystemRole(roles []string) *types.SystemRole {
 	for _, role := range roles {
 		systemRole := types.SystemRole(role)
@@ -322,44 +198,44 @@ func extractAdditionalSystemRoles(roles []string) types.SystemRoles {
 	return systemRoles
 }
 
-// ServeHTTP serves HTTP requests
-func (a *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	baseContext := r.Context()
-	if baseContext == nil {
-		baseContext = context.TODO()
-	}
-	if r.TLS == nil {
-		trace.WriteError(w, trace.AccessDenied("missing authentication"))
-		return
-	}
-	user, err := a.GetUser(*r.TLS)
-	if err != nil {
-		trace.WriteError(w, err)
-		return
-	}
+// // ServeHTTP serves HTTP requests
+// func (a *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// 	baseContext := r.Context()
+// 	if baseContext == nil {
+// 		baseContext = context.TODO()
+// 	}
+// 	if r.TLS == nil {
+// 		trace.WriteError(w, trace.AccessDenied("missing authentication"))
+// 		return
+// 	}
+// 	user, err := a.GetUser(*r.TLS)
+// 	if err != nil {
+// 		trace.WriteError(w, err)
+// 		return
+// 	}
 
-	// determine authenticated user based on the request parameters
-	requestWithContext := r.WithContext(context.WithValue(baseContext, ContextUser, user))
-	a.Handler.ServeHTTP(w, requestWithContext)
-}
+// 	// determine authenticated user based on the request parameters
+// 	requestWithContext := r.WithContext(context.WithValue(baseContext, ContextUser, user))
+// 	a.Handler.ServeHTTP(w, requestWithContext)
+// }
 
-// WrapContextWithUser enriches the provided context with the identity information
-// extracted from the provided TLS connection.
-func (a *Middleware) WrapContextWithUser(ctx context.Context, conn utils.TLSConn) (context.Context, error) {
-	// Perform the handshake if it hasn't been already. Before the handshake we
-	// won't have client certs available.
-	if !conn.ConnectionState().HandshakeComplete {
-		if err := conn.HandshakeContext(ctx); err != nil {
-			return nil, trace.ConvertSystemError(err)
-		}
-	}
-	user, err := a.GetUser(conn.ConnectionState())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	requestWithContext := context.WithValue(ctx, ContextUser, user)
-	return requestWithContext, nil
-}
+// // WrapContextWithUser enriches the provided context with the identity information
+// // extracted from the provided TLS connection.
+// func (a *Middleware) WrapContextWithUser(ctx context.Context, conn utils.TLSConn) (context.Context, error) {
+// 	// Perform the handshake if it hasn't been already. Before the handshake we
+// 	// won't have client certs available.
+// 	if !conn.ConnectionState().HandshakeComplete {
+// 		if err := conn.HandshakeContext(ctx); err != nil {
+// 			return nil, trace.ConvertSystemError(err)
+// 		}
+// 	}
+// 	user, err := a.GetUser(conn.ConnectionState())
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	requestWithContext := context.WithValue(ctx, ContextUser, user)
+// 	return requestWithContext, nil
+// }
 
 // ClientCertPool returns trusted x509 certificate authority pool with CAs provided as caTypes.
 // In addition, it returns the total length of all subjects added to the cert pool, allowing
