@@ -64,26 +64,6 @@ func (s *ClusterConfigurationService) DeleteClusterName() error {
 	return nil
 }
 
-// UpsertClusterName sets the name of the cluster in the backend.
-func (s *ClusterConfigurationService) UpsertClusterName(c types.ClusterName) error {
-	value, err := services.MarshalClusterName(c)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	_, err = s.Put(context.TODO(), backend.Item{
-		Key:     backend.Key(clusterConfigPrefix, namePrefix),
-		Value:   value,
-		Expires: c.Expiry(),
-		ID:      c.GetResourceID(),
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
-}
-
 // GetStaticTokens gets the list of static tokens used to provision nodes.
 func (s *ClusterConfigurationService) GetStaticTokens() (types.StaticTokens, error) {
 	item, err := s.Get(context.TODO(), backend.Key(clusterConfigPrefix, staticTokensPrefix))

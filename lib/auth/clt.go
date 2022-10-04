@@ -747,11 +747,6 @@ func (c *Client) GetClusterName(opts ...services.MarshalOption) (types.ClusterNa
 	return cn, err
 }
 
-// UpsertClusterName not implemented: can only be called locally.
-func (c *Client) UpsertClusterName(cn types.ClusterName) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // DeleteStaticTokens deletes static tokens
 func (c *Client) DeleteStaticTokens() error {
 	_, err := c.Delete(context.TODO(), c.Endpoint("configuration", "static_tokens"))
