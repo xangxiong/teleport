@@ -31,10 +31,6 @@ const (
 	locksPrefix = ".locks"
 )
 
-func FlagKey(parts ...string) []byte {
-	return internalKey(flagsPrefix, parts...)
-}
-
 func lockKey(parts ...string) []byte {
 	return internalKey(locksPrefix, parts...)
 }
