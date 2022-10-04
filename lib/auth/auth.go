@@ -38,7 +38,6 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/auth/keystore"
 	"github.com/gravitational/teleport/lib/auth/native"
@@ -188,9 +187,6 @@ type Server struct {
 
 	// limiter limits the number of active connections per client IP.
 	limiter *limiter.ConnectionsLimiter
-
-	// Emitter is events emitter, used to submit discrete events
-	emitter apievents.Emitter
 
 	// keyStore is an interface for interacting with private keys in CAs which
 	// may be backed by HSMs

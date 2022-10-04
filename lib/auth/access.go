@@ -22,8 +22,6 @@ import (
 	"github.com/gravitational/trace"
 
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/events"
 )
 
 // UpsertLock upserts a lock and emits a related audit event.
@@ -32,21 +30,6 @@ func (a *Server) UpsertLock(ctx context.Context, lock types.Lock) error {
 		return trace.Wrap(err)
 	}
 
-	um := ClientUserMetadata(ctx)
-	if err := a.emitter.EmitAuditEvent(a.closeCtx, &apievents.LockCreate{
-		Metadata: apievents.Metadata{
-			Type: events.LockCreatedEvent,
-			Code: events.LockCreatedCode,
-		},
-		UserMetadata: um,
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name:      lock.GetName(),
-			UpdatedBy: um.User,
-		},
-		Target: lock.Target(),
-	}); err != nil {
-		log.WithError(err).Warning("Failed to emit lock create event.")
-	}
 	return nil
 }
 
@@ -56,17 +39,5 @@ func (a *Server) DeleteLock(ctx context.Context, lockName string) error {
 		return trace.Wrap(err)
 	}
 
-	if err := a.emitter.EmitAuditEvent(a.closeCtx, &apievents.LockDelete{
-		Metadata: apievents.Metadata{
-			Type: events.LockDeletedEvent,
-			Code: events.LockDeletedCode,
-		},
-		UserMetadata: ClientUserMetadata(ctx),
-		ResourceMetadata: apievents.ResourceMetadata{
-			Name: lockName,
-		},
-	}); err != nil {
-		log.WithError(err).Warning("Failed to emit lock delete event.")
-	}
 	return nil
 }
