@@ -297,12 +297,6 @@ func (s *PresenceService) GetReverseTunnels(ctx context.Context, opts ...service
 	return tunnels, nil
 }
 
-// DeleteReverseTunnel deletes reverse tunnel by it's cluster name
-func (s *PresenceService) DeleteReverseTunnel(clusterName string) error {
-	err := s.Delete(context.TODO(), backend.Key(reverseTunnelsPrefix, clusterName))
-	return trace.Wrap(err)
-}
-
 // UpsertTrustedCluster creates or updates a TrustedCluster in the backend.
 func (s *PresenceService) UpsertTrustedCluster(ctx context.Context, trustedCluster types.TrustedCluster) (types.TrustedCluster, error) {
 	if err := services.ValidateTrustedCluster(trustedCluster); err != nil {

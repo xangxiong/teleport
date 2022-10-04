@@ -24,7 +24,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/gravitational/teleport"
@@ -492,18 +491,6 @@ func (c *Client) GetReverseTunnels(ctx context.Context, opts ...services.Marshal
 		tunnels[i] = tunnel
 	}
 	return tunnels, nil
-}
-
-// DeleteReverseTunnel deletes reverse tunnel by domain name
-func (c *Client) DeleteReverseTunnel(domainName string) error {
-	// this is to avoid confusing error in case if domain empty for example
-	// HTTP route will fail producing generic not found error
-	// instead we catch the error here
-	if strings.TrimSpace(domainName) == "" {
-		return trace.BadParameter("empty domain name")
-	}
-	_, err := c.Delete(context.TODO(), c.Endpoint("reversetunnels", domainName))
-	return trace.Wrap(err)
 }
 
 // UpsertTunnelConnection upserts tunnel connection

@@ -83,9 +83,6 @@ type Presence interface {
 	// GetReverseTunnels returns a list of registered servers
 	GetReverseTunnels(ctx context.Context, opts ...MarshalOption) ([]types.ReverseTunnel, error)
 
-	// DeleteReverseTunnel deletes reverse tunnel by it's domain name
-	DeleteReverseTunnel(domainName string) error
-
 	// GetNamespace returns namespace by name
 	GetNamespace(name string) (*types.Namespace, error)
 
