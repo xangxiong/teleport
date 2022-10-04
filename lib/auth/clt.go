@@ -539,12 +539,6 @@ func (c *Client) DeleteTunnelConnection(clusterName string, connName string) err
 	return trace.Wrap(err)
 }
 
-// DeleteAllTunnelConnections deletes all tunnel connections
-func (c *Client) DeleteAllTunnelConnections() error {
-	_, err := c.Delete(context.TODO(), c.Endpoint("tunnelconnections"))
-	return trace.Wrap(err)
-}
-
 // GetRemoteClusters returns a list of remote clusters
 func (c *Client) GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error) {
 	out, err := c.Get(context.TODO(), c.Endpoint("remoteclusters"), url.Values{})
