@@ -227,12 +227,6 @@ func (s *PresenceService) UpsertAuthServer(server types.Server) error {
 	return s.upsertServer(context.TODO(), authServersPrefix, server)
 }
 
-// DeleteAuthServer deletes auth server by name
-func (s *PresenceService) DeleteAuthServer(name string) error {
-	key := backend.Key(authServersPrefix, name)
-	return s.Delete(context.TODO(), key)
-}
-
 // UpsertProxy registers proxy server presence, permanently if ttl is 0 or
 // for the specified duration with second resolution if it's >= 1 second
 func (s *PresenceService) UpsertProxy(server types.Server) error {

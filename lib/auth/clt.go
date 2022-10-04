@@ -586,11 +586,6 @@ func (c *Client) UpsertAuthServer(s types.Server) error {
 	return trace.Wrap(err)
 }
 
-// DeleteAuthServer not implemented: can only be called locally.
-func (c *Client) DeleteAuthServer(name string) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // UpsertProxy is used by proxies to report their presence
 // to other auth servers in form of hearbeat expiring after ttl period.
 func (c *Client) UpsertProxy(s types.Server) error {
