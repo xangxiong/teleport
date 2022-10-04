@@ -762,11 +762,6 @@ func (c *Client) GetStaticTokens() (types.StaticTokens, error) {
 	return st, err
 }
 
-// DeleteAllReverseTunnels not implemented: can only be called locally.
-func (c *Client) DeleteAllReverseTunnels() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // DeleteAllCertNamespaces not implemented: can only be called locally.
 func (c *Client) DeleteAllNamespaces() error {
 	return trace.NotImplemented(notImplementedMessage)

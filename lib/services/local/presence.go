@@ -255,12 +255,6 @@ func (s *PresenceService) GetProxies() ([]types.Server, error) {
 	return s.getServers(context.TODO(), types.KindProxy, proxiesPrefix)
 }
 
-// DeleteAllReverseTunnels deletes all reverse tunnels
-func (s *PresenceService) DeleteAllReverseTunnels() error {
-	startKey := backend.Key(reverseTunnelsPrefix)
-	return s.DeleteRange(context.TODO(), startKey, backend.RangeEnd(startKey))
-}
-
 // UpsertReverseTunnel upserts reverse tunnel entry temporarily or permanently
 func (s *PresenceService) UpsertReverseTunnel(tunnel types.ReverseTunnel) error {
 	if err := services.ValidateReverseTunnel(tunnel); err != nil {

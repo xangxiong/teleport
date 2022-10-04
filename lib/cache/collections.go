@@ -91,11 +91,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter Presence")
 			}
 			collections[resourceKind] = &authServer{watch: watch, Cache: c}
-		case types.KindReverseTunnel:
-			if c.Presence == nil {
-				return nil, trace.BadParameter("missing parameter Presence")
-			}
-			collections[resourceKind] = &reverseTunnel{watch: watch, Cache: c}
 		case types.KindTunnelConnection:
 			if c.Presence == nil {
 				return nil, trace.BadParameter("missing parameter Presence")
@@ -315,70 +310,6 @@ func (c *tunnelConnection) processEvent(ctx context.Context, event types.Event) 
 }
 
 func (c *tunnelConnection) watchKind() types.WatchKind {
-	return c.watch
-}
-
-type reverseTunnel struct {
-	*Cache
-	watch types.WatchKind
-}
-
-// erase erases all data in the collection
-func (c *reverseTunnel) erase(ctx context.Context) error {
-	if err := c.presenceCache.DeleteAllReverseTunnels(); err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (c *reverseTunnel) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := c.Presence.GetReverseTunnels(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := c.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-		for _, resource := range resources {
-			if err := c.presenceCache.UpsertReverseTunnel(resource); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	}, nil
-}
-
-func (c *reverseTunnel) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.presenceCache.DeleteReverseTunnel(event.Resource.GetName())
-		if err != nil {
-			// resource could be missing in the cache
-			// expired or not created, if the first consumed
-			// event is delete
-			if !trace.IsNotFound(err) {
-				c.Warningf("Failed to delete resource %v.", err)
-				return trace.Wrap(err)
-			}
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(types.ReverseTunnel)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		if err := c.presenceCache.UpsertReverseTunnel(resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warningf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *reverseTunnel) watchKind() types.WatchKind {
 	return c.watch
 }
 
