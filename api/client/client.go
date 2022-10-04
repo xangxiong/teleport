@@ -998,73 +998,73 @@ func (c *Client) GetKubeServices(ctx context.Context) ([]types.Server, error) {
 	return nil, nil
 }
 
-// getKubeServicesFallback previous implementation of `GetKubeServices` function
-// using `GetKubeServices` RPC call.
-// DELETE IN 10.0
-func (c *Client) getKubeServicesFallback(ctx context.Context) ([]types.Server, error) {
-	resp, err := c.grpc.GetKubeServices(ctx, &proto.GetKubeServicesRequest{}, c.callOpts...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// // getKubeServicesFallback previous implementation of `GetKubeServices` function
+// // using `GetKubeServices` RPC call.
+// // DELETE IN 10.0
+// func (c *Client) getKubeServicesFallback(ctx context.Context) ([]types.Server, error) {
+// 	resp, err := c.grpc.GetKubeServices(ctx, &proto.GetKubeServicesRequest{}, c.callOpts...)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
 
-	servers := make([]types.Server, len(resp.GetServers()))
-	for i, server := range resp.GetServers() {
-		servers[i] = server
-	}
+// 	servers := make([]types.Server, len(resp.GetServers()))
+// 	for i, server := range resp.GetServers() {
+// 		servers[i] = server
+// 	}
 
-	return servers, nil
-}
+// 	return servers, nil
+// }
 
 // GetApplicationServers returns all registered application servers.
 func (c *Client) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
 	return nil, nil
 }
 
-// getAppServersFallback fetches app servers using deprecated API call
-// `GetApplicationServers`.
-//
-// DELETE IN 10.0
-func (c *Client) getApplicationServersFallback(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	resp, err := c.grpc.GetApplicationServers(ctx, &proto.GetApplicationServersRequest{
-		Namespace: namespace,
-	}, c.callOpts...)
-	if err != nil {
-		if trace.IsNotImplemented(trail.FromGRPC(err)) {
-			servers, err := c.getAppServersFallback(ctx, namespace)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			return servers, nil
-		}
-		return nil, trail.FromGRPC(err)
-	}
-	var servers []types.AppServer
-	for _, server := range resp.GetServers() {
-		servers = append(servers, server)
-	}
+// // getAppServersFallback fetches app servers using deprecated API call
+// // `GetApplicationServers`.
+// //
+// // DELETE IN 10.0
+// func (c *Client) getApplicationServersFallback(ctx context.Context, namespace string) ([]types.AppServer, error) {
+// 	resp, err := c.grpc.GetApplicationServers(ctx, &proto.GetApplicationServersRequest{
+// 		Namespace: namespace,
+// 	}, c.callOpts...)
+// 	if err != nil {
+// 		if trace.IsNotImplemented(trail.FromGRPC(err)) {
+// 			servers, err := c.getAppServersFallback(ctx, namespace)
+// 			if err != nil {
+// 				return nil, trace.Wrap(err)
+// 			}
+// 			return servers, nil
+// 		}
+// 		return nil, trail.FromGRPC(err)
+// 	}
+// 	var servers []types.AppServer
+// 	for _, server := range resp.GetServers() {
+// 		servers = append(servers, server)
+// 	}
 
-	return servers, nil
-}
+// 	return servers, nil
+// }
 
-// getAppServersFallback fetches app servers using legacy API call
-// `GetAppServers`.
-//
-// DELETE IN 9.0.
-func (c *Client) getAppServersFallback(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	legacyServers, err := c.GetAppServers(ctx, namespace)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var servers []types.AppServer
-	for _, legacyServer := range legacyServers {
-		converted, err := types.NewAppServersV3FromServer(legacyServer)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		servers = append(servers, converted...)
-	}
-	return servers, nil
-}
+// // getAppServersFallback fetches app servers using legacy API call
+// // `GetAppServers`.
+// //
+// // DELETE IN 9.0.
+// func (c *Client) getAppServersFallback(ctx context.Context, namespace string) ([]types.AppServer, error) {
+// 	legacyServers, err := c.GetAppServers(ctx, namespace)
+// 	if err != nil {
+// 		return nil, trace.Wrap(err)
+// 	}
+// 	var servers []types.AppServer
+// 	for _, legacyServer := range legacyServers {
+// 		converted, err := types.NewAppServersV3FromServer(legacyServer)
+// 		if err != nil {
+// 			return nil, trace.Wrap(err)
+// 		}
+// 		servers = append(servers, converted...)
+// 	}
+// 	return servers, nil
+// }
 
 // UpsertApplicationServer registers an application server.
 func (c *Client) UpsertApplicationServer(ctx context.Context, server types.AppServer) (*types.KeepAlive, error) {
@@ -1317,53 +1317,27 @@ func (c *Client) DeleteAllKubeServices(ctx context.Context) error {
 
 // GetDatabaseServers returns all registered database proxy servers.
 func (c *Client) GetDatabaseServers(ctx context.Context, namespace string) ([]types.DatabaseServer, error) {
-	// resources, err := GetResourcesWithFilters(ctx, c, proto.ListResourcesRequest{
-	// 	Namespace:    namespace,
-	// 	ResourceType: types.KindDatabaseServer,
-	// })
-	// if err != nil {
-	// 	// Underlying ListResources for db server was not available, use fallback.
-	// 	//
-	// 	// DELETE IN 11.0.0
-	// 	if trace.IsNotImplemented(err) {
-	// 		servers, err := c.getDatabaseServersFallback(ctx, namespace)
-	// 		if err != nil {
-	// 			return nil, trace.Wrap(err)
-	// 		}
-
-	// 		return servers, nil
-	// 	}
-
-	// 	return nil, trace.Wrap(err)
-	// }
-
-	// servers, err := types.ResourcesWithLabels(resources).AsDatabaseServers()
-	// if err != nil {
-	// 	return nil, trace.Wrap(err)
-	// }
-
-	// return servers, nil
 	return nil, nil
 }
 
-// getDatabaseServersFallback fetches database servers using legacy API call
-// `GetDatabaseServers`.
-//
-// DELETE IN 10.0.
-func (c *Client) getDatabaseServersFallback(ctx context.Context, namespace string) ([]types.DatabaseServer, error) {
-	resp, err := c.grpc.GetDatabaseServers(ctx, &proto.GetDatabaseServersRequest{
-		Namespace: namespace,
-	}, c.callOpts...)
-	if err != nil {
-		return nil, trail.FromGRPC(err)
-	}
-	servers := make([]types.DatabaseServer, 0, len(resp.GetServers()))
-	for _, server := range resp.GetServers() {
-		servers = append(servers, server)
-	}
+// // getDatabaseServersFallback fetches database servers using legacy API call
+// // `GetDatabaseServers`.
+// //
+// // DELETE IN 10.0.
+// func (c *Client) getDatabaseServersFallback(ctx context.Context, namespace string) ([]types.DatabaseServer, error) {
+// 	resp, err := c.grpc.GetDatabaseServers(ctx, &proto.GetDatabaseServersRequest{
+// 		Namespace: namespace,
+// 	}, c.callOpts...)
+// 	if err != nil {
+// 		return nil, trail.FromGRPC(err)
+// 	}
+// 	servers := make([]types.DatabaseServer, 0, len(resp.GetServers()))
+// 	for _, server := range resp.GetServers() {
+// 		servers = append(servers, server)
+// 	}
 
-	return servers, nil
-}
+// 	return servers, nil
+// }
 
 // UpsertDatabaseServer registers a new database proxy server.
 func (c *Client) UpsertDatabaseServer(ctx context.Context, server types.DatabaseServer) (*types.KeepAlive, error) {
