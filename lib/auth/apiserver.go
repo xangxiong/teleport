@@ -21,42 +21,11 @@ import (
 	"net/http"
 	"time"
 
-	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/plugin"
 	"github.com/gravitational/teleport/lib/session"
 
 	"github.com/julienschmidt/httprouter"
 )
-
-type APIConfig struct {
-	PluginRegistry plugin.Registry
-	SessionService session.Service
-	AuditLog       events.IAuditLog
-	Authorizer     Authorizer
-	Emitter        apievents.Emitter
-	// KeepAlivePeriod defines period between keep alives
-	KeepAlivePeriod time.Duration
-	// KeepAliveCount specifies amount of missed keep alives
-	// to wait for until declaring connection as broken
-	KeepAliveCount int
-	// MetadataGetter retrieves additional metadata about session uploads.
-	// Will be nil if audit logging is not enabled.
-	MetadataGetter events.UploadMetadataGetter
-}
-
-// CheckAndSetDefaults checks and sets default values
-func (a *APIConfig) CheckAndSetDefaults() error {
-	if a.KeepAlivePeriod == 0 {
-		a.KeepAlivePeriod = apidefaults.ServerKeepAliveTTL()
-	}
-	if a.KeepAliveCount == 0 {
-		a.KeepAliveCount = apidefaults.KeepAliveCountMax
-	}
-	return nil
-}
 
 // HandlerWithAuthFunc is http handler with passed auth context
 type HandlerWithAuthFunc func(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error)
