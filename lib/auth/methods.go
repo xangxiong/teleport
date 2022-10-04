@@ -32,8 +32,6 @@ type AuthenticateUserRequest struct {
 	Username string `json:"username"`
 	// Pass is a password used in local authentication schemes
 	Pass *PassCreds `json:"pass,omitempty"`
-	// OTP is a password and second factor, used for MFA authentication
-	OTP *OTPCreds `json:"otp,omitempty"`
 	// Session is a web session credential used to authenticate web sessions
 	Session *SessionCreds `json:"session,omitempty"`
 	// ClientMetadata includes forwarded information about a client
@@ -60,14 +58,6 @@ func (a *AuthenticateUserRequest) CheckAndSetDefaults() error {
 type PassCreds struct {
 	// Password is a user password
 	Password []byte `json:"password"`
-}
-
-// OTPCreds is a two-factor authentication credentials
-type OTPCreds struct {
-	// Password is a user password
-	Password []byte `json:"password"`
-	// Token is a user second factor token
-	Token string `json:"token"`
 }
 
 // SessionCreds is a web session credentials
