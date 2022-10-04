@@ -154,23 +154,6 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 	return server, nil
 }
 
-// Middleware is authentication middleware checking every request
-type Middleware struct {
-	// AccessPoint is a caching access point for auth server
-	AccessPoint AccessCache
-	// Handler is HTTP handler called after the middleware checks requests
-	Handler http.Handler
-	// AcceptedUsage restricts authentication
-	// to a subset of certificates based on certificate metadata,
-	// for example middleware can reject certificates with mismatching usage.
-	// If empty, will only accept certificates with non-limited usage,
-	// if set, will accept certificates with non-limited usage,
-	// and usage exactly matching the specified values.
-	AcceptedUsage []string
-	// Limiter is a rate and connection limiter
-	Limiter *limiter.Limiter
-}
-
 // ClientCertPool returns trusted x509 certificate authority pool with CAs provided as caTypes.
 // In addition, it returns the total length of all subjects added to the cert pool, allowing
 // the caller to validate that the pool doesn't exceed the maximum 2-byte length prefix before
