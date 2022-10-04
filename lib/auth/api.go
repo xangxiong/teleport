@@ -245,84 +245,8 @@ type Cache interface {
 	// Closer closes all the resources
 	io.Closer
 
-	// NewWatcher returns a new event watcher.
-	NewWatcher(ctx context.Context, watch types.Watch) (types.Watcher, error)
-
-	// GetReverseTunnels returns  a list of reverse tunnels
-	GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error)
-
-	// GetClusterName returns cluster name
-	GetClusterName(opts ...services.MarshalOption) (types.ClusterName, error)
-
-	// GetClusterAuditConfig returns cluster audit configuration.
-	GetClusterAuditConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterAuditConfig, error)
-
-	// GetClusterNetworkingConfig returns cluster networking configuration.
-	GetClusterNetworkingConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterNetworkingConfig, error)
-
-	// GetAuthPreference returns the cluster authentication configuration.
-	GetAuthPreference(ctx context.Context) (types.AuthPreference, error)
-
-	// GetSessionRecordingConfig returns session recording configuration.
-	GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error)
-
-	// GetNamespace returns namespace by name
-	GetNamespace(name string) (*types.Namespace, error)
-
-	// GetNode returns a node by name and namespace.
-	GetNode(ctx context.Context, namespace, name string) (types.Server, error)
-
-	// GetNodes returns a list of registered servers for this cluster.
-	GetNodes(ctx context.Context, namespace string) ([]types.Server, error)
-
-	// GetProxies returns a list of proxy servers registered in the cluster
-	GetProxies() ([]types.Server, error)
-
 	// GetCertAuthority returns cert authority by id
 	GetCertAuthority(ctx context.Context, id types.CertAuthID, loadKeys bool, opts ...services.MarshalOption) (types.CertAuthority, error)
-
-	// GetCertAuthorities returns a list of cert authorities
-	GetCertAuthorities(ctx context.Context, caType types.CertAuthType, loadKeys bool, opts ...services.MarshalOption) ([]types.CertAuthority, error)
-
-	// GetRole returns role by name
-	GetRole(ctx context.Context, name string) (types.Role, error)
-
-	// GetRoles returns a list of roles
-	GetRoles(ctx context.Context) ([]types.Role, error)
-
-	// GetAllTunnelConnections returns all tunnel connections
-	GetAllTunnelConnections(opts ...services.MarshalOption) ([]types.TunnelConnection, error)
-
-	// GetRemoteClusters returns a list of remote clusters
-	GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error)
-
-	// GetRemoteCluster returns a remote cluster by name
-	GetRemoteCluster(clusterName string) (types.RemoteCluster, error)
-
-	// GetNetworkRestrictions returns networking restrictions for restricted shell to enforce
-	GetNetworkRestrictions(ctx context.Context) (types.NetworkRestrictions, error)
-
-	// GetStaticTokens gets the list of static tokens used to provision nodes.
-	GetStaticTokens() (types.StaticTokens, error)
-
-	// GetTokens returns all active (non-expired) provisioning tokens
-	GetTokens(ctx context.Context) ([]types.ProvisionToken, error)
-
-	// GetToken finds and returns token by ID
-	GetToken(ctx context.Context, token string) (types.ProvisionToken, error)
-
-	// GetLock gets a lock by name.
-	// NOTE: This method is intentionally available only for the auth server
-	// cache, the other Teleport components should make use of
-	// services.LockWatcher that provides the necessary freshness guarantees.
-	GetLock(ctx context.Context, name string) (types.Lock, error)
-
-	// GetLocks gets all/in-force locks that match at least one of the targets
-	// when specified.
-	// NOTE: This method is intentionally available only for the auth server
-	// cache, the other Teleport components should make use of
-	// services.LockWatcher that provides the necessary freshness guarantees.
-	GetLocks(ctx context.Context, inForceOnly bool, targets ...types.LockTarget) ([]types.Lock, error)
 
 	// ListResources returns a paginated list of resources.
 	ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error)
