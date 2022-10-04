@@ -539,15 +539,6 @@ func (c *Client) DeleteTunnelConnection(clusterName string, connName string) err
 	return trace.Wrap(err)
 }
 
-// DeleteTunnelConnections deletes all tunnel connections for cluster
-func (c *Client) DeleteTunnelConnections(clusterName string) error {
-	if clusterName == "" {
-		return trace.BadParameter("missing parameter cluster name")
-	}
-	_, err := c.Delete(context.TODO(), c.Endpoint("tunnelconnections", clusterName))
-	return trace.Wrap(err)
-}
-
 // DeleteAllTokens not implemented: can only be called locally.
 func (c *Client) DeleteAllTokens() error {
 	return trace.NotImplemented(notImplementedMessage)

@@ -438,16 +438,6 @@ func (s *PresenceService) DeleteTunnelConnection(clusterName, connectionName str
 	return s.Delete(context.TODO(), backend.Key(tunnelConnectionsPrefix, clusterName, connectionName))
 }
 
-// DeleteTunnelConnections deletes all tunnel connections for cluster
-func (s *PresenceService) DeleteTunnelConnections(clusterName string) error {
-	if clusterName == "" {
-		return trace.BadParameter("missing cluster name")
-	}
-	startKey := backend.ExactKey(tunnelConnectionsPrefix, clusterName)
-	err := s.DeleteRange(context.TODO(), startKey, backend.RangeEnd(startKey))
-	return trace.Wrap(err)
-}
-
 // DeleteAllTunnelConnections deletes all tunnel connections
 func (s *PresenceService) DeleteAllTunnelConnections() error {
 	startKey := backend.Key(tunnelConnectionsPrefix)

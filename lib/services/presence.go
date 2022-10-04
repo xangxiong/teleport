@@ -107,9 +107,6 @@ type Presence interface {
 	// DeleteTunnelConnection deletes tunnel connection by name
 	DeleteTunnelConnection(clusterName string, connName string) error
 
-	// DeleteTunnelConnections deletes all tunnel connections for cluster
-	DeleteTunnelConnections(clusterName string) error
-
 	// DeleteAllTunnelConnections deletes all tunnel connections for cluster
 	DeleteAllTunnelConnections() error
 
