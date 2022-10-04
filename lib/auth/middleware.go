@@ -36,7 +36,6 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
-	"google.golang.org/grpc"
 )
 
 // TLSServerConfig is a configuration for TLS server
@@ -188,18 +187,6 @@ type Middleware struct {
 // Wrap sets next handler in chain
 func (a *Middleware) Wrap(h http.Handler) {
 	a.Handler = h
-}
-
-// authenticatedStream wraps around the embedded grpc.ServerStream
-// provides new context with additional metadata
-type authenticatedStream struct {
-	ctx context.Context
-	grpc.ServerStream
-}
-
-// Context specifies stream context with authentication metadata
-func (a *authenticatedStream) Context() context.Context {
-	return a.ctx
 }
 
 // GetUser returns authenticated user based on request metadata set by HTTP server
