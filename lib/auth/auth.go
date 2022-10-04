@@ -96,12 +96,12 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Status == nil {
 		cfg.Status = local.NewStatusService(cfg.Backend)
 	}
-	if cfg.SessionTrackerService == nil {
-		cfg.SessionTrackerService, err = local.NewSessionTrackerService(cfg.Backend)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
+	// if cfg.SessionTrackerService == nil {
+	// 	cfg.SessionTrackerService, err = local.NewSessionTrackerService(cfg.Backend)
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// }
 	if cfg.KeyStoreConfig.RSAKeyPairSource == nil {
 		native.PrecomputeKeys()
 		cfg.KeyStoreConfig.RSAKeyPairSource = native.GenerateKeyPair
@@ -130,10 +130,7 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		DynamicAccessExt:     cfg.DynamicAccessExt,
 		ClusterConfiguration: cfg.ClusterConfiguration,
 		Restrictions:         cfg.Restrictions,
-		// IAuditLog:             cfg.AuditLog,
-		Events:                cfg.Events,
-		SessionTrackerService: cfg.SessionTrackerService,
-		StatusInternal:        cfg.Status,
+		StatusInternal:       cfg.Status,
 	}
 
 	closeCtx, cancelFunc := context.WithCancel(context.TODO())
@@ -145,8 +142,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		ServerID:        cfg.HostUUID,
 		cancelFunc:      cancelFunc,
 		closeCtx:        closeCtx,
-		emitter:         cfg.Emitter,
-		streamer:        cfg.Streamer,
 		unstable:        local.NewUnstableService(cfg.Backend, cfg.AssertionReplayService),
 		Services:        services,
 		Cache:           services,

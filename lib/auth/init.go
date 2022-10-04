@@ -31,14 +31,12 @@ import (
 	"github.com/gravitational/teleport/api/client/proto"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/api/utils/keys"
 	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
 	"github.com/gravitational/teleport/lib/auth/keystore"
 	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
 	"github.com/gravitational/teleport/lib/sshca"
@@ -106,9 +104,6 @@ type InitConfig struct {
 	// DynamicAccessExt is a service that manages dynamic RBAC.
 	DynamicAccessExt services.DynamicAccessExt
 
-	// Events is an event service
-	Events types.Events
-
 	// ClusterConfiguration is a services that holds cluster wide configuration.
 	ClusterConfiguration services.ClusterConfiguration
 
@@ -144,16 +139,6 @@ type InitConfig struct {
 
 	// CipherSuites is a list of ciphersuites that the auth server supports.
 	CipherSuites []uint16
-
-	// Emitter is events emitter, used to submit discrete events
-	Emitter apievents.Emitter
-
-	// Streamer is events sessionstreamer, used to create continuous
-	// session related streams
-	Streamer events.Streamer
-
-	// SessionTrackerService is a service that manages trackers for all active sessions.
-	SessionTrackerService services.SessionTrackerService
 
 	// AssertionReplayService is a service that mitigatates SSO assertion replay.
 	*local.AssertionReplayService
