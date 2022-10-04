@@ -14,8 +14,6 @@
 
 package common
 
-import "fmt"
-
 const (
 	usageNotes = `Notes:
   --roles=node,proxy,auth,app
@@ -33,7 +31,7 @@ const (
 )
 
 var (
-	usageExamples = fmt.Sprintf(`
+	usageExamples = `
 Examples:
 
 > teleport start
@@ -47,5 +45,5 @@ Examples:
 > teleport start --roles=node --auth-server=10.1.0.1 --labels=db=master
   Same as the above, but the node runs with db=master label and can be connected
   to using that label in addition to its name.
-`)
+`
 )
