@@ -41,7 +41,6 @@ import (
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/session"
-	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/gravitational/roundtrip"
 	"github.com/gravitational/trace"
@@ -719,19 +718,6 @@ func (c *Client) GenerateHostCert(
 // The event channel is not closed on error to prevent race conditions in downstream select statements.
 func (c *Client) StreamSessionEvents(ctx context.Context, sessionID session.ID, startIndex int64) (chan apievents.AuditEvent, chan error) {
 	return c.APIClient.StreamSessionEvents(ctx, string(sessionID), startIndex)
-}
-
-// GetNamespaces returns a list of namespaces
-func (c *Client) GetNamespaces() ([]types.Namespace, error) {
-	out, err := c.Get(context.TODO(), c.Endpoint("namespaces"), url.Values{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var re []types.Namespace
-	if err := utils.FastUnmarshal(out.Bytes(), &re); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return re, nil
 }
 
 // GetNamespace returns namespace by name

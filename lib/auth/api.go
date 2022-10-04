@@ -103,9 +103,6 @@ type ReadNodeAccessPoint interface {
 	// GetRoles returns a list of roles
 	GetRoles(ctx context.Context) ([]types.Role, error)
 
-	// GetNamespaces returns a list of namespaces
-	GetNamespaces() ([]types.Namespace, error)
-
 	// GetNamespace returns namespace by name
 	GetNamespace(name string) (*types.Namespace, error)
 
@@ -160,9 +157,6 @@ type ReadProxyAccessPoint interface {
 
 	// GetRoles returns a list of roles
 	GetRoles(ctx context.Context) ([]types.Role, error)
-
-	// GetNamespaces returns a list of namespaces
-	GetNamespaces() ([]types.Namespace, error)
 
 	// GetNamespace returns namespace by name
 	GetNamespace(name string) (*types.Namespace, error)
@@ -242,9 +236,6 @@ type ReadRemoteProxyAccessPoint interface {
 
 	// GetRoles returns a list of roles
 	GetRoles(ctx context.Context) ([]types.Role, error)
-
-	// GetNamespaces returns a list of namespaces
-	GetNamespaces() ([]types.Namespace, error)
 
 	// GetNamespace returns namespace by name
 	GetNamespace(name string) (*types.Namespace, error)
@@ -331,9 +322,6 @@ type Cache interface {
 
 	// GetSessionRecordingConfig returns session recording configuration.
 	GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error)
-
-	// GetNamespaces returns a list of namespaces
-	GetNamespaces() ([]types.Namespace, error)
 
 	// GetNamespace returns namespace by name
 	GetNamespace(name string) (*types.Namespace, error)

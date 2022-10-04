@@ -17,7 +17,6 @@ limitations under the License.
 package local
 
 import (
-	"bytes"
 	"context"
 	"sort"
 	"time"
@@ -58,28 +57,6 @@ func NewPresenceService(b backend.Backend) *PresenceService {
 // DeleteAllNamespaces deletes all namespaces
 func (s *PresenceService) DeleteAllNamespaces() error {
 	return s.DeleteRange(context.TODO(), backend.Key(namespacesPrefix), backend.RangeEnd(backend.Key(namespacesPrefix)))
-}
-
-// GetNamespaces returns a list of namespaces
-func (s *PresenceService) GetNamespaces() ([]types.Namespace, error) {
-	result, err := s.GetRange(context.TODO(), backend.Key(namespacesPrefix), backend.RangeEnd(backend.Key(namespacesPrefix)), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	out := make([]types.Namespace, 0, len(result.Items))
-	for _, item := range result.Items {
-		if !bytes.HasSuffix(item.Key, []byte(paramsPrefix)) {
-			continue
-		}
-		ns, err := services.UnmarshalNamespace(
-			item.Value, services.WithResourceID(item.ID), services.WithExpires(item.Expires))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		out = append(out, *ns)
-	}
-	sort.Sort(types.SortedNamespaces(out))
-	return out, nil
 }
 
 // UpsertNamespace upserts namespace

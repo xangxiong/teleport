@@ -89,9 +89,6 @@ type Presence interface {
 	// DeleteAllReverseTunnels deletes all reverse tunnels
 	DeleteAllReverseTunnels() error
 
-	// GetNamespaces returns a list of namespaces
-	GetNamespaces() ([]types.Namespace, error)
-
 	// GetNamespace returns namespace by name
 	GetNamespace(name string) (*types.Namespace, error)
 

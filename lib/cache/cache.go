@@ -1245,19 +1245,6 @@ func (c *Cache) GetNamespace(name string) (*types.Namespace, error) {
 	return rg.presence.GetNamespace(name)
 }
 
-// GetNamespaces is a part of auth.Cache implementation
-func (c *Cache) GetNamespaces() ([]types.Namespace, error) {
-	_, span := c.Tracer.Start(context.TODO(), "cache/GetNamespaces")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetNamespaces()
-}
-
 // GetNode finds and returns a node by name and namespace.
 func (c *Cache) GetNode(ctx context.Context, namespace, name string) (types.Server, error) {
 	ctx, span := c.Tracer.Start(ctx, "cache/GetNode")

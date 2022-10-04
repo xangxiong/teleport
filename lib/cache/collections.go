@@ -83,11 +83,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 				return nil, trace.BadParameter("missing parameter Access")
 			}
 			collections[resourceKind] = &role{watch: watch, Cache: c}
-		case types.KindNamespace:
-			if c.Presence == nil {
-				return nil, trace.BadParameter("missing parameter Presence")
-			}
-			collections[resourceKind] = &namespace{watch: watch, Cache: c}
 		case types.KindNode:
 			if c.Presence == nil {
 				return nil, trace.BadParameter("missing parameter Presence")
@@ -571,70 +566,6 @@ func (c *node) processEvent(ctx context.Context, event types.Event) error {
 }
 
 func (c *node) watchKind() types.WatchKind {
-	return c.watch
-}
-
-type namespace struct {
-	*Cache
-	watch types.WatchKind
-}
-
-// erase erases all data in the collection
-func (c *namespace) erase(ctx context.Context) error {
-	if err := c.presenceCache.DeleteAllNamespaces(); err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (c *namespace) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	resources, err := c.Presence.GetNamespaces()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return func(ctx context.Context) error {
-		if err := c.erase(ctx); err != nil {
-			return trace.Wrap(err)
-		}
-		for _, resource := range resources {
-			if err := c.presenceCache.UpsertNamespace(resource); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	}, nil
-}
-
-func (c *namespace) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.presenceCache.DeleteNamespace(event.Resource.GetName())
-		if err != nil {
-			// resource could be missing in the cache
-			// expired or not created, if the first consumed
-			// event is delete
-			if !trace.IsNotFound(err) {
-				c.Warningf("Failed to delete namespace %v.", err)
-				return trace.Wrap(err)
-			}
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(*types.Namespace)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		if err := c.presenceCache.UpsertNamespace(*resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warningf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *namespace) watchKind() types.WatchKind {
 	return c.watch
 }
 
