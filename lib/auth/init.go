@@ -88,9 +88,6 @@ type InitConfig struct {
 	// in configuration, so auth server will init the tunnels on the first start
 	ReverseTunnels []types.ReverseTunnel
 
-	// Trust is a service that manages users and credentials
-	Trust services.Trust
-
 	// Presence service is a discovery and heartbeat tracker
 	Presence services.Presence
 

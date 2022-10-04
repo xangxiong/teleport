@@ -68,9 +68,6 @@ type ServerOption func(*Server) error
 func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	var err error
 
-	if cfg.Trust == nil {
-		cfg.Trust = local.NewCAService(cfg.Backend)
-	}
 	if cfg.Presence == nil {
 		cfg.Presence = local.NewPresenceService(cfg.Backend)
 	}
@@ -93,12 +90,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Status == nil {
 		cfg.Status = local.NewStatusService(cfg.Backend)
 	}
-	// if cfg.SessionTrackerService == nil {
-	// 	cfg.SessionTrackerService, err = local.NewSessionTrackerService(cfg.Backend)
-	// 	if err != nil {
-	// 		return nil, trace.Wrap(err)
-	// 	}
-	// }
 	if cfg.KeyStoreConfig.RSAKeyPairSource == nil {
 		native.PrecomputeKeys()
 		cfg.KeyStoreConfig.RSAKeyPairSource = native.GenerateKeyPair
@@ -120,7 +111,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	}
 
 	services := &Services{
-		Trust:                cfg.Trust,
 		Presence:             cfg.Presence,
 		Access:               cfg.Access,
 		DynamicAccessExt:     cfg.DynamicAccessExt,
