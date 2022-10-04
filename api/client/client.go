@@ -2124,15 +2124,16 @@ func (c *Client) DeleteAllDatabases(ctx context.Context) error {
 
 // GetWindowsDesktopServices returns all registered windows desktop services.
 func (c *Client) GetWindowsDesktopServices(ctx context.Context) ([]types.WindowsDesktopService, error) {
-	resp, err := c.grpc.GetWindowsDesktopServices(ctx, &empty.Empty{}, c.callOpts...)
-	if err != nil {
-		return nil, trail.FromGRPC(err)
-	}
-	services := make([]types.WindowsDesktopService, 0, len(resp.GetServices()))
-	for _, service := range resp.GetServices() {
-		services = append(services, service)
-	}
-	return services, nil
+	// resp, err := c.grpc.GetWindowsDesktopServices(ctx, &empty.Empty{}, c.callOpts...)
+	// if err != nil {
+	// 	return nil, trail.FromGRPC(err)
+	// }
+	// services := make([]types.WindowsDesktopService, 0, len(resp.GetServices()))
+	// for _, service := range resp.GetServices() {
+	// 	services = append(services, service)
+	// }
+	// return services, nil
+	return nil, nil
 }
 
 // GetWindowsDesktopService returns a registered windows desktop service by name.
