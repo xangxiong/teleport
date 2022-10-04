@@ -995,27 +995,7 @@ func (c *Client) UpsertKubeServiceV2(ctx context.Context, s types.Server) (*type
 // GetKubeServices returns the list of kubernetes services registered in the
 // cluster.
 func (c *Client) GetKubeServices(ctx context.Context) ([]types.Server, error) {
-	resources, err := GetResourcesWithFilters(ctx, c, proto.ListResourcesRequest{
-		Namespace:    defaults.Namespace,
-		ResourceType: types.KindKubeService,
-	})
-	if err != nil {
-		// Underlying ListResources for kube service was not available, use fallback.
-		//
-		// DELETE IN 11.0.0
-		if trace.IsNotImplemented(err) {
-			return c.getKubeServicesFallback(ctx)
-		}
-
-		return nil, trace.Wrap(err)
-	}
-
-	servers, err := types.ResourcesWithLabels(resources).AsServers()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return servers, nil
+	return nil, nil
 }
 
 // getKubeServicesFallback previous implementation of `GetKubeServices` function
@@ -1037,40 +1017,7 @@ func (c *Client) getKubeServicesFallback(ctx context.Context) ([]types.Server, e
 
 // GetApplicationServers returns all registered application servers.
 func (c *Client) GetApplicationServers(ctx context.Context, namespace string) ([]types.AppServer, error) {
-	resources, err := GetResourcesWithFilters(ctx, c, proto.ListResourcesRequest{
-		Namespace:    namespace,
-		ResourceType: types.KindAppServer,
-	})
-	if err != nil {
-		// Underlying ListResources for app server was not available, use fallback.
-		//
-		// DELETE IN 11.0.0
-		if trace.IsNotImplemented(err) {
-			servers, err := c.getApplicationServersFallback(ctx, namespace)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-
-			return servers, nil
-		}
-
-		return nil, trace.Wrap(err)
-	}
-
-	servers, err := types.ResourcesWithLabels(resources).AsAppServers()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// In addition, we need to fetch legacy application servers.
-	//
-	// DELETE IN 9.0.
-	legacyServers, err := c.getAppServersFallback(ctx, namespace)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return append(servers, legacyServers...), nil
+	return nil, nil
 }
 
 // getAppServersFallback fetches app servers using deprecated API call
@@ -1370,32 +1317,33 @@ func (c *Client) DeleteAllKubeServices(ctx context.Context) error {
 
 // GetDatabaseServers returns all registered database proxy servers.
 func (c *Client) GetDatabaseServers(ctx context.Context, namespace string) ([]types.DatabaseServer, error) {
-	resources, err := GetResourcesWithFilters(ctx, c, proto.ListResourcesRequest{
-		Namespace:    namespace,
-		ResourceType: types.KindDatabaseServer,
-	})
-	if err != nil {
-		// Underlying ListResources for db server was not available, use fallback.
-		//
-		// DELETE IN 11.0.0
-		if trace.IsNotImplemented(err) {
-			servers, err := c.getDatabaseServersFallback(ctx, namespace)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
+	// resources, err := GetResourcesWithFilters(ctx, c, proto.ListResourcesRequest{
+	// 	Namespace:    namespace,
+	// 	ResourceType: types.KindDatabaseServer,
+	// })
+	// if err != nil {
+	// 	// Underlying ListResources for db server was not available, use fallback.
+	// 	//
+	// 	// DELETE IN 11.0.0
+	// 	if trace.IsNotImplemented(err) {
+	// 		servers, err := c.getDatabaseServersFallback(ctx, namespace)
+	// 		if err != nil {
+	// 			return nil, trace.Wrap(err)
+	// 		}
 
-			return servers, nil
-		}
+	// 		return servers, nil
+	// 	}
 
-		return nil, trace.Wrap(err)
-	}
+	// 	return nil, trace.Wrap(err)
+	// }
 
-	servers, err := types.ResourcesWithLabels(resources).AsDatabaseServers()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// servers, err := types.ResourcesWithLabels(resources).AsDatabaseServers()
+	// if err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 
-	return servers, nil
+	// return servers, nil
+	return nil, nil
 }
 
 // getDatabaseServersFallback fetches database servers using legacy API call
@@ -2544,18 +2492,18 @@ func (c *Client) ListResources(ctx context.Context, req proto.ListResourcesReque
 	resources := make([]types.ResourceWithLabels, len(resp.GetResources()))
 	for i, respResource := range resp.GetResources() {
 		switch req.ResourceType {
-		case types.KindDatabaseServer:
-			resources[i] = respResource.GetDatabaseServer()
-		case types.KindAppServer:
-			resources[i] = respResource.GetAppServer()
+		// case types.KindDatabaseServer:
+		// 	resources[i] = respResource.GetDatabaseServer()
+		// case types.KindAppServer:
+		// 	resources[i] = respResource.GetAppServer()
 		case types.KindNode:
 			resources[i] = respResource.GetNode()
-		case types.KindKubeService:
-			resources[i] = respResource.GetKubeService()
-		case types.KindWindowsDesktop:
-			resources[i] = respResource.GetWindowsDesktop()
-		case types.KindKubernetesCluster:
-			resources[i] = respResource.GetKubeCluster()
+		// case types.KindKubeService:
+		// 	resources[i] = respResource.GetKubeService()
+		// case types.KindWindowsDesktop:
+		// 	resources[i] = respResource.GetWindowsDesktop()
+		// case types.KindKubernetesCluster:
+		// 	resources[i] = respResource.GetKubeCluster()
 		default:
 			return nil, trace.NotImplemented("resource type %s does not support pagination", req.ResourceType)
 		}

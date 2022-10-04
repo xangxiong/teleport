@@ -65,24 +65,6 @@ const (
 	// only to plugin data associated with access requests.
 	KindAccessPluginData = "access_plugin_data"
 
-	// KindOIDC is OIDC connector resource
-	KindOIDC = "oidc"
-
-	// KindSAML is SAML connector resource
-	KindSAML = "saml"
-
-	// KindGithub is Github connector resource
-	KindGithub = "github"
-
-	// KindOIDCRequest is OIDC auth request resource
-	KindOIDCRequest = "oidc_request"
-
-	// KindSAMLRequest is SAML auth request resource
-	KindSAMLRequest = "saml_request"
-
-	// KindGithubRequest is Github auth request resource
-	KindGithubRequest = "github_request"
-
 	// KindSession is a recorded SSH session.
 	KindSession = "session"
 
@@ -94,12 +76,6 @@ const (
 
 	// KindWebToken is a web token resource
 	KindWebToken = "web_token"
-
-	// KindAppSession represents an application specific web session.
-	KindAppSession = "app_session"
-
-	// KindSnowflakeSession represents a Snowflake specific web session.
-	KindSnowflakeSession = "snowflake_session"
 
 	// KindEvent is structured audit logging event
 	KindEvent = "event"
@@ -137,14 +113,8 @@ const (
 	// KindReverseTunnel is a reverse tunnel connection
 	KindReverseTunnel = "tunnel"
 
-	// KindOIDCConnector is a OIDC connector resource
-	KindOIDCConnector = "oidc"
-
 	// KindSAMLConnector is a SAML connector resource
 	KindSAMLConnector = "saml"
-
-	// KindGithubConnector is Github OAuth2 connector resource
-	KindGithubConnector = "github"
 
 	// KindConnectors is a shortcut for all authentication connector
 	KindConnectors = "connectors"
@@ -256,12 +226,6 @@ const (
 	// KindSessionTracker is a resource that tracks a live session.
 	KindSessionTracker = "session_tracker"
 
-	// KindDatabaseCertificate is a resource to control Database Certificates generation
-	KindDatabaseCertificate = "database_certificate"
-
-	// KindConnectionDiagnostic is a resource that tracks the result of testing a connection
-	KindConnectionDiagnostic = "connection_diagnostic"
-
 	// KindClusterAlert is a resource that conveys a cluster-level alert message.
 	KindClusterAlert = "cluster_alert"
 
@@ -283,7 +247,7 @@ const (
 )
 
 // WebSessionSubKinds lists subkinds of web session resources
-var WebSessionSubKinds = []string{KindAppSession, KindWebSession, KindSnowflakeSession}
+var WebSessionSubKinds = []string{KindWebSession}
 
 const (
 	// VerbList is used to list all objects. Does not imply the ability to read a single object.
@@ -444,9 +408,6 @@ const (
 var RequestableResourceKinds = []string{
 	KindNode,
 	KindKubernetesCluster,
-	KindDatabase,
-	KindApp,
-	KindWindowsDesktop,
 }
 
 const (

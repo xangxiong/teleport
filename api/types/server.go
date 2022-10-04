@@ -304,18 +304,6 @@ func (s *ServerV2) GetAllLabels() map[string]string {
 	// server labels (static and dynamic)
 	labels := CombineLabels(s.Metadata.Labels, s.Spec.CmdLabels)
 
-	// server-specific labels
-	switch s.Kind {
-	case KindKubeService:
-		for _, cluster := range s.Spec.KubernetesClusters {
-			// Combine cluster static and dynamic labels, and merge into
-			// `labels`.
-			for name, value := range CombineLabels(cluster.StaticLabels, cluster.DynamicLabels) {
-				labels[name] = value
-			}
-		}
-	}
-
 	return labels
 }
 

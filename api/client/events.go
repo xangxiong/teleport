@@ -83,17 +83,9 @@ func EventToGRPC(in types.Event) (*proto.Event, error) {
 		}
 	case *types.WebSessionV2:
 		switch r.GetSubKind() {
-		case types.KindAppSession:
-			out.Resource = &proto.Event_AppSession{
-				AppSession: r,
-			}
 		case types.KindWebSession:
 			out.Resource = &proto.Event_WebSession{
 				WebSession: r,
-			}
-		case types.KindSnowflakeSession:
-			out.Resource = &proto.Event_SnowflakeSession{
-				SnowflakeSession: r,
 			}
 		default:
 			return nil, trace.BadParameter("only %q supported", types.WebSessionSubKinds)
