@@ -99,10 +99,6 @@ type updateSessionReq struct {
 	Update session.UpdateRequest `json:"update"`
 }
 
-type upsertNamespaceReq struct {
-	Namespace types.Namespace `json:"namespace"`
-}
-
 type upsertTunnelConnectionRawReq struct {
 	TunnelConnection json.RawMessage `json:"tunnel_connection"`
 }
