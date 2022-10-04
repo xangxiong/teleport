@@ -43,9 +43,6 @@ type SessionTrackerService interface {
 
 	// RemoveSessionTracker removes a tracker resource for an active session.
 	RemoveSessionTracker(ctx context.Context, sessionID string) error
-
-	// UpdatePresence updates the presence status of a user in a session.
-	UpdatePresence(ctx context.Context, sessionID, user string) error
 }
 
 // UnmarshalSessionTracker unmarshals the Session resource from JSON.

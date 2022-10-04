@@ -727,10 +727,6 @@ func (c *Client) GetSessionRecordingConfig(ctx context.Context, opts ...services
 	return c.APIClient.GetSessionRecordingConfig(ctx)
 }
 
-func (c *Client) UpdatePresence(ctx context.Context, sessionID, user string) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // IdentityService manages identities and users
 type IdentityService interface {
 	// GenerateToken creates a special provisioning token for a new SSH server

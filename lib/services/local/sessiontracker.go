@@ -58,50 +58,6 @@ func (s *sessionTracker) loadSession(ctx context.Context, sessionID string) (typ
 	return session, nil
 }
 
-// UpdatePresence updates the presence status of a user in a session.
-func (s *sessionTracker) UpdatePresence(ctx context.Context, sessionID, user string) error {
-	for i := 0; i < casRetryLimit; i++ {
-		sessionItem, err := s.bk.Get(ctx, backend.Key(sessionPrefix, sessionID))
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		session, err := services.UnmarshalSessionTracker(sessionItem.Value)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		err = session.UpdatePresence(user)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		sessionJSON, err := services.MarshalSessionTracker(session)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		item := backend.Item{
-			Key:     backend.Key(sessionPrefix, sessionID),
-			Value:   sessionJSON,
-			Expires: session.Expiry(),
-		}
-		_, err = s.bk.CompareAndSwap(ctx, *sessionItem, item)
-		if trace.IsCompareFailed(err) {
-			select {
-			case <-ctx.Done():
-				return trace.Wrap(ctx.Err())
-			case <-time.After(retryDelay):
-				continue
-			}
-		}
-
-		return trace.Wrap(err)
-	}
-
-	return trace.CompareFailed(casErrorMessage)
-}
-
 // GetSessionTracker returns the current state of a session tracker for an active session.
 func (s *sessionTracker) GetSessionTracker(ctx context.Context, sessionID string) (types.SessionTracker, error) {
 	session, err := s.loadSession(ctx, sessionID)
