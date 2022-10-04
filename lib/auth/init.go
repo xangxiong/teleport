@@ -91,9 +91,6 @@ type InitConfig struct {
 	// Access is service controlling access to resources
 	Access services.Access
 
-	// DynamicAccessExt is a service that manages dynamic RBAC.
-	DynamicAccessExt services.DynamicAccessExt
-
 	// ClusterConfiguration is a services that holds cluster wide configuration.
 	ClusterConfiguration services.ClusterConfiguration
 

@@ -74,9 +74,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Access == nil {
 		cfg.Access = local.NewAccessService(cfg.Backend)
 	}
-	if cfg.DynamicAccessExt == nil {
-		cfg.DynamicAccessExt = local.NewDynamicAccessService(cfg.Backend)
-	}
 	if cfg.ClusterConfiguration == nil {
 		clusterConfig, err := local.NewClusterConfigurationService(cfg.Backend)
 		if err != nil {
@@ -113,7 +110,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	services := &Services{
 		Presence:             cfg.Presence,
 		Access:               cfg.Access,
-		DynamicAccessExt:     cfg.DynamicAccessExt,
 		ClusterConfiguration: cfg.ClusterConfiguration,
 		Restrictions:         cfg.Restrictions,
 		StatusInternal:       cfg.Status,
@@ -150,10 +146,8 @@ type Services struct {
 	services.Presence
 	services.Provisioner
 	services.Access
-	services.DynamicAccessExt
 	services.ClusterConfiguration
 	services.Restrictions
-	services.SessionTrackerService
 	services.StatusInternal
 	types.Events
 	events.IAuditLog
