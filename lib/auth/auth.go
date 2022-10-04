@@ -79,9 +79,9 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		}
 		cfg.ClusterConfiguration = clusterConfig
 	}
-	if cfg.Restrictions == nil {
-		cfg.Restrictions = local.NewRestrictionsService(cfg.Backend)
-	}
+	// if cfg.Restrictions == nil {
+	// 	cfg.Restrictions = local.NewRestrictionsService(cfg.Backend)
+	// }
 	if cfg.KeyStoreConfig.RSAKeyPairSource == nil {
 		native.PrecomputeKeys()
 		cfg.KeyStoreConfig.RSAKeyPairSource = native.GenerateKeyPair
@@ -106,7 +106,7 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		Presence:             cfg.Presence,
 		Access:               cfg.Access,
 		ClusterConfiguration: cfg.ClusterConfiguration,
-		Restrictions:         cfg.Restrictions,
+		// Restrictions:         cfg.Restrictions,
 	}
 
 	closeCtx, cancelFunc := context.WithCancel(context.TODO())
@@ -140,7 +140,6 @@ type Services struct {
 	services.Provisioner
 	services.Access
 	services.ClusterConfiguration
-	services.Restrictions
 	types.Events
 	events.IAuditLog
 }
