@@ -475,11 +475,6 @@ func (c *Client) UpsertReverseTunnel(tunnel types.ReverseTunnel) error {
 	return trace.Wrap(err)
 }
 
-// GetReverseTunnel not implemented: can only be called locally.
-func (c *Client) GetReverseTunnel(name string, opts ...services.MarshalOption) (types.ReverseTunnel, error) {
-	return nil, trace.NotImplemented(notImplementedMessage)
-}
-
 // GetReverseTunnels returns the list of created reverse tunnels
 func (c *Client) GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error) {
 	out, err := c.Get(ctx, c.Endpoint("reversetunnels"), url.Values{})

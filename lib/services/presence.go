@@ -80,9 +80,6 @@ type Presence interface {
 	// UpsertReverseTunnel upserts reverse tunnel entry temporarily or permanently
 	UpsertReverseTunnel(tunnel types.ReverseTunnel) error
 
-	// GetReverseTunnel returns reverse tunnel by name
-	GetReverseTunnel(name string, opts ...MarshalOption) (types.ReverseTunnel, error)
-
 	// GetReverseTunnels returns a list of registered servers
 	GetReverseTunnels(ctx context.Context, opts ...MarshalOption) ([]types.ReverseTunnel, error)
 

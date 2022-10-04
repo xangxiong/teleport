@@ -344,16 +344,6 @@ func (s *PresenceService) UpsertReverseTunnel(tunnel types.ReverseTunnel) error 
 	return trace.Wrap(err)
 }
 
-// GetReverseTunnel returns reverse tunnel by name
-func (s *PresenceService) GetReverseTunnel(name string, opts ...services.MarshalOption) (types.ReverseTunnel, error) {
-	item, err := s.Get(context.TODO(), backend.Key(reverseTunnelsPrefix, name))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return services.UnmarshalReverseTunnel(item.Value,
-		services.AddOptions(opts, services.WithResourceID(item.ID), services.WithExpires(item.Expires))...)
-}
-
 // GetReverseTunnels returns a list of registered servers
 func (s *PresenceService) GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error) {
 	startKey := backend.Key(reverseTunnelsPrefix)
