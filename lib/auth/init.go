@@ -124,15 +124,6 @@ type InitConfig struct {
 	// factor passed in from a configuration file.
 	AuthPreference types.AuthPreference
 
-	// ClusterAuditConfig holds cluster audit configuration.
-	ClusterAuditConfig types.ClusterAuditConfig
-
-	// ClusterNetworkingConfig holds cluster networking configuration.
-	ClusterNetworkingConfig types.ClusterNetworkingConfig
-
-	// SessionRecordingConfig holds session recording configuration.
-	SessionRecordingConfig types.SessionRecordingConfig
-
 	// SkipPeriodicOperations turns off periodic operations
 	// used in tests that don't need periodic operations.
 	SkipPeriodicOperations bool
