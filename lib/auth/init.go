@@ -97,9 +97,6 @@ type InitConfig struct {
 	// Restrictions is a service to access network restrictions, etc
 	Restrictions services.Restrictions
 
-	// Status is a service that manages cluster status info.
-	Status services.StatusInternal
-
 	// Roles is a set of roles to create
 	Roles []types.Role
 

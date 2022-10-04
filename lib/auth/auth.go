@@ -84,9 +84,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Restrictions == nil {
 		cfg.Restrictions = local.NewRestrictionsService(cfg.Backend)
 	}
-	if cfg.Status == nil {
-		cfg.Status = local.NewStatusService(cfg.Backend)
-	}
 	if cfg.KeyStoreConfig.RSAKeyPairSource == nil {
 		native.PrecomputeKeys()
 		cfg.KeyStoreConfig.RSAKeyPairSource = native.GenerateKeyPair
@@ -112,7 +109,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 		Access:               cfg.Access,
 		ClusterConfiguration: cfg.ClusterConfiguration,
 		Restrictions:         cfg.Restrictions,
-		StatusInternal:       cfg.Status,
 	}
 
 	closeCtx, cancelFunc := context.WithCancel(context.TODO())
@@ -148,7 +144,6 @@ type Services struct {
 	services.Access
 	services.ClusterConfiguration
 	services.Restrictions
-	services.StatusInternal
 	types.Events
 	events.IAuditLog
 }
