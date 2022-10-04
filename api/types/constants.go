@@ -337,14 +337,8 @@ const (
 	// AppTunnel is a tunnel where the application proxy dials back to the proxy.
 	AppTunnel TunnelType = "app"
 
-	// KubeTunnel is a tunnel where the kubernetes service dials back to the proxy.
-	KubeTunnel TunnelType = "kube"
-
 	// DatabaseTunnel is a tunnel where a database proxy dials back to the proxy.
 	DatabaseTunnel TunnelType = "db"
-
-	// WindowsDesktopTunnel is a tunnel where the Windows desktop service dials back to the proxy.
-	WindowsDesktopTunnel TunnelType = "windows_desktop"
 )
 
 type TunnelStrategyType string
