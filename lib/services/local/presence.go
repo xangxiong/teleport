@@ -54,11 +54,6 @@ func NewPresenceService(b backend.Backend) *PresenceService {
 	}
 }
 
-// DeleteAllNamespaces deletes all namespaces
-func (s *PresenceService) DeleteAllNamespaces() error {
-	return s.DeleteRange(context.TODO(), backend.Key(namespacesPrefix), backend.RangeEnd(backend.Key(namespacesPrefix)))
-}
-
 // GetNamespace returns a namespace by name
 func (s *PresenceService) GetNamespace(name string) (*types.Namespace, error) {
 	if name == "" {
