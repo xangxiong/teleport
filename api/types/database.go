@@ -18,13 +18,11 @@ package types
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gravitational/teleport/api/utils"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/google/go-cmp/cmp"
 	"github.com/gravitational/trace"
 )
 
@@ -32,83 +30,12 @@ import (
 type Database interface {
 	// ResourceWithLabels provides common resource methods.
 	ResourceWithLabels
-	// GetNamespace returns the database namespace.
-	GetNamespace() string
-	// GetStaticLabels returns the database static labels.
-	GetStaticLabels() map[string]string
-	// SetStaticLabels sets the database static labels.
-	SetStaticLabels(map[string]string)
-	// GetDynamicLabels returns the database dynamic labels.
-	GetDynamicLabels() map[string]CommandLabel
-	// SetDynamicLabels sets the database dynamic labels.
-	SetDynamicLabels(map[string]CommandLabel)
-	// LabelsString returns all labels as a string.
-	LabelsString() string
 	// String returns string representation of the database.
 	String() string
 	// GetDescription returns the database description.
 	GetDescription() string
-	// GetProtocol returns the database protocol.
-	GetProtocol() string
-	// GetURI returns the database connection endpoint.
-	GetURI() string
-	// SetURI sets the database connection endpoint.
-	SetURI(string)
-	// GetCA returns the database CA certificate.
-	GetCA() string
-	// GetTLS returns the database TLS configuration.
-	GetTLS() DatabaseTLS
-	// SetStatusCA sets the database CA certificate in the status field.
-	SetStatusCA(string)
-	// GetMySQL returns the database options from spec.
-	GetMySQL() MySQLOptions
-	// GetMySQLServerVersion returns the MySQL server version either from configuration or
-	// reported by the database.
-	GetMySQLServerVersion() string
-	// SetMySQLServerVersion sets the runtime MySQL server version.
-	SetMySQLServerVersion(version string)
-	// GetAWS returns the database AWS metadata.
-	GetAWS() AWS
-	// SetStatusAWS sets the database AWS metadata in the status field.
-	SetStatusAWS(AWS)
-	// GetGCP returns GCP information for Cloud SQL databases.
-	GetGCP() GCPCloudSQL
-	// GetAzure returns Azure database server metadata.
-	GetAzure() Azure
-	// SetStatusAzure sets the database Azure metadata in the status field.
-	SetStatusAzure(Azure)
-	// GetAD returns Active Directory database configuration.
-	GetAD() AD
 	// GetType returns the database authentication type: self-hosted, RDS, Redshift or Cloud SQL.
 	GetType() string
-	// GetIAMPolicy returns AWS IAM policy for the database.
-	GetIAMPolicy() (string, error)
-	// GetIAMAction returns AWS IAM action needed to connect to the database.
-	GetIAMAction() string
-	// GetIAMResources returns AWS IAM resources that provide access to the database.
-	GetIAMResources() []string
-	// GetSecretStore returns secret store configurations.
-	GetSecretStore() SecretStore
-	// GetManagedUsers returns a list of database users that are managed by Teleport.
-	GetManagedUsers() []string
-	// SetManagedUsers sets a list of database users that are managed by Teleport.
-	SetManagedUsers(users []string)
-	// IsRDS returns true if this is an RDS/Aurora database.
-	IsRDS() bool
-	// IsRedshift returns true if this is a Redshift database.
-	IsRedshift() bool
-	// IsCloudSQL returns true if this is a Cloud SQL database.
-	IsCloudSQL() bool
-	// IsAzure returns true if this is an Azure database.
-	IsAzure() bool
-	// IsElastiCache returns true if this is an AWS ElastiCache database.
-	IsElastiCache() bool
-	// IsMemoryDB returns true if this is an AWS MemoryDB database.
-	IsMemoryDB() bool
-	// IsAWSHosted returns true if database is hosted by AWS.
-	IsAWSHosted() bool
-	// IsCloudHosted returns true if database is hosted in the cloud (AWS, Azure or Cloud SQL).
-	IsCloudHosted() bool
 	// Copy returns a copy of this database resource.
 	Copy() *DatabaseV3
 }
@@ -170,11 +97,6 @@ func (d *DatabaseV3) SetOrigin(origin string) {
 	d.Metadata.SetOrigin(origin)
 }
 
-// GetNamespace returns the database resource namespace.
-func (d *DatabaseV3) GetNamespace() string {
-	return d.Metadata.Namespace
-}
-
 // SetExpiry sets the database resource expiration time.
 func (d *DatabaseV3) SetExpiry(expiry time.Time) {
 	d.Metadata.SetExpiry(expiry)
@@ -205,19 +127,6 @@ func (d *DatabaseV3) SetStaticLabels(sl map[string]string) {
 	d.Metadata.Labels = sl
 }
 
-// GetDynamicLabels returns the database dynamic labels.
-func (d *DatabaseV3) GetDynamicLabels() map[string]CommandLabel {
-	if d.Spec.DynamicLabels == nil {
-		return nil
-	}
-	return V2ToLabels(d.Spec.DynamicLabels)
-}
-
-// SetDynamicLabels sets the database dynamic labels
-func (d *DatabaseV3) SetDynamicLabels(dl map[string]CommandLabel) {
-	d.Spec.DynamicLabels = LabelsToV2(dl)
-}
-
 // GetAllLabels returns the database combined static and dynamic labels.
 func (d *DatabaseV3) GetAllLabels() map[string]string {
 	return CombineLabels(d.Metadata.Labels, d.Spec.DynamicLabels)
@@ -238,166 +147,8 @@ func (d *DatabaseV3) GetProtocol() string {
 	return d.Spec.Protocol
 }
 
-// GetURI returns the database connection address.
-func (d *DatabaseV3) GetURI() string {
-	return d.Spec.URI
-}
-
-// SetURI sets the database connection address.
-func (d *DatabaseV3) SetURI(uri string) {
-	d.Spec.URI = uri
-}
-
-// GetCA returns the database CA certificate. If more than one CA is set, then
-// the user provided CA is returned first (Spec field).
-// Auto-downloaded CA certificate is returned otherwise.
-func (d *DatabaseV3) GetCA() string {
-	if d.Spec.TLS.CACert != "" {
-		return d.Spec.TLS.CACert
-	}
-	if d.Spec.CACert != "" {
-		return d.Spec.CACert
-	}
-	return d.Status.CACert
-}
-
-// GetTLS returns Database TLS configuration.
-func (d *DatabaseV3) GetTLS() DatabaseTLS {
-	return d.Spec.TLS
-}
-
-// SetStatusCA sets the database CA certificate in the status field.
-func (d *DatabaseV3) SetStatusCA(ca string) {
-	d.Status.CACert = ca
-}
-
-// GetMySQL returns the MySQL options from spec.
-func (d *DatabaseV3) GetMySQL() MySQLOptions {
-	return d.Spec.MySQL
-}
-
-// GetMySQLServerVersion returns the MySQL server version reported by the database or the value from configuration
-// if the first one is not available.
-func (d *DatabaseV3) GetMySQLServerVersion() string {
-	if d.Status.MySQL.ServerVersion != "" {
-		return d.Status.MySQL.ServerVersion
-	}
-
-	return d.Spec.MySQL.ServerVersion
-}
-
-// SetMySQLServerVersion sets the runtime MySQL server version.
-func (d *DatabaseV3) SetMySQLServerVersion(version string) {
-	d.Status.MySQL.ServerVersion = version
-}
-
-// IsEmpty returns true if AWS metadata is empty.
-func (a AWS) IsEmpty() bool {
-	return cmp.Equal(a, AWS{})
-}
-
-// GetAWS returns the database AWS metadata.
-func (d *DatabaseV3) GetAWS() AWS {
-	if !d.Status.AWS.IsEmpty() {
-		return d.Status.AWS
-	}
-	return d.Spec.AWS
-}
-
-// SetStatusAWS sets the database AWS metadata in the status field.
-func (d *DatabaseV3) SetStatusAWS(aws AWS) {
-	d.Status.AWS = aws
-}
-
-// GetGCP returns GCP information for Cloud SQL databases.
-func (d *DatabaseV3) GetGCP() GCPCloudSQL {
-	return d.Spec.GCP
-}
-
-// IsEmpty returns true if Azure metadata is empty.
-func (a Azure) IsEmpty() bool {
-	return cmp.Equal(a, Azure{})
-}
-
-// GetAzure returns Azure database server metadata.
-func (d *DatabaseV3) GetAzure() Azure {
-	if !d.Status.Azure.IsEmpty() {
-		return d.Status.Azure
-	}
-	return d.Spec.Azure
-}
-
-// SetStatusAzure sets the database Azure metadata in the status field.
-func (d *DatabaseV3) SetStatusAzure(azure Azure) {
-	d.Status.Azure = azure
-}
-
-// GetAD returns Active Directory database configuration.
-func (d *DatabaseV3) GetAD() AD {
-	return d.Spec.AD
-}
-
-// IsRDS returns true if this is an AWS RDS/Aurora instance.
-func (d *DatabaseV3) IsRDS() bool {
-	return d.GetType() == DatabaseTypeRDS
-}
-
-// IsRedshift returns true if this is a Redshift database instance.
-func (d *DatabaseV3) IsRedshift() bool {
-	return d.GetType() == DatabaseTypeRedshift
-}
-
-// IsCloudSQL returns true if this database is a Cloud SQL instance.
-func (d *DatabaseV3) IsCloudSQL() bool {
-	return d.GetType() == DatabaseTypeCloudSQL
-}
-
-// IsAzure returns true if this is Azure hosted database.
-func (d *DatabaseV3) IsAzure() bool {
-	return d.GetType() == DatabaseTypeAzure
-}
-
-// IsElastiCache returns true if this is an AWS ElastiCache database.
-func (d *DatabaseV3) IsElastiCache() bool {
-	return d.GetType() == DatabaseTypeElastiCache
-}
-
-// IsMemoryDB returns true if this is an AWS MemoryDB database.
-func (d *DatabaseV3) IsMemoryDB() bool {
-	return d.GetType() == DatabaseTypeMemoryDB
-}
-
-// IsAWSHosted returns true if database is hosted by AWS.
-func (d *DatabaseV3) IsAWSHosted() bool {
-	return d.IsRDS() || d.IsRedshift() || d.IsElastiCache() || d.IsMemoryDB()
-}
-
-// IsCloudHosted returns true if database is hosted in the cloud (AWS, Azure or
-// Cloud SQL).
-func (d *DatabaseV3) IsCloudHosted() bool {
-	return d.IsAWSHosted() || d.IsCloudSQL() || d.IsAzure()
-}
-
 // GetType returns the database type.
 func (d *DatabaseV3) GetType() string {
-	if d.GetAWS().Redshift.ClusterID != "" {
-		return DatabaseTypeRedshift
-	}
-	if d.GetAWS().ElastiCache.ReplicationGroupID != "" {
-		return DatabaseTypeElastiCache
-	}
-	if d.GetAWS().MemoryDB.ClusterName != "" {
-		return DatabaseTypeMemoryDB
-	}
-	if d.GetAWS().Region != "" || d.GetAWS().RDS.InstanceID != "" || d.GetAWS().RDS.ClusterID != "" {
-		return DatabaseTypeRDS
-	}
-	if d.GetGCP().ProjectID != "" {
-		return DatabaseTypeCloudSQL
-	}
-	if d.GetAzure().Name != "" {
-		return DatabaseTypeAzure
-	}
 	return DatabaseTypeSelfHosted
 }
 
@@ -418,13 +169,6 @@ func (d *DatabaseV3) MatchSearch(values []string) bool {
 	fieldVals := append(utils.MapToStrings(d.GetAllLabels()), d.GetName(), d.GetDescription(), d.GetProtocol(), d.GetType())
 
 	var custom func(string) bool
-	switch d.GetType() {
-	case DatabaseTypeCloudSQL:
-		custom = func(val string) bool {
-			return strings.EqualFold(val, "cloud") || strings.EqualFold(val, "cloud sql")
-		}
-	}
-
 	return MatchSearch(fieldVals, values, custom)
 }
 
@@ -490,18 +234,6 @@ func (d *DatabaseV3) SetManagedUsers(users []string) {
 const (
 	// DatabaseTypeSelfHosted is the self-hosted type of database.
 	DatabaseTypeSelfHosted = "self-hosted"
-	// DatabaseTypeRDS is AWS-hosted RDS or Aurora database.
-	DatabaseTypeRDS = "rds"
-	// DatabaseTypeRedshift is AWS Redshift database.
-	DatabaseTypeRedshift = "redshift"
-	// DatabaseTypeCloudSQL is GCP-hosted Cloud SQL database.
-	DatabaseTypeCloudSQL = "gcp"
-	// DatabaseTypeAzure is Azure-hosted database.
-	DatabaseTypeAzure = "azure"
-	// DatabaseTypeElastiCache is AWS-hosted ElastiCache database.
-	DatabaseTypeElastiCache = "elasticache"
-	// DatabaseTypeMemoryDB is AWS-hosted MemoryDB database.
-	DatabaseTypeMemoryDB = "memorydb"
 )
 
 // DeduplicateDatabases deduplicates databases by name.
