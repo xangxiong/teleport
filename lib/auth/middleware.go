@@ -22,20 +22,17 @@ import (
 	"crypto/x509"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/gravitational/teleport"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
-	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/multiplexer"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/gravitational/oxy/ratelimit"
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
@@ -151,7 +148,6 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 	server.grpcServer, err = NewGRPCServer(GRPCServerConfig{
 		TLS:               server.cfg.TLS,
 		APIConfig:         cfg.APIConfig,
-		UnaryInterceptor:  authMiddleware.UnaryInterceptor(),
 		StreamInterceptor: authMiddleware.StreamInterceptor(),
 	})
 	if err != nil {
@@ -251,36 +247,6 @@ func (a *Middleware) Wrap(h http.Handler) {
 	a.Handler = h
 }
 
-func getCustomRate(endpoint string) *ratelimit.RateSet {
-	switch endpoint {
-	// Account recovery RPCs.
-	case
-		"/proto.AuthService/ChangeUserAuthentication",
-		"/proto.AuthService/GetAccountRecoveryToken",
-		"/proto.AuthService/StartAccountRecovery",
-		"/proto.AuthService/VerifyAccountRecovery":
-		rates := ratelimit.NewRateSet()
-		// This limit means: 1 request per minute with bursts up to 10 requests.
-		if err := rates.Add(time.Minute, 1, 10); err != nil {
-			log.WithError(err).Debugf("Failed to define a custom rate for rpc method %q, using default rate", endpoint)
-			return nil
-		}
-		return rates
-	// Passwordless RPCs (potential unauthenticated challenge generation).
-	case "/proto.AuthService/CreateAuthenticateChallenge":
-		const period = defaults.LimiterPasswordlessPeriod
-		const average = defaults.LimiterPasswordlessAverage
-		const burst = defaults.LimiterPasswordlessBurst
-		rates := ratelimit.NewRateSet()
-		if err := rates.Add(period, average, burst); err != nil {
-			log.WithError(err).Debugf("Failed to define a custom rate for rpc method %q, using default rate", endpoint)
-			return nil
-		}
-		return rates
-	}
-	return nil
-}
-
 // withAuthenticatedUser returns a new context with the ContextUser field set to
 // the caller's user identity as authenticated by their client TLS certificate.
 func (a *Middleware) withAuthenticatedUser(ctx context.Context) (context.Context, error) {
@@ -320,16 +286,6 @@ func (a *Middleware) withAuthenticatedUserStreamInterceptor(srv interface{}, ser
 		return trace.Wrap(err)
 	}
 	return handler(srv, &authenticatedStream{ctx: ctx, ServerStream: serverStream})
-}
-
-// UnaryInterceptor returns a gPRC unary interceptor which performs rate
-// limiting, authenticates requests, and passes the user information as context
-// metadata.
-func (a *Middleware) UnaryInterceptor() grpc.UnaryServerInterceptor {
-	return utils.ChainUnaryServerInterceptors(
-		utils.GRPCServerUnaryErrorInterceptor,
-		a.Limiter.UnaryServerInterceptorWithCustomRate(getCustomRate),
-		a.withAuthenticatedUserUnaryInterceptor)
 }
 
 // StreamInterceptor returns a gPRC stream interceptor which performs rate
