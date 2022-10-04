@@ -207,53 +207,11 @@ type ReadRemoteProxyAccessPoint interface {
 	// GetCertAuthority returns cert authority by id
 	GetCertAuthority(ctx context.Context, id types.CertAuthID, loadKeys bool, opts ...services.MarshalOption) (types.CertAuthority, error)
 
-	// GetCertAuthorities returns a list of cert authorities
-	GetCertAuthorities(ctx context.Context, caType types.CertAuthType, loadKeys bool, opts ...services.MarshalOption) ([]types.CertAuthority, error)
-
-	// GetClusterName gets the name of the cluster from the backend.
-	GetClusterName(opts ...services.MarshalOption) (types.ClusterName, error)
-
-	// GetClusterAuditConfig returns cluster audit configuration.
-	GetClusterAuditConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterAuditConfig, error)
-
 	// GetClusterNetworkingConfig returns cluster networking configuration.
 	GetClusterNetworkingConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterNetworkingConfig, error)
 
-	// GetAuthPreference returns the cluster authentication configuration.
-	GetAuthPreference(ctx context.Context) (types.AuthPreference, error)
-
 	// GetSessionRecordingConfig returns session recording configuration.
 	GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error)
-
-	// GetRole returns role by name
-	GetRole(ctx context.Context, name string) (types.Role, error)
-
-	// GetRoles returns a list of roles
-	GetRoles(ctx context.Context) ([]types.Role, error)
-
-	// GetNamespace returns namespace by name
-	GetNamespace(name string) (*types.Namespace, error)
-
-	// GetNode returns a node by name and namespace.
-	GetNode(ctx context.Context, namespace, name string) (types.Server, error)
-
-	// GetNodes returns a list of registered servers for this cluster.
-	GetNodes(ctx context.Context, namespace string) ([]types.Server, error)
-
-	// GetProxies returns a list of proxy servers registered in the cluster
-	GetProxies() ([]types.Server, error)
-
-	// GetReverseTunnels returns  a list of reverse tunnels
-	GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error)
-
-	// GetAllTunnelConnections returns all tunnel connections
-	GetAllTunnelConnections(opts ...services.MarshalOption) ([]types.TunnelConnection, error)
-
-	// GetRemoteClusters returns a list of remote clusters
-	GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error)
-
-	// GetRemoteCluster returns a remote cluster by name
-	GetRemoteCluster(clusterName string) (types.RemoteCluster, error)
 }
 
 // RemoteProxyAccessPoint is an API interface implemented by a certificate authority (CA) to be
