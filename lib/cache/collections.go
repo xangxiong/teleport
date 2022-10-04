@@ -46,11 +46,6 @@ func setupCollections(c *Cache, watches []types.WatchKind) (map[resourceKind]col
 	for _, watch := range watches {
 		resourceKind := resourceKindFromWatchKind(watch)
 		switch watch.Kind {
-		case types.KindClusterAuditConfig:
-			if c.ClusterConfig == nil {
-				return nil, trace.BadParameter("missing parameter ClusterConfig")
-			}
-			collections[resourceKind] = &clusterAuditConfig{watch: watch, Cache: c}
 		case types.KindNode:
 			if c.Presence == nil {
 				return nil, trace.BadParameter("missing parameter Presence")
@@ -452,74 +447,6 @@ func (r *webToken) processEvent(ctx context.Context, event types.Event) error {
 
 func (r *webToken) watchKind() types.WatchKind {
 	return r.watch
-}
-
-type clusterAuditConfig struct {
-	*Cache
-	watch types.WatchKind
-}
-
-func (c *clusterAuditConfig) erase(ctx context.Context) error {
-	if err := c.clusterConfigCache.DeleteClusterAuditConfig(ctx); err != nil {
-		if !trace.IsNotFound(err) {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-func (c *clusterAuditConfig) fetch(ctx context.Context) (apply func(ctx context.Context) error, err error) {
-	var noConfig bool
-	resource, err := c.ClusterConfig.GetClusterAuditConfig(ctx)
-	if err != nil {
-		if !trace.IsNotFound(err) {
-			return nil, trace.Wrap(err)
-		}
-		noConfig = true
-	}
-	return func(ctx context.Context) error {
-		// either zero or one instance exists, so we either erase or
-		// update, but not both.
-		if noConfig {
-			if err := c.erase(ctx); err != nil {
-				return trace.Wrap(err)
-			}
-			return nil
-		}
-
-		if err := c.clusterConfigCache.SetClusterAuditConfig(ctx, resource); err != nil {
-			return trace.Wrap(err)
-		}
-		return nil
-	}, nil
-}
-
-func (c *clusterAuditConfig) processEvent(ctx context.Context, event types.Event) error {
-	switch event.Type {
-	case types.OpDelete:
-		err := c.clusterConfigCache.DeleteClusterAuditConfig(ctx)
-		if err != nil {
-			if !trace.IsNotFound(err) {
-				c.Warningf("Failed to delete resource %v.", err)
-				return trace.Wrap(err)
-			}
-		}
-	case types.OpPut:
-		resource, ok := event.Resource.(types.ClusterAuditConfig)
-		if !ok {
-			return trace.BadParameter("unexpected type %T", event.Resource)
-		}
-		if err := c.clusterConfigCache.SetClusterAuditConfig(ctx, resource); err != nil {
-			return trace.Wrap(err)
-		}
-	default:
-		c.Warningf("Skipping unsupported event type %v.", event.Type)
-	}
-	return nil
-}
-
-func (c *clusterAuditConfig) watchKind() types.WatchKind {
-	return c.watch
 }
 
 type networkRestrictions struct {

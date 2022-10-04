@@ -118,26 +118,6 @@ func (s *ClusterConfigurationService) GetClusterAuditConfig(ctx context.Context,
 	return services.UnmarshalClusterAuditConfig(item.Value, append(opts, services.WithResourceID(item.ID), services.WithExpires(item.Expires))...)
 }
 
-// SetClusterAuditConfig sets the cluster audit config on the backend.
-func (s *ClusterConfigurationService) SetClusterAuditConfig(ctx context.Context, auditConfig types.ClusterAuditConfig) error {
-	value, err := services.MarshalClusterAuditConfig(auditConfig)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	item := backend.Item{
-		Key:   backend.Key(clusterConfigPrefix, auditPrefix),
-		Value: value,
-		ID:    auditConfig.GetResourceID(),
-	}
-
-	_, err = s.Put(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // DeleteClusterAuditConfig deletes ClusterAuditConfig from the backend.
 func (s *ClusterConfigurationService) DeleteClusterAuditConfig(ctx context.Context) error {
 	err := s.Delete(ctx, backend.Key(clusterConfigPrefix, auditPrefix))
