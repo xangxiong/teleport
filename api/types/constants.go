@@ -293,21 +293,13 @@ const (
 	// OriginDynamic is an origin value indicating that the resource was
 	// committed as dynamic configuration.
 	OriginDynamic = "dynamic"
-
-	// OriginCloud is an origin value indicating that the resource was
-	// imported from a cloud provider.
-	OriginCloud = "cloud"
-
-	// OriginKubernetes is an origin value indicating that the resource was
-	// created from the Kubernetes Operator.
-	OriginKubernetes = "kubernetes"
 )
 
 // EC2HostnameTag is the name of the EC2 tag used to override a node's hostname.
 const EC2HostnameTag = "TeleportHostname"
 
 // OriginValues lists all possible origin values.
-var OriginValues = []string{OriginDefaults, OriginConfigFile, OriginDynamic, OriginCloud, OriginKubernetes}
+var OriginValues = []string{OriginDefaults, OriginConfigFile, OriginDynamic}
 
 const (
 	// RecordAtNode is the default. Sessions are recorded at Teleport nodes.
