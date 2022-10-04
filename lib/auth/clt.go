@@ -936,12 +936,9 @@ type ClientI interface {
 	// ResetClusterNetworkingConfig resets cluster networking configuration to defaults.
 	ResetClusterNetworkingConfig(ctx context.Context) error
 
-	// ResetSessionRecordingConfig resets session recording configuration to defaults.
-	ResetSessionRecordingConfig(ctx context.Context) error
+	// // GetInventoryStatus gets basic status info about instance inventory.
+	// GetInventoryStatus(ctx context.Context, req proto.InventoryStatusRequest) (proto.InventoryStatusSummary, error)
 
-	// GetInventoryStatus gets basic status info about instance inventory.
-	GetInventoryStatus(ctx context.Context, req proto.InventoryStatusRequest) (proto.InventoryStatusSummary, error)
-
-	// PingInventory attempts to trigger a downstream ping against a connected instance.
-	PingInventory(ctx context.Context, req proto.InventoryPingRequest) (proto.InventoryPingResponse, error)
+	// // PingInventory attempts to trigger a downstream ping against a connected instance.
+	// PingInventory(ctx context.Context, req proto.InventoryPingRequest) (proto.InventoryPingResponse, error)
 }
