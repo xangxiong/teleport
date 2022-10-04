@@ -18,9 +18,7 @@ package events
 
 import (
 	"context"
-	"time"
 
-	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/session"
 
@@ -58,22 +56,6 @@ func (m *MultiLog) Close() error {
 		errors = append(errors, log.Close())
 	}
 	return trace.NewAggregate(errors...)
-}
-
-// SearchSessionEvents is a flexible way to find session events.
-// Only session.end events are returned by this function.
-// This is used to find completed sessions.
-//
-// Event types to filter can be specified and pagination is handled by an iterator key that allows
-// a query to be resumed.
-func (m *MultiLog) SearchSessionEvents(fromUTC, toUTC time.Time, limit int, order types.EventOrder, startKey string, cond *types.WhereExpr, sessionID string) (events []apievents.AuditEvent, lastKey string, err error) {
-	for _, log := range m.loggers {
-		events, lastKey, err = log.SearchSessionEvents(fromUTC, toUTC, limit, order, startKey, cond, sessionID)
-		if !trace.IsNotImplemented(err) {
-			return events, lastKey, err
-		}
-	}
-	return events, lastKey, err
 }
 
 // StreamSessionEvents streams all events from a given session recording. An error is returned on the first

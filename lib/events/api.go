@@ -23,7 +23,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/session"
 	"github.com/gravitational/teleport/lib/utils"
@@ -495,16 +494,6 @@ type IAuditLog interface {
 
 	// EmitAuditEvent emits audit event
 	EmitAuditEvent(context.Context, apievents.AuditEvent) error
-
-	// SearchSessionEvents is a flexible way to find session events.
-	// Only session.end events are returned by this function.
-	// This is used to find completed sessions.
-	//
-	// Event types to filter can be specified and pagination is handled by an iterator key that allows
-	// a query to be resumed.
-	//
-	// This function may never return more than 1 MiB of event data.
-	SearchSessionEvents(fromUTC, toUTC time.Time, limit int, order types.EventOrder, startKey string, cond *types.WhereExpr, sessionID string) ([]apievents.AuditEvent, string, error)
 
 	// StreamSessionEvents streams all events from a given session recording. An error is returned on the first
 	// channel if one is encountered. Otherwise the event channel is closed when the stream ends.

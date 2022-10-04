@@ -31,7 +31,6 @@ import (
 	"time"
 
 	"github.com/gravitational/teleport"
-	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/defaults"
@@ -347,20 +346,6 @@ func getCheckpointFromEvent(event apievents.AuditEvent) (string, error) {
 	}
 
 	return event.GetID(), nil
-}
-
-func (l *FileLog) SearchSessionEvents(fromUTC, toUTC time.Time, limit int, order types.EventOrder, startKey string, cond *types.WhereExpr, sessionID string) ([]apievents.AuditEvent, string, error) {
-	l.Debugf("SearchSessionEvents(%v, %v, order=%v, limit=%v, cond=%q)", fromUTC, toUTC, order, limit, cond)
-	filter := searchEventsFilter{eventTypes: []string{SessionEndEvent}}
-	if cond != nil {
-		condFn, err := utils.ToFieldsCondition(cond)
-		if err != nil {
-			return nil, "", trace.Wrap(err)
-		}
-		filter.condition = condFn
-	}
-	events, lastKey, err := l.searchEventsWithFilter(fromUTC, toUTC, apidefaults.Namespace, limit, order, startKey, filter)
-	return events, lastKey, trace.Wrap(err)
 }
 
 type searchEventsFilter struct {

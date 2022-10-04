@@ -721,16 +721,6 @@ func (c *Client) StreamSessionEvents(ctx context.Context, sessionID session.ID, 
 	return c.APIClient.StreamSessionEvents(ctx, string(sessionID), startIndex)
 }
 
-// SearchSessionEvents returns session related events to find completed sessions.
-func (c *Client) SearchSessionEvents(fromUTC, toUTC time.Time, limit int, order types.EventOrder, startKey string, cond *types.WhereExpr, sessionID string) ([]apievents.AuditEvent, string, error) {
-	events, lastKey, err := c.APIClient.SearchSessionEvents(context.TODO(), fromUTC, toUTC, limit, order, startKey)
-	if err != nil {
-		return nil, "", trace.Wrap(err)
-	}
-
-	return events, lastKey, nil
-}
-
 // GetNamespaces returns a list of namespaces
 func (c *Client) GetNamespaces() ([]types.Namespace, error) {
 	out, err := c.Get(context.TODO(), c.Endpoint("namespaces"), url.Values{})
