@@ -95,9 +95,6 @@ type Presence interface {
 	// DeleteAllNamespaces deletes all namespaces
 	DeleteAllNamespaces() error
 
-	// UpsertNamespace upserts namespace
-	UpsertNamespace(types.Namespace) error
-
 	// DeleteNamespace deletes namespace by name
 	DeleteNamespace(name string) error
 

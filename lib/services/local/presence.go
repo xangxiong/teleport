@@ -59,29 +59,6 @@ func (s *PresenceService) DeleteAllNamespaces() error {
 	return s.DeleteRange(context.TODO(), backend.Key(namespacesPrefix), backend.RangeEnd(backend.Key(namespacesPrefix)))
 }
 
-// UpsertNamespace upserts namespace
-func (s *PresenceService) UpsertNamespace(n types.Namespace) error {
-	if err := n.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
-	value, err := services.MarshalNamespace(n)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(namespacesPrefix, n.Metadata.Name, paramsPrefix),
-		Value:   value,
-		Expires: n.Metadata.Expiry(),
-		ID:      n.Metadata.ID,
-	}
-
-	_, err = s.Put(context.TODO(), item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // GetNamespace returns a namespace by name
 func (s *PresenceService) GetNamespace(name string) (*types.Namespace, error) {
 	if name == "" {

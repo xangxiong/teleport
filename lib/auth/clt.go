@@ -732,12 +732,6 @@ func (c *Client) GetNamespace(name string) (*types.Namespace, error) {
 	return services.UnmarshalNamespace(out.Bytes())
 }
 
-// UpsertNamespace upserts namespace
-func (c *Client) UpsertNamespace(ns types.Namespace) error {
-	_, err := c.PostJSON(context.TODO(), c.Endpoint("namespaces"), upsertNamespaceReq{Namespace: ns})
-	return trace.Wrap(err)
-}
-
 // DeleteNamespace deletes namespace by name
 func (c *Client) DeleteNamespace(name string) error {
 	_, err := c.Delete(context.TODO(), c.Endpoint("namespaces", name))
