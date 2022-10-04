@@ -39,13 +39,11 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/auth/keystore"
-	"github.com/gravitational/teleport/lib/auth/native"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/services/local"
 	"github.com/gravitational/teleport/lib/sshca"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
@@ -60,78 +58,6 @@ const (
 
 // ServerOption allows setting options as functional arguments to Server
 type ServerOption func(*Server) error
-
-// NewServer creates and configures a new Server instance
-func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
-	var err error
-
-	if cfg.Presence == nil {
-		cfg.Presence = local.NewPresenceService(cfg.Backend)
-	}
-	if cfg.Access == nil {
-		cfg.Access = local.NewAccessService(cfg.Backend)
-	}
-	if cfg.ClusterConfiguration == nil {
-		clusterConfig, err := local.NewClusterConfigurationService(cfg.Backend)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		cfg.ClusterConfiguration = clusterConfig
-	}
-	// if cfg.Restrictions == nil {
-	// 	cfg.Restrictions = local.NewRestrictionsService(cfg.Backend)
-	// }
-	if cfg.KeyStoreConfig.RSAKeyPairSource == nil {
-		native.PrecomputeKeys()
-		cfg.KeyStoreConfig.RSAKeyPairSource = native.GenerateKeyPair
-	}
-	if cfg.KeyStoreConfig.HostUUID == "" {
-		cfg.KeyStoreConfig.HostUUID = cfg.HostUUID
-	}
-
-	limiter, err := limiter.NewConnectionsLimiter(limiter.Config{
-		MaxConnections: defaults.LimiterMaxConcurrentSignatures,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	keyStore, err := keystore.NewKeyStore(cfg.KeyStoreConfig)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	services := &Services{
-		Presence:             cfg.Presence,
-		Access:               cfg.Access,
-		ClusterConfiguration: cfg.ClusterConfiguration,
-		// Restrictions:         cfg.Restrictions,
-	}
-
-	closeCtx, cancelFunc := context.WithCancel(context.TODO())
-	as := Server{
-		bk:              cfg.Backend,
-		limiter:         limiter,
-		Authority:       cfg.Authority,
-		AuthServiceName: cfg.AuthServiceName,
-		ServerID:        cfg.HostUUID,
-		cancelFunc:      cancelFunc,
-		closeCtx:        closeCtx,
-		Services:        services,
-		Cache:           services,
-		keyStore:        keyStore,
-	}
-	for _, o := range opts {
-		if err := o(&as); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	if as.clock == nil {
-		as.clock = clockwork.NewRealClock()
-	}
-
-	return &as, nil
-}
 
 type Services struct {
 	services.Trust
