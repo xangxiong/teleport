@@ -586,11 +586,6 @@ func (c *Client) UpsertAuthServer(s types.Server) error {
 	return trace.Wrap(err)
 }
 
-// DeleteAllAuthServers not implemented: can only be called locally.
-func (c *Client) DeleteAllAuthServers() error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // DeleteAuthServer not implemented: can only be called locally.
 func (c *Client) DeleteAuthServer(name string) error {
 	return trace.NotImplemented(notImplementedMessage)

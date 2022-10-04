@@ -227,12 +227,6 @@ func (s *PresenceService) UpsertAuthServer(server types.Server) error {
 	return s.upsertServer(context.TODO(), authServersPrefix, server)
 }
 
-// DeleteAllAuthServers deletes all auth servers
-func (s *PresenceService) DeleteAllAuthServers() error {
-	startKey := backend.Key(authServersPrefix)
-	return s.DeleteRange(context.TODO(), startKey, backend.RangeEnd(startKey))
-}
-
 // DeleteAuthServer deletes auth server by name
 func (s *PresenceService) DeleteAuthServer(name string) error {
 	key := backend.Key(authServersPrefix, name)
