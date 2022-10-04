@@ -130,10 +130,6 @@ func (c *ClientConfig) checkAndSetDefaults() error {
 		c.connShuffler = randomConnShuffler()
 	}
 
-	if c.getConfigForServer == nil {
-		c.getConfigForServer = getConfigForServer(c.TLSConfig, c.AccessPoint, c.Log)
-	}
-
 	return nil
 }
 

@@ -17,19 +17,15 @@ limitations under the License.
 package auth
 
 import (
-	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"net"
 	"net/http"
 
 	"github.com/gravitational/teleport"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
-	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/multiplexer"
-	"github.com/gravitational/teleport/lib/tlsca"
 
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
@@ -152,61 +148,4 @@ func NewTLSServer(cfg TLSServerConfig) (*TLSServer, error) {
 	}
 
 	return server, nil
-}
-
-// ClientCertPool returns trusted x509 certificate authority pool with CAs provided as caTypes.
-// In addition, it returns the total length of all subjects added to the cert pool, allowing
-// the caller to validate that the pool doesn't exceed the maximum 2-byte length prefix before
-// using it.
-func ClientCertPool(client AccessCache, clusterName string, caTypes ...types.CertAuthType) (*x509.CertPool, int64, error) {
-	if len(caTypes) == 0 {
-		return nil, 0, trace.BadParameter("at least one CA type is required")
-	}
-
-	ctx := context.TODO()
-	pool := x509.NewCertPool()
-	var authorities []types.CertAuthority
-	if clusterName == "" {
-		for _, caType := range caTypes {
-			cas, err := client.GetCertAuthorities(ctx, caType, false)
-			if err != nil {
-				return nil, 0, trace.Wrap(err)
-			}
-			authorities = append(authorities, cas...)
-		}
-	} else {
-		for _, caType := range caTypes {
-			ca, err := client.GetCertAuthority(
-				ctx,
-				types.CertAuthID{Type: caType, DomainName: clusterName},
-				false)
-			if err != nil {
-				return nil, 0, trace.Wrap(err)
-			}
-
-			authorities = append(authorities, ca)
-		}
-	}
-
-	var totalSubjectsLen int64
-	for _, auth := range authorities {
-		for _, keyPair := range auth.GetTrustedTLSKeyPairs() {
-			cert, err := tlsca.ParseCertificatePEM(keyPair.Cert)
-			if err != nil {
-				return nil, 0, trace.Wrap(err)
-			}
-			log.Debugf("ClientCertPool -> %v", CertInfo(cert))
-			pool.AddCert(cert)
-
-			// Each subject in the list gets a separate 2-byte length prefix.
-			totalSubjectsLen += 2
-			totalSubjectsLen += int64(len(cert.RawSubject))
-		}
-	}
-	return pool, totalSubjectsLen, nil
-}
-
-// DefaultClientCertPool returns default trusted x509 certificate authority pool.
-func DefaultClientCertPool(client AccessCache, clusterName string) (*x509.CertPool, int64, error) {
-	return ClientCertPool(client, clusterName, types.HostCA, types.UserCA)
 }
