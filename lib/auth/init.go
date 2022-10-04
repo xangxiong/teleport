@@ -34,10 +34,6 @@ import (
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/api/utils/keys"
 	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
-	"github.com/gravitational/teleport/lib/auth/keystore"
-	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/sshca"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 )
@@ -45,68 +41,6 @@ import (
 var log = logrus.WithFields(logrus.Fields{
 	trace.Component: teleport.ComponentAuth,
 })
-
-// InitConfig is auth server init config
-type InitConfig struct {
-	// Backend is auth backend to use
-	Backend backend.Backend
-
-	// Authority is key generator that we use
-	Authority sshca.Authority
-
-	// KeyStoreConfig is the config for the KeyStore which handles private CA
-	// keys that may be held in an HSM.
-	KeyStoreConfig keystore.Config
-
-	// HostUUID is a UUID of this host
-	HostUUID string
-
-	// NodeName is the DNS name of the node
-	NodeName string
-
-	// ClusterName stores the FQDN of the signing CA (its certificate will have this
-	// name embedded). It is usually set to the GUID of the host the Auth service runs on
-	ClusterName types.ClusterName
-
-	// Resources is a list of previously backed-up resources used to
-	// bootstrap backend on first start.
-	Resources []types.Resource
-
-	// AuthServiceName is a human-readable name of this CA. If several Auth services are running
-	// (managing multiple teleport clusters) this field is used to tell them apart in UIs
-	// It usually defaults to the hostname of the machine the Auth service runs on.
-	AuthServiceName string
-
-	// DataDir is the full path to the directory where keys, events and logs are kept
-	DataDir string
-
-	// ReverseTunnels is a list of reverse tunnels statically supplied
-	// in configuration, so auth server will init the tunnels on the first start
-	ReverseTunnels []types.ReverseTunnel
-
-	// Presence service is a discovery and heartbeat tracker
-	Presence services.Presence
-
-	// Access is service controlling access to resources
-	Access services.Access
-
-	// ClusterConfiguration is a services that holds cluster wide configuration.
-	ClusterConfiguration services.ClusterConfiguration
-
-	// Roles is a set of roles to create
-	Roles []types.Role
-
-	// StaticTokens are pre-defined host provisioning tokens supplied via config file for
-	// environments where paranoid security is not needed
-	StaticTokens types.StaticTokens
-
-	// SkipPeriodicOperations turns off periodic operations
-	// used in tests that don't need periodic operations.
-	SkipPeriodicOperations bool
-
-	// CipherSuites is a list of ciphersuites that the auth server supports.
-	CipherSuites []uint16
-}
 
 // Identity is collection of certificates and signers that represent server identity
 type Identity struct {
