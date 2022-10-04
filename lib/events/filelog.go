@@ -395,10 +395,6 @@ func (l *FileLog) Close() error {
 	return err
 }
 
-func (l *FileLog) GetSessionChunk(namespace string, sid session.ID, offsetBytes, maxBytes int) ([]byte, error) {
-	return nil, trace.NotImplemented("not implemented")
-}
-
 func (l *FileLog) GetSessionEvents(namespace string, sid session.ID, after int, fetchPrintEvents bool) ([]EventFields, error) {
 	return nil, trace.NotImplemented("not implemented")
 }

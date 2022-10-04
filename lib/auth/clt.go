@@ -715,24 +715,6 @@ func (c *Client) GenerateHostCert(
 	return []byte(cert), nil
 }
 
-// GetSessionChunk allows clients to receive a byte array (chunk) from a recorded
-// session stream, starting from 'offset', up to 'max' in length. The upper bound
-// of 'max' is set to events.MaxChunkBytes
-func (c *Client) GetSessionChunk(namespace string, sid session.ID, offsetBytes, maxBytes int) ([]byte, error) {
-	if namespace == "" {
-		return nil, trace.BadParameter(MissingNamespaceError)
-	}
-	response, err := c.Get(context.TODO(), c.Endpoint("namespaces", namespace, "sessions", string(sid), "stream"), url.Values{
-		"offset": []string{strconv.Itoa(offsetBytes)},
-		"bytes":  []string{strconv.Itoa(maxBytes)},
-	})
-	if err != nil {
-		log.Error(err)
-		return nil, trace.Wrap(err)
-	}
-	return response.Bytes(), nil
-}
-
 // Returns events that happen during a session sorted by time
 // (oldest first).
 //
