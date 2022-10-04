@@ -99,12 +99,6 @@ func NewServer(cfg *InitConfig, opts ...ServerOption) (*Server, error) {
 	if cfg.Events == nil {
 		cfg.Events = local.NewEventsService(cfg.Backend)
 	}
-	if cfg.Emitter == nil {
-		cfg.Emitter = events.NewDiscardEmitter()
-	}
-	if cfg.Streamer == nil {
-		cfg.Streamer = events.NewDiscardEmitter()
-	}
 	if cfg.SessionTrackerService == nil {
 		cfg.SessionTrackerService, err = local.NewSessionTrackerService(cfg.Backend)
 		if err != nil {
