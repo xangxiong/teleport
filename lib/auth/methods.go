@@ -18,14 +18,12 @@ package auth
 
 import (
 	"errors"
-	"time"
 
 	"github.com/gravitational/trace"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/utils"
 )
 
 // AuthenticateUserRequest is a request to authenticate interactive user
@@ -91,35 +89,6 @@ var (
 // password, or second factor.
 func IsInvalidLocalCredentialError(err error) bool {
 	return errors.Is(err, invalidUserPassError) || errors.Is(err, invalidUserPass2FError)
-}
-
-// AuthenticateSSHRequest is a request to authenticate SSH client user via CLI
-type AuthenticateSSHRequest struct {
-	// AuthenticateUserRequest is a request with credentials
-	AuthenticateUserRequest
-	// PublicKey is a public key in ssh authorized_keys format
-	PublicKey []byte `json:"public_key"`
-	// TTL is a requested TTL for certificates to be issues
-	TTL time.Duration `json:"ttl"`
-	// CompatibilityMode sets certificate compatibility mode with old SSH clients
-	CompatibilityMode string `json:"compatibility_mode"`
-	RouteToCluster    string `json:"route_to_cluster"`
-}
-
-// CheckAndSetDefaults checks and sets default certificate values
-func (a *AuthenticateSSHRequest) CheckAndSetDefaults() error {
-	if err := a.AuthenticateUserRequest.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
-	if len(a.PublicKey) == 0 {
-		return trace.BadParameter("missing parameter 'public_key'")
-	}
-	certificateFormat, err := utils.CheckCertificateFormatFlag(a.CompatibilityMode)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	a.CompatibilityMode = certificateFormat
-	return nil
 }
 
 // SSHLoginResponse is a response returned by web proxy, it preserves backwards compatibility
