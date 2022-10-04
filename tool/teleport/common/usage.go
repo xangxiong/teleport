@@ -16,11 +16,6 @@ package common
 
 const (
 	usageNotes = `Notes:
-  --roles=node,proxy,auth,app
-
-  This flag tells Teleport which services to run. By default it runs auth,
-  proxy, and node. In a production environment you may want to separate them.
-
   --token=xyz
 
   This token is needed to connect a node or web app to an auth server. Get it
@@ -36,13 +31,13 @@ Examples:
 
 > teleport start
   By default without any configuration, teleport starts running as a single-node
-  cluster. It's the equivalent of running with --roles=node,proxy,auth
+  cluster.
 
-> teleport start --roles=node --auth-server=10.1.0.1 --token=xyz --nodename=db
+> teleport start --auth-server=10.1.0.1 --token=xyz --nodename=db
   Starts a node named 'db' running in strictly SSH mode role, joining the cluster
   serviced by the auth server running on 10.1.0.1
 
-> teleport start --roles=node --auth-server=10.1.0.1 --labels=db=master
+> teleport start --auth-server=10.1.0.1 --labels=db=master
   Same as the above, but the node runs with db=master label and can be connected
   to using that label in addition to its name.
 `
