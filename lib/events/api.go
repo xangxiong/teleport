@@ -496,15 +496,6 @@ type IAuditLog interface {
 	// EmitAuditEvent emits audit event
 	EmitAuditEvent(context.Context, apievents.AuditEvent) error
 
-	// Returns all events that happen during a session sorted by time
-	// (oldest first).
-	//
-	// after tells to use only return events after a specified cursor Id
-	//
-	// This function is usually used in conjunction with GetSessionReader to
-	// replay recorded session streams.
-	GetSessionEvents(namespace string, sid session.ID, after int, includePrintEvents bool) ([]EventFields, error)
-
 	// SearchEvents is a flexible way to find events.
 	//
 	// Event types to filter can be specified and pagination is handled by an iterator key that allows

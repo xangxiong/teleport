@@ -60,23 +60,6 @@ func (m *MultiLog) Close() error {
 	return trace.NewAggregate(errors...)
 }
 
-// Returns all events that happen during a session sorted by time
-// (oldest first).
-//
-// after tells to use only return events after a specified cursor Id
-//
-// This function is usually used in conjunction with GetSessionReader to
-// replay recorded session streams.
-func (m *MultiLog) GetSessionEvents(namespace string, sid session.ID, after int, fetchPrintEvents bool) (events []EventFields, err error) {
-	for _, log := range m.loggers {
-		events, err = log.GetSessionEvents(namespace, sid, after, fetchPrintEvents)
-		if !trace.IsNotImplemented(err) {
-			return events, err
-		}
-	}
-	return events, err
-}
-
 // SearchEvents is a flexible way to find events.
 //
 // Event types to filter can be specified and pagination is handled by an iterator key that allows

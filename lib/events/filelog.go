@@ -395,10 +395,6 @@ func (l *FileLog) Close() error {
 	return err
 }
 
-func (l *FileLog) GetSessionEvents(namespace string, sid session.ID, after int, fetchPrintEvents bool) ([]EventFields, error) {
-	return nil, trace.NotImplemented("not implemented")
-}
-
 // mightNeedRotation checks if the current log file looks older than a given duration,
 // used by rotateLog to decide if it should acquire a write lock.  Must be called under
 // read lock.

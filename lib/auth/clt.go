@@ -24,7 +24,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -713,36 +712,6 @@ func (c *Client) GenerateHostCert(
 	}
 
 	return []byte(cert), nil
-}
-
-// Returns events that happen during a session sorted by time
-// (oldest first).
-//
-// afterN allows to filter by "newer than N" value where N is the cursor ID
-// of previously returned bunch (good for polling for latest)
-//
-// This function is usually used in conjunction with GetSessionReader to
-// replay recorded session streams.
-func (c *Client) GetSessionEvents(namespace string, sid session.ID, afterN int, includePrintEvents bool) (retval []events.EventFields, err error) {
-	if namespace == "" {
-		return nil, trace.BadParameter(MissingNamespaceError)
-	}
-	query := make(url.Values)
-	if afterN > 0 {
-		query.Set("after", strconv.Itoa(afterN))
-	}
-	if includePrintEvents {
-		query.Set("print", fmt.Sprintf("%v", includePrintEvents))
-	}
-	response, err := c.Get(context.TODO(), c.Endpoint("namespaces", namespace, "sessions", string(sid), "events"), query)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	retval = make([]events.EventFields, 0)
-	if err := json.Unmarshal(response.Bytes(), &retval); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return retval, nil
 }
 
 // StreamSessionEvents streams all events from a given session recording. An error is returned on the first

@@ -39,9 +39,6 @@ func (d *DiscardAuditLog) Close() error {
 	return nil
 }
 
-func (d *DiscardAuditLog) GetSessionEvents(namespace string, sid session.ID, after int, includePrintEvents bool) ([]EventFields, error) {
-	return make([]EventFields, 0), nil
-}
 func (d *DiscardAuditLog) SearchEvents(fromUTC, toUTC time.Time, namespace string, eventType []string, limit int, order types.EventOrder, startKey string) ([]apievents.AuditEvent, string, error) {
 	return make([]apievents.AuditEvent, 0), "", nil
 }
