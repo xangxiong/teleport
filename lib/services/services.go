@@ -27,5 +27,4 @@ type Services interface {
 	Access
 	DynamicAccessCore
 	Presence
-	Restrictions
 }

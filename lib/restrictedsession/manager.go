@@ -19,13 +19,11 @@ package restrictedsession
 import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/bpf"
-	"github.com/gravitational/teleport/lib/services"
 )
 
 // RestrictionsWatcherClient is used by changeset to fetch a list
 // of proxies and subscribe to updates
 type RestrictionsWatcherClient interface {
-	services.Restrictions
 	types.Events
 }
 

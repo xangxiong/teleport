@@ -17,7 +17,6 @@ limitations under the License.
 package services
 
 import (
-	"context"
 	"encoding/json"
 
 	"github.com/gravitational/teleport/api/types"
@@ -25,12 +24,6 @@ import (
 
 	"github.com/gravitational/trace"
 )
-
-type Restrictions interface {
-	GetNetworkRestrictions(context.Context) (types.NetworkRestrictions, error)
-	SetNetworkRestrictions(context.Context, types.NetworkRestrictions) error
-	DeleteNetworkRestrictions(context.Context) error
-}
 
 // ValidateNetworkRestrictions validates the network restrictions and sets defaults
 func ValidateNetworkRestrictions(nr *types.NetworkRestrictionsV4) error {

@@ -737,7 +737,6 @@ type ClientI interface {
 	services.Presence
 	services.Access
 	services.DynamicAccess
-	services.Restrictions
 	session.Service
 	services.Status
 	services.ClusterConfiguration

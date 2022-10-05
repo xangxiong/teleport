@@ -124,7 +124,6 @@ type Cache struct {
 	accessCache        services.Access
 	dynamicAccessCache services.DynamicAccessExt
 	presenceCache      services.Presence
-	restrictionsCache  services.Restrictions
 	webSessionCache    types.WebSessionInterface
 	webTokenCache      types.WebTokenInterface
 	eventsFanout       *services.FanoutSet
@@ -149,7 +148,6 @@ func (c *Cache) read() (readGuard, error) {
 			access:        c.accessCache,
 			dynamicAccess: c.dynamicAccessCache,
 			presence:      c.presenceCache,
-			restrictions:  c.restrictionsCache,
 			webSession:    c.webSessionCache,
 			webToken:      c.webTokenCache,
 			release:       c.rw.RUnlock,
@@ -163,7 +161,6 @@ func (c *Cache) read() (readGuard, error) {
 		access:        c.Config.Access,
 		dynamicAccess: c.Config.DynamicAccess,
 		presence:      c.Config.Presence,
-		restrictions:  c.Config.Restrictions,
 		webSession:    c.Config.WebSession,
 		webToken:      c.Config.WebToken,
 		release:       nil,
@@ -181,7 +178,6 @@ type readGuard struct {
 	access        services.Access
 	dynamicAccess services.DynamicAccessCore
 	presence      services.Presence
-	restrictions  services.Restrictions
 	webSession    types.WebSessionInterface
 	webToken      types.WebTokenInterface
 	release       func()
@@ -227,8 +223,6 @@ type Config struct {
 	DynamicAccess services.DynamicAccessCore
 	// Presence is a presence service
 	Presence services.Presence
-	// Restrictions is a restrictions service
-	Restrictions services.Restrictions
 	// WebSession holds regular web sessions.
 	WebSession types.WebSessionInterface
 	// WebToken holds web tokens.
@@ -361,19 +355,12 @@ func New(config Config) (*Cache, error) {
 		accessCache:        local.NewAccessService(config.Backend),
 		dynamicAccessCache: local.NewDynamicAccessService(config.Backend),
 		presenceCache:      local.NewPresenceService(config.Backend),
-		restrictionsCache:  local.NewRestrictionsService(config.Backend),
 		eventsFanout:       services.NewFanoutSet(),
 		Entry: log.WithFields(log.Fields{
 			trace.Component: config.Component,
 		}),
 		closed: atomic.NewBool(false),
 	}
-	// collections, err := setupCollections(cs, config.Watches)
-	// if err != nil {
-	// 	cs.Close()
-	// 	return nil, trace.Wrap(err)
-	// }
-	// cs.collections = collections
 
 	if config.Unstarted {
 		return cs, nil
@@ -887,20 +874,6 @@ func (c *Cache) GetSessionRecordingConfig(ctx context.Context, opts ...services.
 	}
 	defer rg.Release()
 	return rg.clusterConfig.GetSessionRecordingConfig(ctx, opts...)
-}
-
-// GetNetworkRestrictions gets the network restrictions.
-func (c *Cache) GetNetworkRestrictions(ctx context.Context) (types.NetworkRestrictions, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetNetworkRestrictions")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-
-	return rg.restrictions.GetNetworkRestrictions(ctx)
 }
 
 // GetLock gets a lock by name.

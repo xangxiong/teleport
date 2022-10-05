@@ -922,7 +922,6 @@ func (process *TeleportProcess) newAccessCache(cfg accessCacheConfig) (*cache.Ca
 		Access:        cfg.services,
 		DynamicAccess: cfg.services,
 		Presence:      cfg.services,
-		Restrictions:  cfg.services,
 		Component:     teleport.Component(append(cfg.cacheName, process.id, teleport.ComponentCache)...),
 		Unstarted:     cfg.unstarted,
 	}))
