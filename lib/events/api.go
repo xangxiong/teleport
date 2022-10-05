@@ -21,7 +21,6 @@ import (
 	"math"
 
 	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/session"
 )
 
 const (
@@ -57,15 +56,6 @@ const (
 	// UnknownEvent is any event received that isn't recognized as any other event type.
 	UnknownEvent = apievents.UnknownEvent
 )
-
-// UploadMetadata contains data about the session upload
-type UploadMetadata struct {
-	// URL is the url at which the session recording is located
-	// it is free-form and uploader-specific
-	URL string
-	// SessionID is the event session ID
-	SessionID session.ID
-}
 
 // IAuditLog is the primary (and the only external-facing) interface for AuditLogger.
 // If you wish to implement a different kind of logger (not filesystem-based), you
