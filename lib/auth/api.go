@@ -221,48 +221,6 @@ func (w *NodeWrapper) Close() error {
 	return trace.NewAggregate(err, err2)
 }
 
-type ProxyWrapper struct {
-	ReadProxyAccessPoint
-	accessPoint
-	NoCache ProxyAccessPoint
-}
-
-func NewProxyWrapper(base ProxyAccessPoint, cache ReadProxyAccessPoint) ProxyAccessPoint {
-	return &ProxyWrapper{
-		NoCache:              base,
-		accessPoint:          base,
-		ReadProxyAccessPoint: cache,
-	}
-}
-
-// Close closes all associated resources
-func (w *ProxyWrapper) Close() error {
-	err := w.NoCache.Close()
-	err2 := w.ReadProxyAccessPoint.Close()
-	return trace.NewAggregate(err, err2)
-}
-
-type RemoteProxyWrapper struct {
-	ReadRemoteProxyAccessPoint
-	accessPoint
-	NoCache RemoteProxyAccessPoint
-}
-
-func NewRemoteProxyWrapper(base RemoteProxyAccessPoint, cache ReadRemoteProxyAccessPoint) RemoteProxyAccessPoint {
-	return &RemoteProxyWrapper{
-		NoCache:                    base,
-		accessPoint:                base,
-		ReadRemoteProxyAccessPoint: cache,
-	}
-}
-
-// Close closes all associated resources
-func (w *RemoteProxyWrapper) Close() error {
-	err := w.NoCache.Close()
-	err2 := w.ReadRemoteProxyAccessPoint.Close()
-	return trace.NewAggregate(err, err2)
-}
-
 // NewRemoteProxyCachingAccessPoint returns new caching access point using
 // access point policy
 type NewRemoteProxyCachingAccessPoint func(clt ClientI, cacheName []string) (RemoteProxyAccessPoint, error)
