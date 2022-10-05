@@ -38,7 +38,6 @@ import (
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/trace"
 
-	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/vulcand/predicate"
 )
@@ -57,30 +56,9 @@ var DefaultImplicitRules = []types.Rule{
 	types.NewRule(types.KindRemoteCluster, RO()),
 }
 
-// DefaultCertAuthorityRules provides access the minimal set of resources
-// needed for a certificate authority to function.
-var DefaultCertAuthorityRules = []types.Rule{
-	types.NewRule(types.KindSession, RO()),
-	types.NewRule(types.KindNode, RO()),
-	types.NewRule(types.KindAuthServer, RO()),
-	types.NewRule(types.KindReverseTunnel, RO()),
-	types.NewRule(types.KindCertAuthority, ReadNoSecrets()),
-}
-
 // ErrSessionMFARequired is returned by AccessChecker when access to a resource
 // requires an MFA check.
 var ErrSessionMFARequired = trace.AccessDenied("access to resource requires MFA")
-
-// RoleNameForUser returns role name associated with a user.
-func RoleNameForUser(name string) string {
-	return "user:" + name
-}
-
-// RoleNameForCertAuthority returns role name associated with a certificate
-// authority.
-func RoleNameForCertAuthority(name string) string {
-	return "ca:" + name
-}
 
 // NewImplicitRole is the default implicit role that gets added to all
 // RoleSets.
@@ -106,61 +84,6 @@ func NewImplicitRole() types.Role {
 			},
 		},
 	}
-}
-
-// RoleForUser creates an admin role for a services.User.
-//
-// Used in tests only.
-func RoleForUser(u types.User) types.Role {
-	role, _ := types.NewRole(RoleNameForUser(u.GetName()), types.RoleSpecV5{
-		Options: types.RoleOptions{
-			CertificateFormat: constants.CertificateFormatStandard,
-			MaxSessionTTL:     types.NewDuration(defaults.MaxCertDuration),
-			PortForwarding:    types.NewBoolOption(true),
-			ForwardAgent:      types.NewBool(true),
-			BPF:               defaults.EnhancedEvents(),
-		},
-		Allow: types.RoleConditions{
-			Namespaces: []string{defaults.Namespace},
-			NodeLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
-			Rules: []types.Rule{
-				types.NewRule(types.KindRole, RW()),
-				types.NewRule(types.KindAuthConnector, RW()),
-				types.NewRule(types.KindSession, RO()),
-				types.NewRule(types.KindTrustedCluster, RW()),
-				types.NewRule(types.KindEvent, RO()),
-				types.NewRule(types.KindClusterAuthPreference, RW()),
-				types.NewRule(types.KindClusterNetworkingConfig, RW()),
-				types.NewRule(types.KindSessionRecordingConfig, RW()),
-				types.NewRule(types.KindLock, RW()),
-				types.NewRule(types.KindToken, RW()),
-			},
-			JoinSessions: []*types.SessionJoinPolicy{
-				{
-					Name:  "foo",
-					Roles: []string{"*"},
-					Kinds: []string{string(types.SSHSessionKind)},
-					Modes: []string{string(types.SessionPeerMode)},
-				},
-			},
-		},
-	})
-	return role
-}
-
-// RoleForCertAuthority creates role using types.CertAuthority.
-func RoleForCertAuthority(ca types.CertAuthority) types.Role {
-	role, _ := types.NewRoleV3(RoleNameForCertAuthority(ca.GetClusterName()), types.RoleSpecV5{
-		Options: types.RoleOptions{
-			MaxSessionTTL: types.NewDuration(defaults.MaxCertDuration),
-		},
-		Allow: types.RoleConditions{
-			Namespaces: []string{defaults.Namespace},
-			NodeLabels: types.Labels{types.Wildcard: []string{types.Wildcard}},
-			Rules:      types.CopyRulesSlice(DefaultCertAuthorityRules),
-		},
-	})
-	return role
 }
 
 // ValidateRoleName checks that the role name is allowed to be created.
@@ -458,52 +381,6 @@ func MakeRuleSet(rules []types.Rule) RuleSet {
 	return set
 }
 
-// Match tests if the resource name and verb are in a given list of rules.
-// More specific rules will be matched first. See Rule.IsMoreSpecificThan
-// for exact specs on whether the rule is more or less specific.
-//
-// Specifying order solves the problem on having multiple rules, e.g. one wildcard
-// rule can override more specific rules with 'where' sections that can have
-// 'actions' lists with side effects that will not be triggered otherwise.
-func (set RuleSet) Match(whereParser predicate.Parser, actionsParser predicate.Parser, resource string, verb string) (bool, error) {
-	// empty set matches nothing
-	if len(set) == 0 {
-		return false, nil
-	}
-
-	// check for matching resource by name
-	// the most specific rule should win
-	rules := set[resource]
-	for _, rule := range rules {
-		match, err := matchesWhere(&rule, whereParser)
-		if err != nil {
-			return false, trace.Wrap(err)
-		}
-		if match && (rule.HasVerb(types.Wildcard) || rule.HasVerb(verb)) {
-			if err := processActions(&rule, actionsParser); err != nil {
-				return true, trace.Wrap(err)
-			}
-			return true, nil
-		}
-	}
-
-	// check for wildcard resource matcher
-	for _, rule := range set[types.Wildcard] {
-		match, err := matchesWhere(&rule, whereParser)
-		if err != nil {
-			return false, trace.Wrap(err)
-		}
-		if match && (rule.HasVerb(types.Wildcard) || rule.HasVerb(verb)) {
-			if err := processActions(&rule, actionsParser); err != nil {
-				return true, trace.Wrap(err)
-			}
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
 // matchesWhere returns true if Where rule matches.
 // Empty Where block always matches.
 func matchesWhere(r *types.Rule, parser predicate.Parser) (bool, error) {
@@ -537,15 +414,6 @@ func processActions(r *types.Rule, parser predicate.Parser) error {
 	return nil
 }
 
-// Slice returns slice from a set
-func (set RuleSet) Slice() []types.Rule {
-	var out []types.Rule
-	for _, rules := range set {
-		out = append(out, rules...)
-	}
-	return out
-}
-
 // HostUsersInfo keeps information about groups and sudoers entries
 // for a particular host user
 type HostUsersInfo struct {
@@ -559,15 +427,6 @@ type HostUsersInfo struct {
 func RoleFromSpec(name string, spec types.RoleSpecV5) (types.Role, error) {
 	role, err := types.NewRoleV3(name, spec)
 	return role, trace.Wrap(err)
-}
-
-// RoleSetFromSpec returns a new RoleSet from spec
-func RoleSetFromSpec(name string, spec types.RoleSpecV5) (RoleSet, error) {
-	role, err := RoleFromSpec(name, spec)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return NewRoleSet(role), nil
 }
 
 // RW is a shortcut that returns all verbs.
@@ -590,20 +449,6 @@ func ReadNoSecrets() []string {
 type RoleGetter interface {
 	// GetRole returns role by name
 	GetRole(ctx context.Context, name string) (types.Role, error)
-}
-
-// ExtractFromCertificate will extract roles and traits from a *ssh.Certificate.
-func ExtractFromCertificate(cert *ssh.Certificate) ([]string, wrappers.Traits, error) {
-	roles, err := ExtractRolesFromCert(cert)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-	traits, err := ExtractTraitsFromCert(cert)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-
-	return roles, traits, nil
 }
 
 // FetchRoleList fetches roles by their names, applies the traits to role
@@ -629,50 +474,6 @@ func FetchRoles(roleNames []string, access RoleGetter, traits map[string][]strin
 	roles, err := FetchRoleList(roleNames, access, traits)
 	if err != nil {
 		return nil, trace.Wrap(err)
-	}
-	return NewRoleSet(roles...), nil
-}
-
-// CurrentUserRoleGetter limits the interface of auth.ClientI to methods needed by FetchAllClusterRoles.
-type CurrentUserRoleGetter interface {
-	GetCurrentUser(context.Context) (types.User, error)
-	GetCurrentUserRoles(context.Context) ([]types.Role, error)
-	RoleGetter
-}
-
-// FetchAllClusterRoles fetches all roles available to the user on the
-// specified cluster, applies traits, and adds runtime roles like the default
-// implicit role to RoleSet.
-func FetchAllClusterRoles(ctx context.Context, access CurrentUserRoleGetter, defaultRoleNames []string, defaultTraits wrappers.Traits) (RoleSet, error) {
-	user, err := access.GetCurrentUser(ctx)
-	if err != nil {
-		// DELETE IN 12.0.
-		if trace.IsNotImplemented(err) {
-			// get the role definition for all roles of user.
-			// this may only fail if the role which we are looking for does not exist, or we don't have access to it.
-			// example scenario when this may happen:
-			// 1. we have set of roles [foo bar] from profile.
-			// 2. the cluster is remote and maps the [foo, bar] roles to single role [guest]
-			// 3. the remote cluster doesn't implement GetCurrentUser(), so we have no way to learn of [guest].
-			// 4. FetchRoles([foo bar], ..., ...) fails as [foo bar] does not exist on remote cluster.
-			roleSet, err := FetchRoles(defaultRoleNames, access, defaultTraits)
-			return roleSet, trace.Wrap(err)
-		}
-		return nil, trace.Wrap(err)
-	}
-
-	roles, err := access.GetCurrentUserRoles(ctx)
-	if err != nil {
-		// DELETE IN 12.0.
-		if trace.IsNotImplemented(err) {
-			roleSet, err := FetchRoles(user.GetRoles(), access, user.GetTraits())
-			return roleSet, trace.Wrap(err)
-		}
-		return nil, trace.Wrap(err)
-	}
-
-	for i := range roles {
-		roles[i] = ApplyTraits(roles[i], user.GetTraits())
 	}
 	return NewRoleSet(roles...), nil
 }
@@ -722,83 +523,6 @@ func NewRoleSet(roles ...types.Role) RoleSet {
 
 // RoleSet is a set of roles that implements access control functionality
 type RoleSet []types.Role
-
-// EnumerationResult is a result of enumerating a role set against some property, e.g. allowed names or logins.
-type EnumerationResult struct {
-	allowedDeniedMap map[string]bool
-	wildcardAllowed  bool
-	wildcardDenied   bool
-}
-
-func (result *EnumerationResult) filtered(value bool) []string {
-	var filtered []string
-
-	for entity, allow := range result.allowedDeniedMap {
-		if allow == value {
-			filtered = append(filtered, entity)
-		}
-	}
-
-	sort.Strings(filtered)
-
-	return filtered
-}
-
-// Denied returns all explicitly denied users.
-func (result *EnumerationResult) Denied() []string {
-	return result.filtered(false)
-}
-
-// Allowed returns all known allowed users.
-func (result *EnumerationResult) Allowed() []string {
-	if result.WildcardDenied() {
-		return nil
-	}
-	return result.filtered(true)
-}
-
-// WildcardAllowed is true if there * username allowed for given rule set.
-func (result *EnumerationResult) WildcardAllowed() bool {
-	return result.wildcardAllowed && !result.wildcardDenied
-}
-
-// WildcardDenied is true if there * username deny for given rule set.
-func (result *EnumerationResult) WildcardDenied() bool {
-	return result.wildcardDenied
-}
-
-// NewEnumerationResult returns new EnumerationResult.
-func NewEnumerationResult() EnumerationResult {
-	return EnumerationResult{
-		allowedDeniedMap: map[string]bool{},
-		wildcardAllowed:  false,
-		wildcardDenied:   false,
-	}
-}
-
-// EnumerateServerLogins works on a given role set to return a minimal description of allowed set of logins.
-// The wildcard selector is ignored, since it is now allowed for server logins
-func (set RoleSet) EnumerateServerLogins(server types.Server) EnumerationResult {
-	result := NewEnumerationResult()
-
-	// gather logins for checking from the roles
-	// no need to check for wildcards
-	var logins []string
-	for _, role := range set {
-		logins = append(logins, role.GetLogins(types.Allow)...)
-		logins = append(logins, role.GetLogins(types.Deny)...)
-	}
-
-	logins = apiutils.Deduplicate(logins)
-
-	// check each individual user against the server.
-	for _, user := range logins {
-		err := set.checkAccess(server, AccessMFAParams{Verified: true}, NewLoginMatcher(user))
-		result.allowedDeniedMap[user] = err == nil
-	}
-
-	return result
-}
 
 // MatchNamespace returns true if given list of namespace matches
 // target namespace, wildcard matches everything.
@@ -868,28 +592,6 @@ func (set RoleSet) Roles() []types.Role {
 func (set RoleSet) HasRole(role string) bool {
 	for _, r := range set {
 		if r.GetName() == role {
-			return true
-		}
-	}
-	return false
-}
-
-// WithoutImplicit returns this role set with default implicit role filtered out.
-func (set RoleSet) WithoutImplicit() (out RoleSet) {
-	for _, r := range set {
-		if r.GetName() == constants.DefaultImplicitRole {
-			continue
-		}
-		out = append(out, r)
-	}
-	return out
-}
-
-// PinSourceIP determines if the role set should use source IP pinning.
-// If one or more roles in the set requires IP pinning then it will be enabled.
-func (set RoleSet) PinSourceIP() bool {
-	for _, role := range set {
-		if role.GetOptions().PinSourceIP {
 			return true
 		}
 	}
@@ -979,44 +681,6 @@ func (set RoleSet) AdjustDisconnectExpiredCert(disconnect bool) bool {
 		}
 	}
 	return disconnect
-}
-
-// CheckLoginDuration checks if role set can login up to given duration and
-// returns a combined list of allowed logins.
-func (set RoleSet) CheckLoginDuration(ttl time.Duration) ([]string, error) {
-	logins, matchedTTL := set.GetLoginsForTTL(ttl)
-	if !matchedTTL {
-		return nil, trace.AccessDenied("this user cannot request a certificate for %v", ttl)
-	}
-
-	if len(logins) == 0 && !set.hasPossibleLogins() {
-		// user was deliberately configured to have no login capability,
-		// but ssh certificates must contain at least one valid principal.
-		// we add a single distinctive value which should be unique, and
-		// will never be a valid unix login (due to leading '-').
-		logins = []string{constants.NoLoginPrefix + uuid.New().String()}
-	}
-
-	if len(logins) == 0 {
-		return nil, trace.AccessDenied("this user cannot create SSH sessions, has no allowed logins")
-	}
-
-	return logins, nil
-}
-
-// GetLoginsForTTL collects all logins that are valid for the given TTL.  The matchedTTL
-// value indicates whether the TTL is within scope of *any* role.  This helps to distinguish
-// between TTLs which are categorically invalid, and TTLs which are theoretically valid
-// but happen to grant no logins.
-func (set RoleSet) GetLoginsForTTL(ttl time.Duration) (logins []string, matchedTTL bool) {
-	for _, role := range set {
-		maxSessionTTL := role.GetOptions().MaxSessionTTL.Value()
-		if ttl <= maxSessionTTL && maxSessionTTL != 0 {
-			matchedTTL = true
-			logins = append(logins, role.GetLogins(types.Allow)...)
-		}
-	}
-	return apiutils.Deduplicate(logins), matchedTTL
 }
 
 // CheckAccessToRemoteCluster checks if a role has access to remote cluster. Deny rules are
