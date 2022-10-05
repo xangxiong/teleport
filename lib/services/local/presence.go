@@ -88,20 +88,6 @@ func (s *PresenceService) getServers(ctx context.Context, kind, prefix string) (
 	return servers, nil
 }
 
-func (s *PresenceService) upsertServer(ctx context.Context, prefix string, server types.Server) error {
-	value, err := services.MarshalServer(server)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	_, err = s.Put(ctx, backend.Item{
-		Key:     backend.Key(prefix, server.GetName()),
-		Value:   value,
-		Expires: server.Expiry(),
-		ID:      server.GetResourceID(),
-	})
-	return trace.Wrap(err)
-}
-
 // DeleteAllNodes deletes all nodes in a namespace
 func (s *PresenceService) DeleteAllNodes(ctx context.Context, namespace string) error {
 	startKey := backend.Key(nodesPrefix, namespace)
