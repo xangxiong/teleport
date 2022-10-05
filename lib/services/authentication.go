@@ -20,81 +20,12 @@ package services
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/google/uuid"
 	"github.com/gravitational/trace"
-	"golang.org/x/crypto/bcrypt"
 )
-
-// ValidateLocalAuthSecrets validates local auth secret members.
-func ValidateLocalAuthSecrets(l *types.LocalAuthSecrets) error {
-	if len(l.PasswordHash) > 0 {
-		if _, err := bcrypt.Cost(l.PasswordHash); err != nil {
-			return trace.BadParameter("invalid password hash")
-		}
-	}
-	mfaNames := make(map[string]struct{}, len(l.MFA))
-	for _, d := range l.MFA {
-		if err := ValidateMFADevice(d); err != nil {
-			return trace.BadParameter("MFA device named %q is invalid: %v", d.Metadata.Name, err)
-		}
-		if _, ok := mfaNames[d.Metadata.Name]; ok {
-			return trace.BadParameter("MFA device named %q already exists", d.Metadata.Name)
-		}
-		mfaNames[d.Metadata.Name] = struct{}{}
-	}
-	if l.Webauthn != nil {
-		if err := l.Webauthn.Check(); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-// NewTOTPDevice creates a TOTP MFADevice from the given key.
-func NewTOTPDevice(name, key string, addedAt time.Time) (*types.MFADevice, error) {
-	d := types.NewMFADevice(name, uuid.New().String(), addedAt)
-	d.Device = &types.MFADevice_Totp{Totp: &types.TOTPDevice{
-		Key: key,
-	}}
-	if err := ValidateMFADevice(d); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return d, nil
-}
-
-// ValidateMFADevice validates the MFA device. It's a more in-depth version of
-// MFADevice.CheckAndSetDefaults.
-//
-// TODO(awly): refactor to keep basic and deep validation on one place.
-func ValidateMFADevice(d *types.MFADevice) error {
-	if err := d.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
-	switch dd := d.Device.(type) {
-	case *types.MFADevice_Totp:
-		if err := validateTOTPDevice(dd.Totp); err != nil {
-			return trace.Wrap(err)
-		}
-	case *types.MFADevice_Webauthn:
-		// TODO(codingllama): Refactor Webauthn device validation so it runs here as
-		//  well?
-	default:
-		return trace.BadParameter("MFADevice has Device field of unknown type %T", d.Device)
-	}
-	return nil
-}
-
-func validateTOTPDevice(d *types.TOTPDevice) error {
-	if d.Key == "" {
-		return trace.BadParameter("TOTPDevice missing Key field")
-	}
-	return nil
-}
 
 // UnmarshalAuthPreference unmarshals the AuthPreference resource from JSON.
 func UnmarshalAuthPreference(bytes []byte, opts ...MarshalOption) (types.AuthPreference, error) {
