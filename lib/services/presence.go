@@ -47,9 +47,6 @@ type Presence interface {
 	// NodesGetter gets nodes
 	NodesGetter
 
-	// DeleteAllNodes deletes all nodes in a namespace.
-	DeleteAllNodes(ctx context.Context, namespace string) error
-
 	// DeleteNode deletes node in a namespace
 	DeleteNode(ctx context.Context, namespace, name string) error
 
