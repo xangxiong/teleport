@@ -32,8 +32,6 @@ import (
 
 	"github.com/gravitational/teleport"
 	tracessh "github.com/gravitational/teleport/api/observability/tracing/ssh"
-	apiutils "github.com/gravitational/teleport/api/utils"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 
 	"github.com/gravitational/trace"
@@ -412,38 +410,6 @@ func getDefaultEnvPath(uid string, loginDefsPath string) string {
 		return envRootPath
 	}
 	return envPath
-}
-
-// parseSecureCopy will parse a command and return if it's secure copy or not.
-func parseSecureCopy(path string) (string, string, bool, error) {
-	parts := strings.Fields(path)
-	if len(parts) == 0 {
-		return "", "", false, trace.BadParameter("no executable found")
-	}
-
-	// Look for the -t flag, it indicates that an upload occurred. The other
-	// flags do no matter for now.
-	action := events.SCPActionDownload
-	if apiutils.SliceContainsStr(parts, "-t") {
-		action = events.SCPActionUpload
-	}
-
-	// Exract the name of the Teleport executable on disk.
-	teleportPath, err := os.Executable()
-	if err != nil {
-		return "", "", false, trace.Wrap(err)
-	}
-	_, teleportBinary := filepath.Split(teleportPath)
-
-	// Extract the name of the executable that was run. The command was secure
-	// copy if the executable was "scp" or "teleport".
-	_, executable := filepath.Split(parts[0])
-	switch executable {
-	case teleport.SCP, teleportBinary:
-		return parts[len(parts)-1], action, true, nil
-	default:
-		return "", "", false, nil
-	}
 }
 
 // exitCode extracts and returns the exit code from the error.

@@ -37,7 +37,6 @@ import (
 	"github.com/gravitational/teleport/lib/sshutils"
 	"github.com/gravitational/teleport/lib/utils"
 
-	"github.com/google/uuid"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	"github.com/moby/term"
@@ -649,155 +648,6 @@ func (s *session) BroadcastSystemMessage(format string, args ...interface{}) {
 	s.io.BroadcastMessage(fmt.Sprintf(format, args...))
 }
 
-// emitSessionStartEvent emits a session start event.
-func (s *session) emitSessionStartEvent(ctx *ServerContext) {
-	sessionStartEvent := &apievents.SessionStart{
-		Metadata: apievents.Metadata{
-			Type:        events.SessionStartEvent,
-			Code:        events.SessionStartCode,
-			ClusterName: ctx.ClusterName,
-			ID:          uuid.New().String(),
-		},
-		ServerMetadata: s.serverMeta,
-		SessionMetadata: apievents.SessionMetadata{
-			SessionID: string(s.id),
-		},
-		UserMetadata: ctx.Identity.GetUserMetadata(),
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			RemoteAddr: ctx.ServerConn.RemoteAddr().String(),
-		},
-		SessionRecording: ctx.SessionRecordingConfig.GetMode(),
-	}
-
-	if s.term != nil {
-		params := s.term.GetTerminalParams()
-		sessionStartEvent.TerminalSize = params.Serialize()
-	}
-
-	// Local address only makes sense for non-tunnel nodes.
-	if !ctx.srv.UseTunnel() {
-		sessionStartEvent.ConnectionMetadata.LocalAddr = ctx.ServerConn.LocalAddr().String()
-	}
-}
-
-// emitSessionJoinEvent emits a session join event to both the Audit Log as
-// well as sending a "x-teleport-event" global request on the SSH connection.
-// Must be called under session Lock.
-func (s *session) emitSessionJoinEvent(ctx *ServerContext) {
-	sessionJoinEvent := &apievents.SessionJoin{
-		Metadata: apievents.Metadata{
-			Type:        events.SessionJoinEvent,
-			Code:        events.SessionJoinCode,
-			ClusterName: ctx.ClusterName,
-		},
-		ServerMetadata: s.serverMeta,
-		SessionMetadata: apievents.SessionMetadata{
-			SessionID: string(ctx.SessionID()),
-		},
-		UserMetadata: ctx.Identity.GetUserMetadata(),
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			RemoteAddr: ctx.ServerConn.RemoteAddr().String(),
-		},
-	}
-	// Local address only makes sense for non-tunnel nodes.
-	if !ctx.srv.UseTunnel() {
-		sessionJoinEvent.ConnectionMetadata.LocalAddr = ctx.ServerConn.LocalAddr().String()
-	}
-
-	// Notify all members of the party that a new member has joined over the
-	// "x-teleport-event" channel.
-	for _, p := range s.parties {
-		eventPayload, err := json.Marshal(sessionJoinEvent)
-		if err != nil {
-			s.log.Warnf("Unable to marshal %v for %v: %v.", events.SessionJoinEvent, p.sconn.RemoteAddr(), err)
-			continue
-		}
-		_, _, err = p.sconn.SendRequest(teleport.SessionEvent, false, eventPayload)
-		if err != nil {
-			s.log.Warnf("Unable to send %v to %v: %v.", events.SessionJoinEvent, p.sconn.RemoteAddr(), err)
-			continue
-		}
-		s.log.Debugf("Sent %v to %v.", events.SessionJoinEvent, p.sconn.RemoteAddr())
-	}
-}
-
-// emitSessionLeaveEvent emits a session leave event to both the Audit Log as
-// well as sending a "x-teleport-event" global request on the SSH connection.
-// Must be called under session Lock.
-func (s *session) emitSessionLeaveEvent(ctx *ServerContext) {
-	sessionLeaveEvent := &apievents.SessionLeave{
-		Metadata: apievents.Metadata{
-			Type:        events.SessionLeaveEvent,
-			Code:        events.SessionLeaveCode,
-			ClusterName: ctx.ClusterName,
-		},
-		ServerMetadata: s.serverMeta,
-		SessionMetadata: apievents.SessionMetadata{
-			SessionID: string(s.id),
-		},
-		UserMetadata: ctx.Identity.GetUserMetadata(),
-	}
-
-	// Notify all members of the party that a new member has left over the
-	// "x-teleport-event" channel.
-	for _, p := range s.parties {
-		eventPayload, err := utils.FastMarshal(sessionLeaveEvent)
-		if err != nil {
-			s.log.Warnf("Unable to marshal %v for %v: %v.", events.SessionLeaveEvent, p.sconn.RemoteAddr(), err)
-			continue
-		}
-		_, _, err = p.sconn.SendRequest(teleport.SessionEvent, false, eventPayload)
-		if err != nil {
-			// The party's connection may already be closed, in which case we expect an EOF
-			if !trace.IsEOF(err) {
-				s.log.Warnf("Unable to send %v to %v: %v.", events.SessionLeaveEvent, p.sconn.RemoteAddr(), err)
-			}
-			continue
-		}
-		s.log.Debugf("Sent %v to %v.", events.SessionLeaveEvent, p.sconn.RemoteAddr())
-	}
-}
-
-// emitSessionEndEvent emits a session end event.
-func (s *session) emitSessionEndEvent() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	ctx := s.scx
-	if s.endingContext != nil {
-		ctx = s.endingContext
-	}
-
-	start, end := s.startTime, time.Now().UTC()
-	sessionEndEvent := &apievents.SessionEnd{
-		Metadata: apievents.Metadata{
-			Type:        events.SessionEndEvent,
-			Code:        events.SessionEndCode,
-			ClusterName: ctx.ClusterName,
-		},
-		ServerMetadata: s.serverMeta,
-		SessionMetadata: apievents.SessionMetadata{
-			SessionID: string(s.id),
-		},
-		UserMetadata:      ctx.Identity.GetUserMetadata(),
-		EnhancedRecording: s.hasEnhancedRecording,
-		Interactive:       s.term != nil,
-		StartTime:         start,
-		EndTime:           end,
-		SessionRecording:  ctx.SessionRecordingConfig.GetMode(),
-	}
-
-	for _, p := range s.participants {
-		sessionEndEvent.Participants = append(sessionEndEvent.Participants, p.user)
-	}
-
-	// If there are 0 participants, this is an exec session.
-	// Use the user from the session context.
-	if len(s.participants) == 0 {
-		sessionEndEvent.Participants = []string{s.scx.Identity.TeleportUser}
-	}
-}
-
 func (s *session) setEndingContext(ctx *ServerContext) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -886,9 +736,6 @@ func (s *session) startInteractive(ctx context.Context, ch ssh.Channel, scx *Ser
 		return trace.Wrap(err)
 	}
 
-	// Emit a session.start event for the interactive session.
-	s.emitSessionStartEvent(scx)
-
 	// create a new "party" (connected client) and launch/join the session.
 	p := newParty(s, types.SessionPeerMode, ch, scx)
 	if err := s.addParty(p, types.SessionPeerMode); err != nil {
@@ -972,7 +819,6 @@ func (s *session) startInteractive(ctx context.Context, ch ssh.Channel, scx *Ser
 			}
 		}
 
-		s.emitSessionEndEvent()
 		s.Close()
 	}()
 
@@ -1002,9 +848,6 @@ func (s *session) startTerminal(ctx context.Context, scx *ServerContext) error {
 }
 
 func (s *session) startExec(ctx context.Context, channel ssh.Channel, scx *ServerContext, tempUser *user.User) error {
-	// Emit a session.start event for the exec session.
-	s.emitSessionStartEvent(scx)
-
 	// Start execution. If the program failed to start, send that result back.
 	// Note this is a partial start. Teleport will have re-exec'ed itself and
 	// wait until it's been placed in a cgroup and told to continue.
@@ -1075,7 +918,6 @@ func (s *session) startExec(ctx context.Context, channel ssh.Channel, scx *Serve
 			scx.Errorf("Failed to close enhanced recording (exec) session: %v: %v.", s.id, err)
 		}
 
-		s.emitSessionEndEvent()
 		s.Close()
 	}()
 
@@ -1115,10 +957,6 @@ func (s *session) removePartyUnderLock(p *party) error {
 
 	// Remove party for the term writer
 	s.io.DeleteWriter(string(p.id))
-
-	// Emit session leave event to both the Audit Log as well as over the
-	// "x-teleport-event" channel in the SSH connection.
-	s.emitSessionLeaveEvent(p.ctx)
 
 	canRun, policyOptions, err := s.checkIfStart()
 	if err != nil {
@@ -1428,10 +1266,6 @@ func (s *session) join(ch ssh.Channel, ctx *ServerContext, mode types.SessionPar
 	if err := s.addParty(p, mode); err != nil {
 		return nil, trace.Wrap(err)
 	}
-
-	// Emit session join event to both the Audit Log as well as over the
-	// "x-teleport-event" channel in the SSH connection.
-	s.emitSessionJoinEvent(p.ctx)
 
 	return p, nil
 }
