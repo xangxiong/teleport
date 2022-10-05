@@ -24,11 +24,6 @@ import (
 	"github.com/gravitational/teleport/lib/session"
 )
 
-type upsertServerRawReq struct {
-	Server json.RawMessage `json:"server"`
-	TTL    time.Duration   `json:"ttl"`
-}
-
 type upsertReverseTunnelRawReq struct {
 	ReverseTunnel json.RawMessage `json:"reverse_tunnel"`
 	TTL           time.Duration   `json:"ttl"`
