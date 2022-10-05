@@ -633,13 +633,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		}
 	}
 
-	// // TODO(espadolini): DELETE IN 11.0, replace with
-	// // os.RemoveAll(filepath.Join(cfg.DataDir, "cache")), because no stable v10
-	// // should ever use the cache directory, and 11 requires upgrading from 10
-	// if fi, err := os.Stat(filepath.Join(cfg.DataDir, "cache")); err == nil && fi.IsDir() {
-	// 	cfg.Log.Warnf("An old cache directory exists at %q. It can be safely deleted after ensuring that no other Teleport instance is running.", filepath.Join(cfg.DataDir, "cache"))
-	// }
-
 	if len(cfg.FileDescriptors) == 0 {
 		cfg.FileDescriptors, err = importFileDescriptors(cfg.Log)
 		if err != nil {
@@ -723,12 +716,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		trace.Component: teleport.Component(teleport.ComponentProcess, process.id),
 	})
 
-	// // if user started auth and another service (without providing the auth address for
-	// // that service, the address of the in-process auth will be used
-	// if process.Config.Auth.Enabled && len(process.Config.AuthServers) == 0 {
-	// 	process.Config.AuthServers = []utils.NetAddr{process.Config.Auth.SSHAddr}
-	// }
-
 	if len(process.Config.AuthServers) != 0 && process.Config.AuthServers[0].Port(0) == 0 {
 		// port appears undefined, attempt early listener creation so that we can get the real port
 		listener, err := process.importOrCreateListener(listenerAuthSSH, process.Config.AuthServers[0].Addr)
@@ -769,9 +756,6 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		Out: TeleportReadyEvent,
 		In:  []string{InstanceReady},
 	}
-	// if cfg.Auth.Enabled {
-	// 	eventMapping.In = append(eventMapping.In, AuthTLSReady)
-	// }
 	if cfg.SSH.Enabled {
 		eventMapping.In = append(eventMapping.In, NodeSSHReady)
 	}
