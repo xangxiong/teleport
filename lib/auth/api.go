@@ -31,10 +31,6 @@ type Announcer interface {
 	// for the specified duration with second resolution if it's >= 1 second
 	UpsertNode(ctx context.Context, s types.Server) (*types.KeepAlive, error)
 
-	// UpsertProxy registers proxy presence, permanently if ttl is 0 or
-	// for the specified duration with second resolution if it's >= 1 second
-	UpsertProxy(s types.Server) error
-
 	// UpsertAuthServer registers auth server presence, permanently if ttl is 0 or
 	// for the specified duration with second resolution if it's >= 1 second
 	UpsertAuthServer(s types.Server) error

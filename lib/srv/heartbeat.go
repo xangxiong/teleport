@@ -86,7 +86,7 @@ type HeartbeatMode int
 // CheckAndSetDefaults checks values and sets defaults
 func (h HeartbeatMode) CheckAndSetDefaults() error {
 	switch h {
-	case HeartbeatModeNode, HeartbeatModeProxy, HeartbeatModeAuth:
+	case HeartbeatModeNode:
 		return nil
 	default:
 		return trace.BadParameter("unrecognized mode")
@@ -98,10 +98,6 @@ func (h HeartbeatMode) String() string {
 	switch h {
 	case HeartbeatModeNode:
 		return "Node"
-	case HeartbeatModeProxy:
-		return "Proxy"
-	case HeartbeatModeAuth:
-		return "Auth"
 	default:
 		return fmt.Sprintf("<unknown: %v>", int(h))
 	}
@@ -111,12 +107,6 @@ const (
 	// HeartbeatModeNode sets heartbeat to node
 	// updates that support keep alives
 	HeartbeatModeNode HeartbeatMode = iota
-	// HeartbeatModeProxy sets heartbeat to proxy
-	// that does not support keep alives
-	HeartbeatModeProxy
-	// HeartbeatModeAuth sets heartbeat to auth
-	// that does not support keep alives
-	HeartbeatModeAuth
 )
 
 // NewHeartbeat returns a new instance of heartbeat
@@ -369,38 +359,6 @@ func (h *Heartbeat) announce() error {
 		// proxies and auth servers don't support keep alive logic yet,
 		// so keep state at announce forever for proxies
 		switch h.Mode {
-		case HeartbeatModeProxy:
-			proxy, ok := h.current.(types.Server)
-			if !ok {
-				return trace.BadParameter("expected services.Server, got %#v", h.current)
-			}
-			err := h.Announcer.UpsertProxy(proxy)
-			if err != nil {
-				// try next announce using keep alive period,
-				// that happens more frequently
-				h.nextAnnounce = h.Clock.Now().UTC().Add(h.KeepAlivePeriod)
-				h.setState(HeartbeatStateAnnounceWait)
-				return trace.Wrap(err)
-			}
-			h.nextAnnounce = h.Clock.Now().UTC().Add(h.AnnouncePeriod)
-			h.notifySend()
-			h.setState(HeartbeatStateAnnounceWait)
-			return nil
-		case HeartbeatModeAuth:
-			auth, ok := h.current.(types.Server)
-			if !ok {
-				return trace.BadParameter("expected services.Server, got %#v", h.current)
-			}
-			err := h.Announcer.UpsertAuthServer(auth)
-			if err != nil {
-				h.nextAnnounce = h.Clock.Now().UTC().Add(h.KeepAlivePeriod)
-				h.setState(HeartbeatStateAnnounceWait)
-				return trace.Wrap(err)
-			}
-			h.nextAnnounce = h.Clock.Now().UTC().Add(h.AnnouncePeriod)
-			h.notifySend()
-			h.setState(HeartbeatStateAnnounceWait)
-			return nil
 		case HeartbeatModeNode:
 			node, ok := h.current.(types.Server)
 			if !ok {

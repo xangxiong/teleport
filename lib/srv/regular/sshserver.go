@@ -102,7 +102,6 @@ type Server struct {
 	// cloudLabels are the labels imported from a cloud provider.
 	cloudLabels labels.Importer
 
-	proxyMode        bool
 	proxyTun         reversetunnel.Tunnel
 	proxyAccessPoint auth.ReadProxyAccessPoint
 	peerAddr         string
@@ -451,7 +450,6 @@ func SetProxyMode(peerAddr string, tsrv reversetunnel.Tunnel, ap auth.ReadProxyA
 		// always set proxy mode to true,
 		// because in some tests reverse tunnel is disabled,
 		// but proxy is still used without it.
-		s.proxyMode = true
 		s.proxyTun = tsrv
 		s.proxyAccessPoint = ap
 		s.peerAddr = peerAddr
@@ -731,12 +729,7 @@ func New(addr utils.NetAddr,
 		s.tracerProvider = tracing.DefaultProvider()
 	}
 
-	var component string
-	if s.proxyMode {
-		component = teleport.ComponentProxy
-	} else {
-		component = teleport.ComponentNode
-	}
+	var component = teleport.ComponentNode
 
 	s.Entry = logrus.WithFields(logrus.Fields{
 		trace.Component:       component,
@@ -795,12 +788,7 @@ func New(addr utils.NetAddr,
 	}
 	s.srv = server
 
-	var heartbeatMode srv.HeartbeatMode
-	if s.proxyMode {
-		heartbeatMode = srv.HeartbeatModeProxy
-	} else {
-		heartbeatMode = srv.HeartbeatModeNode
-	}
+	var heartbeatMode = srv.HeartbeatModeNode
 
 	var heartbeat srv.HeartbeatI
 	if heartbeatMode == srv.HeartbeatModeNode && s.inventoryHandle != nil {
@@ -851,9 +839,6 @@ func (s *Server) Context() context.Context {
 }
 
 func (s *Server) Component() string {
-	if s.proxyMode {
-		return teleport.ComponentProxy
-	}
 	return teleport.ComponentNode
 }
 
@@ -913,9 +898,6 @@ func (s *Server) AdvertiseAddr() string {
 }
 
 func (s *Server) getRole() types.SystemRole {
-	if s.proxyMode {
-		return types.RoleProxy
-	}
 	return types.RoleNode
 }
 
@@ -1140,59 +1122,6 @@ func (s *Server) HandleNewChan(ctx context.Context, ccx *sshutils.ConnectionCont
 	}
 
 	channelType := nch.ChannelType()
-	if s.proxyMode {
-		switch channelType {
-		// Channels of type "tracing-request" are sent to determine if ssh tracing envelopes
-		// are supported. Accepting the channel indicates to clients that they may wrap their
-		// ssh payload with tracing context.
-		case tracessh.TracingChannel:
-			ch, _, err := nch.Accept()
-			if err != nil {
-				s.Logger.Warnf("Unable to accept channel: %v", err)
-				if err := nch.Reject(ssh.ConnectionFailed, fmt.Sprintf("unable to accept channel: %v", err)); err != nil {
-					s.Logger.Warnf("Failed to reject channel: %v", err)
-				}
-				return
-			}
-			if err := ch.Close(); err != nil {
-				s.Logger.Warnf("Unable to close %q channel: %v", nch.ChannelType(), err)
-			}
-			return
-		// Channels of type "direct-tcpip", for proxies, it's equivalent
-		// of teleport proxy: subsystem
-		case teleport.ChanDirectTCPIP:
-			req, err := sshutils.ParseDirectTCPIPReq(nch.ExtraData())
-			if err != nil {
-				s.Logger.Errorf("Failed to parse request data: %v, err: %v.", string(nch.ExtraData()), err)
-				rejectChannel(nch, ssh.UnknownChannelType, "failed to parse direct-tcpip request")
-				return
-			}
-			ch, _, err := nch.Accept()
-			if err != nil {
-				s.Logger.Warnf("Unable to accept channel: %v.", err)
-				rejectChannel(nch, ssh.ConnectionFailed, fmt.Sprintf("unable to accept channel: %v", err))
-				return
-			}
-			go s.handleProxyJump(ctx, ccx, identityContext, ch, *req)
-			return
-		// Channels of type "session" handle requests that are involved in running
-		// commands on a server. In the case of proxy mode subsystem and agent
-		// forwarding requests occur over the "session" channel.
-		case teleport.ChanSession:
-			ch, requests, err := nch.Accept()
-			if err != nil {
-				s.Logger.Warnf("Unable to accept channel: %v.", err)
-				rejectChannel(nch, ssh.ConnectionFailed, fmt.Sprintf("unable to accept channel: %v", err))
-				return
-			}
-			go s.handleSessionRequests(ctx, ccx, identityContext, ch, requests)
-			return
-		default:
-			rejectChannel(nch, ssh.UnknownChannelType, fmt.Sprintf("unknown channel type: %v", channelType))
-			return
-		}
-	}
-
 	switch channelType {
 	// Channels of type "tracing-request" are sent to determine if ssh tracing envelopes
 	// are supported. Accepting the channel indicates to clients that they may wrap their
@@ -1441,22 +1370,20 @@ func (s *Server) handleSessionRequests(ctx context.Context, ccx *sshutils.Connec
 	})
 
 	for {
-		// update scx with the session ID:
-		if !s.proxyMode {
-			err := scx.CreateOrJoinSession(s.reg)
-			if err != nil {
-				errorMessage := fmt.Sprintf("unable to update context: %v", err)
-				scx.Errorf("Unable to update context: %v.", errorMessage)
+		err := scx.CreateOrJoinSession(s.reg)
+		if err != nil {
+			errorMessage := fmt.Sprintf("unable to update context: %v", err)
+			scx.Errorf("Unable to update context: %v.", errorMessage)
 
-				// write the error to channel and close it
-				writeStderr(ch, errorMessage)
-				_, err := ch.SendRequest("exit-status", false, ssh.Marshal(struct{ C uint32 }{C: teleport.RemoteCommandFailure}))
-				if err != nil {
-					scx.Errorf("Failed to send exit status %v.", errorMessage)
-				}
-				return
+			// write the error to channel and close it
+			writeStderr(ch, errorMessage)
+			_, err := ch.SendRequest("exit-status", false, ssh.Marshal(struct{ C uint32 }{C: teleport.RemoteCommandFailure}))
+			if err != nil {
+				scx.Errorf("Failed to send exit status %v.", errorMessage)
 			}
+			return
 		}
+
 		select {
 		case creq := <-scx.SubsystemResultCh:
 			// this means that subsystem has finished executing and
@@ -1515,38 +1442,6 @@ func (s *Server) handleSessionRequests(ctx context.Context, ccx *sshutils.Connec
 // appropriate subsystem implementation
 func (s *Server) dispatch(ctx context.Context, ch ssh.Channel, req *ssh.Request, serverContext *srv.ServerContext) error {
 	serverContext.Debugf("Handling request %v, want reply %v.", req.Type, req.WantReply)
-
-	// If this SSH server is configured to only proxy, we do not support anything
-	// other than our own custom "subsystems" and environment manipulation.
-	if s.proxyMode {
-		switch req.Type {
-		case tracessh.TracingRequest:
-			return nil
-		case sshutils.SubsystemRequest:
-			return s.handleSubsystem(ctx, ch, req, serverContext)
-		case sshutils.EnvRequest:
-			// we currently ignore setting any environment variables via SSH for security purposes
-			return s.handleEnv(ch, req, serverContext)
-		case sshutils.AgentForwardRequest:
-			// process agent forwarding, but we will only forward agent to proxy in
-			// recording proxy mode.
-			err := s.handleAgentForwardProxy(req, serverContext)
-			if err != nil {
-				s.Logger.Warn(err)
-			}
-			return nil
-		case sshutils.PuTTYSimpleRequest:
-			// PuTTY automatically requests a named 'simple@putty.projects.tartarus.org' channel any time it connects to a server
-			// as a proxy to indicate that it's in "simple" node and won't be requesting any other channels.
-			// As we don't support this request, we ignore it.
-			// https://the.earth.li/~sgtatham/putty/0.76/htmldoc/AppendixG.html#sshnames-channel
-			s.Logger.Debugf("%v: deliberately ignoring request for '%v' channel", s.Component(), sshutils.PuTTYSimpleRequest)
-			return nil
-		default:
-			return trace.BadParameter(
-				"(%v) proxy doesn't support request type '%v'", s.Component(), req.Type)
-		}
-	}
 
 	// Certs with a join-only principal can only use a
 	// subset of all the possible request types.
@@ -1960,10 +1855,6 @@ func (s *Server) parseSubsystemRequest(req *ssh.Request, ch ssh.Channel, ctx *sr
 	}
 
 	switch {
-	case s.proxyMode && strings.HasPrefix(r.Name, "proxy:"):
-		return parseProxySubsys(r.Name, s, ctx)
-	case s.proxyMode && strings.HasPrefix(r.Name, "proxysites"):
-		return parseProxySitesSubsys(r.Name, s)
 	case r.Name == sftpSubsystem:
 		if err := ctx.CheckFileCopyingAllowed(); err != nil {
 			// Add an extra newline here to separate this error message
