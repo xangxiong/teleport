@@ -47,9 +47,6 @@ type Presence interface {
 	// NodesGetter gets nodes
 	NodesGetter
 
-	// DeleteNode deletes node in a namespace
-	DeleteNode(ctx context.Context, namespace, name string) error
-
 	// UpsertNode registers node presence, permanently if TTL is 0 or for the
 	// specified duration with second resolution if it's >= 1 second.
 	UpsertNode(ctx context.Context, server types.Server) (*types.KeepAlive, error)
@@ -74,23 +71,8 @@ type Presence interface {
 	// GetNamespace returns namespace by name
 	GetNamespace(name string) (*types.Namespace, error)
 
-	// UpsertTrustedCluster creates or updates a TrustedCluster in the backend.
-	UpsertTrustedCluster(ctx context.Context, tc types.TrustedCluster) (types.TrustedCluster, error)
-
-	// GetTrustedCluster returns a single TrustedCluster by name.
-	GetTrustedCluster(ctx context.Context, name string) (types.TrustedCluster, error)
-
-	// GetTrustedClusters returns all TrustedClusters in the backend.
-	GetTrustedClusters(ctx context.Context) ([]types.TrustedCluster, error)
-
-	// DeleteTrustedCluster removes a TrustedCluster from the backend by name.
-	DeleteTrustedCluster(ctx context.Context, name string) error
-
 	// UpsertTunnelConnection upserts tunnel connection
 	UpsertTunnelConnection(types.TunnelConnection) error
-
-	// GetAllTunnelConnections returns all tunnel connections
-	GetAllTunnelConnections(opts ...MarshalOption) ([]types.TunnelConnection, error)
 
 	// DeleteTunnelConnection deletes tunnel connection by name
 	DeleteTunnelConnection(clusterName string, connName string) error

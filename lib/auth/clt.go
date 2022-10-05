@@ -496,27 +496,6 @@ func (c *Client) UpsertTunnelConnection(conn types.TunnelConnection) error {
 	return trace.Wrap(err)
 }
 
-// GetAllTunnelConnections returns all tunnel connections
-func (c *Client) GetAllTunnelConnections(opts ...services.MarshalOption) ([]types.TunnelConnection, error) {
-	out, err := c.Get(context.TODO(), c.Endpoint("tunnelconnections"), url.Values{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var items []json.RawMessage
-	if err := json.Unmarshal(out.Bytes(), &items); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	conns := make([]types.TunnelConnection, len(items))
-	for i, raw := range items {
-		conn, err := services.UnmarshalTunnelConnection(raw)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		conns[i] = conn
-	}
-	return conns, nil
-}
-
 // DeleteTunnelConnection deletes tunnel connection by name
 func (c *Client) DeleteTunnelConnection(clusterName string, connName string) error {
 	if clusterName == "" {
