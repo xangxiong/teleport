@@ -18,84 +18,18 @@ package tlsca
 
 import (
 	"crypto"
-	"crypto/rand"
-	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	"encoding/pem"
-	"fmt"
-	"math/big"
-	"net"
 	"strconv"
 	"time"
 
 	"github.com/gravitational/trace"
-	"github.com/jonboulle/clockwork"
-	"github.com/sirupsen/logrus"
 
-	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/api/types/wrappers"
-	"github.com/gravitational/teleport/api/utils"
 )
-
-var log = logrus.WithFields(logrus.Fields{
-	trace.Component: teleport.ComponentAuthority,
-})
-
-// FromCertAndSigner returns a CertAuthority with the given raw certificate and signer.
-func FromCertAndSigner(certPEM []byte, signer crypto.Signer) (*CertAuthority, error) {
-	cert, err := ParseCertificatePEM(certPEM)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &CertAuthority{
-		Cert:   cert,
-		Signer: signer,
-	}, nil
-}
-
-// FromKeys returns new CA from PEM encoded certificate and private
-// key. Private Key is optional, if omitted CA won't be able to
-// issue new certificates, only verify them
-func FromKeys(certPEM, keyPEM []byte) (*CertAuthority, error) {
-	ca := &CertAuthority{}
-	var err error
-	ca.Cert, err = ParseCertificatePEM(certPEM)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if len(keyPEM) != 0 {
-		ca.Signer, err = ParsePrivateKeyPEM(keyPEM)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-	return ca, nil
-}
-
-// FromTLSCertificate returns a CertAuthority with the given TLS certificate.
-func FromTLSCertificate(ca tls.Certificate) (*CertAuthority, error) {
-	if len(ca.Certificate) == 0 {
-		return nil, trace.BadParameter("invalid certificate length")
-	}
-	cert, err := x509.ParseCertificate(ca.Certificate[0])
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	signer, ok := ca.PrivateKey.(crypto.Signer)
-	if !ok {
-		return nil, trace.BadParameter("failed to convert private key to signer")
-	}
-
-	return &CertAuthority{
-		Cert:   cert,
-		Signer: signer,
-	}, nil
-}
 
 // CertAuthority is X.509 certificate authority
 type CertAuthority struct {
@@ -151,30 +85,6 @@ type Identity struct {
 	// AllowedResourceIDs lists the resources the identity should be allowed to
 	// access.
 	AllowedResourceIDs []types.ResourceID
-}
-
-func (id *Identity) GetEventIdentity() events.Identity {
-	// leave a nil instead of a zero struct so the field doesn't appear when
-	// serialized as json
-	var routeToApp *events.RouteToApp
-
-	return events.Identity{
-		User:               id.Username,
-		Impersonator:       id.Impersonator,
-		Roles:              id.Groups,
-		Usage:              id.Usage,
-		Logins:             id.Principals,
-		Expires:            id.Expires,
-		RouteToCluster:     id.RouteToCluster,
-		Traits:             id.Traits,
-		RouteToApp:         routeToApp,
-		TeleportCluster:    id.TeleportCluster,
-		MFADeviceUUID:      id.MFAVerified,
-		ClientIP:           id.ClientIP,
-		AccessRequests:     id.ActiveRequests,
-		DisallowReissue:    id.DisallowReissue,
-		AllowedResourceIDs: events.ResourceIDs(id.AllowedResourceIDs),
-	}
 }
 
 // CheckAndSetDefaults checks and sets default values
@@ -238,113 +148,6 @@ var (
 	// is specifically used for "multi-role" certs.
 	SystemRolesASN1ExtensionOID = asn1.ObjectIdentifier{1, 3, 9999, 2, 11}
 )
-
-// Subject converts identity to X.509 subject name
-func (id *Identity) Subject() (pkix.Name, error) {
-	rawTraits, err := wrappers.MarshalTraits(&id.Traits)
-	if err != nil {
-		return pkix.Name{}, trace.Wrap(err)
-	}
-
-	subject := pkix.Name{
-		CommonName:         id.Username,
-		Organization:       append([]string{}, id.Groups...),
-		OrganizationalUnit: append([]string{}, id.Usage...),
-		Locality:           append([]string{}, id.Principals...),
-
-		// TODO: create ASN.1 extensions for traits and RouteToCluster
-		// and move away from using StreetAddress and PostalCode
-		StreetAddress: []string{id.RouteToCluster},
-		PostalCode:    []string{string(rawTraits)},
-	}
-
-	for i := range id.SystemRoles {
-		systemRole := id.SystemRoles[i]
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  SystemRolesASN1ExtensionOID,
-				Value: systemRole,
-			})
-	}
-
-	if id.Renewable {
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  RenewableCertificateASN1ExtensionOID,
-				Value: types.True,
-			})
-	}
-	if id.TeleportCluster != "" {
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  TeleportClusterASN1ExtensionOID,
-				Value: id.TeleportCluster,
-			})
-	}
-	if id.MFAVerified != "" {
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  MFAVerifiedASN1ExtensionOID,
-				Value: id.MFAVerified,
-			})
-	}
-	if id.ClientIP != "" {
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  ClientIPASN1ExtensionOID,
-				Value: id.ClientIP,
-			})
-	}
-
-	if id.Impersonator != "" {
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  ImpersonatorASN1ExtensionOID,
-				Value: id.Impersonator,
-			})
-	}
-
-	for _, activeRequest := range id.ActiveRequests {
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  ActiveRequestsASN1ExtensionOID,
-				Value: activeRequest,
-			})
-	}
-
-	if id.DisallowReissue {
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  DisallowReissueASN1ExtensionOID,
-				Value: types.True,
-			},
-		)
-	}
-
-	if id.Generation > 0 {
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  GenerationASN1ExtensionOID,
-				Value: fmt.Sprint(id.Generation),
-			},
-		)
-	}
-
-	if len(id.AllowedResourceIDs) > 0 {
-		allowedResourcesStr, err := types.ResourceIDsToString(id.AllowedResourceIDs)
-		if err != nil {
-			return pkix.Name{}, trace.Wrap(err)
-		}
-		subject.ExtraNames = append(subject.ExtraNames,
-			pkix.AttributeTypeAndValue{
-				Type:  AllowedResourcesASN1ExtensionOID,
-				Value: allowedResourcesStr,
-			},
-		)
-	}
-
-	return subject, nil
-}
 
 // FromSubject returns identity from subject name
 func FromSubject(subject pkix.Name, expires time.Time) (*Identity, error) {
@@ -442,102 +245,4 @@ func (id Identity) GetUserMetadata() events.UserMetadata {
 		Impersonator:   id.Impersonator,
 		AccessRequests: id.ActiveRequests,
 	}
-}
-
-// CertificateRequest is a X.509 signing certificate request
-type CertificateRequest struct {
-	// Clock is a clock used to get current or test time
-	Clock clockwork.Clock
-	// PublicKey is a public key to sign
-	PublicKey crypto.PublicKey
-	// Subject is a subject to include in certificate
-	Subject pkix.Name
-	// NotAfter is a time after which the issued certificate
-	// will be no longer valid
-	NotAfter time.Time
-	// DNSNames is a list of DNS names to add to certificate
-	DNSNames []string
-	// Optional. ExtraExtensions to populate.
-	// Note: ExtraExtensions can override ExtKeyUsage and SANs (like DNSNames).
-	ExtraExtensions []pkix.Extension
-	// Optional. KeyUsage for the certificate.
-	KeyUsage x509.KeyUsage
-	// Optional. CRL endpoints.
-	CRLDistributionPoints []string
-}
-
-// CheckAndSetDefaults checks and sets default values
-func (c *CertificateRequest) CheckAndSetDefaults() error {
-	if c.Clock == nil {
-		c.Clock = clockwork.NewRealClock()
-	}
-	if c.PublicKey == nil {
-		return trace.BadParameter("missing parameter PublicKey")
-	}
-	if c.Subject.CommonName == "" {
-		return trace.BadParameter("missing parameter Subject.Common name")
-	}
-	if c.NotAfter.IsZero() {
-		return trace.BadParameter("missing parameter NotAfter")
-	}
-	if c.KeyUsage == 0 {
-		c.KeyUsage = x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature
-	}
-
-	c.DNSNames = utils.Deduplicate(c.DNSNames)
-
-	return nil
-}
-
-// GenerateCertificate generates certificate from request
-func (ca *CertAuthority) GenerateCertificate(req CertificateRequest) ([]byte, error) {
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	log.WithFields(logrus.Fields{
-		"not_after":   req.NotAfter,
-		"dns_names":   req.DNSNames,
-		"common_name": req.Subject.CommonName,
-		"org":         req.Subject.Organization,
-		"org_unit":    req.Subject.OrganizationalUnit,
-		"locality":    req.Subject.Locality,
-	}).Infof("Generating TLS certificate %v.", req)
-
-	template := &x509.Certificate{
-		SerialNumber: serialNumber,
-		Subject:      req.Subject,
-		// NotBefore is one minute in the past to prevent "Not yet valid" errors on
-		// time skewed clusters.
-		NotBefore:   req.Clock.Now().UTC().Add(-1 * time.Minute),
-		NotAfter:    req.NotAfter,
-		KeyUsage:    req.KeyUsage,
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		// BasicConstraintsValid is true to not allow any intermediate certs.
-		BasicConstraintsValid: true,
-		IsCA:                  false,
-		ExtraExtensions:       req.ExtraExtensions,
-		CRLDistributionPoints: req.CRLDistributionPoints,
-	}
-
-	// sort out principals into DNS names and IP addresses
-	for i := range req.DNSNames {
-		if ip := net.ParseIP(req.DNSNames[i]); ip != nil {
-			template.IPAddresses = append(template.IPAddresses, ip)
-		} else {
-			template.DNSNames = append(template.DNSNames, req.DNSNames[i])
-		}
-	}
-
-	certBytes, err := x509.CreateCertificate(rand.Reader, template, ca.Cert, req.PublicKey, ca.Signer)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes}), nil
 }
