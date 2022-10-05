@@ -41,7 +41,6 @@ import (
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/constants"
-	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/auditd"
@@ -52,7 +51,6 @@ import (
 	"github.com/gravitational/teleport/lib/cache"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
-	"github.com/gravitational/teleport/lib/events/filesessions"
 	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/modules"
@@ -1210,21 +1208,6 @@ func (process *TeleportProcess) initSSH() error {
 		}
 		defer func() { warnOnErr(s.Close(), log) }()
 
-		// init uploader service for recording SSH node, if proxy is not
-		// enabled on this node, because proxy stars uploader service as well
-		uploaderCfg := filesessions.UploaderConfig{
-			Streamer: authClient,
-			AuditLog: conn.Client,
-		}
-		completerCfg := events.UploadCompleterConfig{
-			SessionTracker: conn.Client,
-			GracePeriod:    defaults.UploadGracePeriod,
-			ClusterName:    conn.ServerIdentity.ClusterName,
-		}
-		if err := process.initUploaderService(uploaderCfg, completerCfg); err != nil {
-			return trace.Wrap(err)
-		}
-
 		var agentPool *reversetunnel.AgentPool
 		if !conn.UseTunnel() {
 			listener, err := process.importOrCreateListener(listenerNodeSSH, cfg.SSH.Addr.Addr)
@@ -1321,94 +1304,6 @@ func (process *TeleportProcess) registerWithAuthServer(role types.SystemRole, ev
 		process.BroadcastEvent(Event{Name: eventName, Payload: connector})
 		return nil
 	})
-}
-
-// initUploadService starts a file-based uploader that scans the local streaming logs directory
-// (data/log/upload/streaming/default/)
-func (process *TeleportProcess) initUploaderService(uploaderCfg filesessions.UploaderConfig, completerCfg events.UploadCompleterConfig) error {
-	log := process.log.WithFields(logrus.Fields{
-		trace.Component: teleport.Component(teleport.ComponentAuditLog, process.id),
-	})
-	// create folder for uploads
-	uid, gid, err := adminCreds()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// prepare dir for uploader
-	path := []string{process.Config.DataDir, teleport.LogsDir, teleport.ComponentUpload, events.StreamingLogsDir, apidefaults.Namespace}
-	for i := 1; i < len(path); i++ {
-		dir := filepath.Join(path[:i+1]...)
-		log.Infof("Creating directory %v.", dir)
-		err := os.Mkdir(dir, 0o755)
-		err = trace.ConvertSystemError(err)
-		if err != nil {
-			if !trace.IsAlreadyExists(err) {
-				return trace.Wrap(err)
-			}
-		}
-		if uid != nil && gid != nil {
-			log.Infof("Setting directory %v owner to %v:%v.", dir, *uid, *gid)
-			err := os.Chown(dir, *uid, *gid)
-			if err != nil {
-				return trace.ConvertSystemError(err)
-			}
-		}
-	}
-
-	uploaderCfg.ScanDir = filepath.Join(path...)
-	uploaderCfg.EventsC = process.Config.UploadEventsC
-	fileUploader, err := filesessions.NewUploader(uploaderCfg)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	process.RegisterFunc("fileuploader.service", func() error {
-		err := fileUploader.Serve(process.ExitContext())
-		if err != nil {
-			log.WithError(err).Errorf("File uploader server exited with error.")
-		}
-
-		return nil
-	})
-
-	process.OnExit("fileuploader.shutdown", func(payload interface{}) {
-		log.Infof("File uploader is shutting down.")
-		fileUploader.Close()
-		log.Infof("File uploader has shut down.")
-	})
-
-	// upload completer scans for uploads that have been initiated, but not completed
-	// by the client (aborted or crashed) and completes them. It will be closed once
-	// the uploader context is closed.
-	handler, err := filesessions.NewHandler(filesessions.Config{
-		Directory: filepath.Join(path...),
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	completerCfg.Uploader = handler
-	completerCfg.AuditLog = uploaderCfg.AuditLog
-	uploadCompleter, err := events.NewUploadCompleter(completerCfg)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	process.RegisterFunc("fileuploadcompleter.service", func() error {
-		if err := uploadCompleter.Serve(process.ExitContext()); err != nil {
-			log.WithError(err).Errorf("File uploader server exited with error.")
-		}
-		return nil
-	})
-
-	process.OnExit("fileuploadcompleter.shutdown", func(payload interface{}) {
-		log.Infof("File upload completer is shutting down.")
-		uploadCompleter.Close()
-		log.Infof("File upload completer has shut down.")
-	})
-
-	return nil
 }
 
 // getAdditionalPrincipals returns a list of additional principals to add
