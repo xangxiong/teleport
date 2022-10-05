@@ -44,9 +44,6 @@ type Trust interface {
 	// AuthorityGetter retrieves certificate authorities
 	AuthorityGetter
 
-	// CreateCertAuthority inserts a new certificate authority
-	CreateCertAuthority(ca types.CertAuthority) error
-
 	// UpsertCertAuthority updates or inserts a new certificate authority
 	UpsertCertAuthority(ca types.CertAuthority) error
 

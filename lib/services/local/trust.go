@@ -37,31 +37,6 @@ func NewCAService(b backend.Backend) *CA {
 	}
 }
 
-// CreateCertAuthority updates or inserts a new certificate authority
-func (s *CA) CreateCertAuthority(ca types.CertAuthority) error {
-	if err := services.ValidateCertAuthority(ca); err != nil {
-		return trace.Wrap(err)
-	}
-	value, err := services.MarshalCertAuthority(ca)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(authoritiesPrefix, string(ca.GetType()), ca.GetName()),
-		Value:   value,
-		Expires: ca.Expiry(),
-	}
-
-	_, err = s.Create(context.TODO(), item)
-	if err != nil {
-		if trace.IsAlreadyExists(err) {
-			return trace.AlreadyExists("cluster %q already exists", ca.GetName())
-		}
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // UpsertCertAuthority updates or inserts a new certificate authority
 func (s *CA) UpsertCertAuthority(ca types.CertAuthority) error {
 	if err := services.ValidateCertAuthority(ca); err != nil {

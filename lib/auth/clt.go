@@ -323,11 +323,6 @@ func (c *Client) Close() error {
 	return c.APIClient.Close()
 }
 
-// CreateCertAuthority not implemented: can only be called locally.
-func (c *Client) CreateCertAuthority(ca types.CertAuthority) error {
-	return trace.NotImplemented(notImplementedMessage)
-}
-
 // RotateExternalCertAuthority rotates external certificate authority,
 // this method is used to update only public keys and certificates of the
 // the certificate authorities of trusted clusters.
