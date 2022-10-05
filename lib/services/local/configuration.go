@@ -144,31 +144,6 @@ func (s *ClusterConfigurationService) SetClusterNetworkingConfig(ctx context.Con
 	return nil
 }
 
-// SetSessionRecordingConfig sets session recording config on the backend.
-func (s *ClusterConfigurationService) SetSessionRecordingConfig(ctx context.Context, recConfig types.SessionRecordingConfig) error {
-	// Perform the modules-provided checks.
-	if err := modules.ValidateResource(recConfig); err != nil {
-		return trace.Wrap(err)
-	}
-
-	value, err := services.MarshalSessionRecordingConfig(recConfig)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	item := backend.Item{
-		Key:   backend.Key(clusterConfigPrefix, sessionRecordingPrefix),
-		Value: value,
-		ID:    recConfig.GetResourceID(),
-	}
-
-	_, err = s.Put(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 const (
 	clusterConfigPrefix    = "cluster_configuration"
 	namePrefix             = "name"
