@@ -106,18 +106,6 @@ func (s *ClusterConfigurationService) SetAuthPreference(ctx context.Context, pre
 	return nil
 }
 
-// GetClusterAuditConfig gets cluster audit config from the backend.
-func (s *ClusterConfigurationService) GetClusterAuditConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterAuditConfig, error) {
-	item, err := s.Get(ctx, backend.Key(clusterConfigPrefix, auditPrefix))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return nil, trace.NotFound("cluster audit config not found")
-		}
-		return nil, trace.Wrap(err)
-	}
-	return services.UnmarshalClusterAuditConfig(item.Value, append(opts, services.WithResourceID(item.ID), services.WithExpires(item.Expires))...)
-}
-
 // GetClusterNetworkingConfig gets cluster networking config from the backend.
 func (s *ClusterConfigurationService) GetClusterNetworkingConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterNetworkingConfig, error) {
 	item, err := s.Get(ctx, backend.Key(clusterConfigPrefix, networkingPrefix))

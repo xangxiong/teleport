@@ -560,33 +560,6 @@ type clusterConfigCacheKey struct {
 
 var _ map[clusterConfigCacheKey]struct{} // compile-time hashability check
 
-// GetClusterAuditConfig gets ClusterAuditConfig from the backend.
-func (c *Cache) GetClusterAuditConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterAuditConfig, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetClusterAuditConfig")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	if !rg.IsCacheRead() {
-		ta := func(_ types.ClusterAuditConfig) {} // compile-time type assertion
-		ci, err := c.fnCache.Get(ctx, clusterConfigCacheKey{"audit"}, func(ctx context.Context) (interface{}, error) {
-			cfg, err := rg.clusterConfig.GetClusterAuditConfig(ctx, opts...)
-			ta(cfg)
-			return cfg, err
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		cachedCfg := ci.(types.ClusterAuditConfig)
-		ta(cachedCfg)
-		return cachedCfg.Clone(), nil
-	}
-	return rg.clusterConfig.GetClusterAuditConfig(ctx, opts...)
-}
-
 // GetClusterNetworkingConfig gets ClusterNetworkingConfig from the backend.
 func (c *Cache) GetClusterNetworkingConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterNetworkingConfig, error) {
 	ctx, span := c.Tracer.Start(ctx, "cache/GetClusterNetworkingConfig")

@@ -34,7 +34,6 @@ import (
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/observability/tracing"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/httplib"
@@ -585,13 +584,6 @@ func (c *Client) GenerateHostCert(
 	return []byte(cert), nil
 }
 
-// StreamSessionEvents streams all events from a given session recording. An error is returned on the first
-// channel if one is encountered. Otherwise the event channel is closed when the stream ends.
-// The event channel is not closed on error to prevent race conditions in downstream select statements.
-func (c *Client) StreamSessionEvents(ctx context.Context, sessionID session.ID, startIndex int64) (chan apievents.AuditEvent, chan error) {
-	return c.APIClient.StreamSessionEvents(ctx, string(sessionID), startIndex)
-}
-
 // GetNamespace returns namespace by name
 func (c *Client) GetNamespace(name string) (*types.Namespace, error) {
 	if name == "" {
@@ -632,11 +624,6 @@ func (c *Client) GetStaticTokens() (types.StaticTokens, error) {
 	}
 
 	return st, err
-}
-
-// GetClusterAuditConfig gets cluster audit configuration.
-func (c *Client) GetClusterAuditConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterAuditConfig, error) {
-	return c.APIClient.GetClusterAuditConfig(ctx)
 }
 
 // GetClusterNetworkingConfig gets cluster networking configuration.

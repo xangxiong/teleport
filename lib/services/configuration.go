@@ -38,9 +38,6 @@ type ClusterConfiguration interface {
 	// GetSessionRecordingConfig gets SessionRecordingConfig from the backend.
 	GetSessionRecordingConfig(context.Context, ...MarshalOption) (types.SessionRecordingConfig, error)
 
-	// GetClusterAuditConfig gets ClusterAuditConfig from the backend.
-	GetClusterAuditConfig(context.Context, ...MarshalOption) (types.ClusterAuditConfig, error)
-
 	// GetClusterNetworkingConfig gets ClusterNetworkingConfig from the backend.
 	GetClusterNetworkingConfig(context.Context, ...MarshalOption) (types.ClusterNetworkingConfig, error)
 }
