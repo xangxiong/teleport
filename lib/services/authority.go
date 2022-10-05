@@ -25,7 +25,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/gravitational/trace"
-	"github.com/jonboulle/clockwork"
 	"golang.org/x/crypto/ssh"
 
 	apidefaults "github.com/gravitational/teleport/api/defaults"
@@ -126,37 +125,6 @@ func checkJWTKeys(cai types.CertAuthority) error {
 	return nil
 }
 
-// GetJWTSigner returns the active JWT key used to sign tokens.
-func GetJWTSigner(signer crypto.Signer, clusterName string, clock clockwork.Clock) (*jwt.Key, error) {
-	key, err := jwt.New(&jwt.Config{
-		Clock:       clock,
-		Algorithm:   defaults.ApplicationTokenAlgorithm,
-		ClusterName: clusterName,
-		PrivateKey:  signer,
-	})
-	return key, trace.Wrap(err)
-}
-
-// GetTLSCerts returns TLS certificates from CA
-func GetTLSCerts(ca types.CertAuthority) [][]byte {
-	pairs := ca.GetTrustedTLSKeyPairs()
-	out := make([][]byte, len(pairs))
-	for i, pair := range pairs {
-		out[i] = append([]byte{}, pair.Cert...)
-	}
-	return out
-}
-
-// GetSSHCheckingKeys returns SSH public keys from CA
-func GetSSHCheckingKeys(ca types.CertAuthority) [][]byte {
-	pairs := ca.GetTrustedSSHKeyPairs()
-	out := make([][]byte, 0, len(pairs))
-	for _, pair := range pairs {
-		out = append(out, append([]byte{}, pair.PublicKey...))
-	}
-	return out
-}
-
 // HostCertParams defines all parameters needed to generate a host certificate
 type HostCertParams struct {
 	// CASigner is the signer that will sign the public key of the host with the CA private key.
@@ -195,18 +163,6 @@ func (c HostCertParams) Check() error {
 	}
 
 	return nil
-}
-
-// ChangePasswordReq defines a request to change user password
-type ChangePasswordReq struct {
-	// User is user ID
-	User string
-	// OldPassword is user current password
-	OldPassword []byte `json:"old_password"`
-	// NewPassword is user new password
-	NewPassword []byte `json:"new_password"`
-	// SecondFactorToken is user 2nd factor token
-	SecondFactorToken string `json:"second_factor_token"`
 }
 
 // UserCertParams defines OpenSSH user certificate parameters
@@ -278,29 +234,6 @@ func (c *UserCertParams) CheckAndSetDefaults() error {
 		return trace.BadParameter("AllowedLogins are required")
 	}
 	return nil
-}
-
-// CertPoolFromCertAuthorities returns a certificate pool from the TLS certificates
-// set up in the certificate authorities list, as well as the number of certificates
-// that were added to the pool.
-func CertPoolFromCertAuthorities(cas []types.CertAuthority) (*x509.CertPool, int, error) {
-	certPool := x509.NewCertPool()
-	count := 0
-	for _, ca := range cas {
-		keyPairs := ca.GetTrustedTLSKeyPairs()
-		if len(keyPairs) == 0 {
-			continue
-		}
-		for _, keyPair := range keyPairs {
-			cert, err := tlsca.ParseCertificatePEM(keyPair.Cert)
-			if err != nil {
-				return nil, 0, trace.Wrap(err)
-			}
-			certPool.AddCert(cert)
-			count++
-		}
-	}
-	return certPool, count, nil
 }
 
 // CertPool returns certificate pools from TLS certificates
@@ -408,17 +341,6 @@ func MarshalCertAuthority(certAuthority types.CertAuthority, opts ...MarshalOpti
 	default:
 		return nil, trace.BadParameter("unrecognized certificate authority version %T", certAuthority)
 	}
-}
-
-// CertAuthorityNeedsMigration returns true if the given CertAuthority needs to be migrated
-func CertAuthorityNeedsMigration(cai types.CertAuthority) (bool, error) {
-	ca, ok := cai.(*types.CertAuthorityV2)
-	if !ok {
-		return false, trace.BadParameter("unknown type %T", cai)
-	}
-	haveOldCAKeys := len(ca.Spec.CheckingKeys) > 0 || len(ca.Spec.TLSKeyPairs) > 0 || len(ca.Spec.JWTKeyPairs) > 0
-	haveNewCAKeys := len(ca.Spec.ActiveKeys.SSH) > 0 || len(ca.Spec.ActiveKeys.TLS) > 0 || len(ca.Spec.ActiveKeys.JWT) > 0
-	return haveOldCAKeys && !haveNewCAKeys, nil
 }
 
 // SyncCertAuthorityKeys backfills the old or new key formats, if one of them
