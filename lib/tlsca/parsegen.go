@@ -17,9 +17,7 @@ limitations under the License.
 package tlsca
 
 import (
-	"bytes"
 	"crypto"
-	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -31,18 +29,7 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
-
-	"github.com/gravitational/teleport/api/constants"
-	"github.com/gravitational/teleport/lib/utils"
 )
-
-// ClusterName returns cluster name from organization
-func ClusterName(subject pkix.Name) (string, error) {
-	if len(subject.Organization) == 0 {
-		return "", trace.BadParameter("missing subject organization")
-	}
-	return subject.Organization[0], nil
-}
 
 // GenerateSelfSignedCAWithSigner generates self-signed certificate authority used for internal inter-node communications
 func GenerateSelfSignedCAWithSigner(signer crypto.Signer, entity pkix.Name, dnsNames []string, ttl time.Duration) ([]byte, error) {
@@ -114,46 +101,6 @@ func GenerateSelfSignedCAWithConfig(config GenerateCAConfig) (certPEM []byte, er
 	return certPEM, nil
 }
 
-// GenerateSelfSignedCA generates self-signed certificate authority used for internal inter-node communications
-func GenerateSelfSignedCA(entity pkix.Name, dnsNames []string, ttl time.Duration) ([]byte, []byte, error) {
-	priv, err := rsa.GenerateKey(rand.Reader, constants.RSAKeySize)
-	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-	certPEM, err := GenerateSelfSignedCAWithSigner(priv, entity, dnsNames, ttl)
-	return keyPEM, certPEM, err
-}
-
-// ParseCertificateRequestPEM parses PEM-encoded certificate signing request
-func ParseCertificateRequestPEM(bytes []byte) (*x509.CertificateRequest, error) {
-	block, _ := pem.Decode(bytes)
-	if block == nil {
-		return nil, trace.BadParameter("expected PEM-encoded block")
-	}
-	csr, err := x509.ParseCertificateRequest(block.Bytes)
-	if err != nil {
-		return nil, trace.BadParameter(err.Error())
-	}
-	return csr, nil
-}
-
-// GenerateCertificateRequestPEM returns PEM-encoded certificate signing
-// request from the provided subject and private key.
-func GenerateCertificateRequestPEM(subject pkix.Name, priv crypto.Signer) ([]byte, error) {
-	csr := &x509.CertificateRequest{
-		Subject: subject,
-	}
-	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, csr, priv)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE REQUEST",
-		Bytes: csrBytes,
-	}), nil
-}
-
 // ParseCertificatePEM parses PEM-encoded certificate
 func ParseCertificatePEM(bytes []byte) (*x509.Certificate, error) {
 	if len(bytes) == 0 {
@@ -192,56 +139,6 @@ func ParseCertificatePEMs(bytes []byte) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-// ParsePrivateKeyPEM parses PEM-encoded private key
-func ParsePrivateKeyPEM(bytes []byte) (crypto.Signer, error) {
-	block, _ := pem.Decode(bytes)
-	if block == nil {
-		return nil, trace.BadParameter("expected PEM-encoded block")
-	}
-	return ParsePrivateKeyDER(block.Bytes)
-}
-
-// ParsePrivateKeyDER parses unencrypted DER-encoded private key
-func ParsePrivateKeyDER(der []byte) (crypto.Signer, error) {
-	generalKey, err := x509.ParsePKCS8PrivateKey(der)
-	if err != nil {
-		generalKey, err = x509.ParsePKCS1PrivateKey(der)
-		if err != nil {
-			generalKey, err = x509.ParseECPrivateKey(der)
-			if err != nil {
-				return nil, trace.BadParameter("failed parsing private key")
-			}
-		}
-	}
-
-	switch k := generalKey.(type) {
-	case *rsa.PrivateKey:
-		return k, nil
-	case *ecdsa.PrivateKey:
-		return k, nil
-	}
-
-	return nil, trace.BadParameter("unsupported private key type")
-}
-
-// ParsePublicKeyPEM parses public key PEM
-func ParsePublicKeyPEM(bytes []byte) (interface{}, error) {
-	block, _ := pem.Decode(bytes)
-	if block == nil {
-		return nil, trace.BadParameter("expected PEM-encoded block")
-	}
-	return ParsePublicKeyDER(block.Bytes)
-}
-
-// ParsePublicKeyDER parses unencrypted DER-encoded publice key
-func ParsePublicKeyDER(der []byte) (crypto.PublicKey, error) {
-	generalKey, err := x509.ParsePKIXPublicKey(der)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return generalKey, nil
-}
-
 // MarshalPublicKeyFromPrivateKeyPEM extracts public key from private key
 // and returns PEM marshalled key
 func MarshalPublicKeyFromPrivateKeyPEM(privateKey crypto.PrivateKey) ([]byte, error) {
@@ -255,39 +152,4 @@ func MarshalPublicKeyFromPrivateKeyPEM(privateKey crypto.PrivateKey) ([]byte, er
 		return nil, trace.Wrap(err)
 	}
 	return pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: derBytes}), nil
-}
-
-// MarshalPrivateKeyPEM marshals provided rsa.PrivateKey into PEM format.
-func MarshalPrivateKeyPEM(privateKey *rsa.PrivateKey) []byte {
-	return pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
-	})
-}
-
-// MarshalCertificatePEM takes a *x509.Certificate and returns the PEM
-// encoded bytes.
-func MarshalCertificatePEM(cert *x509.Certificate) ([]byte, error) {
-	var buf bytes.Buffer
-
-	err := pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-// CalculatePins returns the SPKI pins for the given set of concatenated
-// PEM-encoded certificates
-func CalculatePins(certsBytes []byte) ([]string, error) {
-	certs, err := ParseCertificatePEMs(certsBytes)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	pins := make([]string, 0, len(certs))
-	for _, cert := range certs {
-		pins = append(pins, utils.CalculateSPKI(cert))
-	}
-	return pins, nil
 }
