@@ -21,7 +21,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/types"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/utils"
@@ -464,15 +463,6 @@ ProcessReviews:
 	}, nil
 }
 
-// RequestValidatorGetter is the interface required by the request validation
-// functions used to get necessary resources.
-type RequestValidatorGetter interface {
-	RoleGetter
-	GetRoles(ctx context.Context) ([]types.Role, error)
-	ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error)
-	GetClusterName(opts ...MarshalOption) (types.ClusterName, error)
-}
-
 // ReviewPermissionChecker is a helper for validating whether or not a user
 // is allowed to review specific access requests.
 type ReviewPermissionChecker struct {
@@ -586,90 +576,6 @@ Outer:
 	}
 
 	return len(needsAllow) == 0, nil
-}
-
-// RequestValidator a helper for validating access requests.
-// a user's statically assigned roles are are "added" to the
-// validator via the push() method, which extracts all the
-// relevant rules, peforms variable substitutions, and builds
-// a set of simple Allow/Deny datastructures.  These, in turn,
-// are used to validate and expand the access request.
-type RequestValidator struct {
-	opts struct {
-		expandVars bool
-	}
-	Roles struct {
-		AllowRequest, DenyRequest []parse.Matcher
-		AllowSearch, DenySearch   []string
-	}
-	Annotations struct {
-		Allow, Deny map[string][]string
-	}
-	ThresholdMatchers []struct {
-		Matchers   []parse.Matcher
-		Thresholds []types.AccessReviewThreshold
-	}
-	SuggestedReviewers []string
-}
-
-// CanRequestRole checks if a given role can be requested.
-func (m *RequestValidator) CanRequestRole(name string) bool {
-	for _, deny := range m.Roles.DenyRequest {
-		if deny.Match(name) {
-			return false
-		}
-	}
-	for _, allow := range m.Roles.AllowRequest {
-		if allow.Match(name) {
-			return true
-		}
-	}
-	return false
-}
-
-// CanSearchAsRole check if a given role can be requested through a search-based
-// access request
-func (m *RequestValidator) CanSearchAsRole(name string) bool {
-	if apiutils.SliceContainsStr(m.Roles.DenySearch, name) {
-		return false
-	}
-	for _, deny := range m.Roles.DenyRequest {
-		if deny.Match(name) {
-			return false
-		}
-	}
-	return apiutils.SliceContainsStr(m.Roles.AllowSearch, name)
-}
-
-// SystemAnnotations calculates the system annotations for a pending
-// access request.
-func (m *RequestValidator) SystemAnnotations() map[string][]string {
-	annotations := make(map[string][]string)
-	for k, va := range m.Annotations.Allow {
-		var filtered []string
-		for _, v := range va {
-			if !apiutils.SliceContainsStr(m.Annotations.Deny[k], v) {
-				filtered = append(filtered, v)
-			}
-		}
-		if len(filtered) == 0 {
-			continue
-		}
-		annotations[k] = filtered
-	}
-	return annotations
-}
-
-type ValidateRequestOption func(*RequestValidator)
-
-// ExpandVars toggles variable expansion during request validation.  Variable expansion
-// includes expanding wildcard requests, setting system annotations, and gathering
-// threshold information.  Variable expansion should be run by the auth server prior
-// to storing an access request for the first time.
-func ExpandVars(expand bool) ValidateRequestOption {
-	return func(v *RequestValidator) {
-		v.opts.expandVars = expand
-	}
 }
 
 // UnmarshalAccessRequest unmarshals the AccessRequest resource from JSON.
