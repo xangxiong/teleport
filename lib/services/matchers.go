@@ -19,34 +19,7 @@ package services
 import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/trace"
-
-	"github.com/sirupsen/logrus"
 )
-
-// ResourceMatcher matches cluster resources.
-type ResourceMatcher struct {
-	// Labels match resource labels.
-	Labels types.Labels
-}
-
-// MatchResourceLabels returns true if any of the provided selectors matches the provided database.
-func MatchResourceLabels(matchers []ResourceMatcher, resource types.ResourceWithLabels) bool {
-	for _, matcher := range matchers {
-		if len(matcher.Labels) == 0 {
-			return false
-		}
-		match, _, err := MatchLabels(matcher.Labels, resource.GetAllLabels())
-		if err != nil {
-			logrus.WithError(err).Errorf("Failed to match labels %v: %v.",
-				matcher.Labels, resource)
-			return false
-		}
-		if match {
-			return true
-		}
-	}
-	return false
-}
 
 // ResourceSeenKey is used as a key for a map that keeps track
 // of unique resource names and address. Currently "addr"
