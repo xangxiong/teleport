@@ -30,7 +30,6 @@ import (
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/pam"
-	"github.com/gravitational/teleport/lib/plugin"
 	restricted "github.com/gravitational/teleport/lib/restrictedsession"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/sshca"
@@ -100,29 +99,11 @@ type Config struct {
 	// first cluster start
 	ReverseTunnels []types.ReverseTunnel
 
-	// OIDCConnectors is a list of trusted OpenID Connect identity providers
-	OIDCConnectors []types.OIDCConnector
-
 	// PidFile is a full path of the PID file for teleport daemon
 	PIDFile string
 
 	// Trust is a service that manages users and credentials
 	Trust services.Trust
-
-	// Presence service is a discovery and hearbeat tracker
-	Presence services.Presence
-
-	// Events is events service
-	Events types.Events
-
-	// Provisioner is a service that keeps track of provisioning tokens
-	Provisioner services.Provisioner
-
-	// Access is a service that controls access
-	Access services.Access
-
-	// ClusterConfiguration is a service that provides cluster configuration
-	ClusterConfiguration services.ClusterConfiguration
 
 	// CipherSuites is a list of TLS ciphersuites that Teleport supports. If
 	// omitted, a Teleport selected list of defaults will be used.
@@ -179,14 +160,8 @@ type Config struct {
 	// will be skipped.
 	SkipVersionCheck bool
 
-	// BPFConfig holds configuration for the BPF service.
-	BPFConfig *bpf.Config
-
 	// Log optionally specifies the logger
 	Log utils.Logger
-
-	// PluginRegistry allows adding enterprise logic to Teleport services
-	PluginRegistry plugin.Registry
 
 	// RotationConnectionInterval is the interval between connection
 	// attempts as used by the rotation state service

@@ -56,7 +56,6 @@ import (
 	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/modules"
-	"github.com/gravitational/teleport/lib/plugin"
 	restricted "github.com/gravitational/teleport/lib/restrictedsession"
 	"github.com/gravitational/teleport/lib/reversetunnel"
 	"github.com/gravitational/teleport/lib/services"
@@ -197,9 +196,6 @@ type TeleportProcess struct {
 	sync.Mutex
 	Supervisor
 	Config *Config
-
-	// PluginsRegistry handles plugin registrations with Teleport services
-	PluginRegistry plugin.Registry
 
 	// backend is the process' backend
 	backend backend.Backend
@@ -707,12 +703,7 @@ func NewTeleport(cfg *Config, opts ...NewTeleportOption) (*TeleportProcess, erro
 		cfg.Clock = clockwork.NewRealClock()
 	}
 
-	if cfg.PluginRegistry == nil {
-		cfg.PluginRegistry = plugin.NewRegistry()
-	}
-
 	process := &TeleportProcess{
-		PluginRegistry:      cfg.PluginRegistry,
 		Clock:               cfg.Clock,
 		Supervisor:          supervisor,
 		Config:              cfg,
