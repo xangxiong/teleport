@@ -56,24 +56,6 @@ func ValidateAccessRequest(ar types.AccessRequest) error {
 	return nil
 }
 
-// NewAccessRequest assembles an AccessRequest resource.
-func NewAccessRequest(user string, roles ...string) (types.AccessRequest, error) {
-	return NewAccessRequestWithResources(user, roles, []types.ResourceID{})
-}
-
-// NewAccessRequestWithResources assembles an AccessRequest resource with
-// requested resources.
-func NewAccessRequestWithResources(user string, roles []string, resourceIDs []types.ResourceID) (types.AccessRequest, error) {
-	req, err := types.NewAccessRequestWithResources(uuid.New().String(), user, roles, resourceIDs)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err := ValidateAccessRequest(req); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return req, nil
-}
-
 // RequestIDs is a collection of IDs for privilege escalation requests.
 type RequestIDs struct {
 	AccessRequests []string `json:"access_requests,omitempty"`
@@ -186,56 +168,6 @@ type thresholdFilterContext struct {
 type reviewPermissionContext struct {
 	Reviewer reviewAuthorContext  `json:"reviewer"`
 	Request  reviewRequestContext `json:"request"`
-}
-
-// ValidateAccessPredicates checks request & review permission predicates for
-// syntax errors.  Used to help prevent users from accidentally writing incorrect
-// predicates.  This function should only be called by the auth server prior to
-// storing new/updated roles.  Normal role validation deliberately omits these
-// checks in order to allow us to extend the available namespaces without breaking
-// backwards compatibility with older nodes/proxies (which never need to evaluate
-// these predicates).
-func ValidateAccessPredicates(role types.Role) error {
-	tp, err := NewJSONBoolParser(thresholdFilterContext{})
-	if err != nil {
-		return trace.Wrap(err, "failed to build empty threshold predicate parser (this is a bug)")
-	}
-
-	if len(role.GetAccessRequestConditions(types.Deny).Thresholds) != 0 {
-		// deny blocks never contain thresholds.  a threshold which happens to describe a *denial condition* is
-		// still part of the "allow" block.  thresholds are not part of deny blocks because thresholds describe the
-		// state-transition scenarios supported by a request (including potentially being denied).  deny.request blocks match
-		// requests which are *never* allowable, and therefore will never reach the point of needing to encode thresholds.
-		return trace.BadParameter("deny.request cannot contain thresholds, set denial counts in allow.request.thresholds instead")
-	}
-
-	for _, t := range role.GetAccessRequestConditions(types.Allow).Thresholds {
-		if t.Filter == "" {
-			continue
-		}
-		if _, err := tp.EvalBoolPredicate(t.Filter); err != nil {
-			return trace.BadParameter("invalid threshold predicate: %q, %v", t.Filter, err)
-		}
-	}
-
-	rp, err := NewJSONBoolParser(reviewPermissionContext{})
-	if err != nil {
-		return trace.Wrap(err, "failed to build empty review predicate parser (this is a bug)")
-	}
-
-	if w := role.GetAccessReviewConditions(types.Deny).Where; w != "" {
-		if _, err := rp.EvalBoolPredicate(w); err != nil {
-			return trace.BadParameter("invalid review predicate: %q, %v", w, err)
-		}
-	}
-
-	if w := role.GetAccessReviewConditions(types.Allow).Where; w != "" {
-		if _, err := rp.EvalBoolPredicate(w); err != nil {
-			return trace.BadParameter("invalid review predicate: %q, %v", w, err)
-		}
-	}
-
-	return nil
 }
 
 // ApplyAccessReview attempts to apply the specified access review to the specified request.
