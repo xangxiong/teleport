@@ -413,25 +413,6 @@ func init() {
 		return certAuthority, nil
 	})
 
-	RegisterResourceMarshaler(types.KindTrustedCluster, func(resource types.Resource, opts ...MarshalOption) ([]byte, error) {
-		trustedCluster, ok := resource.(types.TrustedCluster)
-		if !ok {
-			return nil, trace.BadParameter("expected TrustedCluster, got %T", resource)
-		}
-		bytes, err := MarshalTrustedCluster(trustedCluster, opts...)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return bytes, nil
-	})
-	RegisterResourceUnmarshaler(types.KindTrustedCluster, func(bytes []byte, opts ...MarshalOption) (types.Resource, error) {
-		trustedCluster, err := UnmarshalTrustedCluster(bytes, opts...)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return trustedCluster, nil
-	})
-
 	RegisterResourceMarshaler(types.KindRole, func(resource types.Resource, opts ...MarshalOption) ([]byte, error) {
 		role, ok := resource.(types.Role)
 		if !ok {

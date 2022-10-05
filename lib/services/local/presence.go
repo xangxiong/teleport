@@ -276,60 +276,6 @@ func (s *PresenceService) GetReverseTunnels(ctx context.Context, opts ...service
 	return tunnels, nil
 }
 
-// UpsertTrustedCluster creates or updates a TrustedCluster in the backend.
-func (s *PresenceService) UpsertTrustedCluster(ctx context.Context, trustedCluster types.TrustedCluster) (types.TrustedCluster, error) {
-	if err := services.ValidateTrustedCluster(trustedCluster); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	value, err := services.MarshalTrustedCluster(trustedCluster)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	_, err = s.Put(ctx, backend.Item{
-		Key:     backend.Key(trustedClustersPrefix, trustedCluster.GetName()),
-		Value:   value,
-		Expires: trustedCluster.Expiry(),
-		ID:      trustedCluster.GetResourceID(),
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return trustedCluster, nil
-}
-
-// GetTrustedCluster returns a single TrustedCluster by name.
-func (s *PresenceService) GetTrustedCluster(ctx context.Context, name string) (types.TrustedCluster, error) {
-	if name == "" {
-		return nil, trace.BadParameter("missing trusted cluster name")
-	}
-	item, err := s.Get(ctx, backend.Key(trustedClustersPrefix, name))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return services.UnmarshalTrustedCluster(item.Value, services.WithResourceID(item.ID), services.WithExpires(item.Expires))
-}
-
-// GetTrustedClusters returns all TrustedClusters in the backend.
-func (s *PresenceService) GetTrustedClusters(ctx context.Context) ([]types.TrustedCluster, error) {
-	startKey := backend.Key(trustedClustersPrefix)
-	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	out := make([]types.TrustedCluster, len(result.Items))
-	for i, item := range result.Items {
-		tc, err := services.UnmarshalTrustedCluster(item.Value,
-			services.WithResourceID(item.ID), services.WithExpires(item.Expires))
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		out[i] = tc
-	}
-
-	sort.Sort(types.SortedTrustedCluster(out))
-	return out, nil
-}
-
 // DeleteTrustedCluster removes a TrustedCluster from the backend by name.
 func (s *PresenceService) DeleteTrustedCluster(ctx context.Context, name string) error {
 	if name == "" {
