@@ -25,8 +25,6 @@ import (
 	"github.com/gravitational/trace"
 
 	"github.com/gravitational/teleport"
-	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/srv"
 
 	log "github.com/sirupsen/logrus"
@@ -80,9 +78,6 @@ func (r *remoteSubsystem) Start(ctx context.Context, channel ssh.Channel) error 
 	// interact with the remote subsystem with stdin, stdout, and stderr.
 	err = session.RequestSubsystem(ctx, r.subsytemName)
 	if err != nil {
-		// emit an event to the audit log with the reason remote execution failed
-		r.emitAuditEvent(err)
-
 		return trace.Wrap(err)
 	}
 
@@ -125,34 +120,5 @@ func (r *remoteSubsystem) Wait() error {
 		}
 	}
 
-	// emit an event to the audit log with the result of execution
-	r.emitAuditEvent(lastErr)
-
 	return lastErr
-}
-
-func (r *remoteSubsystem) emitAuditEvent(err error) {
-	srv := r.serverContext.GetServer()
-	subsystemEvent := &apievents.Subsystem{
-		Metadata: apievents.Metadata{
-			Type: events.SubsystemEvent,
-		},
-		UserMetadata: r.serverContext.Identity.GetUserMetadata(),
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			LocalAddr:  r.serverContext.RemoteClient.LocalAddr().String(),
-			RemoteAddr: r.serverContext.RemoteClient.RemoteAddr().String(),
-		},
-		Name: r.subsytemName,
-	}
-
-	if err != nil {
-		subsystemEvent.Code = events.SubsystemFailureCode
-		subsystemEvent.Error = err.Error()
-	} else {
-		subsystemEvent.Code = events.SubsystemCode
-	}
-
-	if err := srv.EmitAuditEvent(srv.Context(), subsystemEvent); err != nil {
-		r.log.WithError(err).Warn("Failed to emit subsystem audit event.")
-	}
 }
