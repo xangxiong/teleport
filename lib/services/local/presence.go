@@ -276,20 +276,6 @@ func (s *PresenceService) GetReverseTunnels(ctx context.Context, opts ...service
 	return tunnels, nil
 }
 
-// DeleteTrustedCluster removes a TrustedCluster from the backend by name.
-func (s *PresenceService) DeleteTrustedCluster(ctx context.Context, name string) error {
-	if name == "" {
-		return trace.BadParameter("missing trusted cluster name")
-	}
-	err := s.Delete(ctx, backend.Key(trustedClustersPrefix, name))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("trusted cluster %q is not found", name)
-		}
-	}
-	return trace.Wrap(err)
-}
-
 // UpsertTunnelConnection updates or creates tunnel connection
 func (s *PresenceService) UpsertTunnelConnection(conn types.TunnelConnection) error {
 	if err := conn.CheckAndSetDefaults(); err != nil {
