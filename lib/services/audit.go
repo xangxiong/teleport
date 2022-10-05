@@ -18,22 +18,9 @@ package services
 
 import (
 	"github.com/gravitational/teleport/api/types"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/trace"
 )
-
-// ClusterAuditConfigSpecFromObject returns audit config spec from object.
-func ClusterAuditConfigSpecFromObject(in interface{}) (*types.ClusterAuditConfigSpecV2, error) {
-	var cfg types.ClusterAuditConfigSpecV2
-	if in == nil {
-		return &cfg, nil
-	}
-	if err := apiutils.ObjectToStruct(in, &cfg); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &cfg, nil
-}
 
 // UnmarshalClusterAuditConfig unmarshals the ClusterAuditConfig resource from JSON.
 func UnmarshalClusterAuditConfig(bytes []byte, opts ...MarshalOption) (types.ClusterAuditConfig, error) {
