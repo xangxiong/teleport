@@ -41,10 +41,6 @@ type PresenceService struct {
 	backend.Backend
 }
 
-// backendItemToResourceFunc defines a function that unmarshals a
-// `backend.Item` into the implementation of `types.Resource`.
-type backendItemToResourceFunc func(item backend.Item) (types.ResourceWithLabels, error)
-
 // NewPresenceService returns new presence service instance
 func NewPresenceService(b backend.Backend) *PresenceService {
 	return &PresenceService{
