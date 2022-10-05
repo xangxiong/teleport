@@ -118,32 +118,6 @@ func (s *ClusterConfigurationService) GetClusterNetworkingConfig(ctx context.Con
 	return services.UnmarshalClusterNetworkingConfig(item.Value, append(opts, services.WithResourceID(item.ID), services.WithExpires(item.Expires))...)
 }
 
-// SetClusterNetworkingConfig sets the cluster networking config
-// on the backend.
-func (s *ClusterConfigurationService) SetClusterNetworkingConfig(ctx context.Context, netConfig types.ClusterNetworkingConfig) error {
-	// Perform the modules-provided checks.
-	if err := modules.ValidateResource(netConfig); err != nil {
-		return trace.Wrap(err)
-	}
-
-	value, err := services.MarshalClusterNetworkingConfig(netConfig)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	item := backend.Item{
-		Key:   backend.Key(clusterConfigPrefix, networkingPrefix),
-		Value: value,
-		ID:    netConfig.GetResourceID(),
-	}
-
-	_, err = s.Put(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 const (
 	clusterConfigPrefix    = "cluster_configuration"
 	namePrefix             = "name"
