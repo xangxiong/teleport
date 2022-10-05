@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/gravitational/teleport"
-	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/auth"
@@ -46,23 +45,12 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-const sessionRecorderID = "session-recorder"
-
 const PresenceVerifyInterval = time.Second * 15
 const PresenceMaxDifference = time.Minute
 
 // SessionControlsInfoBroadcast is sent in tandem with session creation
 // to inform any joining users about the session controls.
 const SessionControlsInfoBroadcast = "Controls\r\n  - CTRL-C: Leave the session\r\n  - t: Forcefully terminate the session (moderators only)"
-
-const (
-	// sessionRecordingWarningMessage is sent when the session recording is
-	// going to be disabled.
-	sessionRecordingWarningMessage = "Warning: node error. This might cause some functionalities not to work correctly."
-	// sessionRecordingErrorMessage is sent when session recording has some
-	// error and the session is terminated.
-	sessionRecordingErrorMessage = "Session terminating due to node error."
-)
 
 // SessionRegistry holds a map of all active sessions on a given
 // SSH server
@@ -551,8 +539,6 @@ func newSession(ctx context.Context, id rsession.ID, r *SessionRegistry, scx *Se
 		displayParticipantRequirements: utils.AsBool(scx.env[teleport.EnvSSHSessionDisplayParticipantRequirements]),
 		serverMeta:                     scx.srv.TargetMetadata(),
 	}
-
-	sess.io.OnWriteError = sess.onWriteError
 
 	go func() {
 		if _, open := <-sess.io.TerminateNotifier(); open {
@@ -1583,24 +1569,4 @@ func (s *session) trackSession(teleportUser string, policySet []*types.SessionTr
 	}()
 
 	return nil
-}
-
-// onWriteError defines the `OnWriteError` `TermManager` callback.
-func (s *session) onWriteError(idString string, err error) {
-	if idString == sessionRecorderID {
-		switch s.scx.Identity.AccessChecker.SessionRecordingMode(constants.SessionRecordingServiceSSH) {
-		case constants.SessionRecordingModeBestEffort:
-			s.log.WithError(err).Warning("Failed to write to session recorder, disabling session recording.")
-			// Send inside a gorountine since the callback is called from inside
-			// the writer.
-			go s.BroadcastSystemMessage(sessionRecordingWarningMessage)
-		default:
-			s.log.WithError(err).Error("Failed to write to session recorder, stopping session.")
-			// stop in goroutine to avoid deadlock
-			go func() {
-				s.BroadcastSystemMessage(sessionRecordingErrorMessage)
-				s.Stop()
-			}()
-		}
-	}
 }
