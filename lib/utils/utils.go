@@ -17,7 +17,6 @@ limitations under the License.
 package utils
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -31,124 +30,19 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
-	"github.com/gravitational/teleport"
-	"github.com/gravitational/teleport/api/constants"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/modules"
-	"k8s.io/apimachinery/pkg/util/validation"
 
 	"github.com/google/uuid"
 	"github.com/gravitational/trace"
-	log "github.com/sirupsen/logrus"
 )
-
-// WriteContextCloser provides close method with context
-type WriteContextCloser interface {
-	Close(ctx context.Context) error
-	io.Writer
-}
-
-// WriteCloserWithContext converts ContextCloser to io.Closer,
-// whenever new Close method will be called, the ctx will be passed to it
-func WriteCloserWithContext(ctx context.Context, closer WriteContextCloser) io.WriteCloser {
-	return &closerWithContext{
-		WriteContextCloser: closer,
-		ctx:                ctx,
-	}
-}
-
-type closerWithContext struct {
-	WriteContextCloser
-	ctx context.Context
-}
-
-// Close closes all resources and returns the result
-func (c *closerWithContext) Close() error {
-	return c.WriteContextCloser.Close(c.ctx)
-}
-
-// NilCloser returns closer if it's not nil
-// otherwise returns a nop closer
-func NilCloser(r io.Closer) io.Closer {
-	if r == nil {
-		return &nilCloser{}
-	}
-	return r
-}
-
-type nilCloser struct {
-}
-
-func (*nilCloser) Close() error {
-	return nil
-}
-
-// NopWriteCloser returns a WriteCloser with a no-op Close method wrapping
-// the provided Writer w
-func NopWriteCloser(r io.Writer) io.WriteCloser {
-	return nopWriteCloser{r}
-}
-
-type nopWriteCloser struct {
-	io.Writer
-}
-
-func (nopWriteCloser) Close() error { return nil }
-
-// Tracer helps to trace execution of functions
-type Tracer struct {
-	// Started records starting time of the call
-	Started time.Time
-	// Description is arbitrary description
-	Description string
-}
-
-// NewTracer returns a new tracer
-func NewTracer(description string) *Tracer {
-	return &Tracer{Started: time.Now().UTC(), Description: description}
-}
-
-// Start logs start of the trace
-func (t *Tracer) Start() *Tracer {
-	log.Debugf("Tracer started %v.", t.Description)
-	return t
-}
-
-// Stop logs stop of the trace
-func (t *Tracer) Stop() *Tracer {
-	log.Debugf("Tracer completed %v in %v.", t.Description, time.Since(t.Started))
-	return t
-}
 
 // ThisFunction returns calling function name
 func ThisFunction() string {
 	var pc [32]uintptr
 	runtime.Callers(2, pc[:])
 	return runtime.FuncForPC(pc[0]).Name()
-}
-
-// SyncString is a string value
-// that can be concurrently accessed
-type SyncString struct {
-	sync.Mutex
-	string
-}
-
-// Value returns value of the string
-func (s *SyncString) Value() string {
-	s.Lock()
-	defer s.Unlock()
-	return s.string
-}
-
-// Set sets the value of the string
-func (s *SyncString) Set(v string) {
-	s.Lock()
-	defer s.Unlock()
-	s.string = v
 }
 
 // ClickableURL fixes address in url to make sure
@@ -239,68 +133,6 @@ func StringsSet(in []string) map[string]struct{} {
 	return out
 }
 
-// ParseOnOff parses whether value is "on" or "off", parameterName is passed for error
-// reporting purposes, defaultValue is returned when no value is set
-func ParseOnOff(parameterName, val string, defaultValue bool) (bool, error) {
-	switch val {
-	case teleport.On:
-		return true, nil
-	case teleport.Off:
-		return false, nil
-	case "":
-		return defaultValue, nil
-	default:
-		return false, trace.BadParameter("bad %q parameter value: %q, supported values are on or off", parameterName, val)
-	}
-}
-
-// IsGroupMember returns whether currently logged user is a member of a group
-func IsGroupMember(gid int) (bool, error) {
-	groups, err := os.Getgroups()
-	if err != nil {
-		return false, trace.ConvertSystemError(err)
-	}
-	for _, group := range groups {
-		if group == gid {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-// DNSName extracts DNS name from host:port string.
-func DNSName(hostport string) (string, error) {
-	host, err := Host(hostport)
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-	if ip := net.ParseIP(host); len(ip) != 0 {
-		return "", trace.BadParameter("%v is an IP address", host)
-	}
-	return host, nil
-}
-
-// Host extracts host from host:port string
-func Host(hostname string) (string, error) {
-	if hostname == "" {
-		return "", trace.BadParameter("missing parameter hostname")
-	}
-	// if this is IPv4 or V6, return as is
-	if ip := net.ParseIP(hostname); len(ip) != 0 {
-		return hostname, nil
-	}
-	// has no indication of port, return, note that
-	// it will not break ipv6 as it always has at least one colon
-	if !strings.Contains(hostname, ":") {
-		return hostname, nil
-	}
-	host, _, err := SplitHostPort(hostname)
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-	return host, nil
-}
-
 // SplitHostPort splits host and port and checks that host is not empty
 func SplitHostPort(hostname string) (string, string, error) {
 	host, port, err := net.SplitHostPort(hostname)
@@ -311,16 +143,6 @@ func SplitHostPort(hostname string) (string, string, error) {
 		return "", "", trace.BadParameter("empty hostname")
 	}
 	return host, port, nil
-}
-
-// IsValidHostname checks if a string represents a valid hostname.
-func IsValidHostname(hostname string) bool {
-	for _, label := range strings.Split(hostname, ".") {
-		if len(validation.IsDNS1035Label(label)) > 0 {
-			return false
-		}
-	}
-	return true
 }
 
 // ReadPath reads file contents
@@ -351,26 +173,6 @@ func ReadPath(path string) ([]byte, error) {
 	return bytes, nil
 }
 
-type multiCloser struct {
-	closers []io.Closer
-}
-
-func (mc *multiCloser) Close() error {
-	for _, closer := range mc.closers {
-		if err := closer.Close(); err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-// MultiCloser implements io.Close, it sequentially calls Close() on each object
-func MultiCloser(closers ...io.Closer) io.Closer {
-	return &multiCloser{
-		closers: closers,
-	}
-}
-
 // IsHandshakeFailedError specifies whether this error indicates
 // failed handshake
 func IsHandshakeFailedError(err error) bool {
@@ -396,60 +198,6 @@ func OpaqueAccessDenied(err error) error {
 		return trace.NotFound("not found")
 	}
 	return trace.Wrap(err)
-}
-
-// PortList is a list of TCP ports.
-type PortList struct {
-	ports []string
-	sync.Mutex
-}
-
-// Pop returns a value from the list, it panics if the value is not there
-func (p *PortList) Pop() string {
-	p.Lock()
-	defer p.Unlock()
-	if len(p.ports) == 0 {
-		panic("list is empty")
-	}
-	val := p.ports[len(p.ports)-1]
-	p.ports = p.ports[:len(p.ports)-1]
-	return val
-}
-
-// PopInt returns a value from the list, it panics if not enough values
-// were allocated
-func (p *PortList) PopInt() int {
-	i, err := strconv.Atoi(p.Pop())
-	if err != nil {
-		panic(err)
-	}
-	return i
-}
-
-// PopIntSlice returns a slice of values from the list, it panics if not enough
-// ports were allocated
-func (p *PortList) PopIntSlice(num int) []int {
-	ports := make([]int, num)
-	for i := range ports {
-		ports[i] = p.PopInt()
-	}
-	return ports
-}
-
-// PortStartingNumber is a starting port number for tests
-const PortStartingNumber = 20000
-
-// GetFreeTCPPorts returns n ports starting from port 20000.
-func GetFreeTCPPorts(n int, offset ...int) (PortList, error) {
-	list := make([]string, 0, n)
-	start := PortStartingNumber
-	if len(offset) != 0 {
-		start = offset[0]
-	}
-	for i := start; i < start+n; i++ {
-		list = append(list, strconv.Itoa(i))
-	}
-	return PortList{ports: list}, nil
 }
 
 // ReadHostUUID reads host UUID from the file in the data dir
@@ -581,43 +329,6 @@ func ChooseRandomString(slice []string) string {
 	}
 }
 
-// CheckCertificateFormatFlag checks if the certificate format is valid.
-func CheckCertificateFormatFlag(s string) (string, error) {
-	switch s {
-	case constants.CertificateFormatStandard, teleport.CertificateFormatOldSSH, teleport.CertificateFormatUnspecified:
-		return s, nil
-	default:
-		return "", trace.BadParameter("invalid certificate format parameter: %q", s)
-	}
-}
-
-// AddrsFromStrings returns strings list converted to address list
-func AddrsFromStrings(s apiutils.Strings, defaultPort int) ([]NetAddr, error) {
-	addrs := make([]NetAddr, len(s))
-	for i, val := range s {
-		addr, err := ParseHostPortAddr(val, defaultPort)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		addrs[i] = *addr
-	}
-	return addrs, nil
-}
-
-// FileExists checks whether a file exists at a given path
-func FileExists(fp string) bool {
-	_, err := os.Stat(fp)
-	if err != nil && os.IsNotExist(err) {
-		return false
-	}
-	return true
-}
-
-// StoreErrorOf stores the error returned by f within *err.
-func StoreErrorOf(f func() error, err *error) {
-	*err = trace.NewAggregate(*err, f())
-}
-
 // ReadAtMost reads up to limit bytes from r, and reports an error
 // when limit bytes are read.
 func ReadAtMost(r io.Reader, limit int64) ([]byte, error) {
@@ -632,25 +343,12 @@ func ReadAtMost(r io.Reader, limit int64) ([]byte, error) {
 	return data, nil
 }
 
-// HasPrefixAny determines if any of the string values have the given prefix.
-func HasPrefixAny(prefix string, values []string) bool {
-	for _, val := range values {
-		if strings.HasPrefix(val, prefix) {
-			return true
-		}
-	}
-
-	return false
-}
-
 // ErrLimitReached means that the read limit is reached.
 var ErrLimitReached = &trace.LimitExceededError{Message: "the read limit is reached"}
 
 const (
 	// CertTeleportUser specifies teleport user
 	CertTeleportUser = "x-teleport-user"
-	// CertTeleportUserCA specifies teleport certificate authority
-	CertTeleportUserCA = "x-teleport-user-ca"
 	// CertExtensionRole specifies teleport role
 	CertExtensionRole = "x-teleport-role"
 	// CertExtensionAuthority specifies teleport authority's name
