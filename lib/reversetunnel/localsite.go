@@ -471,20 +471,6 @@ func (s *localSite) addConn(nodeID string, connType types.TunnelType, conn net.C
 	return rconn, nil
 }
 
-// fanOutProxies is a non-blocking call that puts the new proxies
-// list so that remote connection can notify the remote agent
-// about the list update
-func (s *localSite) fanOutProxies(proxies []types.Server) {
-	s.remoteConnsMtx.Lock()
-	defer s.remoteConnsMtx.Unlock()
-
-	for _, conns := range s.remoteConns {
-		for _, conn := range conns {
-			conn.updateProxies(proxies)
-		}
-	}
-}
-
 // handleHearbeat receives heartbeat messages from the connected agent
 // if the agent has missed several heartbeats in a row, Proxy marks
 // the connection as invalid.
