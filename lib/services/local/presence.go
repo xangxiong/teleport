@@ -398,26 +398,6 @@ func (s *PresenceService) DeleteTunnelConnection(clusterName, connectionName str
 	return s.Delete(context.TODO(), backend.Key(tunnelConnectionsPrefix, clusterName, connectionName))
 }
 
-// GetRemoteClusters returns a list of remote clusters
-func (s *PresenceService) GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error) {
-	startKey := backend.Key(remoteClustersPrefix)
-	result, err := s.GetRange(context.TODO(), startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	clusters := make([]types.RemoteCluster, len(result.Items))
-	for i, item := range result.Items {
-		cluster, err := services.UnmarshalRemoteCluster(item.Value,
-			services.AddOptions(opts, services.WithResourceID(item.ID), services.WithExpires(item.Expires))...)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		clusters[i] = cluster
-	}
-	return clusters, nil
-}
-
 // getRemoteCluster returns a remote cluster in raw form and unmarshaled
 func (s *PresenceService) getRemoteCluster(clusterName string) (*backend.Item, types.RemoteCluster, error) {
 	if clusterName == "" {

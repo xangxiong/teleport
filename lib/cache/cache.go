@@ -1342,37 +1342,6 @@ type remoteClustersCacheKey struct {
 
 var _ map[remoteClustersCacheKey]struct{} // compile-time hashability check
 
-// GetRemoteClusters returns a list of remote clusters
-func (c *Cache) GetRemoteClusters(opts ...services.MarshalOption) ([]types.RemoteCluster, error) {
-	ctx, span := c.Tracer.Start(context.TODO(), "cache/GetRemoteClusters")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	if !rg.IsCacheRead() {
-		ta := func(_ []types.RemoteCluster) {} // compile-time type assertion
-		ri, err := c.fnCache.Get(ctx, remoteClustersCacheKey{}, func(ctx context.Context) (interface{}, error) {
-			remotes, err := rg.presence.GetRemoteClusters(opts...)
-			ta(remotes)
-			return remotes, err
-		})
-		if err != nil || ri == nil {
-			return nil, trace.Wrap(err)
-		}
-		cachedRemotes := ri.([]types.RemoteCluster)
-		ta(cachedRemotes)
-		remotes := make([]types.RemoteCluster, 0, len(cachedRemotes))
-		for _, remote := range cachedRemotes {
-			remotes = append(remotes, remote.Clone())
-		}
-		return remotes, nil
-	}
-	return rg.presence.GetRemoteClusters(opts...)
-}
-
 // GetRemoteCluster returns a remote cluster by name
 func (c *Cache) GetRemoteCluster(clusterName string) (types.RemoteCluster, error) {
 	ctx, span := c.Tracer.Start(context.TODO(), "cache/GetRemoteCluster")

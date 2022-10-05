@@ -77,9 +77,6 @@ type Presence interface {
 	// DeleteTunnelConnection deletes tunnel connection by name
 	DeleteTunnelConnection(clusterName string, connName string) error
 
-	// GetRemoteClusters returns a list of remote clusters
-	GetRemoteClusters(opts ...MarshalOption) ([]types.RemoteCluster, error)
-
 	// GetRemoteCluster returns a remote cluster by name
 	GetRemoteCluster(clusterName string) (types.RemoteCluster, error)
 
