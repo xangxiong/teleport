@@ -21,12 +21,6 @@ import (
 	"github.com/gravitational/trace"
 )
 
-// ContainsExpansion returns true if value contains
-// expansion syntax, e.g. $1 or ${10}
-func ContainsExpansion(val string) bool {
-	return reExpansion.FindAllStringIndex(val, -1) != nil
-}
-
 // GlobToRegexp replaces glob-style standalone wildcard values
 // with real .* regexp-friendly values, does not modify regexp-compatible values,
 // quotes non-wildcard values
@@ -103,4 +97,3 @@ func SliceMatchesRegex(input string, expressions []string) (bool, error) {
 }
 
 var replaceWildcard = regexp.MustCompile(`(\\\*)`)
-var reExpansion = regexp.MustCompile(`\$[^\$]+`)
