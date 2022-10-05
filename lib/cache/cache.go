@@ -1483,26 +1483,6 @@ func (c *Cache) GetLocks(ctx context.Context, inForceOnly bool, targets ...types
 	return rg.access.GetLocks(ctx, inForceOnly, targets...)
 }
 
-// ListResources is a part of auth.Cache implementation
-func (c *Cache) ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/ListResources")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-
-	// Cache is not healthy, but right now, only `Node` kind has an
-	// implementation that falls back to TTL cache.
-	if !rg.IsCacheRead() && req.ResourceType == types.KindNode {
-		return c.listResourcesFromTTLCache(ctx, rg, req)
-	}
-
-	return rg.presence.ListResources(ctx, req)
-}
-
 // listResourcesFromTTLCache used when the cache is not healthy. It takes advantage
 // of TTL-based caching rather than caching individual page calls (very messy).
 // It relies on caching the result of the `GetXXXs` endpoint and then "faking"

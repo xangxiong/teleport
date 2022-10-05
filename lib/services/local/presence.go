@@ -757,18 +757,6 @@ func (s *PresenceService) GetHostUserInteractionTime(ctx context.Context, name s
 	return t, nil
 }
 
-// ListResources returns a paginated list of resources.
-// It implements various filtering for scenarios where the call comes directly
-// here (without passing through the RBAC).
-func (s *PresenceService) ListResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	switch {
-	case req.RequiresFakePagination():
-		return s.listResourcesWithSort(ctx, req)
-	default:
-		return s.listResources(ctx, req)
-	}
-}
-
 func (s *PresenceService) listResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
 	if err := req.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
