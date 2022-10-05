@@ -238,9 +238,6 @@ type Config struct {
 	// RelativeExpiryLimit determines the maximum number of nodes that may be
 	// removed during relative expiration.
 	RelativeExpiryLimit int
-	// EventsC is a channel for event notifications,
-	// used in tests
-	EventsC chan Event
 	// Clock can be set to control time,
 	// uses runtime clock by default
 	Clock clockwork.Clock
