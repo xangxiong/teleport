@@ -21,20 +21,6 @@ import (
 	"github.com/gravitational/trace"
 )
 
-// CheckVersion compares a version with a minimum version supported.
-func CheckVersion(currentVersion, minVersion string) error {
-	currentSemver, minSemver, err := versionStringToSemver(currentVersion, minVersion)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	if currentSemver.LessThan(*minSemver) {
-		return trace.BadParameter("incompatible versions: %v < %v", currentVersion, minVersion)
-	}
-
-	return nil
-}
-
 // VersionBeforeAlpha appends "-aa" to the version so that it comes before <version>-alpha.
 // This ban be used to make version checks work during development.
 func VersionBeforeAlpha(version string) string {
