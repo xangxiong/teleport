@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -33,7 +32,6 @@ import (
 
 	"github.com/gravitational/teleport"
 	tracessh "github.com/gravitational/teleport/api/observability/tracing/ssh"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
@@ -165,9 +163,6 @@ func (e *localExec) Start(ctx context.Context, channel ssh.Channel) (*ExecResult
 	if err != nil {
 		e.Ctx.Warningf("Local command %v failed to start: %v", e.GetCommand(), err)
 
-		// Emit the result of execution to the audit log
-		emitExecAuditEvent(e.Ctx, e.GetCommand(), err)
-
 		return &ExecResult{
 			Command: e.GetCommand(),
 			Code:    exitCode(err),
@@ -199,9 +194,6 @@ func (e *localExec) Wait() *ExecResult {
 	} else {
 		e.Ctx.Debugf("Local command successfully executed.")
 	}
-
-	// Emit the result of execution to the Audit Log.
-	emitExecAuditEvent(e.Ctx, e.GetCommand(), err)
 
 	execResult := &ExecResult{
 		Command: e.GetCommand(),
@@ -348,9 +340,6 @@ func (e *remoteExec) Wait() *ExecResult {
 		e.ctx.Debugf("Remote command successfully executed.")
 	}
 
-	// Emit the result of execution to the Audit Log.
-	emitExecAuditEvent(e.ctx, e.command, err)
-
 	return &ExecResult{
 		Command: e.GetCommand(),
 		Code:    exitCode(err),
@@ -363,103 +352,6 @@ func (e *remoteExec) Continue() {}
 // PID returns an invalid PID for remotExec.
 func (e *remoteExec) PID() int {
 	return 0
-}
-
-func emitExecAuditEvent(ctx *ServerContext, cmd string, execErr error) {
-	// Create common fields for event.
-	serverMeta := apievents.ServerMetadata{
-		ServerID:        ctx.srv.HostUUID(),
-		ServerHostname:  ctx.srv.GetInfo().GetHostname(),
-		ServerNamespace: ctx.srv.GetNamespace(),
-	}
-
-	sessionMeta := apievents.SessionMetadata{
-		SessionID: string(ctx.SessionID()),
-		WithMFA:   ctx.Identity.Certificate.Extensions[teleport.CertExtensionMFAVerified],
-	}
-
-	userMeta := ctx.Identity.GetUserMetadata()
-
-	connectionMeta := apievents.ConnectionMetadata{
-		RemoteAddr: ctx.ServerConn.RemoteAddr().String(),
-		LocalAddr:  ctx.ServerConn.LocalAddr().String(),
-	}
-
-	commandMeta := apievents.CommandMetadata{
-		Command: cmd,
-		// Due to scp being inherently vulnerable to command injection, always
-		// make sure the full command and exit code is recorded for accountability.
-		// For more details, see the following.
-		//
-		// https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=327019
-		// https://bugzilla.mindrot.org/show_bug.cgi?id=1998
-		ExitCode: strconv.Itoa(exitCode(execErr)),
-	}
-
-	if execErr != nil {
-		commandMeta.Error = execErr.Error()
-	}
-
-	// Parse the exec command to find out if it was SCP or not.
-	path, action, isSCP, err := parseSecureCopy(cmd)
-	if err != nil {
-		log.Warnf("Unable to emit audit event: %v.", err)
-		return
-	}
-
-	// Update appropriate fields based off if the request was SCP or not.
-	if isSCP {
-		scpEvent := &apievents.SCP{
-			Metadata: apievents.Metadata{
-				Type:        events.SCPEvent,
-				ClusterName: ctx.ClusterName,
-			},
-			ServerMetadata:     serverMeta,
-			SessionMetadata:    sessionMeta,
-			UserMetadata:       userMeta,
-			ConnectionMetadata: connectionMeta,
-			CommandMetadata:    commandMeta,
-			Path:               path,
-			Action:             action,
-		}
-
-		switch action {
-		case events.SCPActionUpload:
-			if execErr != nil {
-				scpEvent.Code = events.SCPUploadFailureCode
-			} else {
-				scpEvent.Code = events.SCPUploadCode
-			}
-		case events.SCPActionDownload:
-			if execErr != nil {
-				scpEvent.Code = events.SCPDownloadFailureCode
-			} else {
-				scpEvent.Code = events.SCPDownloadCode
-			}
-		}
-		if err := ctx.srv.EmitAuditEvent(ctx.srv.Context(), scpEvent); err != nil {
-			log.WithError(err).Warn("Failed to emit scp event.")
-		}
-	} else {
-		execEvent := &apievents.Exec{
-			Metadata: apievents.Metadata{
-				Type: events.ExecEvent,
-			},
-			ServerMetadata:     serverMeta,
-			SessionMetadata:    sessionMeta,
-			UserMetadata:       userMeta,
-			ConnectionMetadata: connectionMeta,
-			CommandMetadata:    commandMeta,
-		}
-		if execErr != nil {
-			execEvent.Code = events.ExecFailureCode
-		} else {
-			execEvent.Code = events.ExecCode
-		}
-		if err := ctx.srv.EmitAuditEvent(ctx.srv.Context(), execEvent); err != nil {
-			log.WithError(err).Warn("Failed to emit exec event.")
-		}
-	}
 }
 
 // getDefaultEnvPath returns the default value of PATH environment variable for

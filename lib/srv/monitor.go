@@ -26,8 +26,6 @@ import (
 
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 
 	"github.com/gravitational/trace"
@@ -84,8 +82,6 @@ type MonitorConfig struct {
 	TeleportUser string
 	// ServerID is a session server ID
 	ServerID string
-	// Emitter is events emitter
-	Emitter apievents.Emitter
 	// Entry is a logging entry
 	Entry log.FieldLogger
 	// IdleTimeoutMessage is sent to the client when the idle timeout expires.
@@ -114,9 +110,6 @@ func (m *MonitorConfig) CheckAndSetDefaults() error {
 	}
 	if m.Tracker == nil {
 		return trace.BadParameter("missing parameter Tracker")
-	}
-	if m.Emitter == nil {
-		return trace.BadParameter("missing parameter Emitter")
 	}
 	if m.Clock == nil {
 		m.Clock = clockwork.NewRealClock()
@@ -207,9 +200,6 @@ func (w *Monitor) start(lockWatch types.Watcher) {
 				if err := w.Conn.Close(); err != nil {
 					w.Entry.WithError(err).Error("Failed to close connection.")
 				}
-				if err := w.emitDisconnectEvent(reason); err != nil {
-					w.Entry.WithError(err).Warn("Failed to emit audit event.")
-				}
 				return
 			}
 			next := w.ClientIdleTimeout - since
@@ -263,32 +253,6 @@ func (w *Monitor) disconnectClientOnExpiredCert() {
 	if err := w.Conn.Close(); err != nil {
 		w.Entry.WithError(err).Error("Failed to close connection.")
 	}
-
-	if err := w.emitDisconnectEvent(reason); err != nil {
-		w.Entry.WithError(err).Warn("Failed to emit audit event.")
-	}
-}
-
-func (w *Monitor) emitDisconnectEvent(reason string) error {
-	event := &apievents.ClientDisconnect{
-		Metadata: apievents.Metadata{
-			Type: events.ClientDisconnectEvent,
-			Code: events.ClientDisconnectCode,
-		},
-		UserMetadata: apievents.UserMetadata{
-			Login: w.Login,
-			User:  w.TeleportUser,
-		},
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			LocalAddr:  w.Conn.LocalAddr().String(),
-			RemoteAddr: w.Conn.RemoteAddr().String(),
-		},
-		ServerMetadata: apievents.ServerMetadata{
-			ServerID: w.ServerID,
-		},
-		Reason: reason,
-	}
-	return trace.Wrap(w.Emitter.EmitAuditEvent(w.Context, event))
 }
 
 func (w *Monitor) handleLockInForce(lockErr error) {
@@ -301,9 +265,6 @@ func (w *Monitor) handleLockInForce(lockErr error) {
 	w.Entry.Debugf("Disconnecting client: %v.", reason)
 	if err := w.Conn.Close(); err != nil {
 		w.Entry.WithError(err).Error("Failed to close connection.")
-	}
-	if err := w.emitDisconnectEvent(reason); err != nil {
-		w.Entry.WithError(err).Warn("Failed to emit audit event.")
 	}
 }
 

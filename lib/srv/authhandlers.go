@@ -28,11 +28,9 @@ import (
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/types"
-	apievents "github.com/gravitational/teleport/api/types/events"
 	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
 	"github.com/gravitational/teleport/lib/auditd"
 	"github.com/gravitational/teleport/lib/auth"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/sshutils"
 	"github.com/gravitational/teleport/lib/utils"
@@ -53,9 +51,6 @@ type AuthHandlerConfig struct {
 
 	// Component is the type of SSH server (node, proxy, or recording proxy).
 	Component string
-
-	// Emitter is event emitter
-	Emitter apievents.Emitter
 
 	// AccessPoint is used to access the Auth Server.
 	AccessPoint AccessPoint
@@ -189,26 +184,6 @@ func (h *AuthHandlers) CheckPortForward(addr string, ctx *ServerContext) error {
 		systemErrorMessage := fmt.Sprintf("port forwarding not allowed by role set: %v", ctx.Identity.AccessChecker.RoleNames())
 		userErrorMessage := "port forwarding not allowed"
 
-		// Emit port forward failure event
-		if err := h.c.Emitter.EmitAuditEvent(h.c.Server.Context(), &apievents.PortForward{
-			Metadata: apievents.Metadata{
-				Type: events.PortForwardEvent,
-				Code: events.PortForwardFailureCode,
-			},
-			UserMetadata: ctx.Identity.GetUserMetadata(),
-			ConnectionMetadata: apievents.ConnectionMetadata{
-				LocalAddr:  ctx.ServerConn.LocalAddr().String(),
-				RemoteAddr: ctx.ServerConn.RemoteAddr().String(),
-			},
-			Addr: addr,
-			Status: apievents.Status{
-				Success: false,
-				Error:   systemErrorMessage,
-			},
-		}); err != nil {
-			h.log.WithError(err).Warn("Failed to emit port forward deny audit event.")
-		}
-
 		h.log.Warnf("Port forwarding request denied: %v.", systemErrorMessage)
 
 		return trace.AccessDenied(userErrorMessage)
@@ -251,27 +226,6 @@ func (h *AuthHandlers) UserKeyAuth(conn ssh.ConnMetadata, key ssh.PublicKey) (*s
 
 	// only failed attempts are logged right now
 	recordFailedLogin := func(err error) {
-		if err := h.c.Emitter.EmitAuditEvent(h.c.Server.Context(), &apievents.AuthAttempt{
-			Metadata: apievents.Metadata{
-				Type: events.AuthAttemptEvent,
-				Code: events.AuthAttemptFailureCode,
-			},
-			UserMetadata: apievents.UserMetadata{
-				Login: conn.User(),
-				User:  teleportUser,
-			},
-			ConnectionMetadata: apievents.ConnectionMetadata{
-				LocalAddr:  conn.LocalAddr().String(),
-				RemoteAddr: conn.RemoteAddr().String(),
-			},
-			Status: apievents.Status{
-				Success: false,
-				Error:   err.Error(),
-			},
-		}); err != nil {
-			h.log.WithError(err).Warn("Failed to emit failed login audit event.")
-		}
-
 		auditdMsg := auditd.Message{
 			SystemUser:   conn.User(),
 			TeleportUser: teleportUser,

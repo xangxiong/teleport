@@ -667,20 +667,6 @@ func (c *Client) GetStaticTokens() (types.StaticTokens, error) {
 	return st, err
 }
 
-// ResumeAuditStream resumes existing audit stream.
-// This is a wrapper on the grpc endpoint and is deprecated.
-// DELETE IN 7.0.0
-func (c *Client) ResumeAuditStream(ctx context.Context, sid session.ID, uploadID string) (apievents.Stream, error) {
-	return c.APIClient.ResumeAuditStream(ctx, string(sid), uploadID)
-}
-
-// CreateAuditStream creates new audit stream.
-// This is a wrapper on the grpc endpoint and is deprecated.
-// DELETE IN 7.0.0
-func (c *Client) CreateAuditStream(ctx context.Context, sid session.ID) (apievents.Stream, error) {
-	return c.APIClient.CreateAuditStream(ctx, string(sid))
-}
-
 // GetClusterAuditConfig gets cluster audit configuration.
 func (c *Client) GetClusterAuditConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterAuditConfig, error) {
 	return c.APIClient.GetClusterAuditConfig(ctx)
@@ -748,8 +734,6 @@ type ClientI interface {
 	ProvisioningService
 	services.Trust
 	events.IAuditLog
-	events.Streamer
-	apievents.Emitter
 	services.Presence
 	services.Access
 	services.DynamicAccess

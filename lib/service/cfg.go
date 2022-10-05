@@ -27,7 +27,6 @@ import (
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/bpf"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/pam"
 	restricted "github.com/gravitational/teleport/lib/restrictedsession"
@@ -124,10 +123,6 @@ type Config struct {
 	// Debug sets debugging mode, results in diagnostic address
 	// endpoint extended with additional /debug handlers
 	Debug bool
-
-	// UploadEventsC is a channel for upload events
-	// used in tests
-	UploadEventsC chan events.UploadEvent `json:"-"`
 
 	// FileDescriptors is an optional list of file descriptors for the process
 	// to inherit and use for listeners, used for in-process updates.

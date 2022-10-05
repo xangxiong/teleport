@@ -33,7 +33,6 @@ import (
 	apisshutils "github.com/gravitational/teleport/api/utils/sshutils"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/defaults"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/proxy"
 	"github.com/gravitational/teleport/lib/services"
@@ -153,9 +152,6 @@ type Config struct {
 	// configuration.
 	FIPS bool
 
-	// Emitter is event emitter
-	Emitter events.StreamEmitter
-
 	// DELETE IN: 8.0.0
 	//
 	// NewCachingAccessPointOldProxy is an access point that can be configured
@@ -199,9 +195,6 @@ func (cfg *Config) CheckAndSetDefaults() error {
 	}
 	if cfg.DataDir == "" {
 		return trace.BadParameter("missing parameter DataDir")
-	}
-	if cfg.Emitter == nil {
-		return trace.BadParameter("missing parameter Emitter")
 	}
 	if cfg.Context == nil {
 		cfg.Context = context.TODO()
@@ -407,7 +400,6 @@ func (s *server) handleTransport(sconn *ssh.ServerConn, nch ssh.NewChannel) {
 		requestCh:        requestCh,
 		component:        teleport.ComponentReverseTunnelServer,
 		localClusterName: s.ClusterName,
-		emitter:          s.Emitter,
 	}
 	go t.start()
 }

@@ -111,9 +111,6 @@ type Server struct {
 	// to the client.
 	hostCertificate ssh.Signer
 
-	// StreamEmitter points to the auth service and emits audit events
-	events.StreamEmitter
-
 	// authHandlers are common authorization and authentication handlers shared
 	// by the regular and forwarding server.
 	authHandlers *srv.AuthHandlers
@@ -208,19 +205,12 @@ type ServerConfig struct {
 	// is running in.
 	HostUUID string
 
-	// Emitter is audit events emitter
-	Emitter events.StreamEmitter
-
 	// ParentContext is a parent context, used to signal global
 	// closure
 	ParentContext context.Context
 
 	// LockWatcher is a lock watcher.
 	LockWatcher *services.LockWatcher
-
-	// // TracerProvider is used to create tracers capable
-	// // of starting spans.
-	// TracerProvider oteltrace.TracerProvider
 
 	TargetID, TargetAddr, TargetHostname string
 }
@@ -251,18 +241,12 @@ func (s *ServerConfig) CheckDefaults() error {
 	if s.Clock == nil {
 		s.Clock = clockwork.NewRealClock()
 	}
-	if s.Emitter == nil {
-		return trace.BadParameter("missing parameter Emitter")
-	}
 	if s.ParentContext == nil {
 		s.ParentContext = context.TODO()
 	}
 	if s.LockWatcher == nil {
 		return trace.BadParameter("missing parameter LockWatcher")
 	}
-	// if s.TracerProvider == nil {
-	// 	s.TracerProvider = tracing.DefaultProvider()
-	// }
 	return nil
 }
 
@@ -304,13 +288,11 @@ func New(c ServerConfig) (*Server, error) {
 		dataDir:         c.DataDir,
 		clock:           c.Clock,
 		hostUUID:        c.HostUUID,
-		StreamEmitter:   c.Emitter,
 		parentContext:   c.ParentContext,
 		lockWatcher:     c.LockWatcher,
-		// tracerProvider:  c.TracerProvider,
-		targetID:       c.TargetID,
-		targetAddr:     c.TargetAddr,
-		targetHostname: c.TargetHostname,
+		targetID:        c.TargetID,
+		targetAddr:      c.TargetAddr,
+		targetHostname:  c.TargetHostname,
 	}
 
 	// Set the ciphers, KEX, and MACs that the in-memory server will send to the
@@ -331,7 +313,6 @@ func New(c ServerConfig) (*Server, error) {
 	authHandlerConfig := srv.AuthHandlerConfig{
 		Server:      s,
 		Component:   teleport.ComponentForwardingNode,
-		Emitter:     c.Emitter,
 		AccessPoint: c.AuthClient,
 		FIPS:        c.FIPS,
 		Clock:       c.Clock,
@@ -828,24 +809,6 @@ func (s *Server) handleDirectTCPIPRequest(ctx context.Context, ch ssh.Channel, r
 	}
 	defer conn.Close()
 
-	if err := s.EmitAuditEvent(s.closeContext, &apievents.PortForward{
-		Metadata: apievents.Metadata{
-			Type: events.PortForwardEvent,
-			Code: events.PortForwardCode,
-		},
-		UserMetadata: s.identityContext.GetUserMetadata(),
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			LocalAddr:  s.sconn.LocalAddr().String(),
-			RemoteAddr: s.sconn.RemoteAddr().String(),
-		},
-		Addr: scx.DstAddr,
-		Status: apievents.Status{
-			Success: true,
-		},
-	}); err != nil {
-		scx.WithError(err).Warn("Failed to emit port forward event.")
-	}
-
 	var wg sync.WaitGroup
 	wch := make(chan struct{})
 	wg.Add(1)
@@ -1163,9 +1126,6 @@ func (s *Server) handleX11Forward(ctx context.Context, ch ssh.Channel, req *ssh.
 			// don't return them, just reply over ssh and emit the audit log.
 			s.replyError(ch, req, err)
 			err = nil
-		}
-		if err := s.EmitAuditEvent(ctx, event); err != nil {
-			s.log.WithError(err).Warn("Failed to emit x11-forward event.")
 		}
 	}()
 

@@ -122,9 +122,6 @@ type Server struct {
 	// ctx is broadcasting context closure
 	ctx context.Context
 
-	// StreamEmitter points to the auth service and emits audit events
-	events.StreamEmitter
-
 	// clock is a system clock
 	clock clockwork.Clock
 
@@ -501,14 +498,6 @@ func SetLimiter(limiter *limiter.Limiter) ServerOption {
 	}
 }
 
-// SetEmitter assigns an audit event emitter for this server
-func SetEmitter(emitter events.StreamEmitter) ServerOption {
-	return func(s *Server) error {
-		s.StreamEmitter = emitter
-		return nil
-	}
-}
-
 // SetUUID sets server unique ID
 func SetUUID(uuid string) ServerOption {
 	return func(s *Server) error {
@@ -726,11 +715,6 @@ func New(addr utils.NetAddr,
 		}
 	}
 
-	// TODO(klizhentas): replace function arguments with struct
-	if s.StreamEmitter == nil {
-		return nil, trace.BadParameter("setup valid Emitter parameter using SetEmitter")
-	}
-
 	if s.namespace == "" {
 		return nil, trace.BadParameter("setup valid namespace parameter using SetNamespace")
 	}
@@ -781,7 +765,6 @@ func New(addr utils.NetAddr,
 		Component:   component,
 		AccessPoint: s.authService,
 		FIPS:        s.fips,
-		Emitter:     s.StreamEmitter,
 		Clock:       s.clock,
 	}
 
@@ -1089,32 +1072,11 @@ func (s *Server) HandleNewConn(ctx context.Context, ccx *sshutils.ConnectionCont
 	}
 	lockingMode := identityContext.AccessChecker.LockingMode(authPref.GetLockingMode())
 
-	event := &apievents.SessionReject{
-		Metadata: apievents.Metadata{
-			Type: events.SessionRejectedEvent,
-			Code: events.SessionRejectedCode,
-		},
-		UserMetadata: identityContext.GetUserMetadata(),
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			Protocol:   events.EventProtocolSSH,
-			LocalAddr:  ccx.ServerConn.LocalAddr().String(),
-			RemoteAddr: ccx.ServerConn.RemoteAddr().String(),
-		},
-		ServerMetadata: apievents.ServerMetadata{
-			ServerID:        s.uuid,
-			ServerNamespace: s.GetNamespace(),
-		},
-	}
-
 	lockTargets, err := srv.ComputeLockTargets(s, identityContext)
 	if err != nil {
 		return ctx, trace.Wrap(err)
 	}
 	if lockErr := s.lockWatcher.CheckLockInForce(lockingMode, lockTargets...); lockErr != nil {
-		event.Reason = lockErr.Error()
-		if err := s.EmitAuditEvent(s.ctx, event); err != nil {
-			s.Logger.WithError(err).Warn("Failed to emit session reject event.")
-		}
 		return ctx, trace.Wrap(lockErr)
 	}
 
@@ -1148,11 +1110,6 @@ func (s *Server) HandleNewConn(ctx context.Context, ccx *sshutils.ConnectionCont
 	if err != nil {
 		if strings.Contains(err.Error(), teleport.MaxLeases) {
 			// user has exceeded their max concurrent ssh connections.
-			event.Reason = events.SessionRejectedEvent
-			event.Maximum = maxConnections
-			if err := s.EmitAuditEvent(s.ctx, event); err != nil {
-				s.Logger.WithError(err).Warn("Failed to emit session reject event.")
-			}
 			err = trace.AccessDenied("too many concurrent ssh connections for user %q (max=%d)",
 				identityContext.TeleportUser,
 				maxConnections,
@@ -1260,27 +1217,6 @@ func (s *Server) HandleNewChan(ctx context.Context, ccx *sshutils.ConnectionCont
 		if max := identityContext.AccessChecker.MaxSessions(); max != 0 {
 			d, ok := ccx.IncrSessions(max)
 			if !ok {
-				// user has exceeded their max concurrent ssh sessions.
-				if err := s.EmitAuditEvent(s.ctx, &apievents.SessionReject{
-					Metadata: apievents.Metadata{
-						Type: events.SessionRejectedEvent,
-						Code: events.SessionRejectedCode,
-					},
-					UserMetadata: identityContext.GetUserMetadata(),
-					ConnectionMetadata: apievents.ConnectionMetadata{
-						Protocol:   events.EventProtocolSSH,
-						LocalAddr:  ccx.ServerConn.LocalAddr().String(),
-						RemoteAddr: ccx.ServerConn.RemoteAddr().String(),
-					},
-					ServerMetadata: apievents.ServerMetadata{
-						ServerID:        s.uuid,
-						ServerNamespace: s.GetNamespace(),
-					},
-					Reason:  events.SessionRejectedReasonMaxSessions,
-					Maximum: max,
-				}); err != nil {
-					s.Logger.WithError(err).Warn("Failed to emit session reject event.")
-				}
 				rejectChannel(nch, ssh.Prohibited, fmt.Sprintf("too many session channels for user %q (max=%d)", identityContext.TeleportUser, max))
 				return
 			}
@@ -1455,25 +1391,6 @@ Loop:
 	if err != nil {
 		writeStderr(channel, err.Error())
 		return
-	}
-
-	// Emit a port forwarding event.
-	if err := s.EmitAuditEvent(s.ctx, &apievents.PortForward{
-		Metadata: apievents.Metadata{
-			Type: events.PortForwardEvent,
-			Code: events.PortForwardCode,
-		},
-		UserMetadata: scx.Identity.GetUserMetadata(),
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			LocalAddr:  scx.ServerConn.LocalAddr().String(),
-			RemoteAddr: scx.ServerConn.RemoteAddr().String(),
-		},
-		Addr: scx.DstAddr,
-		Status: apievents.Status{
-			Success: true,
-		},
-	}); err != nil {
-		s.Logger.WithError(err).Warn("Failed to emit port forward event.")
 	}
 }
 
@@ -1793,9 +1710,6 @@ func (s *Server) handleX11Forward(ch ssh.Channel, req *ssh.Request, ctx *srv.Ser
 			// don't return them, just reply over ssh and emit the audit s.Logger.
 			s.replyError(ch, req, err)
 			err = nil
-		}
-		if err := s.EmitAuditEvent(s.ctx, event); err != nil {
-			s.Logger.WithError(err).Warn("Failed to emit x11-forward event.")
 		}
 	}()
 

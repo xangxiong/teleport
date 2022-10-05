@@ -966,10 +966,6 @@ func (s *session) startInteractive(ctx context.Context, ch ssh.Channel, scx *Ser
 		case <-s.doneCh:
 		}
 
-		if scx.ExecRequest.GetCommand() != "" {
-			emitExecAuditEvent(scx, scx.ExecRequest.GetCommand(), err)
-		}
-
 		if result != nil {
 			if err := s.registry.broadcastResult(s.id, *result); err != nil {
 				s.log.Warningf("Failed to broadcast session result: %v", err)

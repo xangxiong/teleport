@@ -33,7 +33,6 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/api/utils/sshutils"
 	"github.com/gravitational/teleport/lib/auth"
-	"github.com/gravitational/teleport/lib/events"
 	alpncommon "github.com/gravitational/teleport/lib/srv/alpnproxy/common"
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/teleport/lib/utils/proxy"
@@ -160,9 +159,6 @@ type transport struct {
 	// server is either an SSH or application server. It can handle a connection
 	// (perform handshake and handle request).
 	server ServerHandler
-
-	// emitter is an audit stream emitter.
-	emitter events.StreamEmitter
 }
 
 // start will start the transporting data over the tunnel. This function will

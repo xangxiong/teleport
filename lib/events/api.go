@@ -393,15 +393,6 @@ type SessionMetadataSetter interface {
 	SetSessionID(string)
 }
 
-// Streamer creates and resumes event streams for session IDs
-type Streamer interface {
-	// CreateAuditStream creates event stream
-	CreateAuditStream(context.Context, session.ID) (apievents.Stream, error)
-	// ResumeAuditStream resumes the stream for session upload that
-	// has not been completed yet.
-	ResumeAuditStream(ctx context.Context, sid session.ID, uploadID string) (apievents.Stream, error)
-}
-
 // StreamPart represents uploaded stream part
 type StreamPart struct {
 	// Number is a part number
@@ -478,27 +469,12 @@ type StreamWriter interface {
 	apievents.Stream
 }
 
-// StreamEmitter supports submitting single events and streaming
-// session events
-type StreamEmitter interface {
-	apievents.Emitter
-	Streamer
-}
-
 // IAuditLog is the primary (and the only external-facing) interface for AuditLogger.
 // If you wish to implement a different kind of logger (not filesystem-based), you
 // have to implement this interface
 type IAuditLog interface {
 	// Closer releases connection and resources associated with log if any
 	io.Closer
-
-	// EmitAuditEvent emits audit event
-	EmitAuditEvent(context.Context, apievents.AuditEvent) error
-
-	// StreamSessionEvents streams all events from a given session recording. An error is returned on the first
-	// channel if one is encountered. Otherwise the event channel is closed when the stream ends.
-	// The event channel is not closed on error to prevent race conditions in downstream select statements.
-	StreamSessionEvents(ctx context.Context, sessionID session.ID, startIndex int64) (chan apievents.AuditEvent, chan error)
 }
 
 // EventFields instance is attached to every logged event
