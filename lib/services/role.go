@@ -39,7 +39,6 @@ import (
 	"github.com/gravitational/trace"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/vulcand/predicate"
 )
 
 // DefaultImplicitRules provides access to the default set of implicit rules
@@ -381,39 +380,6 @@ func MakeRuleSet(rules []types.Rule) RuleSet {
 	return set
 }
 
-// matchesWhere returns true if Where rule matches.
-// Empty Where block always matches.
-func matchesWhere(r *types.Rule, parser predicate.Parser) (bool, error) {
-	if r.Where == "" {
-		return true, nil
-	}
-	ifn, err := parser.Parse(r.Where)
-	if err != nil {
-		return false, trace.Wrap(err)
-	}
-	fn, ok := ifn.(predicate.BoolPredicate)
-	if !ok {
-		return false, trace.BadParameter("invalid predicate type for where expression: %v", r.Where)
-	}
-	return fn(), nil
-}
-
-// processActions processes actions specified for this rule
-func processActions(r *types.Rule, parser predicate.Parser) error {
-	for _, action := range r.Actions {
-		ifn, err := parser.Parse(action)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		fn, ok := ifn.(predicate.BoolPredicate)
-		if !ok {
-			return trace.BadParameter("invalid predicate type for action expression: %v", action)
-		}
-		fn()
-	}
-	return nil
-}
-
 // HostUsersInfo keeps information about groups and sudoers entries
 // for a particular host user
 type HostUsersInfo struct {
@@ -750,18 +716,6 @@ func (set RoleSet) CheckAccessToRemoteCluster(rc types.RemoteCluster) error {
 
 	debugf("Access to cluster %v denied, no allow rule matched; %v", rc.GetName(), errs)
 	return trace.AccessDenied("access to cluster denied")
-}
-
-func (set RoleSet) hasPossibleLogins() bool {
-	for _, role := range set {
-		if role.GetName() == constants.DefaultImplicitRole {
-			continue
-		}
-		if len(role.GetLogins(types.Allow)) != 0 {
-			return true
-		}
-	}
-	return false
 }
 
 // LockingMode returns the locking mode to apply with this RoleSet.
