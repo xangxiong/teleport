@@ -324,18 +324,6 @@ func (h *AuthHandlers) HostKeyAuth(addr string, remote net.Addr, key ssh.PublicK
 // hostKeyCallback allows connections to hosts that present keys only if
 // strict host key checking is disabled.
 func (h *AuthHandlers) hostKeyCallback(hostname string, remote net.Addr, key ssh.PublicKey) error {
-	// Use the server's shutdown context.
-	ctx := h.c.Server.Context()
-
-	// If strict host key checking is enabled, reject host key fallback.
-	recConfig, err := h.c.AccessPoint.GetSessionRecordingConfig(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if recConfig.GetProxyChecksHostKeys() {
-		return trace.AccessDenied("remote host presented a public key, expected a host certificate")
-	}
-
 	// If strict host key checking is not enabled, log that Teleport trusted an
 	// insecure key, but allow the request to go through.
 	h.log.Warnf("Insecure configuration! Strict host key checking disabled, allowing login without checking host key of type %v.", key.Type())

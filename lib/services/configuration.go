@@ -35,9 +35,6 @@ type ClusterConfiguration interface {
 	// GetAuthPreference gets types.AuthPreference from the backend.
 	GetAuthPreference(context.Context) (types.AuthPreference, error)
 
-	// GetSessionRecordingConfig gets SessionRecordingConfig from the backend.
-	GetSessionRecordingConfig(context.Context, ...MarshalOption) (types.SessionRecordingConfig, error)
-
 	// GetClusterNetworkingConfig gets ClusterNetworkingConfig from the backend.
 	GetClusterNetworkingConfig(context.Context, ...MarshalOption) (types.ClusterNetworkingConfig, error)
 }

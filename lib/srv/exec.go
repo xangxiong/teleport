@@ -32,7 +32,6 @@ import (
 
 	"github.com/gravitational/teleport"
 	tracessh "github.com/gravitational/teleport/api/observability/tracing/ssh"
-	"github.com/gravitational/teleport/lib/services"
 
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
@@ -87,16 +86,6 @@ func NewExecRequest(ctx *ServerContext, command string) (Exec, error) {
 		return &localExec{
 			Ctx:     ctx,
 			Command: command,
-		}, nil
-	}
-
-	// When in recording mode, return an *remoteExec which will execute the
-	// command on a remote host. This is used by in-memory forwarding nodes.
-	if services.IsRecordAtProxy(ctx.SessionRecordingConfig.GetMode()) {
-		return &remoteExec{
-			ctx:     ctx,
-			command: command,
-			session: ctx.RemoteSession,
 		}, nil
 	}
 

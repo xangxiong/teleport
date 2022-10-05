@@ -631,11 +631,6 @@ func (c *Client) GetClusterNetworkingConfig(ctx context.Context, opts ...service
 	return c.APIClient.GetClusterNetworkingConfig(ctx)
 }
 
-// GetSessionRecordingConfig gets session recording configuration.
-func (c *Client) GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error) {
-	return c.APIClient.GetSessionRecordingConfig(ctx)
-}
-
 // IdentityService manages identities and users
 type IdentityService interface {
 	// GenerateToken creates a special provisioning token for a new SSH server

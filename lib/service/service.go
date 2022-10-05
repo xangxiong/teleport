@@ -1015,18 +1015,6 @@ func (process *TeleportProcess) initSSH() error {
 			return trace.Wrap(err)
 		}
 
-		// If session recording is disabled at the cluster level and the node is
-		// attempting to enabled enhanced session recording, show an error.
-		recConfig, err := authClient.GetSessionRecordingConfig(process.ExitContext())
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if recConfig.GetMode() == types.RecordOff && cfg.SSH.BPF.Enabled {
-			return trace.BadParameter("session recording is disabled at the cluster " +
-				"level. To enable enhanced session recording, enable session recording at " +
-				"the cluster level, then restart Teleport.")
-		}
-
 		// Restricted session requires BPF (enhanced recording)
 		if cfg.SSH.RestrictedSession.Enabled && !cfg.SSH.BPF.Enabled {
 			return trace.BadParameter("restricted_session requires enhanced_recording " +

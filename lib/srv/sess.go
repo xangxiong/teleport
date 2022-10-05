@@ -343,13 +343,6 @@ func (s *SessionRegistry) NotifyWinChange(ctx context.Context, params rsession.T
 		return trace.Wrap(err)
 	}
 
-	// If sessions are being recorded at the proxy, sessions can not be shared.
-	// In that situation, PTY size information does not need to be propagated
-	// back to all clients and we can return right away.
-	if services.IsRecordAtProxy(scx.SessionRecordingConfig.GetMode()) {
-		return nil
-	}
-
 	// Notify all members of the party (except originator) that the size of the
 	// window has changed so the client can update it's own local PTY. Note that
 	// OpenSSH clients will ignore this and not update their own local PTY.
@@ -638,7 +631,7 @@ func (s *session) Close() error {
 }
 
 func (s *session) BroadcastMessage(format string, args ...interface{}) {
-	if s.access.IsModerated() && !services.IsRecordAtProxy(s.scx.SessionRecordingConfig.GetMode()) {
+	if s.access.IsModerated() {
 		s.io.BroadcastMessage(fmt.Sprintf(format, args...))
 	}
 }
@@ -1055,13 +1048,6 @@ func (s *session) exportPartyMembers() []rsession.Party {
 // the proxy, then this function does nothing as it's counterpart
 // in the proxy will do this work.
 func (s *session) heartbeat(ctx context.Context, scx *ServerContext) {
-	// If sessions are being recorded at the proxy, an identical version of this
-	// goroutine is running in the proxy, which means it does not need to run here.
-	if services.IsRecordAtProxy(scx.SessionRecordingConfig.GetMode()) &&
-		s.registry.Srv.Component() == teleport.ComponentNode {
-		return
-	}
-
 	// If no session server (endpoint interface for active sessions) is passed in
 	// (for example Teleconsole does this) then nothing to sync.
 	sessionServer := s.registry.Srv.GetSessionServer()
@@ -1159,18 +1145,6 @@ func (s *session) addParty(p *party, mode types.SessionParticipantMode) error {
 
 	if s.tracker.GetState() == types.SessionState_SessionStateTerminated {
 		return trace.AccessDenied("The requested session is not active")
-	}
-
-	if len(s.parties) == 0 {
-		canStart, _, err := s.checkIfStart()
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		if !canStart && services.IsRecordAtProxy(p.ctx.SessionRecordingConfig.GetMode()) {
-			go s.Stop()
-			return trace.AccessDenied("session requires additional moderation but is in proxy-record mode")
-		}
 	}
 
 	// Cancel lingerAndDie goroutine if one is running.

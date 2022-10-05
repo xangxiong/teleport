@@ -37,7 +37,6 @@ import (
 	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/bpf"
-	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/pam"
 	restricted "github.com/gravitational/teleport/lib/restrictedsession"
 	"github.com/gravitational/teleport/lib/services"
@@ -70,9 +69,6 @@ type AccessPoint interface {
 
 	// GetClusterNetworkingConfig returns cluster networking configuration.
 	GetClusterNetworkingConfig(ctx context.Context, opts ...services.MarshalOption) (types.ClusterNetworkingConfig, error)
-
-	// GetSessionRecordingConfig returns session recording configuration.
-	GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error)
 
 	// GetAuthPreference returns the cluster authentication configuration.
 	GetAuthPreference(ctx context.Context) (types.AuthPreference, error)
@@ -260,10 +256,6 @@ type ServerContext struct {
 	// ClusterName is the name of the cluster current user is authenticated with.
 	ClusterName string
 
-	// SessionRecordingConfig holds the session recording configuration at the
-	// time this context was created.
-	SessionRecordingConfig types.SessionRecordingConfig
-
 	// RemoteClient holds an SSH client to a remote server. Only used by the
 	// recording proxy.
 	RemoteClient *tracessh.Client
@@ -350,25 +342,19 @@ func NewServerContext(ctx context.Context, parent *sshutils.ConnectionContext, s
 	if err != nil {
 		return nil, nil, trace.Wrap(err)
 	}
-	recConfig, err := srv.GetAccessPoint().GetSessionRecordingConfig(ctx)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-
 	cancelContext, cancel := context.WithCancel(ctx)
 	child := &ServerContext{
-		ConnectionContext:      parent,
-		id:                     int(atomic.AddInt32(&ctxID, int32(1))),
-		env:                    make(map[string]string),
-		srv:                    srv,
-		ExecResultCh:           make(chan ExecResult, 10),
-		SubsystemResultCh:      make(chan SubsystemResult, 10),
-		ClusterName:            parent.ServerConn.Permissions.Extensions[utils.CertTeleportClusterName],
-		SessionRecordingConfig: recConfig,
-		Identity:               identityContext,
-		clientIdleTimeout:      identityContext.AccessChecker.AdjustClientIdleTimeout(netConfig.GetClientIdleTimeout()),
-		cancelContext:          cancelContext,
-		cancel:                 cancel,
+		ConnectionContext: parent,
+		id:                int(atomic.AddInt32(&ctxID, int32(1))),
+		env:               make(map[string]string),
+		srv:               srv,
+		ExecResultCh:      make(chan ExecResult, 10),
+		SubsystemResultCh: make(chan SubsystemResult, 10),
+		ClusterName:       parent.ServerConn.Permissions.Extensions[utils.CertTeleportClusterName],
+		Identity:          identityContext,
+		clientIdleTimeout: identityContext.AccessChecker.AdjustClientIdleTimeout(netConfig.GetClientIdleTimeout()),
+		cancelContext:     cancelContext,
+		cancel:            cancel,
 	}
 
 	fields := log.Fields{
@@ -784,60 +770,7 @@ func (c *ServerContext) takeClosers() []io.Closer {
 	return closers
 }
 
-// When the ServerContext (connection) is closed, emit "session.data" event
-// containing how much data was transmitted and received over the net.Conn.
-func (c *ServerContext) reportStats(conn utils.Stater) {
-	// Never emit session data events for the proxy or from a Teleport node if
-	// sessions are being recorded at the proxy (this would result in double
-	// events).
-	if c.GetServer().Component() == teleport.ComponentProxy {
-		return
-	}
-	if services.IsRecordAtProxy(c.SessionRecordingConfig.GetMode()) &&
-		c.GetServer().Component() == teleport.ComponentNode {
-		return
-	}
-
-	// Get the TX and RX bytes.
-	txBytes, rxBytes := conn.Stat()
-
-	// Build and emit session data event. Note that TX and RX are reversed
-	// below, that is because the connection is held from the perspective of
-	// the server not the client, but the logs are from the perspective of the
-	// client.
-	sessionDataEvent := &apievents.SessionData{
-		Metadata: apievents.Metadata{
-			Index: events.SessionDataIndex,
-			Type:  events.SessionDataEvent,
-			Code:  events.SessionDataCode,
-		},
-		ServerMetadata: apievents.ServerMetadata{
-			ServerID:        c.GetServer().HostUUID(),
-			ServerNamespace: c.GetServer().GetNamespace(),
-		},
-		SessionMetadata: apievents.SessionMetadata{
-			SessionID: string(c.SessionID()),
-			WithMFA:   c.Identity.Certificate.Extensions[teleport.CertExtensionMFAVerified],
-		},
-		UserMetadata: c.Identity.GetUserMetadata(),
-		ConnectionMetadata: apievents.ConnectionMetadata{
-			RemoteAddr: c.ServerConn.RemoteAddr().String(),
-		},
-		BytesTransmitted: rxBytes,
-		BytesReceived:    txBytes,
-	}
-	if !c.srv.UseTunnel() {
-		sessionDataEvent.ConnectionMetadata.LocalAddr = c.ServerConn.LocalAddr().String()
-	}
-}
-
 func (c *ServerContext) Close() error {
-	// If the underlying connection is holding tracking information, report that
-	// to the audit log at close.
-	if stats, ok := c.NetConn.(*utils.TrackingConn); ok {
-		defer c.reportStats(stats)
-	}
-
 	// Unblock any goroutines waiting until session is closed.
 	c.cancel()
 

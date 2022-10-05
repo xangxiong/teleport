@@ -836,19 +836,6 @@ func (c *Cache) GetAuthPreference(ctx context.Context) (types.AuthPreference, er
 	return rg.clusterConfig.GetAuthPreference(ctx)
 }
 
-// GetSessionRecordingConfig gets session recording configuration.
-func (c *Cache) GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error) {
-	ctx, span := c.Tracer.Start(ctx, "cache/GetSessionRecordingConfig")
-	defer span.End()
-
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.clusterConfig.GetSessionRecordingConfig(ctx, opts...)
-}
-
 // GetLock gets a lock by name.
 func (c *Cache) GetLock(ctx context.Context, name string) (types.Lock, error) {
 	ctx, span := c.Tracer.Start(ctx, "cache/GetLock")

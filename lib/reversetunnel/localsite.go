@@ -169,17 +169,6 @@ func (s *localSite) DialAuthServer() (net.Conn, error) {
 }
 
 func (s *localSite) Dial(params DialParams) (net.Conn, error) {
-	recConfig, err := s.accessPoint.GetSessionRecordingConfig(s.srv.Context)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// If the proxy is in recording mode and a SSH connection is being requested,
-	// use the agent to dial and build an in-memory forwarding server.
-	if params.ConnType == types.NodeTunnel && services.IsRecordAtProxy(recConfig.GetMode()) && !params.FromPeerProxy {
-		return s.dialWithAgent(params)
-	}
-
 	// Attempt to perform a direct TCP dial.
 	return s.DialTCP(params)
 }

@@ -34,7 +34,6 @@ import (
 
 	"github.com/gravitational/teleport"
 	tracessh "github.com/gravitational/teleport/api/observability/tracing/ssh"
-	"github.com/gravitational/teleport/lib/services"
 	rsession "github.com/gravitational/teleport/lib/session"
 )
 
@@ -106,11 +105,6 @@ func NewTerminal(ctx *ServerContext) (Terminal, error) {
 		return newLocalTerminal(ctx)
 	}
 
-	// If this is not a Teleport node, find out what mode the cluster is in and
-	// return the correct terminal.
-	if services.IsRecordAtProxy(ctx.SessionRecordingConfig.GetMode()) {
-		return newRemoteTerminal(ctx)
-	}
 	return newLocalTerminal(ctx)
 }
 

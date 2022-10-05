@@ -144,18 +144,6 @@ func (s *ClusterConfigurationService) SetClusterNetworkingConfig(ctx context.Con
 	return nil
 }
 
-// GetSessionRecordingConfig gets session recording config from the backend.
-func (s *ClusterConfigurationService) GetSessionRecordingConfig(ctx context.Context, opts ...services.MarshalOption) (types.SessionRecordingConfig, error) {
-	item, err := s.Get(ctx, backend.Key(clusterConfigPrefix, sessionRecordingPrefix))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return nil, trace.NotFound("session recording config not found")
-		}
-		return nil, trace.Wrap(err)
-	}
-	return services.UnmarshalSessionRecordingConfig(item.Value, append(opts, services.WithResourceID(item.ID), services.WithExpires(item.Expires))...)
-}
-
 // SetSessionRecordingConfig sets session recording config on the backend.
 func (s *ClusterConfigurationService) SetSessionRecordingConfig(ctx context.Context, recConfig types.SessionRecordingConfig) error {
 	// Perform the modules-provided checks.

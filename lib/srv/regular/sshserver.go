@@ -295,19 +295,9 @@ func (s *Server) GetHostUsers() srv.HostUsers {
 // isAuditedAtProxy returns true if sessions are being recorded at the proxy
 // and this is a Teleport node.
 func (s *Server) isAuditedAtProxy() bool {
-	// always be safe, better to double record than not record at all
-	recConfig, err := s.GetAccessPoint().GetSessionRecordingConfig(s.ctx)
-	if err != nil {
-		return false
-	}
-
-	isRecordAtProxy := services.IsRecordAtProxy(recConfig.GetMode())
 	isTeleportNode := s.Component() == teleport.ComponentNode
 
-	if isRecordAtProxy && isTeleportNode {
-		return true
-	}
-	return false
+	return isTeleportNode
 }
 
 // ServerOption is a functional option passed to the server
@@ -1024,8 +1014,6 @@ func (s *Server) HandleRequest(ctx context.Context, r *ssh.Request) {
 	switch r.Type {
 	case teleport.KeepAliveReqType:
 		s.handleKeepAlive(r)
-	case teleport.RecordingProxyReqType:
-		s.handleRecordingProxy(r)
 	case teleport.VersionRequest:
 		s.handleVersionRequest(r)
 	case teleport.TerminalSizeRequest:
@@ -1554,23 +1542,25 @@ func (s *Server) handleAgentForwardNode(req *ssh.Request, ctx *srv.ServerContext
 // requests should never fail, all errors should be logged and we should
 // continue processing requests.
 func (s *Server) handleAgentForwardProxy(req *ssh.Request, ctx *srv.ServerContext) error {
-	// Forwarding an agent to the proxy is only supported when the proxy is in
-	// recording mode.
-	if !services.IsRecordAtProxy(ctx.SessionRecordingConfig.GetMode()) {
-		return trace.BadParameter("agent forwarding to proxy only supported in recording mode")
-	}
+	// // Forwarding an agent to the proxy is only supported when the proxy is in
+	// // recording mode.
+	// if !services.IsRecordAtProxy(ctx.SessionRecordingConfig.GetMode()) {
+	// 	return trace.BadParameter("agent forwarding to proxy only supported in recording mode")
+	// }
 
-	// Check if the user's RBAC role allows agent forwarding.
-	err := s.authHandlers.CheckAgentForward(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	// // Check if the user's RBAC role allows agent forwarding.
+	// err := s.authHandlers.CheckAgentForward(ctx)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
-	// Enable agent forwarding for the broader connection-level
-	// context.
-	ctx.Parent().SetForwardAgent(true)
+	// // Enable agent forwarding for the broader connection-level
+	// // context.
+	// ctx.Parent().SetForwardAgent(true)
 
-	return nil
+	// return nil
+
+	return trace.BadParameter("agent forwarding to proxy only supported in recording mode")
 }
 
 // handleX11Forward handles an X11 forwarding request from the client.
@@ -1683,36 +1673,36 @@ func (s *Server) handleKeepAlive(req *ssh.Request) {
 	s.Logger.Debugf("Replied to %q", req.Type)
 }
 
-// handleRecordingProxy responds to global out-of-band with a bool which
-// indicates if it is in recording mode or not.
-func (s *Server) handleRecordingProxy(req *ssh.Request) {
-	var recordingProxy bool
+// // handleRecordingProxy responds to global out-of-band with a bool which
+// // indicates if it is in recording mode or not.
+// func (s *Server) handleRecordingProxy(req *ssh.Request) {
+// 	var recordingProxy bool
 
-	s.Logger.Debugf("Global request (%v, %v) received", req.Type, req.WantReply)
+// 	s.Logger.Debugf("Global request (%v, %v) received", req.Type, req.WantReply)
 
-	if req.WantReply {
-		// get the cluster config, if we can't get it, reply false
-		recConfig, err := s.authService.GetSessionRecordingConfig(s.ctx)
-		if err != nil {
-			err := req.Reply(false, nil)
-			if err != nil {
-				s.Logger.Warnf("Unable to respond to global request (%v, %v): %v", req.Type, req.WantReply, err)
-			}
-			return
-		}
+// 	if req.WantReply {
+// 		// // get the cluster config, if we can't get it, reply false
+// 		// recConfig, err := s.authService.GetSessionRecordingConfig(s.ctx)
+// 		// if err != nil {
+// 		// 	err := req.Reply(false, nil)
+// 		// 	if err != nil {
+// 		// 		s.Logger.Warnf("Unable to respond to global request (%v, %v): %v", req.Type, req.WantReply, err)
+// 		// 	}
+// 		// 	return
+// 		// }
 
-		// reply true that we were able to process the message and reply with a
-		// bool if we are in recording mode or not
-		recordingProxy = services.IsRecordAtProxy(recConfig.GetMode())
-		err = req.Reply(true, []byte(strconv.FormatBool(recordingProxy)))
-		if err != nil {
-			s.Logger.Warnf("Unable to respond to global request (%v, %v): %v: %v", req.Type, req.WantReply, recordingProxy, err)
-			return
-		}
-	}
+// 		// // reply true that we were able to process the message and reply with a
+// 		// // bool if we are in recording mode or not
+// 		// recordingProxy = services.IsRecordAtProxy(recConfig.GetMode())
+// 		// err = req.Reply(true, []byte(strconv.FormatBool(recordingProxy)))
+// 		// if err != nil {
+// 		// 	s.Logger.Warnf("Unable to respond to global request (%v, %v): %v: %v", req.Type, req.WantReply, recordingProxy, err)
+// 		// 	return
+// 		// }
+// 	}
 
-	s.Logger.Debugf("Replied to global request (%v, %v): %v", req.Type, req.WantReply, recordingProxy)
-}
+// 	s.Logger.Debugf("Replied to global request (%v, %v): %v", req.Type, req.WantReply, recordingProxy)
+// }
 
 // handleVersionRequest replies with the Teleport version of the server.
 func (s *Server) handleVersionRequest(req *ssh.Request) {
@@ -1742,12 +1732,12 @@ func (s *Server) handleProxyJump(ctx context.Context, ccx *sshutils.ConnectionCo
 
 	ch = scx.TrackActivity(ch)
 
-	recConfig, err := s.GetAccessPoint().GetSessionRecordingConfig(ctx)
-	if err != nil {
-		s.Logger.Errorf("Unable to fetch session recording config: %v.", err)
-		writeStderr(ch, "Unable to fetch session recording configuration.")
-		return
-	}
+	// recConfig, err := s.GetAccessPoint().GetSessionRecordingConfig(ctx)
+	// if err != nil {
+	// 	s.Logger.Errorf("Unable to fetch session recording config: %v.", err)
+	// 	writeStderr(ch, "Unable to fetch session recording configuration.")
+	// 	return
+	// }
 
 	// force agent forward, because in recording mode proxy needs
 	// client's agent to authenticate to the target server
@@ -1774,14 +1764,14 @@ func (s *Server) handleProxyJump(ctx context.Context, ccx *sshutils.ConnectionCo
 	// "out of band", before SSH client actually asks for it
 	// which is a hack, but the only way we can think of making it work,
 	// ideas are appreciated.
-	if services.IsRecordAtProxy(recConfig.GetMode()) {
-		err = s.handleAgentForwardProxy(&ssh.Request{}, scx)
-		if err != nil {
-			s.Logger.Warningf("Failed to request agent in recording mode: %v", err)
-			writeStderr(ch, "Failed to request agent")
-			return
-		}
-	}
+	// if services.IsRecordAtProxy(recConfig.GetMode()) {
+	// 	err = s.handleAgentForwardProxy(&ssh.Request{}, scx)
+	// 	if err != nil {
+	// 		s.Logger.Warningf("Failed to request agent in recording mode: %v", err)
+	// 		writeStderr(ch, "Failed to request agent")
+	// 		return
+	// 	}
+	// }
 
 	netConfig, err := s.GetAccessPoint().GetClusterNetworkingConfig(ctx)
 	if err != nil {
