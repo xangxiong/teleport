@@ -123,8 +123,6 @@ type Cache struct {
 	accessCache        services.Access
 	dynamicAccessCache services.DynamicAccessExt
 	presenceCache      services.Presence
-	webSessionCache    types.WebSessionInterface
-	webTokenCache      types.WebTokenInterface
 	eventsFanout       *services.FanoutSet
 
 	// closed indicates that the cache has been closed
@@ -147,8 +145,6 @@ func (c *Cache) read() (readGuard, error) {
 			access:        c.accessCache,
 			dynamicAccess: c.dynamicAccessCache,
 			presence:      c.presenceCache,
-			webSession:    c.webSessionCache,
-			webToken:      c.webTokenCache,
 			release:       c.rw.RUnlock,
 		}, nil
 	}
@@ -175,8 +171,6 @@ type readGuard struct {
 	access        services.Access
 	dynamicAccess services.DynamicAccessCore
 	presence      services.Presence
-	webSession    types.WebSessionInterface
-	webToken      types.WebTokenInterface
 	release       func()
 	released      bool
 }
@@ -738,26 +732,6 @@ func (c *Cache) GetRemoteCluster(clusterName string) (types.RemoteCluster, error
 		}
 	}
 	return rc, trace.Wrap(err)
-}
-
-// GetWebSession gets a regular web session.
-func (c *Cache) GetWebSession(ctx context.Context, req types.GetWebSessionRequest) (types.WebSession, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.webSession.Get(ctx, req)
-}
-
-// GetWebToken gets a web token.
-func (c *Cache) GetWebToken(ctx context.Context, req types.GetWebTokenRequest) (types.WebToken, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.webToken.Get(ctx, req)
 }
 
 // GetAuthPreference gets the cluster authentication config.
