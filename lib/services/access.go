@@ -34,18 +34,11 @@ type LockGetter interface {
 type Access interface {
 	// GetRoles returns a list of roles.
 	GetRoles(ctx context.Context) ([]types.Role, error)
-	// UpsertRole creates or updates role.
-	UpsertRole(ctx context.Context, role types.Role) error
 	// GetRole returns role by name.
 	GetRole(ctx context.Context, name string) (types.Role, error)
-	// DeleteRole deletes role by name.
-	DeleteRole(ctx context.Context, name string) error
 
 	LockGetter
-	// UpsertLock upserts a lock.
-	UpsertLock(context.Context, types.Lock) error
-	// DeleteLock deletes a lock.
-	DeleteLock(context.Context, string) error
+
 	// ReplaceRemoteLocks replaces the set of locks associated with a remote cluster.
 	ReplaceRemoteLocks(ctx context.Context, clusterName string, locks []types.Lock) error
 }
