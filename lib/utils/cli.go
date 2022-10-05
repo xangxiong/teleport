@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"crypto/x509"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	stdlog "log"
@@ -29,15 +28,12 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"testing"
-	"unicode"
-
-	"github.com/gravitational/teleport"
-	"github.com/gravitational/teleport/api/constants"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/gravitational/kingpin"
+	"github.com/gravitational/teleport"
+	"github.com/gravitational/teleport/api/constants"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/gravitational/trace"
 )
 
@@ -66,33 +62,6 @@ func InitLogger(purpose LoggingPurpose, level log.Level, verbose ...bool) {
 		log.SetFormatter(NewDefaultTextFormatter(trace.IsTerminal(os.Stderr)))
 		log.SetOutput(os.Stderr)
 	}
-}
-
-// InitLoggerForTests initializes the standard logger for tests.
-func InitLoggerForTests() {
-	// Parse flags to check testing.Verbose().
-	flag.Parse()
-
-	logger := log.StandardLogger()
-	logger.ReplaceHooks(make(log.LevelHooks))
-	log.SetFormatter(NewTestTextFormatter())
-	logger.SetLevel(log.DebugLevel)
-	logger.SetOutput(os.Stderr)
-	if testing.Verbose() {
-		return
-	}
-	logger.SetLevel(log.WarnLevel)
-	logger.SetOutput(io.Discard)
-}
-
-// NewLoggerForTests creates a new logger for test environment
-func NewLoggerForTests() *log.Logger {
-	logger := log.New()
-	logger.ReplaceHooks(make(log.LevelHooks))
-	logger.SetFormatter(NewTestTextFormatter())
-	logger.SetLevel(log.DebugLevel)
-	logger.SetOutput(os.Stderr)
-	return logger
 }
 
 // WrapLogger wraps an existing logger entry and returns
@@ -355,14 +324,6 @@ func withCommandPrintfWidth(app *kingpin.Application, context *kingpin.ParseCont
 	}
 }
 
-// SplitIdentifiers splits list of identifiers by commas/spaces/newlines.  Helpful when
-// accepting lists of identifiers in CLI (role names, request IDs, etc).
-func SplitIdentifiers(s string) []string {
-	return strings.FieldsFunc(s, func(r rune) bool {
-		return r == ',' || unicode.IsSpace(r)
-	})
-}
-
 // EscapeControl escapes all ANSI escape sequences from string and returns a
 // string that is safe to print on the CLI. This is to ensure that malicious
 // servers can not hide output. For more details, see:
@@ -508,17 +469,3 @@ Aliases:
 {{end}}\
 {{end}}
 `
-
-// IsPredicateError determines if the error is from failing to parse predicate expression
-// by checking if the error as a string contains predicate keywords.
-func IsPredicateError(err error) bool {
-	return strings.Contains(err.Error(), "predicate expression")
-}
-
-type PredicateError struct {
-	Err error
-}
-
-func (p PredicateError) Error() string {
-	return fmt.Sprintf("%s\nCheck syntax at https://goteleport.com/docs/setup/reference/predicate-language/#resource-filtering", p.Err.Error())
-}
