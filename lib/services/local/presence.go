@@ -217,12 +217,6 @@ func (s *PresenceService) KeepAliveServer(ctx context.Context, h types.KeepAlive
 	return trace.Wrap(err)
 }
 
-// UpsertAuthServer registers auth server presence, permanently if ttl is 0 or
-// for the specified duration with second resolution if it's >= 1 second
-func (s *PresenceService) UpsertAuthServer(server types.Server) error {
-	return s.upsertServer(context.TODO(), authServersPrefix, server)
-}
-
 // GetProxies returns a list of registered proxies
 func (s *PresenceService) GetProxies() ([]types.Server, error) {
 	return s.getServers(context.TODO(), types.KindProxy, proxiesPrefix)

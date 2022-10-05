@@ -536,20 +536,6 @@ func (c *Client) GetRemoteCluster(clusterName string) (types.RemoteCluster, erro
 	return services.UnmarshalRemoteCluster(out.Bytes())
 }
 
-// UpsertAuthServer is used by auth servers to report their presence
-// to other auth servers in form of hearbeat expiring after ttl period.
-func (c *Client) UpsertAuthServer(s types.Server) error {
-	data, err := services.MarshalServer(s)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	args := &upsertServerRawReq{
-		Server: data,
-	}
-	_, err = c.PostJSON(context.TODO(), c.Endpoint("authservers"), args)
-	return trace.Wrap(err)
-}
-
 // GetProxies returns the list of auth servers registered in the cluster.
 func (c *Client) GetProxies() ([]types.Server, error) {
 	out, err := c.Get(context.TODO(), c.Endpoint("proxies"), url.Values{})
