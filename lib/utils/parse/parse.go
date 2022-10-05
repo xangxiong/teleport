@@ -205,76 +205,6 @@ func (fn MatcherFn) Match(in string) bool {
 	return fn(in)
 }
 
-// NewAnyMatcher returns a matcher function based
-// on incoming values
-func NewAnyMatcher(in []string) (Matcher, error) {
-	matchers := make([]Matcher, len(in))
-	for i, v := range in {
-		m, err := NewMatcher(v)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		matchers[i] = m
-	}
-	return MatcherFn(func(in string) bool {
-		for _, m := range matchers {
-			if m.Match(in) {
-				return true
-			}
-		}
-		return false
-	}), nil
-}
-
-// NewMatcher parses a matcher expression. Currently supported expressions:
-// - string literal: `foo`
-// - wildcard expression: `*` or `foo*bar`
-// - regexp expression: `^foo$`
-// - regexp function calls:
-//   - positive match: `{{regexp.match("foo.*")}}`
-//   - negative match: `{{regexp.not_match("foo.*")}}`
-//
-// These expressions do not support variable interpolation (e.g.
-// `{{internal.logins}}`), like Expression does.
-func NewMatcher(value string) (m Matcher, err error) {
-	defer func() {
-		if err != nil {
-			err = trace.WrapWithMessage(err, "see supported syntax at https://goteleport.com/teleport/docs/enterprise/ssh-rbac/#rbac-for-hosts")
-		}
-	}()
-	match := reVariable.FindStringSubmatch(value)
-	if len(match) == 0 {
-		if strings.Contains(value, "{{") || strings.Contains(value, "}}") {
-			return nil, trace.BadParameter(
-				"%q is using template brackets '{{' or '}}', however expression does not parse, make sure the format is {{expression}}",
-				value)
-		}
-		return newRegexpMatcher(value, true)
-	}
-
-	prefix, variable, suffix := match[1], match[2], match[3]
-
-	// parse and get the ast of the expression
-	expr, err := parser.ParseExpr(variable)
-	if err != nil {
-		return nil, trace.BadParameter("failed to parse %q: %v", value, err)
-	}
-
-	// walk the ast tree and gather the variable parts
-	result, err := walk(expr, 0)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// For now, only support a single match expression. In the future, we could
-	// consider handling variables and transforms by propagating user traits to
-	// the matching logic. For example
-	// `{{regexp.match(external.allowed_env_trait)}}`.
-	if result.transform != nil || len(result.parts) > 0 {
-		return nil, trace.BadParameter("%q is not a valid matcher expression - no variables and transformations are allowed", value)
-	}
-	return newPrefixSuffixMatcher(prefix, suffix, result.match), nil
-}
-
 // regexpMatcher matches input string against a pre-compiled regexp.
 type regexpMatcher struct {
 	re *regexp.Regexp
@@ -299,26 +229,6 @@ func newRegexpMatcher(raw string, escape bool) (*regexpMatcher, error) {
 		return nil, trace.BadParameter("failed parsing regexp %q: %v", raw, err)
 	}
 	return &regexpMatcher{re: re}, nil
-}
-
-// prefixSuffixMatcher matches prefix and suffix of input and passes the middle
-// part to another matcher.
-type prefixSuffixMatcher struct {
-	prefix, suffix string
-	m              Matcher
-}
-
-func (m prefixSuffixMatcher) Match(in string) bool {
-	if !strings.HasPrefix(in, m.prefix) || !strings.HasSuffix(in, m.suffix) {
-		return false
-	}
-	in = strings.TrimPrefix(in, m.prefix)
-	in = strings.TrimSuffix(in, m.suffix)
-	return m.m.Match(in)
-}
-
-func newPrefixSuffixMatcher(prefix, suffix string, inner Matcher) prefixSuffixMatcher {
-	return prefixSuffixMatcher{prefix: prefix, suffix: suffix, m: inner}
 }
 
 // notMatcher inverts the result of another matcher.
