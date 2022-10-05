@@ -26,7 +26,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -40,7 +39,6 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/auditd"
@@ -859,25 +857,6 @@ func (process *TeleportProcess) makeInventoryControlStream(ctx context.Context) 
 		return nil, trace.Errorf("instance client not yet initialized")
 	}
 	return clt.InventoryControlStream(ctx)
-}
-
-// adminCreds returns admin UID and GID settings based on the OS
-func adminCreds() (*int, *int, error) {
-	if runtime.GOOS != constants.LinuxOS {
-		return nil, nil, nil
-	}
-	// if the user member of adm linux group,
-	// make audit log folder readable by admins
-	isAdmin, err := utils.IsGroupMember(teleport.LinuxAdminGID)
-	if err != nil {
-		return nil, nil, trace.Wrap(err)
-	}
-	if !isAdmin {
-		return nil, nil, nil
-	}
-	uid := os.Getuid()
-	gid := teleport.LinuxAdminGID
-	return &uid, &gid, nil
 }
 
 func payloadContext(payload interface{}, log logrus.FieldLogger) context.Context {
