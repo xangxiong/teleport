@@ -161,7 +161,6 @@ func (c *Cache) read() (readGuard, error) {
 		access:        c.Config.Access,
 		dynamicAccess: c.Config.DynamicAccess,
 		presence:      c.Config.Presence,
-		webSession:    c.Config.WebSession,
 		release:       nil,
 	}, nil
 }
@@ -222,8 +221,6 @@ type Config struct {
 	DynamicAccess services.DynamicAccessCore
 	// Presence is a presence service
 	Presence services.Presence
-	// WebSession holds regular web sessions.
-	WebSession types.WebSessionInterface
 	// Backend is a backend for local cache
 	Backend backend.Backend
 	// MaxRetryPeriod is the maximum period between cache retries on failures
