@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/gravitational/teleport"
-	"github.com/gravitational/teleport/api/client/proto"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/backend"
@@ -1481,44 +1480,4 @@ func (c *Cache) GetLocks(ctx context.Context, inForceOnly bool, targets ...types
 	}
 	defer rg.Release()
 	return rg.access.GetLocks(ctx, inForceOnly, targets...)
-}
-
-// listResourcesFromTTLCache used when the cache is not healthy. It takes advantage
-// of TTL-based caching rather than caching individual page calls (very messy).
-// It relies on caching the result of the `GetXXXs` endpoint and then "faking"
-// pagination.
-//
-// Since TTLCaching falls back to retrieving all resources upfront, we also support
-// sorting.
-//
-// NOTE: currently only types.KindNode supports TTL caching.
-func (c *Cache) listResourcesFromTTLCache(ctx context.Context, rg readGuard, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	var resources []types.ResourceWithLabels
-	switch req.ResourceType {
-	case types.KindNode:
-		// Retrieve all nodes.
-		cachedNodes, err := c.getNodesWithTTLCache(ctx, rg, req.Namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		// Nodes returned from the TTL caching layer
-		// must be cloned to avoid concurrent modification.
-		clonedNodes := make([]types.Server, 0, len(cachedNodes))
-		for _, node := range cachedNodes {
-			clonedNodes = append(clonedNodes, node.DeepCopy())
-		}
-
-		servers := types.Servers(clonedNodes)
-		if err := servers.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		resources = servers.AsResources()
-
-	default:
-		return nil, trace.NotImplemented("resource type %q does not support TTL caching", req.ResourceType)
-	}
-
-	return local.FakePaginate(resources, req)
 }

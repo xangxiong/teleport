@@ -757,99 +757,6 @@ func (s *PresenceService) GetHostUserInteractionTime(ctx context.Context, name s
 	return t, nil
 }
 
-func (s *PresenceService) listResources(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	var keyPrefix []string
-	var unmarshalItemFunc backendItemToResourceFunc
-
-	switch req.ResourceType {
-	case types.KindNode:
-		keyPrefix = []string{nodesPrefix, req.Namespace}
-		unmarshalItemFunc = backendItemToServer(types.KindNode)
-	default:
-		return nil, trace.NotImplemented("%s not implemented at ListResources", req.ResourceType)
-	}
-
-	rangeStart := backend.Key(append(keyPrefix, req.StartKey)...)
-	rangeEnd := backend.RangeEnd(backend.Key(keyPrefix...))
-	filter := services.MatchResourceFilter{
-		ResourceKind:        req.ResourceType,
-		Labels:              req.Labels,
-		SearchKeywords:      req.SearchKeywords,
-		PredicateExpression: req.PredicateExpression,
-	}
-
-	// Get most limit+1 results to determine if there will be a next key.
-	reqLimit := int(req.Limit)
-	maxLimit := reqLimit + 1
-	var resources []types.ResourceWithLabels
-	if err := backend.IterateRange(ctx, s.Backend, rangeStart, rangeEnd, maxLimit, func(items []backend.Item) (stop bool, err error) {
-		for _, item := range items {
-			if len(resources) == maxLimit {
-				break
-			}
-
-			resource, err := unmarshalItemFunc(item)
-			if err != nil {
-				return false, trace.Wrap(err)
-			}
-
-			switch match, err := services.MatchResourceByFilters(resource, filter, nil /* ignore dup matches */); {
-			case err != nil:
-				return false, trace.Wrap(err)
-			case match:
-				resources = append(resources, resource)
-			}
-		}
-
-		return len(resources) == maxLimit, nil
-	}); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	var nextKey string
-	if len(resources) > reqLimit {
-		nextKey = backend.GetPaginationKey(resources[len(resources)-1])
-		// Truncate the last item that was used to determine next row existence.
-		resources = resources[:reqLimit]
-	}
-
-	return &types.ListResourcesResponse{
-		Resources: resources,
-		NextKey:   nextKey,
-	}, nil
-}
-
-// listResourcesWithSort supports sorting by falling back to retrieving all resources
-// with GetXXXs, filter, and then fake pagination.
-func (s *PresenceService) listResourcesWithSort(ctx context.Context, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	var resources []types.ResourceWithLabels
-	switch req.ResourceType {
-	case types.KindNode:
-		nodes, err := s.GetNodes(ctx, req.Namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-
-		servers := types.Servers(nodes)
-		if err := servers.SortByCustom(req.SortBy); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		resources = servers.AsResources()
-	default:
-		return nil, trace.NotImplemented("resource type %q is not supported for ListResourcesWithSort", req.ResourceType)
-	}
-
-	return FakePaginate(resources, req)
-}
-
 // FakePaginate is used when we are working with an entire list of resources upfront but still requires pagination.
 // While applying filters, it will also deduplicate matches found.
 func FakePaginate(resources []types.ResourceWithLabels, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
@@ -906,19 +813,6 @@ func FakePaginate(resources []types.ResourceWithLabels, req proto.ListResourcesR
 		NextKey:    nextKey,
 		TotalCount: totalCount,
 	}, nil
-}
-
-// backendItemToServer returns `backendItemToResourceFunc` to unmarshal a
-// `backend.Item` into a `types.ServerV2` with a specific `kind`, returning it
-// as a `types.Resource`.
-func backendItemToServer(kind string) backendItemToResourceFunc {
-	return func(item backend.Item) (types.ResourceWithLabels, error) {
-		return services.UnmarshalServer(
-			item.Value, kind,
-			services.WithResourceID(item.ID),
-			services.WithExpires(item.Expires),
-		)
-	}
 }
 
 const (
