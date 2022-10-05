@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/gravitational/trace"
-	log "github.com/sirupsen/logrus"
 
 	apiutils "github.com/gravitational/teleport/api/utils"
 )
@@ -148,18 +147,6 @@ func NetAddrsToStrings(netAddrs []NetAddr) []string {
 	return addrs
 }
 
-// ParseAddrs parses the provided slice of strings as a slice of NetAddr's.
-func ParseAddrs(addrs []string) (result []NetAddr, err error) {
-	for _, addr := range addrs {
-		parsed, err := ParseAddr(addr)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		result = append(result, *parsed)
-	}
-	return result, nil
-}
-
 // ParseAddr takes strings like "tcp://host:port/path" and returns
 // *NetAddr or an error
 func ParseAddr(a string) (*NetAddr, error) {
@@ -185,38 +172,9 @@ func ParseAddr(a string) (*NetAddr, error) {
 	}
 }
 
-// MustParseAddr parses the provided string into NetAddr or panics on an error
-func MustParseAddr(a string) *NetAddr {
-	addr, err := ParseAddr(a)
-	if err != nil {
-		panic(fmt.Sprintf("failed to parse %v: %v", a, err))
-	}
-	return addr
-}
-
-// MustParseAddrList parses the provided list of strings into a NetAddr list or panics on error
-func MustParseAddrList(aList ...string) []NetAddr {
-	addrList := make([]NetAddr, len(aList))
-	for i, a := range aList {
-		addrList[i] = *MustParseAddr(a)
-	}
-	return addrList
-}
-
 // FromAddr returns NetAddr from golang standard net.Addr
 func FromAddr(a net.Addr) NetAddr {
 	return NetAddr{AddrNetwork: a.Network(), Addr: a.String()}
-}
-
-// JoinAddrSlices joins two addr slices and returns a resulting slice
-func JoinAddrSlices(a []NetAddr, b []NetAddr) []NetAddr {
-	if len(a)+len(b) == 0 {
-		return nil
-	}
-	out := make([]NetAddr, 0, len(a)+len(b))
-	out = append(out, a...)
-	out = append(out, b...)
-	return out
 }
 
 // ParseHostPortAddr takes strings like "host:port" and returns
@@ -234,14 +192,6 @@ func ParseHostPortAddr(hostport string, defaultPort int) (*NetAddr, error) {
 	}
 	addr.Addr = net.JoinHostPort(addr.Host(), fmt.Sprintf("%v", addr.Port(defaultPort)))
 	return addr, nil
-}
-
-// DialAddrFromListenAddr returns dial address from listen address
-func DialAddrFromListenAddr(listenAddr NetAddr) NetAddr {
-	if listenAddr.IsEmpty() {
-		return listenAddr
-	}
-	return NetAddr{Addr: ReplaceLocalhost(listenAddr.Addr, "127.0.0.1")}
 }
 
 // ReplaceLocalhost checks if a given address is link-local (like 0.0.0.0 or 127.0.0.1)
@@ -271,77 +221,6 @@ func IsLocalhost(host string) bool {
 	}
 	ip := net.ParseIP(host)
 	return ip.IsLoopback() || ip.IsUnspecified()
-}
-
-// GuessIP tries to guess an IP address this machine is reachable at on the
-// internal network, always picking IPv4 from the internal address space
-//
-// If no internal IPs are found, it returns 127.0.0.1 but it never returns
-// an address from the public IP space
-func GuessHostIP() (ip net.IP, err error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	adrs := make([]net.Addr, 0)
-	for _, iface := range ifaces {
-		ifadrs, err := iface.Addrs()
-		if err != nil {
-			log.Warn(err)
-		} else {
-			adrs = append(adrs, ifadrs...)
-		}
-	}
-	return guessHostIP(adrs), nil
-}
-
-func guessHostIP(addrs []net.Addr) (ip net.IP) {
-	// collect the list of all IPv4s
-	var ips []net.IP
-	for _, addr := range addrs {
-		var ipAddr net.IP
-		a, ok := addr.(*net.IPAddr)
-		if ok {
-			ipAddr = a.IP
-		} else {
-			in, ok := addr.(*net.IPNet)
-			if ok {
-				ipAddr = in.IP
-			} else {
-				continue
-			}
-		}
-		if ipAddr.To4() == nil || ipAddr.IsLoopback() || ipAddr.IsMulticast() {
-			continue
-		}
-		ips = append(ips, ipAddr)
-	}
-
-	for i := range ips {
-		first := &net.IPNet{IP: net.IPv4(10, 0, 0, 0), Mask: net.CIDRMask(8, 32)}
-		second := &net.IPNet{IP: net.IPv4(192, 168, 0, 0), Mask: net.CIDRMask(16, 32)}
-		third := &net.IPNet{IP: net.IPv4(172, 16, 0, 0), Mask: net.CIDRMask(12, 32)}
-
-		// our first pick would be "10.0.0.0/8"
-		if first.Contains(ips[i]) {
-			ip = ips[i]
-			break
-			// our 2nd pick would be "192.168.0.0/16"
-		} else if second.Contains(ips[i]) {
-			ip = ips[i]
-			// our 3rd pick would be "172.16.0.0/12"
-		} else if third.Contains(ips[i]) && !second.Contains(ip) {
-			ip = ips[i]
-		}
-	}
-	if ip == nil {
-		if len(ips) > 0 {
-			return ips[0]
-		}
-		// fallback to loopback
-		ip = net.IPv4(127, 0, 0, 1)
-	}
-	return ip
 }
 
 // ReplaceUnspecifiedHost replaces unspecified "0.0.0.0" with localhost since "0.0.0.0" is never a valid
