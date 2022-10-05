@@ -313,5 +313,3 @@ func DialerFromEnvironment(addr string, opts ...DialerOptionFunc) Dialer {
 		tlsConfig:         options.tlsConfig,
 	}
 }
-
-type DirectDialerOptFunc func(dial *directDial)
