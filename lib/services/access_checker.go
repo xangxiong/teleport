@@ -204,25 +204,6 @@ func (a *accessChecker) CheckAccess(r AccessCheckable, mfa AccessMFAParams, matc
 	return trace.Wrap(a.RoleSet.checkAccess(r, mfa, matchers...))
 }
 
-// GetAllowedResourceIDs returns the list of allowed resources the identity for
-// the AccessChecker is allowed to access. An empty or nil list indicates that
-// there are no resource-specific restrictions.
-func (a *accessChecker) GetAllowedResourceIDs() []types.ResourceID {
-	return a.info.AllowedResourceIDs
-}
-
-// GetSearchAsRoles returns the list of roles which the AccessChecker should be
-// able to "assume" while searching for resources, and should be able to request
-// with a search-based access request.
-func (a *accessChecker) GetSearchAsRoles() []string {
-	if len(a.info.AllowedResourceIDs) > 0 {
-		// cannot search with extended roles while already logged in the
-		// search-based access request.
-		return nil
-	}
-	return a.RoleSet.GetSearchAsRoles()
-}
-
 // AccessInfoFromLocalCertificate returns a new AccessInfo populated from the
 // given ssh certificate. Should only be used for cluster local users as roles
 // will not be mapped.
@@ -337,17 +318,4 @@ func AccessInfoFromRemoteIdentity(identity tlsca.Identity, roleMap types.RoleMap
 		Traits:             traits,
 		AllowedResourceIDs: allowedResourceIDs,
 	}, nil
-}
-
-// AccessInfoFromUser return a new AccessInfo populated from the roles and
-// traits held be the given user. This should only be used in cases where the
-// user does not have any active access requests (initial web login, initial
-// tbot certs, tests).
-func AccessInfoFromUser(user types.User) *AccessInfo {
-	roles := user.GetRoles()
-	traits := user.GetTraits()
-	return &AccessInfo{
-		Roles:  roles,
-		Traits: traits,
-	}
 }
