@@ -21,17 +21,12 @@ package defaults
 import (
 	"crypto/tls"
 	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
-	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/lib/limiter"
 	"github.com/gravitational/teleport/lib/utils"
-	"github.com/jonboulle/clockwork"
 
-	"github.com/gravitational/trace"
 	"gopkg.in/square/go-jose.v2"
 )
 
@@ -406,11 +401,6 @@ const (
 const (
 	// RoleNode is SSH stateless node
 	RoleNode = "node"
-	// RoleProxy is a stateless SSH access proxy (bastion)
-	RoleProxy = "proxy"
-	// RoleAuthService is authentication and authorization service,
-	// the only stateful role in the system
-	RoleAuthService = "auth"
 )
 
 const (
@@ -429,11 +419,11 @@ const (
 
 var (
 	// ConfigFilePath is default path to teleport config file
-	ConfigFilePath = "/etc/teleport.yaml"
+	ConfigFilePath = "/tmp/teleport.yaml"
 
 	// DataDir is where all mutable data is stored (user keys, recorded sessions,
 	// registered SSH servers, etc):
-	DataDir = "/var/lib/teleport"
+	DataDir = "/tmp/teleport"
 
 	// // StartRoles is default roles teleport assumes when started via 'start' command
 	StartRoles = []string{RoleNode}
@@ -451,8 +441,8 @@ var (
 	// CACertFile is the default name of the certificate authority file to watch
 	CACertFile = "ca.cert"
 
-	// Krb5FilePath is the default location of Kerberos configuration file.
-	Krb5FilePath = "/etc/krb5.conf"
+	// // Krb5FilePath is the default location of Kerberos configuration file.
+	// Krb5FilePath = "/etc/krb5.conf"
 )
 
 const (
@@ -482,15 +472,15 @@ const (
 	LookaheadBufSize = 32 * 1024
 )
 
-// TLS constants for Web Proxy HTTPS connection
-const (
-	// path to a self-signed TLS PRIVATE key file for HTTPS connection for the web proxy
-	SelfSignedKeyPath = "webproxy_key.pem"
-	// path to a self-signed TLS PUBLIC key file for HTTPS connection for the web proxy
-	SelfSignedPubPath = "webproxy_pub.pem"
-	// path to a self-signed TLS cert file for HTTPS connection for the web proxy
-	SelfSignedCertPath = "webproxy_cert.pem"
-)
+// // TLS constants for Web Proxy HTTPS connection
+// const (
+// 	// path to a self-signed TLS PRIVATE key file for HTTPS connection for the web proxy
+// 	SelfSignedKeyPath = "webproxy_key.pem"
+// 	// path to a self-signed TLS PUBLIC key file for HTTPS connection for the web proxy
+// 	SelfSignedPubPath = "webproxy_pub.pem"
+// 	// path to a self-signed TLS cert file for HTTPS connection for the web proxy
+// 	SelfSignedCertPath = "webproxy_cert.pem"
+// )
 
 // ConfigureLimiter assigns the default parameters to a connection throttler (AKA limiter)
 func ConfigureLimiter(lc *limiter.Config) {
@@ -508,15 +498,15 @@ func AuthConnectAddr() *utils.NetAddr {
 	return makeAddr("127.0.0.1", AuthListenPort)
 }
 
-// ProxyListenAddr returns the default listening address for the SSH Proxy service
-func ProxyListenAddr() *utils.NetAddr {
-	return makeAddr(BindIP, SSHProxyListenPort)
-}
+// // ProxyListenAddr returns the default listening address for the SSH Proxy service
+// func ProxyListenAddr() *utils.NetAddr {
+// 	return makeAddr(BindIP, SSHProxyListenPort)
+// }
 
-// ProxyWebListenAddr returns the default listening address for the Web-based SSH Proxy service
-func ProxyWebListenAddr() *utils.NetAddr {
-	return makeAddr(BindIP, HTTPListenPort)
-}
+// // ProxyWebListenAddr returns the default listening address for the Web-based SSH Proxy service
+// func ProxyWebListenAddr() *utils.NetAddr {
+// 	return makeAddr(BindIP, HTTPListenPort)
+// }
 
 // SSHServerListenAddr returns the default listening address for the Web-based SSH Proxy service
 func SSHServerListenAddr() *utils.NetAddr {
@@ -530,9 +520,9 @@ func ReverseTunnelListenAddr() *utils.NetAddr {
 	return makeAddr(BindIP, SSHProxyTunnelListenPort)
 }
 
-func ProxyPeeringListenAddr() *utils.NetAddr {
-	return makeAddr(BindIP, ProxyPeeringListenPort)
-}
+// func ProxyPeeringListenAddr() *utils.NetAddr {
+// 	return makeAddr(BindIP, ProxyPeeringListenPort)
+// }
 
 func makeAddr(host string, port int16) *utils.NetAddr {
 	addrSpec := fmt.Sprintf("tcp://%s:%d", host, port)
@@ -628,87 +618,87 @@ var (
 	}
 )
 
-// CheckPasswordLimiter creates a rate limit that can be used to slow down
-// requests that come to the check password endpoint.
-func CheckPasswordLimiter() *limiter.Limiter {
-	limiter, err := limiter.NewLimiter(limiter.Config{
-		MaxConnections:   LimiterMaxConnections,
-		MaxNumberOfUsers: LimiterMaxConcurrentUsers,
-		Rates: []limiter.Rate{
-			{
-				Period:  1 * time.Second,
-				Average: 10,
-				Burst:   10,
-			},
-		},
-	})
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create limiter: %v.", err))
-	}
-	return limiter
-}
+// // CheckPasswordLimiter creates a rate limit that can be used to slow down
+// // requests that come to the check password endpoint.
+// func CheckPasswordLimiter() *limiter.Limiter {
+// 	limiter, err := limiter.NewLimiter(limiter.Config{
+// 		MaxConnections:   LimiterMaxConnections,
+// 		MaxNumberOfUsers: LimiterMaxConcurrentUsers,
+// 		Rates: []limiter.Rate{
+// 			{
+// 				Period:  1 * time.Second,
+// 				Average: 10,
+// 				Burst:   10,
+// 			},
+// 		},
+// 	})
+// 	if err != nil {
+// 		panic(fmt.Sprintf("Failed to create limiter: %v.", err))
+// 	}
+// 	return limiter
+// }
 
-// Transport returns a new http.RoundTripper with sensible defaults.
-func Transport() (*http.Transport, error) {
-	// Clone the default transport to pick up sensible defaults.
-	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
-	if !ok {
-		return nil, trace.BadParameter("invalid transport type %T", http.DefaultTransport)
-	}
-	tr := defaultTransport.Clone()
+// // Transport returns a new http.RoundTripper with sensible defaults.
+// func Transport() (*http.Transport, error) {
+// 	// Clone the default transport to pick up sensible defaults.
+// 	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+// 	if !ok {
+// 		return nil, trace.BadParameter("invalid transport type %T", http.DefaultTransport)
+// 	}
+// 	tr := defaultTransport.Clone()
 
-	// Increase the size of the transport's connection pool. This substantially
-	// improves the performance of Teleport under load as it reduces the number
-	// of TLS handshakes performed.
-	tr.MaxIdleConns = HTTPMaxIdleConns
-	tr.MaxIdleConnsPerHost = HTTPMaxIdleConnsPerHost
+// 	// Increase the size of the transport's connection pool. This substantially
+// 	// improves the performance of Teleport under load as it reduces the number
+// 	// of TLS handshakes performed.
+// 	tr.MaxIdleConns = HTTPMaxIdleConns
+// 	tr.MaxIdleConnsPerHost = HTTPMaxIdleConnsPerHost
 
-	// Set IdleConnTimeout on the transport. This defines the maximum amount of
-	// time before idle connections are closed. Leaving this unset will lead to
-	// connections open forever and will cause memory leaks in a long-running
-	// process.
-	tr.IdleConnTimeout = HTTPIdleTimeout
+// 	// Set IdleConnTimeout on the transport. This defines the maximum amount of
+// 	// time before idle connections are closed. Leaving this unset will lead to
+// 	// connections open forever and will cause memory leaks in a long-running
+// 	// process.
+// 	tr.IdleConnTimeout = HTTPIdleTimeout
 
-	return tr, nil
-}
+// 	return tr, nil
+// }
 
-const (
-	// TeleportConfigVersionV1 is the teleport proxy configuration v1 version.
-	TeleportConfigVersionV1 string = "v1"
-	// TeleportConfigVersionV2 is the teleport proxy configuration v2 version.
-	TeleportConfigVersionV2 string = "v2"
-)
+// const (
+// 	// TeleportConfigVersionV1 is the teleport proxy configuration v1 version.
+// 	TeleportConfigVersionV1 string = "v1"
+// 	// TeleportConfigVersionV2 is the teleport proxy configuration v2 version.
+// 	TeleportConfigVersionV2 string = "v2"
+// )
 
-// Default values for tsh and tctl commands.
-const (
-	TshTctlSessionListLimit = "50"
-	TshTctlSessionDayLimit  = 365
-)
+// // Default values for tsh and tctl commands.
+// const (
+// 	TshTctlSessionListLimit = "50"
+// 	TshTctlSessionDayLimit  = 365
+// )
 
-// DefaultFormats is the default set of formats to use for commands that have the --format flag.
-var DefaultFormats = []string{teleport.Text, teleport.JSON, teleport.YAML}
+// // DefaultFormats is the default set of formats to use for commands that have the --format flag.
+// var DefaultFormats = []string{teleport.Text, teleport.JSON, teleport.YAML}
 
-// FormatFlagDescription creates the description for the --format flag.
-func FormatFlagDescription(formats ...string) string {
-	return fmt.Sprintf("Format output (%s)", strings.Join(formats, ", "))
-}
+// // FormatFlagDescription creates the description for the --format flag.
+// func FormatFlagDescription(formats ...string) string {
+// 	return fmt.Sprintf("Format output (%s)", strings.Join(formats, ", "))
+// }
 
-func SearchSessionRange(clock clockwork.Clock, fromUTC, toUTC string) (from time.Time, to time.Time, err error) {
-	from = clock.Now().Add(time.Hour * -24)
-	to = clock.Now()
-	if fromUTC != "" {
-		from, err = time.Parse(time.RFC3339, fromUTC)
-		if err != nil {
-			return time.Time{}, time.Time{},
-				trace.BadParameter("failed to parse session recording listing start time: expected format %s, got %s.", time.RFC3339, fromUTC)
-		}
-	}
-	if toUTC != "" {
-		to, err = time.Parse(time.RFC3339, toUTC)
-		if err != nil {
-			return time.Time{}, time.Time{},
-				trace.BadParameter("failed to parse session recording listing end time: expected format %s, got %s.", time.RFC3339, toUTC)
-		}
-	}
-	return from, to, nil
-}
+// func SearchSessionRange(clock clockwork.Clock, fromUTC, toUTC string) (from time.Time, to time.Time, err error) {
+// 	from = clock.Now().Add(time.Hour * -24)
+// 	to = clock.Now()
+// 	if fromUTC != "" {
+// 		from, err = time.Parse(time.RFC3339, fromUTC)
+// 		if err != nil {
+// 			return time.Time{}, time.Time{},
+// 				trace.BadParameter("failed to parse session recording listing start time: expected format %s, got %s.", time.RFC3339, fromUTC)
+// 		}
+// 	}
+// 	if toUTC != "" {
+// 		to, err = time.Parse(time.RFC3339, toUTC)
+// 		if err != nil {
+// 			return time.Time{}, time.Time{},
+// 				trace.BadParameter("failed to parse session recording listing end time: expected format %s, got %s.", time.RFC3339, toUTC)
+// 		}
+// 	}
+// 	return from, to, nil
+// }

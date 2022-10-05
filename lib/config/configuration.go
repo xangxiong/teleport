@@ -316,9 +316,7 @@ func replaceHost(addr *utils.NetAddr, newHost string) {
 func validateRoles(roles string) error {
 	for _, role := range splitRoles(roles) {
 		switch role {
-		case defaults.RoleAuthService,
-			defaults.RoleNode,
-			defaults.RoleProxy:
+		case defaults.RoleNode:
 		default:
 			return trace.Errorf("unknown role: '%s'", role)
 		}
