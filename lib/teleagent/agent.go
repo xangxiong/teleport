@@ -40,19 +40,19 @@ type Agent interface {
 	io.Closer
 }
 
-// nopCloser wraps an agent.Agent in the extended
-// Agent interface by adding a NOP closer.
-type nopCloser struct {
-	agent.Agent
-}
+// // nopCloser wraps an agent.Agent in the extended
+// // Agent interface by adding a NOP closer.
+// type nopCloser struct {
+// 	agent.Agent
+// }
 
-func (n nopCloser) Close() error { return nil }
+// func (n nopCloser) Close() error { return nil }
 
-// NopCloser wraps an agent.Agent with a NOP closer, allowing it
-// to be passed to APIs which expect the extended agent interface.
-func NopCloser(std agent.Agent) Agent {
-	return nopCloser{std}
-}
+// // NopCloser wraps an agent.Agent with a NOP closer, allowing it
+// // to be passed to APIs which expect the extended agent interface.
+// func NopCloser(std agent.Agent) Agent {
+// 	return nopCloser{std}
+// }
 
 // Getter is a function used to get an agent instance.
 type Getter func() (Agent, error)
@@ -146,10 +146,10 @@ func (a *AgentServer) updatePermissions(user *user.User) error {
 	return nil
 }
 
-// SetTestPermissions can be used by tests to test agent socket permissions.
-func (a *AgentServer) SetTestPermissions(testPermissions func()) {
-	a.testPermissions = testPermissions
-}
+// // SetTestPermissions can be used by tests to test agent socket permissions.
+// func (a *AgentServer) SetTestPermissions(testPermissions func()) {
+// 	a.testPermissions = testPermissions
+// }
 
 // Serve starts serving on the listener, assumes that Listen was called before
 func (a *AgentServer) Serve() error {
@@ -205,15 +205,15 @@ func (a *AgentServer) Serve() error {
 	}
 }
 
-// ListenAndServe is similar http.ListenAndServe
-func (a *AgentServer) ListenAndServe(addr utils.NetAddr) error {
-	l, err := net.Listen(addr.AddrNetwork, addr.Addr)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	a.listener = l
-	return a.Serve()
-}
+// // ListenAndServe is similar http.ListenAndServe
+// func (a *AgentServer) ListenAndServe(addr utils.NetAddr) error {
+// 	l, err := net.Listen(addr.AddrNetwork, addr.Addr)
+// 	if err != nil {
+// 		return trace.Wrap(err)
+// 	}
+// 	a.listener = l
+// 	return a.Serve()
+// }
 
 // Close closes listener and stops serving agent
 func (a *AgentServer) Close() error {
