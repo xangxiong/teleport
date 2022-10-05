@@ -1004,12 +1004,6 @@ func (set RoleSet) CheckLoginDuration(ttl time.Duration) ([]string, error) {
 	return logins, nil
 }
 
-// GetAllLogins returns all valid unix logins for the RoleSet.
-func (set RoleSet) GetAllLogins() []string {
-	logins, _ := set.GetLoginsForTTL(0)
-	return logins
-}
-
 // GetLoginsForTTL collects all logins that are valid for the given TTL.  The matchedTTL
 // value indicates whether the TTL is within scope of *any* role.  This helps to distinguish
 // between TTLs which are categorically invalid, and TTLs which are theoretically valid
@@ -1106,103 +1100,6 @@ func (set RoleSet) hasPossibleLogins() bool {
 	return false
 }
 
-// CanImpersonateSomeone returns true if this checker has any impersonation rules
-func (set RoleSet) CanImpersonateSomeone() bool {
-	for _, role := range set {
-		cond := role.GetImpersonateConditions(types.Allow)
-		if !cond.IsEmpty() {
-			return true
-		}
-	}
-	return false
-}
-
-// CheckImpersonate returns nil if this role set can impersonate
-// a user and their roles, returns AccessDenied otherwise
-// CheckImpersonate checks whether current user is allowed to impersonate
-// users and roles
-func (set RoleSet) CheckImpersonate(currentUser, impersonateUser types.User, impersonateRoles []types.Role) error {
-	ctx := &impersonateContext{
-		user:            currentUser,
-		impersonateUser: impersonateUser,
-	}
-	whereParser, err := newImpersonateWhereParser(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	// check deny: a single match on a deny rule prohibits access
-	for _, role := range set {
-		cond := role.GetImpersonateConditions(types.Deny)
-		matched, err := matchDenyImpersonateCondition(cond, impersonateUser, impersonateRoles)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if matched {
-			return trace.AccessDenied("access denied to '%s' to impersonate user '%s' and roles '%s'", currentUser.GetName(), impersonateUser.GetName(), roleNames(impersonateRoles))
-		}
-	}
-
-	// check allow: if matches, allow to impersonate
-	for _, role := range set {
-		cond := role.GetImpersonateConditions(types.Allow)
-		matched, err := matchAllowImpersonateCondition(ctx, whereParser, cond, impersonateUser, impersonateRoles)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if matched {
-			return nil
-		}
-	}
-
-	return trace.AccessDenied("access denied to '%s' to impersonate user '%s' and roles '%s'", currentUser.GetName(), impersonateUser.GetName(), roleNames(impersonateRoles))
-}
-
-// CheckImpersonateRoles validates that the current user can perform role-only impersonation
-// of the given roles. Role-only impersonation requires an allow rule with
-// roles but no users (and no user-less deny rules). All requested roles must
-// be allowed for the check to succeed.
-func (set RoleSet) CheckImpersonateRoles(currentUser types.User, impersonateRoles []types.Role) error {
-	ctx := &impersonateContext{
-		user: currentUser,
-	}
-	whereParser, err := newImpersonateWhereParser(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// TODO: Unlike regular impersonation where all requested roles must be
-	// granted by a single impersonation role, it would be reasonable to
-	// request several roles whose `allow` conditions are split between
-	// several roles. Our initial use-case doesn't require this, so for now
-	// we'll assume all requested roles must be granted by a single `allow`.
-
-	// check deny: a single match on a deny rule prohibits access
-	for _, role := range set {
-		cond := role.GetImpersonateConditions(types.Deny)
-		matched, err := matchDenyRoleImpersonateCondition(cond, impersonateRoles)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if matched {
-			return trace.AccessDenied("access denied to '%s' to impersonate roles '%s'", currentUser.GetName(), roleNames(impersonateRoles))
-		}
-	}
-
-	// check allow: if any one Role satisfies all the role requests, allow impersonation
-	for _, role := range set {
-		cond := role.GetImpersonateConditions(types.Allow)
-		matched, err := matchAllowRoleImpersonateCondition(ctx, whereParser, cond, impersonateRoles)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if matched {
-			return nil
-		}
-	}
-
-	return trace.AccessDenied("access denied to '%s' to impersonate roles '%s'", currentUser.GetName(), roleNames(impersonateRoles))
-}
-
 // LockingMode returns the locking mode to apply with this RoleSet.
 func (set RoleSet) LockingMode(defaultMode constants.LockingMode) constants.LockingMode {
 	mode := defaultMode
@@ -1216,15 +1113,6 @@ func (set RoleSet) LockingMode(defaultMode constants.LockingMode) constants.Lock
 		}
 	}
 	return mode
-}
-
-// CertificateExtensions returns the list of extensions for each role in the RoleSet
-func (set RoleSet) CertificateExtensions() []*types.CertExtension {
-	var exts []*types.CertExtension
-	for _, role := range set {
-		exts = append(exts, role.GetOptions().CertExtensions...)
-	}
-	return exts
 }
 
 // SessionRecordingMode returns the recording mode for a specific service.
@@ -1625,34 +1513,10 @@ func (set RoleSet) checkAccess(r AccessCheckable, mfa AccessMFAParams, matchers 
 		r.GetKind(), additionalDeniedMessage)
 }
 
-// CanForwardAgents returns true if role set allows forwarding agents.
-func (set RoleSet) CanForwardAgents() bool {
-	for _, role := range set {
-		if role.GetOptions().ForwardAgent.Value() {
-			return true
-		}
-	}
-	return false
-}
-
 // CanPortForward returns true if a role in the RoleSet allows port forwarding.
 func (set RoleSet) CanPortForward() bool {
 	for _, role := range set {
 		if types.BoolDefaultTrue(role.GetOptions().PortForwarding) {
-			return true
-		}
-	}
-	return false
-}
-
-// MaybeCanReviewRequests attempts to guess if this RoleSet belongs
-// to a user who should be submitting access reviews.  Because not all rolesets
-// are derived from statically assigned roles, this may return false positives.
-func (set RoleSet) MaybeCanReviewRequests() bool {
-	for _, role := range set {
-		if !role.GetAccessReviewConditions(types.Allow).IsZero() {
-			// at least one nonzero allow directive exists for
-			// review submission.
 			return true
 		}
 	}
@@ -1679,35 +1543,6 @@ func (set RoleSet) CanCopyFiles() bool {
 		}
 	}
 	return true
-}
-
-// CertificateFormat returns the most permissive certificate format in a
-// RoleSet.
-func (set RoleSet) CertificateFormat() string {
-	var formats []string
-
-	for _, role := range set {
-		// get the certificate format for each individual role. if a role does not
-		// have a certificate format (like implicit roles) skip over it
-		certificateFormat := role.GetOptions().CertificateFormat
-		if certificateFormat == "" {
-			continue
-		}
-
-		formats = append(formats, certificateFormat)
-	}
-
-	// if no formats were found, return standard
-	if len(formats) == 0 {
-		return constants.CertificateFormatStandard
-	}
-
-	// sort the slice so the most permissive is the first element
-	sort.Slice(formats, func(i, j int) bool {
-		return certificatePriority(formats[i]) < certificatePriority(formats[j])
-	})
-
-	return formats[0]
 }
 
 // EnhancedRecordingSet returns the set of enhanced session recording
@@ -1819,57 +1654,6 @@ func (set RoleSet) String() string {
 	return fmt.Sprintf("roles %v", strings.Join(roleNames, ","))
 }
 
-// GuessIfAccessIsPossible guesses if access is possible for an entire category
-// of resources.
-// It responds the question: "is it possible that there is a resource of this
-// kind that the current user can access?".
-// GuessIfAccessIsPossible is used, mainly, for UI decisions ("should the tab
-// for resource X appear"?). Most callers should use CheckAccessToRule instead.
-func (set RoleSet) GuessIfAccessIsPossible(ctx RuleContext, namespace string, resource string, verb string, silent bool) error {
-	// "Where" clause are handled differently by the method:
-	// - "allow" rules have their "where" clause always match, as it's assumed
-	//   that there could be a resource that matches it.
-	// - "deny" rules have their "where" clause always fail, as it's assumed that
-	//   there could be a resource that passes it.
-	return set.checkAccessToRuleImpl(checkAccessParams{
-		ctx:        ctx,
-		namespace:  namespace,
-		resource:   resource,
-		verb:       verb,
-		allowWhere: boolParser(true),  // always matches
-		denyWhere:  boolParser(false), // never matches
-		silent:     silent,
-	})
-}
-
-type boolParser bool
-
-func (p boolParser) Parse(string) (interface{}, error) {
-	return predicate.BoolPredicate(func() bool {
-		return bool(p)
-	}), nil
-}
-
-// CheckAccessToRule checks if the RoleSet provides access in the given
-// namespace to the specified resource and verb.
-// silent controls whether the access violations are logged.
-func (set RoleSet) CheckAccessToRule(ctx RuleContext, namespace string, resource string, verb string, silent bool) error {
-	whereParser, err := NewWhereParser(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return set.checkAccessToRuleImpl(checkAccessParams{
-		ctx:        ctx,
-		namespace:  namespace,
-		resource:   resource,
-		verb:       verb,
-		allowWhere: whereParser,
-		denyWhere:  whereParser,
-		silent:     silent,
-	})
-}
-
 type checkAccessParams struct {
 	ctx                   RuleContext
 	namespace             string
@@ -1926,111 +1710,6 @@ func (set RoleSet) checkAccessToRuleImpl(p checkAccessParams) error {
 			p.verb, p.resource, p.namespace, set)
 	}
 	return trace.AccessDenied("access denied to perform action %q on %q", p.verb, p.resource)
-}
-
-// ExtractConditionForIdentifier returns a restrictive filter expression
-// for list queries based on the rules' `where` conditions.
-func (set RoleSet) ExtractConditionForIdentifier(ctx RuleContext, namespace, resource, verb, identifier string) (*types.WhereExpr, error) {
-	parser, err := newParserForIdentifierSubcondition(ctx, identifier)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	parseWhere := func(rule types.Rule) (types.WhereExpr, error) {
-		if rule.Where == "" {
-			return types.WhereExpr{Literal: true}, nil
-		}
-		out, err := parser.Parse(rule.Where)
-		if err != nil {
-			return types.WhereExpr{}, trace.Wrap(err)
-		}
-		expr, ok := out.(types.WhereExpr)
-		if !ok {
-			return types.WhereExpr{}, trace.BadParameter("invalid type %T when extracting identifier subcondition from %q", out, rule.Where)
-		}
-		return expr, nil
-	}
-
-	// Gather identifier-related subconditions from the deny rules
-	// and concatenate their negations by AND.
-	var denyCond *types.WhereExpr
-	for _, role := range set {
-		matchNamespace, _ := MatchNamespace(role.GetNamespaces(types.Deny), types.ProcessNamespace(namespace))
-		if !matchNamespace {
-			continue
-		}
-		rules := MakeRuleSet(role.GetRules(types.Deny))
-		for _, rule := range rules[resource] {
-			if !rule.HasVerb(verb) && !rule.HasVerb(types.Wildcard) {
-				continue
-			}
-			expr, err := parseWhere(rule)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			if b, ok := expr.Literal.(bool); ok {
-				if b {
-					return nil, trace.AccessDenied("access denied to perform action %q on %q", verb, resource)
-				}
-				continue
-			}
-			negated := types.WhereExpr{Not: &expr}
-			if denyCond == nil {
-				denyCond = &negated
-			} else {
-				denyCond = &types.WhereExpr{And: types.WhereExpr2{L: denyCond, R: &negated}}
-			}
-		}
-	}
-
-	// Gather identifier-related subconditions from the allow rules
-	// and concatenate by OR.
-	var allowCond *types.WhereExpr
-	for _, role := range set {
-		matchNamespace, _ := MatchNamespace(role.GetNamespaces(types.Allow), types.ProcessNamespace(namespace))
-		if !matchNamespace {
-			continue
-		}
-		rules := MakeRuleSet(role.GetRules(types.Allow))
-		for _, rule := range rules[resource] {
-			if !rule.HasVerb(verb) && !rule.HasVerb(types.Wildcard) {
-				continue
-			}
-			expr, err := parseWhere(rule)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			if b, ok := expr.Literal.(bool); ok {
-				if b {
-					return denyCond, nil
-				}
-				continue
-			}
-			if allowCond == nil {
-				allowCond = &expr
-			} else {
-				allowCond = &types.WhereExpr{Or: types.WhereExpr2{L: allowCond, R: &expr}}
-			}
-		}
-	}
-
-	if denyCond == nil {
-		if allowCond == nil {
-			return nil, trace.AccessDenied("access denied to perform action %q on %q", verb, resource)
-		}
-		return allowCond, nil
-	}
-	return &types.WhereExpr{And: types.WhereExpr2{L: denyCond, R: allowCond}}, nil
-}
-
-// GetSearchAsRoles returns the list of roles which the RoleSet should be able
-// to "assume" while searching for resources, and should be able to request with
-// a search-based access request.
-func (set RoleSet) GetSearchAsRoles() []string {
-	var searchAsRoles []string
-	for _, role := range set {
-		searchAsRoles = append(searchAsRoles, role.GetSearchAsRoles()...)
-	}
-	return apiutils.Deduplicate(searchAsRoles)
 }
 
 // AccessMFAParams contains MFA-related parameters for methods that check access.
@@ -2124,23 +1803,5 @@ func MarshalRole(role types.Role, opts ...MarshalOption) ([]byte, error) {
 		return utils.FastMarshal(role)
 	default:
 		return nil, trace.BadParameter("unrecognized role version %T", role)
-	}
-}
-
-// DowngradeToV4 converts a V5 role to V4 so that it will be compatible with
-// older instances. Makes a shallow copy if the conversion is necessary. The
-// passed in role will not be mutated.
-// DELETE IN 10.0.0
-func DowngradeRoleToV4(r *types.RoleV5) (*types.RoleV5, error) {
-	switch r.Version {
-	case types.V3, types.V4:
-		return r, nil
-	case types.V5:
-		var downgraded types.RoleV5
-		downgraded = *r
-		downgraded.Version = types.V4
-		return &downgraded, nil
-	default:
-		return nil, trace.BadParameter("unrecognized role version %T", r.Version)
 	}
 }
