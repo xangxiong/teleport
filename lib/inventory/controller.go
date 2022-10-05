@@ -78,18 +78,6 @@ func (options *controllerOptions) SetDefaults() {
 
 type ControllerOption func(c *controllerOptions)
 
-func withServerKeepAlive(d time.Duration) ControllerOption {
-	return func(opts *controllerOptions) {
-		opts.serverKeepAlive = d
-	}
-}
-
-func withTestEventsChannel(ch chan testEvent) ControllerOption {
-	return func(opts *controllerOptions) {
-		opts.testEvents = ch
-	}
-}
-
 // Controller manages the inventory control streams registered with a given auth instance. Incoming
 // messages are processed by invoking the appropriate methods on the Auth interface.
 type Controller struct {
