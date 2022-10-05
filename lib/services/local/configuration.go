@@ -23,7 +23,6 @@ import (
 
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/teleport/lib/modules"
 	"github.com/gravitational/teleport/lib/services"
 )
 
@@ -77,33 +76,6 @@ func (s *ClusterConfigurationService) GetAuthPreference(ctx context.Context) (ty
 	}
 	return services.UnmarshalAuthPreference(item.Value,
 		services.WithResourceID(item.ID), services.WithExpires(item.Expires))
-}
-
-// SetAuthPreference sets the cluster authentication preferences
-// on the backend.
-func (s *ClusterConfigurationService) SetAuthPreference(ctx context.Context, preferences types.AuthPreference) error {
-	// Perform the modules-provided checks.
-	if err := modules.ValidateResource(preferences); err != nil {
-		return trace.Wrap(err)
-	}
-
-	value, err := services.MarshalAuthPreference(preferences)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	item := backend.Item{
-		Key:   backend.Key(authPrefix, preferencePrefix, generalPrefix),
-		Value: value,
-		ID:    preferences.GetResourceID(),
-	}
-
-	_, err = s.Put(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
 }
 
 // GetClusterNetworkingConfig gets cluster networking config from the backend.
