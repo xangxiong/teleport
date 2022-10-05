@@ -313,62 +313,6 @@ func NewServer(cfg Config) (Server, error) {
 	return srv, nil
 }
 
-func remoteClustersMap(rc []types.RemoteCluster) map[string]types.RemoteCluster {
-	out := make(map[string]types.RemoteCluster)
-	for i := range rc {
-		out[rc[i].GetName()] = rc[i]
-	}
-	return out
-}
-
-// disconnectClusters disconnects reverse tunnel connections from remote clusters
-// that were deleted from the local cluster side and cleans up in memory objects.
-// In this case all local trust has been deleted, so all the tunnel connections have to be dropped.
-func (s *server) disconnectClusters() error {
-	connectedRemoteClusters := s.getRemoteClusters()
-	if len(connectedRemoteClusters) == 0 {
-		return nil
-	}
-	remoteClusters, err := s.localAuthClient.GetRemoteClusters()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	remoteMap := remoteClustersMap(remoteClusters)
-	for _, cluster := range connectedRemoteClusters {
-		if _, ok := remoteMap[cluster.GetName()]; !ok {
-			s.log.Infof("Remote cluster %q has been deleted. Disconnecting it from the proxy.", cluster.GetName())
-			if err := s.onSiteTunnelClose(&alwaysClose{RemoteSite: cluster}); err != nil {
-				s.log.Debugf("Failure closing cluster %q: %v.", cluster.GetName(), err)
-			}
-		}
-	}
-	return nil
-}
-
-func (s *server) diffConns(newConns, existingConns map[string]types.TunnelConnection) (map[string]types.TunnelConnection, map[string]types.TunnelConnection, []types.TunnelConnection) {
-	connsToAdd := make(map[string]types.TunnelConnection)
-	connsToUpdate := make(map[string]types.TunnelConnection)
-	var connsToRemove []types.TunnelConnection
-
-	for existingKey := range existingConns {
-		conn := existingConns[existingKey]
-		if _, ok := newConns[existingKey]; !ok { // tunnel was removed
-			connsToRemove = append(connsToRemove, conn)
-		}
-	}
-
-	for newKey := range newConns {
-		conn := newConns[newKey]
-		if _, ok := existingConns[newKey]; !ok { // tunnel was added
-			connsToAdd[newKey] = conn
-		} else {
-			connsToUpdate[newKey] = conn
-		}
-	}
-
-	return connsToAdd, connsToUpdate, connsToRemove
-}
-
 func (s *server) Wait() {
 	s.srv.Wait(context.TODO())
 }
@@ -738,13 +682,13 @@ func (s *server) GetSites() ([]RemoteSite, error) {
 	return out, nil
 }
 
-func (s *server) getRemoteClusters() []*remoteSite {
-	s.RLock()
-	defer s.RUnlock()
-	out := make([]*remoteSite, len(s.remoteSites))
-	copy(out, s.remoteSites)
-	return out
-}
+// func (s *server) getRemoteClusters() []*remoteSite {
+// 	s.RLock()
+// 	defer s.RUnlock()
+// 	out := make([]*remoteSite, len(s.remoteSites))
+// 	copy(out, s.remoteSites)
+// 	return out
+// }
 
 // GetSite returns a RemoteSite. The first attempt is to find and return a
 // remote site and that is what is returned if a remote agent has
@@ -812,17 +756,17 @@ func (s *server) onSiteTunnelClose(site siteCloser) error {
 	return trace.NotFound("site %q is not found", site.GetName())
 }
 
-// fanOutProxies is a non-blocking call that updated the watches proxies
-// list and notifies all clusters about the proxy list change
-func (s *server) fanOutProxies(proxies []types.Server) {
-	s.Lock()
-	defer s.Unlock()
-	s.localSite.fanOutProxies(proxies)
+// // fanOutProxies is a non-blocking call that updated the watches proxies
+// // list and notifies all clusters about the proxy list change
+// func (s *server) fanOutProxies(proxies []types.Server) {
+// 	s.Lock()
+// 	defer s.Unlock()
+// 	s.localSite.fanOutProxies(proxies)
 
-	for _, cluster := range s.remoteSites {
-		cluster.fanOutProxies(proxies)
-	}
-}
+// 	for _, cluster := range s.remoteSites {
+// 		cluster.fanOutProxies(proxies)
+// 	}
+// }
 
 func (s *server) rejectRequest(ch ssh.NewChannel, reason ssh.RejectionReason, msg string) {
 	if err := ch.Reject(reason, msg); err != nil {
