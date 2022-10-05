@@ -26,7 +26,6 @@ import (
 	"github.com/gravitational/teleport"
 	apidefaults "github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/api/utils/sshutils"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/proxy"
@@ -40,9 +39,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
-
-// periodicFunctionInterval is the interval at which periodic stats are calculated.
-var periodicFunctionInterval = 3 * time.Minute
 
 func newlocalSite(srv *server, domainName string, authServers []string) (*localSite, error) {
 	// instantiate a cache of host certificates for the forwarding server. the
@@ -73,8 +69,8 @@ func newlocalSite(srv *server, domainName string, authServers []string) (*localS
 		peerClient:       srv.PeerClient,
 	}
 
-	// Start periodic functions for the local cluster in the background.
-	go s.periodicFunctions()
+	// // Start periodic functions for the local cluster in the background.
+	// go s.periodicFunctions()
 
 	return s, nil
 }
@@ -582,68 +578,4 @@ func (s *localSite) chanTransportConn(rconn *remoteConn, dreq *sshutils.DialReq)
 	}
 
 	return conn, nil
-}
-
-// periodicFunctions runs functions periodic functions for the local cluster.
-func (s *localSite) periodicFunctions() {
-	ticker := time.NewTicker(periodicFunctionInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-s.srv.ctx.Done():
-			return
-		case <-ticker.C:
-			if err := s.sshTunnelStats(); err != nil {
-				s.log.Warningf("Failed to report SSH tunnel statistics for: %v: %v.", s.domainName, err)
-			}
-		}
-	}
-}
-
-// sshTunnelStats reports SSH tunnel statistics for the cluster.
-func (s *localSite) sshTunnelStats() error {
-	missing := s.srv.NodeWatcher.GetNodes(func(server services.Node) bool {
-		// Skip over any servers that that have a TTL larger than announce TTL (10
-		// minutes) and are non-IoT SSH servers (they won't have tunnels).
-		//
-		// Servers with a TTL larger than the announce TTL skipped over to work around
-		// an issue with DynamoDB where objects can hang around for 48 hours after
-		// their TTL value.
-		ttl := s.clock.Now().Add(-1 * apidefaults.ServerAnnounceTTL)
-		if server.Expiry().Before(ttl) {
-			return false
-		}
-		if !server.GetUseTunnel() {
-			return false
-		}
-
-		ids := server.GetProxyIDs()
-
-		// In proxy peering mode, a node is expected to be connected to the
-		// current proxy if the proxy id is present. A node is expected to be
-		// connected to all proxies if no proxy ids are present.
-		if s.peerClient != nil && len(ids) != 0 && !apiutils.SliceContainsStr(ids, s.srv.ID) {
-			return false
-		}
-
-		// Check if the tunnel actually exists.
-		_, err := s.getRemoteConn(&sshutils.DialReq{
-			ServerID: fmt.Sprintf("%v.%v", server.GetName(), s.domainName),
-			ConnType: types.NodeTunnel,
-		})
-
-		return err != nil
-	})
-
-	if len(missing) > 0 {
-		// Don't show all the missing nodes, thousands could be missing, just show
-		// the first 10.
-		n := len(missing)
-		if n > 10 {
-			n = 10
-		}
-		log.Debugf("Cluster %v is missing %v tunnels. A small number of missing tunnels is normal, for example, a node could have just been shut down, the proxy restarted, etc. However, if this error persists with an elevated number of missing tunnels, it often indicates nodes can not discover all registered proxies. Check that all of your proxies are behind a load balancer and the load balancer is using a round robin strategy. Some of the missing hosts: %v.", s.domainName, len(missing), missing[:n])
-	}
-	return nil
 }
