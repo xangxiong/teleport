@@ -55,20 +55,6 @@ func (s *DynamicAccessService) GetAccessRequest(ctx context.Context, name string
 	return req, nil
 }
 
-// GetPluginData loads all plugin data matching the supplied filter.
-func (s *DynamicAccessService) GetPluginData(ctx context.Context, filter types.PluginDataFilter) ([]types.PluginData, error) {
-	switch filter.Kind {
-	case types.KindAccessRequest:
-		data, err := s.getAccessRequestPluginData(ctx, filter)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return data, nil
-	default:
-		return nil, trace.BadParameter("unsupported resource kind %q", filter.Kind)
-	}
-}
-
 func (s *DynamicAccessService) getAccessRequestPluginData(ctx context.Context, filter types.PluginDataFilter) ([]types.PluginData, error) {
 	// Filters which specify Resource are a special case since they will match exactly zero or one
 	// possible PluginData instances.

@@ -83,8 +83,6 @@ func (r *RequestIDs) IsEmpty() bool {
 
 // DynamicAccessCore is the core functionality common to all DynamicAccess implementations.
 type DynamicAccessCore interface {
-	// GetPluginData loads all plugin data matching the supplied filter.
-	GetPluginData(ctx context.Context, filter types.PluginDataFilter) ([]types.PluginData, error)
 	// UpdatePluginData updates a per-resource PluginData entry.
 	UpdatePluginData(ctx context.Context, params types.PluginDataUpdateParams) error
 }
