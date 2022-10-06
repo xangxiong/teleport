@@ -380,49 +380,6 @@ func (c *Cache) Close() error {
 	return nil
 }
 
-type getCertAuthorityCacheKey struct {
-	id types.CertAuthID
-}
-
-var _ map[getCertAuthorityCacheKey]struct{} // compile-time hashability check
-
-// GetCertAuthority returns certificate authority by given id. Parameter loadSigningKeys
-// controls if signing keys are loaded
-func (c *Cache) GetCertAuthority(ctx context.Context, id types.CertAuthID, loadSigningKeys bool, opts ...services.MarshalOption) (types.CertAuthority, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-
-	if !rg.IsCacheRead() && !loadSigningKeys {
-		ta := func(_ types.CertAuthority) {} // compile-time type assertion
-		ci, err := c.fnCache.Get(ctx, getCertAuthorityCacheKey{id}, func(ctx context.Context) (interface{}, error) {
-			ca, err := rg.trust.GetCertAuthority(ctx, id, loadSigningKeys, opts...)
-			ta(ca)
-			return ca, err
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		cachedCA := ci.(types.CertAuthority)
-		ta(cachedCA)
-		return cachedCA.Clone(), nil
-	}
-
-	ca, err := rg.trust.GetCertAuthority(ctx, id, loadSigningKeys, opts...)
-	if trace.IsNotFound(err) && rg.IsCacheRead() {
-		// release read lock early
-		rg.Release()
-		// fallback is sane because method is never used
-		// in construction of derivative caches.
-		if ca, err := c.Config.Trust.GetCertAuthority(ctx, id, loadSigningKeys, opts...); err == nil {
-			return ca, nil
-		}
-	}
-	return ca, trace.Wrap(err)
-}
-
 type getCertAuthoritiesCacheKey struct {
 	caType types.CertAuthType
 }
@@ -456,47 +413,6 @@ func (c *Cache) GetCertAuthorities(ctx context.Context, caType types.CertAuthTyp
 		return cas, nil
 	}
 	return rg.trust.GetCertAuthorities(ctx, caType, loadSigningKeys, opts...)
-}
-
-// GetStaticTokens gets the list of static tokens used to provision nodes.
-func (c *Cache) GetStaticTokens() (types.StaticTokens, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.clusterConfig.GetStaticTokens()
-}
-
-// GetTokens returns all active (non-expired) provisioning tokens
-func (c *Cache) GetTokens(ctx context.Context) ([]types.ProvisionToken, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.provisioner.GetTokens(ctx)
-}
-
-// GetToken finds and returns token by ID
-func (c *Cache) GetToken(ctx context.Context, name string) (types.ProvisionToken, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-
-	token, err := rg.provisioner.GetToken(ctx, name)
-	if trace.IsNotFound(err) && rg.IsCacheRead() {
-		// release read lock early
-		rg.Release()
-		// fallback is sane because method is never used
-		// in construction of derivative caches.
-		if token, err := c.Config.Provisioner.GetToken(ctx, name); err == nil {
-			return token, nil
-		}
-	}
-	return token, trace.Wrap(err)
 }
 
 type clusterConfigCacheKey struct {
@@ -594,116 +510,6 @@ func (c *Cache) GetNamespace(name string) (*types.Namespace, error) {
 	return rg.presence.GetNamespace(name)
 }
 
-type getNodesCacheKey struct {
-	namespace string
-}
-
-var _ map[getNodesCacheKey]struct{} // compile-time hashability check
-
-// GetNodes is a part of auth.Cache implementation
-func (c *Cache) GetNodes(ctx context.Context, namespace string) ([]types.Server, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-
-	if !rg.IsCacheRead() {
-		cachedNodes, err := c.getNodesWithTTLCache(ctx, rg, namespace)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		nodes := make([]types.Server, 0, len(cachedNodes))
-		for _, node := range cachedNodes {
-			nodes = append(nodes, node.DeepCopy())
-		}
-		return nodes, nil
-	}
-
-	return rg.presence.GetNodes(ctx, namespace)
-}
-
-// getNodesWithTTLCache implements TTL-based caching for the GetNodes endpoint.  All nodes that will be returned from the caching layer
-// must be cloned to avoid concurrent modification.
-func (c *Cache) getNodesWithTTLCache(ctx context.Context, rg readGuard, namespace string, opts ...services.MarshalOption) ([]types.Server, error) {
-	ta := func(_ []types.Server) {} // compile-time type assertion
-	ni, err := c.fnCache.Get(ctx, getNodesCacheKey{namespace}, func(ctx context.Context) (interface{}, error) {
-		nodes, err := rg.presence.GetNodes(ctx, namespace)
-		ta(nodes)
-		return nodes, err
-	})
-	if err != nil || ni == nil {
-		return nil, trace.Wrap(err)
-	}
-	cachedNodes, ok := ni.([]types.Server)
-	if !ok {
-		return nil, trace.Errorf("TTL-cache returned unexpexted type %T (this is a bug!).", ni)
-	}
-	ta(cachedNodes)
-	return cachedNodes, nil
-}
-
-// GetReverseTunnels is a part of auth.Cache implementation
-func (c *Cache) GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetReverseTunnels(ctx, opts...)
-}
-
-// GetProxies is a part of auth.Cache implementation
-func (c *Cache) GetProxies() ([]types.Server, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetProxies()
-}
-
-type remoteClustersCacheKey struct {
-	name string
-}
-
-var _ map[remoteClustersCacheKey]struct{} // compile-time hashability check
-
-// GetRemoteCluster returns a remote cluster by name
-func (c *Cache) GetRemoteCluster(clusterName string) (types.RemoteCluster, error) {
-	ctx := context.TODO()
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	if !rg.IsCacheRead() {
-		ta := func(_ types.RemoteCluster) {} // compile-time type assertion
-		ri, err := c.fnCache.Get(ctx, remoteClustersCacheKey{clusterName}, func(ctx context.Context) (interface{}, error) {
-			remote, err := rg.presence.GetRemoteCluster(clusterName)
-			ta(remote)
-			return remote, err
-		})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		cachedRemote := ri.(types.RemoteCluster)
-		ta(cachedRemote)
-		return cachedRemote.Clone(), nil
-	}
-	rc, err := rg.presence.GetRemoteCluster(clusterName)
-	if trace.IsNotFound(err) && rg.IsCacheRead() {
-		// release read lock early
-		rg.Release()
-		// fallback is sane because this method is never used
-		// in construction of derivative caches.
-		if rc, err := c.Config.Presence.GetRemoteCluster(clusterName); err == nil {
-			return rc, nil
-		}
-	}
-	return rc, trace.Wrap(err)
-}
-
 // GetAuthPreference gets the cluster authentication config.
 func (c *Cache) GetAuthPreference(ctx context.Context) (types.AuthPreference, error) {
 	rg, err := c.read()
@@ -712,36 +518,4 @@ func (c *Cache) GetAuthPreference(ctx context.Context) (types.AuthPreference, er
 	}
 	defer rg.Release()
 	return rg.clusterConfig.GetAuthPreference(ctx)
-}
-
-// GetLock gets a lock by name.
-func (c *Cache) GetLock(ctx context.Context, name string) (types.Lock, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-
-	lock, err := rg.access.GetLock(ctx, name)
-	if trace.IsNotFound(err) && rg.IsCacheRead() {
-		// release read lock early
-		rg.Release()
-		// fallback is sane because method is never used
-		// in construction of derivative caches.
-		if lock, err := c.Config.Access.GetLock(ctx, name); err == nil {
-			return lock, nil
-		}
-	}
-	return lock, trace.Wrap(err)
-}
-
-// GetLocks gets all/in-force locks that match at least one of the targets
-// when specified.
-func (c *Cache) GetLocks(ctx context.Context, inForceOnly bool, targets ...types.LockTarget) ([]types.Lock, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.access.GetLocks(ctx, inForceOnly, targets...)
 }
