@@ -1536,33 +1536,6 @@ func (s *Server) handleAgentForwardNode(req *ssh.Request, ctx *srv.ServerContext
 	return nil
 }
 
-// // handleAgentForwardProxy will forward the clients agent to the proxy (when
-// // the proxy is running in recording mode). When running in normal mode, this
-// // request will do nothing. To maintain interoperability, agent forwarding
-// // requests should never fail, all errors should be logged and we should
-// // continue processing requests.
-// func (s *Server) handleAgentForwardProxy(req *ssh.Request, ctx *srv.ServerContext) error {
-// 	// // Forwarding an agent to the proxy is only supported when the proxy is in
-// 	// // recording mode.
-// 	// if !services.IsRecordAtProxy(ctx.SessionRecordingConfig.GetMode()) {
-// 	// 	return trace.BadParameter("agent forwarding to proxy only supported in recording mode")
-// 	// }
-
-// 	// // Check if the user's RBAC role allows agent forwarding.
-// 	// err := s.authHandlers.CheckAgentForward(ctx)
-// 	// if err != nil {
-// 	// 	return trace.Wrap(err)
-// 	// }
-
-// 	// // Enable agent forwarding for the broader connection-level
-// 	// // context.
-// 	// ctx.Parent().SetForwardAgent(true)
-
-// 	// return nil
-
-// 	return trace.BadParameter("agent forwarding to proxy only supported in recording mode")
-// }
-
 // handleX11Forward handles an X11 forwarding request from the client.
 func (s *Server) handleX11Forward(ch ssh.Channel, req *ssh.Request, ctx *srv.ServerContext) (err error) {
 	event := &apievents.X11Forward{
@@ -1673,37 +1646,6 @@ func (s *Server) handleKeepAlive(req *ssh.Request) {
 	s.Logger.Debugf("Replied to %q", req.Type)
 }
 
-// // handleRecordingProxy responds to global out-of-band with a bool which
-// // indicates if it is in recording mode or not.
-// func (s *Server) handleRecordingProxy(req *ssh.Request) {
-// 	var recordingProxy bool
-
-// 	s.Logger.Debugf("Global request (%v, %v) received", req.Type, req.WantReply)
-
-// 	if req.WantReply {
-// 		// // get the cluster config, if we can't get it, reply false
-// 		// recConfig, err := s.authService.GetSessionRecordingConfig(s.ctx)
-// 		// if err != nil {
-// 		// 	err := req.Reply(false, nil)
-// 		// 	if err != nil {
-// 		// 		s.Logger.Warnf("Unable to respond to global request (%v, %v): %v", req.Type, req.WantReply, err)
-// 		// 	}
-// 		// 	return
-// 		// }
-
-// 		// // reply true that we were able to process the message and reply with a
-// 		// // bool if we are in recording mode or not
-// 		// recordingProxy = services.IsRecordAtProxy(recConfig.GetMode())
-// 		// err = req.Reply(true, []byte(strconv.FormatBool(recordingProxy)))
-// 		// if err != nil {
-// 		// 	s.Logger.Warnf("Unable to respond to global request (%v, %v): %v: %v", req.Type, req.WantReply, recordingProxy, err)
-// 		// 	return
-// 		// }
-// 	}
-
-// 	s.Logger.Debugf("Replied to global request (%v, %v): %v", req.Type, req.WantReply, recordingProxy)
-// }
-
 // handleVersionRequest replies with the Teleport version of the server.
 func (s *Server) handleVersionRequest(req *ssh.Request) {
 	err := req.Reply(true, []byte(teleport.Version))
@@ -1711,117 +1653,6 @@ func (s *Server) handleVersionRequest(req *ssh.Request) {
 		s.Logger.Debugf("Failed to reply to version request: %v.", err)
 	}
 }
-
-// // handleProxyJump handles ProxyJump request that is executed via direct tcp-ip dial on the proxy
-// func (s *Server) handleProxyJump(ctx context.Context, ccx *sshutils.ConnectionContext, identityContext srv.IdentityContext, ch ssh.Channel, req sshutils.DirectTCPIPReq) {
-// 	// Create context for this channel. This context will be closed when the
-// 	// session request is complete.
-// 	ctx, scx, err := srv.NewServerContext(ctx, ccx, s, identityContext)
-// 	if err != nil {
-// 		s.Logger.WithError(err).Error("Unable to create connection context.")
-// 		writeStderr(ch, "Unable to create connection context.")
-// 		if err := ch.Close(); err != nil {
-// 			s.Logger.WithError(err).Warn("Failed to close channel.")
-// 		}
-// 		return
-// 	}
-// 	scx.IsTestStub = s.isTestStub
-// 	scx.AddCloser(ch)
-// 	scx.SetAllowFileCopying(s.allowFileCopying)
-// 	defer scx.Close()
-
-// 	ch = scx.TrackActivity(ch)
-
-// 	// recConfig, err := s.GetAccessPoint().GetSessionRecordingConfig(ctx)
-// 	// if err != nil {
-// 	// 	s.Logger.Errorf("Unable to fetch session recording config: %v.", err)
-// 	// 	writeStderr(ch, "Unable to fetch session recording configuration.")
-// 	// 	return
-// 	// }
-
-// 	// force agent forward, because in recording mode proxy needs
-// 	// client's agent to authenticate to the target server
-// 	//
-// 	// When proxy is in "Recording mode" the following will happen with SSH:
-// 	//
-// 	// $ ssh -J user@teleport.proxy:3023 -p 3022 user@target -F ./forward.config
-// 	//
-// 	// Where forward.config enables agent forwarding:
-// 	//
-// 	// Host teleport.proxy
-// 	//     ForwardAgent yes
-// 	//
-// 	// This will translate to ProxyCommand:
-// 	//
-// 	// exec ssh -l user -p 3023 -F ./forward.config -vvv -W 'target:3022' teleport.proxy
-// 	//
-// 	// -W means establish direct tcp-ip, and in SSH 2.0 session implementation,
-// 	// this gets called before agent forwarding is requested:
-// 	//
-// 	// https://github.com/openssh/openssh-portable/blob/master/ssh.c#L1884
-// 	//
-// 	// so in recording mode, proxy is forced to request agent forwarding
-// 	// "out of band", before SSH client actually asks for it
-// 	// which is a hack, but the only way we can think of making it work,
-// 	// ideas are appreciated.
-// 	// if services.IsRecordAtProxy(recConfig.GetMode()) {
-// 	// 	err = s.handleAgentForwardProxy(&ssh.Request{}, scx)
-// 	// 	if err != nil {
-// 	// 		s.Logger.Warningf("Failed to request agent in recording mode: %v", err)
-// 	// 		writeStderr(ch, "Failed to request agent")
-// 	// 		return
-// 	// 	}
-// 	// }
-
-// 	netConfig, err := s.GetAccessPoint().GetClusterNetworkingConfig(ctx)
-// 	if err != nil {
-// 		s.Logger.Errorf("Unable to fetch cluster networking config: %v.", err)
-// 		writeStderr(ch, "Unable to fetch cluster networking configuration.")
-// 		return
-// 	}
-
-// 	// The keep-alive loop will keep pinging the remote server and after it has
-// 	// missed a certain number of keep-alive requests it will cancel the
-// 	// closeContext which signals the server to shutdown.
-// 	go srv.StartKeepAliveLoop(srv.KeepAliveParams{
-// 		Conns: []srv.RequestSender{
-// 			scx.ServerConn,
-// 		},
-// 		Interval:     netConfig.GetKeepAliveInterval(),
-// 		MaxCount:     netConfig.GetKeepAliveCountMax(),
-// 		CloseContext: ctx,
-// 		CloseCancel:  scx.CancelFunc(),
-// 	})
-
-// 	subsys, err := newProxySubsys(scx, s, proxySubsysRequest{
-// 		host: req.Host,
-// 		port: fmt.Sprintf("%v", req.Port),
-// 	})
-// 	if err != nil {
-// 		s.Logger.Errorf("Unable instantiate proxy subsystem: %v.", err)
-// 		writeStderr(ch, "Unable to instantiate proxy subsystem.")
-// 		return
-// 	}
-
-// 	if err := subsys.Start(ctx, scx.ServerConn, ch, &ssh.Request{}, scx); err != nil {
-// 		s.Logger.Errorf("Unable to start proxy subsystem: %v.", err)
-// 		writeStderr(ch, "Unable to start proxy subsystem.")
-// 		return
-// 	}
-
-// 	wch := make(chan struct{})
-// 	go func() {
-// 		defer close(wch)
-// 		if err := subsys.Wait(); err != nil {
-// 			s.Logger.Errorf("Proxy subsystem failed: %v.", err)
-// 			writeStderr(ch, "Proxy subsystem failed.")
-// 		}
-// 	}()
-// 	select {
-// 	case <-wch:
-// 	case <-ctx.Done():
-// 	}
-// }
 
 func (s *Server) replyError(ch ssh.Channel, req *ssh.Request, err error) {
 	s.Logger.Error(err)
