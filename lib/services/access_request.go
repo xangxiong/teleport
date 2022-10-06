@@ -83,8 +83,6 @@ func (r *RequestIDs) IsEmpty() bool {
 
 // DynamicAccessCore is the core functionality common to all DynamicAccess implementations.
 type DynamicAccessCore interface {
-	// CreateAccessRequest stores a new access request.
-	CreateAccessRequest(ctx context.Context, req types.AccessRequest) error
 	// GetAccessRequests gets all currently active access requests.
 	GetAccessRequests(ctx context.Context, filter types.AccessRequestFilter) ([]types.AccessRequest, error)
 	// DeleteAccessRequest deletes an access request.
