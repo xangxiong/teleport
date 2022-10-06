@@ -33,7 +33,6 @@ require (
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/net v0.0.0-20220809184613-07c6da5e1ced
 	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261
-	google.golang.org/appengine v1.6.7
 	google.golang.org/grpc v1.49.0
 	gopkg.in/square/go-jose.v2 v2.5.1
 )
