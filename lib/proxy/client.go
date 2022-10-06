@@ -24,12 +24,10 @@ import (
 
 	"github.com/gravitational/teleport"
 	clientapi "github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/metadata"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/utils"
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
@@ -506,7 +504,6 @@ func (c *Client) connect(id string, proxyPeerAddr string) (*clientConn, error) {
 		connCtx,
 		proxyPeerAddr,
 		grpc.WithTransportCredentials(transportCreds),
-		grpc.WithChainStreamInterceptor(metadata.StreamClientInterceptor, utils.GRPCClientStreamErrorInterceptor, streamCounterInterceptor(wg)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                peerKeepAlive,
 			Timeout:             peerTimeout,
