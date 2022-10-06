@@ -31,7 +31,6 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/gravitational/teleport"
-	tracessh "github.com/gravitational/teleport/api/observability/tracing/ssh"
 
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
@@ -204,9 +203,9 @@ func (e *localExec) PID() int {
 	return e.Cmd.Process.Pid
 }
 
-func (e *localExec) String() string {
-	return fmt.Sprintf("Exec(Command=%v)", e.Command)
-}
+// func (e *localExec) String() string {
+// 	return fmt.Sprintf("Exec(Command=%v)", e.Command)
+// }
 
 func (e *localExec) transformSecureCopy() error {
 	// split up command by space to grab the first word. if we don't have anything
@@ -266,79 +265,6 @@ func waitForContinue(contfd *os.File) error {
 	case err := <-waitCh:
 		return err
 	}
-}
-
-// remoteExec is used to run an "exec" SSH request and return the result.
-type remoteExec struct {
-	command string
-	session *tracessh.Session
-	ctx     *ServerContext
-}
-
-// String describes this remote exec value
-func (e *remoteExec) String() string {
-	return fmt.Sprintf("RemoteExec(Command=%v)", e.command)
-}
-
-// GetCommand returns the command string.
-func (e *remoteExec) GetCommand() string {
-	return e.command
-}
-
-// SetCommand gets the command string.
-func (e *remoteExec) SetCommand(command string) {
-	e.command = command
-}
-
-// Start launches the given command returns (nil, nil) if successful.
-// ExecResult is only used to communicate an error while launching.
-func (e *remoteExec) Start(ctx context.Context, ch ssh.Channel) (*ExecResult, error) {
-	// hook up stdout/err the channel so the user can interact with the command
-	e.session.Stdout = ch
-	e.session.Stderr = ch.Stderr()
-	inputWriter, err := e.session.StdinPipe()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	go func() {
-		// copy from the channel (client) into stdin of the process
-		if _, err := io.Copy(inputWriter, ch); err != nil {
-			e.ctx.Warnf("Failed copying data from SSH channel to remote command stdin: %v", err)
-		}
-		inputWriter.Close()
-	}()
-
-	err = e.session.Start(ctx, e.command)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return nil, nil
-}
-
-// Wait will block while the command executes.
-func (e *remoteExec) Wait() *ExecResult {
-	// Block until the command is finished executing.
-	err := e.session.Wait()
-	if err != nil {
-		e.ctx.Debugf("Remote command failed: %v.", err)
-	} else {
-		e.ctx.Debugf("Remote command successfully executed.")
-	}
-
-	return &ExecResult{
-		Command: e.GetCommand(),
-		Code:    exitCode(err),
-	}
-}
-
-// Continue does nothing for remote command execution.
-func (e *remoteExec) Continue() {}
-
-// PID returns an invalid PID for remotExec.
-func (e *remoteExec) PID() int {
-	return 0
 }
 
 // getDefaultEnvPath returns the default value of PATH environment variable for
