@@ -101,8 +101,6 @@ type DynamicAccessExt interface {
 	DynamicAccessCore
 	// UpsertAccessRequest creates or updates an access request.
 	UpsertAccessRequest(ctx context.Context, req types.AccessRequest) error
-	// DeleteAllAccessRequests deletes all existent access requests.
-	DeleteAllAccessRequests(ctx context.Context) error
 }
 
 // reviewAuthorContext is a simplified view of a user

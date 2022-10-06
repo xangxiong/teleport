@@ -55,10 +55,6 @@ func (s *DynamicAccessService) GetAccessRequest(ctx context.Context, name string
 	return req, nil
 }
 
-func (s *DynamicAccessService) DeleteAllAccessRequests(ctx context.Context) error {
-	return trace.Wrap(s.DeleteRange(ctx, backend.Key(accessRequestsPrefix), backend.RangeEnd(backend.Key(accessRequestsPrefix))))
-}
-
 func (s *DynamicAccessService) UpsertAccessRequest(ctx context.Context, req types.AccessRequest) error {
 	if err := services.ValidateAccessRequest(req); err != nil {
 		return trace.Wrap(err)
