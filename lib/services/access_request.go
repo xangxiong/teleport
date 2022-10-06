@@ -18,11 +18,8 @@ package services
 
 import (
 	"context"
-	"sort"
-	"time"
 
 	"github.com/gravitational/teleport/api/types"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/teleport/lib/utils/parse"
 
@@ -111,8 +108,6 @@ type DynamicAccess interface {
 // used to implement some auth server internals.
 type DynamicAccessExt interface {
 	DynamicAccessCore
-	// ApplyAccessReview applies a review to a request in the backend and returns the post-application state.
-	ApplyAccessReview(ctx context.Context, params types.AccessReviewSubmission, checker ReviewPermissionChecker) (types.AccessRequest, error)
 	// UpsertAccessRequest creates or updates an access request.
 	UpsertAccessRequest(ctx context.Context, req types.AccessRequest) error
 	// DeleteAllAccessRequests deletes all existent access requests.
@@ -163,57 +158,6 @@ type thresholdFilterContext struct {
 type reviewPermissionContext struct {
 	Reviewer reviewAuthorContext  `json:"reviewer"`
 	Request  reviewRequestContext `json:"request"`
-}
-
-// ApplyAccessReview attempts to apply the specified access review to the specified request.
-func ApplyAccessReview(req types.AccessRequest, rev types.AccessReview, author types.User) error {
-	if rev.Author != author.GetName() {
-		return trace.BadParameter("mismatched review author (expected %q, got %q)", rev.Author, author)
-	}
-
-	// role lists must be deduplicated and sorted
-	rev.Roles = apiutils.Deduplicate(rev.Roles)
-	sort.Strings(rev.Roles)
-
-	// basic compatibility/sanity checks
-	if err := checkReviewCompat(req, rev); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// aggregate the threshold indexes for this review
-	tids, err := collectReviewThresholdIndexes(req, rev, author)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// set a review created time if not already set
-	if rev.Created.IsZero() {
-		rev.Created = time.Now()
-	}
-
-	// set threshold indexes and store the review
-	rev.ThresholdIndexes = tids
-	req.SetReviews(append(req.GetReviews(), rev))
-
-	// if request has already exited the pending state, then no further work
-	// needs to be done (subsequent reviews have no effect after initial
-	// state-transition).
-	if !req.GetState().IsPending() {
-		return nil
-	}
-
-	// request is still pending, so check to see if this
-	// review introduces a state-transition.
-	res, err := calculateReviewBasedResolution(req)
-	if err != nil || res == nil {
-		return trace.Wrap(err)
-	}
-
-	// state-transition was triggered.  update the appropriate fields.
-	req.SetState(res.state)
-	req.SetResolveReason(res.reason)
-	req.SetExpiry(req.GetAccessExpiry())
-	return nil
 }
 
 // checkReviewCompat performs basic checks to ensure that the specified review can be
