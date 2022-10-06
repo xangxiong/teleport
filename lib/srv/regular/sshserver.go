@@ -799,10 +799,6 @@ func (s *Server) getNamespace() string {
 	return types.ProcessNamespace(s.namespace)
 }
 
-// func (s *Server) tunnelWithAccessChecker(ctx *srv.ServerContext) reversetunnel.Tunnel {
-// 	return reversetunnel.NewTunnelWithRoles(s.proxyTun, ctx.Identity.AccessChecker, s.proxyAccessPoint)
-// }
-
 // Context returns server shutdown context
 func (s *Server) Context() context.Context {
 	return s.ctx
