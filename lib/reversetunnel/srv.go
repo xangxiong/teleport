@@ -64,9 +64,6 @@ type server struct {
 	srv     *sshutils.Server
 	limiter *limiter.Limiter
 
-	// remoteSites is the list of connected remote clusters
-	remoteSites []*remoteSite
-
 	// localSite is the  local (our own cluster) tunnel client.
 	localSite *localSite
 
@@ -332,10 +329,6 @@ func (s *server) DrainConnections(ctx context.Context) error {
 	s.log.Debugf("Advising reconnect to local site: %s", s.localSite.GetName())
 	go s.localSite.adviseReconnect(ctx)
 
-	for _, site := range s.remoteSites {
-		s.log.Debugf("Advising reconnect to remote site: %s", site.GetName())
-		go site.adviseReconnect(ctx)
-	}
 	s.RUnlock()
 
 	return trace.Wrap(err)
@@ -426,9 +419,6 @@ func (s *server) handleHeartbeat(conn net.Conn, sconn *ssh.ServerConn, nch ssh.N
 	// Node is dialing back.
 	case types.RoleNode:
 		s.handleNewService(role, conn, sconn, nch, types.NodeTunnel)
-	case types.RoleProxy:
-		s.handleNewCluster(conn, sconn, nch)
-	// Unknown role.
 	default:
 		s.log.Errorf("Unsupported role attempting to connect: %v", val)
 		s.rejectRequest(nch, ssh.ConnectionFailed, fmt.Sprintf("unsupported role %v", val))
@@ -451,24 +441,6 @@ func (s *server) handleNewService(role types.SystemRole, conn net.Conn, sconn *s
 	}
 
 	go cluster.handleHeartbeat(rconn, ch, req)
-}
-
-func (s *server) handleNewCluster(conn net.Conn, sshConn *ssh.ServerConn, nch ssh.NewChannel) {
-	// add the incoming site (cluster) to the list of active connections:
-	site, remoteConn, err := s.upsertRemoteCluster(conn, sshConn)
-	if err != nil {
-		s.log.Error(trace.Wrap(err))
-		s.rejectRequest(nch, ssh.ConnectionFailed, "failed to accept incoming cluster connection")
-		return
-	}
-	// accept the request and start the heartbeat on it:
-	ch, req, err := nch.Accept()
-	if err != nil {
-		s.log.Error(trace.Wrap(err))
-		sshConn.Close()
-		return
-	}
-	go site.handleHeartbeat(remoteConn, ch, req)
 }
 
 func (s *server) requireLocalAgentForConn(sconn *ssh.ServerConn, connType types.TunnelType) error {
@@ -619,68 +591,13 @@ func (s *server) upsertServiceConn(conn net.Conn, sconn *ssh.ServerConn, connTyp
 	return s.localSite, rconn, nil
 }
 
-func (s *server) upsertRemoteCluster(conn net.Conn, sshConn *ssh.ServerConn) (*remoteSite, *remoteConn, error) {
-	domainName := sshConn.Permissions.Extensions[extAuthority]
-	if strings.TrimSpace(domainName) == "" {
-		return nil, nil, trace.BadParameter("cannot create reverse tunnel: empty cluster name")
-	}
-
-	s.Lock()
-	defer s.Unlock()
-
-	var site *remoteSite
-	for _, st := range s.remoteSites {
-		if st.domainName == domainName {
-			site = st
-			break
-		}
-	}
-	var err error
-	var remoteConn *remoteConn
-	if site != nil {
-		if remoteConn, err = site.addConn(conn, sshConn); err != nil {
-			return nil, nil, trace.Wrap(err)
-		}
-	} else {
-		site, err = newRemoteSite(s, domainName, sshConn.Conn)
-		if err != nil {
-			return nil, nil, trace.Wrap(err)
-		}
-		if remoteConn, err = site.addConn(conn, sshConn); err != nil {
-			return nil, nil, trace.Wrap(err)
-		}
-		s.remoteSites = append(s.remoteSites, site)
-	}
-	site.Infof("Connection <- %v, clusters: %d.", conn.RemoteAddr(), len(s.remoteSites))
-	// treat first connection as a registered heartbeat,
-	// otherwise the connection information will appear after initial
-	// heartbeat delay
-	go site.registerHeartbeat(s.Clock.Now())
-	return site, remoteConn, nil
-}
-
 func (s *server) GetSites() ([]RemoteSite, error) {
 	s.RLock()
 	defer s.RUnlock()
-	out := make([]RemoteSite, 0, len(s.remoteSites)+1)
-	out = append(out, s.localSite)
+	out := []RemoteSite{s.localSite}
 
-	haveLocalConnection := make(map[string]bool)
-	for i := range s.remoteSites {
-		site := s.remoteSites[i]
-		haveLocalConnection[site.GetName()] = true
-		out = append(out, site)
-	}
 	return out, nil
 }
-
-// func (s *server) getRemoteClusters() []*remoteSite {
-// 	s.RLock()
-// 	defer s.RUnlock()
-// 	out := make([]*remoteSite, len(s.remoteSites))
-// 	copy(out, s.remoteSites)
-// 	return out
-// }
 
 // GetSite returns a RemoteSite. The first attempt is to find and return a
 // remote site and that is what is returned if a remote agent has
@@ -695,11 +612,6 @@ func (s *server) GetSite(name string) (RemoteSite, error) {
 	defer s.RUnlock()
 	if s.localSite.GetName() == name {
 		return s.localSite, nil
-	}
-	for i := range s.remoteSites {
-		if s.remoteSites[i].GetName() == name {
-			return s.remoteSites[i], nil
-		}
 	}
 	return nil, trace.NotFound("cluster %q is not found", name)
 }
@@ -738,155 +650,13 @@ func (s *server) onSiteTunnelClose(site siteCloser) error {
 		return nil
 	}
 
-	for i := range s.remoteSites {
-		if s.remoteSites[i].domainName == site.GetName() {
-			s.remoteSites = append(s.remoteSites[:i], s.remoteSites[i+1:]...)
-			return trace.Wrap(site.Close())
-		}
-	}
-
 	return trace.NotFound("site %q is not found", site.GetName())
 }
-
-// // fanOutProxies is a non-blocking call that updated the watches proxies
-// // list and notifies all clusters about the proxy list change
-// func (s *server) fanOutProxies(proxies []types.Server) {
-// 	s.Lock()
-// 	defer s.Unlock()
-// 	s.localSite.fanOutProxies(proxies)
-
-// 	for _, cluster := range s.remoteSites {
-// 		cluster.fanOutProxies(proxies)
-// 	}
-// }
 
 func (s *server) rejectRequest(ch ssh.NewChannel, reason ssh.RejectionReason, msg string) {
 	if err := ch.Reject(reason, msg); err != nil {
 		s.log.Warnf("Failed rejecting new channel request: %v", err)
 	}
-}
-
-// newRemoteSite helper creates and initializes 'remoteSite' instance
-func newRemoteSite(srv *server, domainName string, sconn ssh.Conn) (*remoteSite, error) {
-	connInfo, err := types.NewTunnelConnection(
-		fmt.Sprintf("%v-%v", srv.ID, domainName),
-		types.TunnelConnectionSpecV2{
-			ClusterName:   domainName,
-			ProxyName:     srv.ID,
-			LastHeartbeat: srv.Clock.Now().UTC(),
-		},
-	)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	connInfo.SetExpiry(srv.Clock.Now().Add(srv.offlineThreshold))
-
-	closeContext, cancel := context.WithCancel(srv.ctx)
-	defer func() {
-		if err != nil {
-			cancel()
-		}
-	}()
-	remoteSite := &remoteSite{
-		srv:        srv,
-		domainName: domainName,
-		connInfo:   connInfo,
-		Entry: log.WithFields(log.Fields{
-			trace.Component: teleport.ComponentReverseTunnelServer,
-			trace.ComponentFields: log.Fields{
-				"cluster": domainName,
-			},
-		}),
-		ctx:              closeContext,
-		cancel:           cancel,
-		clock:            srv.Clock,
-		offlineThreshold: srv.offlineThreshold,
-	}
-
-	// configure access to the full Auth Server API and the cached subset for
-	// the local cluster within which reversetunnel.Server is running.
-	remoteSite.localClient = srv.localAuthClient
-	remoteSite.localAccessPoint = srv.localAccessPoint
-
-	clt, _, err := remoteSite.getRemoteClient()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	remoteSite.remoteClient = clt
-
-	remoteVersion, err := getRemoteAuthVersion(closeContext, sconn)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	accessPoint, err := createRemoteAccessPoint(srv, clt, remoteVersion, domainName)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	remoteSite.remoteAccessPoint = accessPoint
-	nodeWatcher, err := services.NewNodeWatcher(closeContext, services.NodeWatcherConfig{
-		ResourceWatcherConfig: services.ResourceWatcherConfig{
-			Component: srv.Component,
-			Client:    accessPoint,
-			Log:       srv.Log,
-		},
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	remoteSite.nodeWatcher = nodeWatcher
-	// instantiate a cache of host certificates for the forwarding server. the
-	// certificate cache is created in each site (instead of creating it in
-	// reversetunnel.server and passing it along) so that the host certificate
-	// is signed by the correct certificate authority.
-	certificateCache, err := newHostCertificateCache(srv.Config.KeyGen, srv.localAuthClient)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	remoteSite.certificateCache = certificateCache
-
-	caRetry, err := utils.NewLinear(utils.LinearConfig{
-		First:  utils.HalfJitter(srv.Config.PollingPeriod),
-		Step:   srv.Config.PollingPeriod / 5,
-		Max:    srv.Config.PollingPeriod,
-		Jitter: utils.NewHalfJitter(),
-		Clock:  srv.Clock,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	remoteWatcher, err := services.NewCertAuthorityWatcher(srv.ctx, services.CertAuthorityWatcherConfig{
-		ResourceWatcherConfig: services.ResourceWatcherConfig{
-			Component: teleport.ComponentProxy,
-			Log:       srv.log,
-			Clock:     srv.Clock,
-			Client:    remoteSite.remoteAccessPoint,
-		},
-		Types: []types.CertAuthType{types.HostCA},
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	go func() {
-		remoteSite.updateCertAuthorities(caRetry, remoteWatcher, remoteVersion)
-	}()
-
-	lockRetry, err := utils.NewLinear(utils.LinearConfig{
-		First:  utils.HalfJitter(srv.Config.PollingPeriod),
-		Step:   srv.Config.PollingPeriod / 5,
-		Max:    srv.Config.PollingPeriod,
-		Jitter: utils.NewHalfJitter(),
-		Clock:  srv.Clock,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	go remoteSite.updateLocks(lockRetry)
-
-	return remoteSite, nil
 }
 
 // createRemoteAccessPoint creates a new access point for the remote cluster.
