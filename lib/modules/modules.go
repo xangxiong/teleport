@@ -26,40 +26,7 @@ import (
 	"sync"
 
 	"github.com/gravitational/teleport"
-	"github.com/gravitational/teleport/api/client/proto"
-	"github.com/gravitational/teleport/api/constants"
-	"github.com/gravitational/teleport/api/types"
-
-	"github.com/gravitational/trace"
 )
-
-// Features provides supported and unsupported features
-type Features struct {
-	// AccessControls enables FIPS access controls
-	AccessControls bool
-	// AdvancedAccessWorkflows enables advanced access workflows
-	AdvancedAccessWorkflows bool
-	// HSM enables PKCS#11 HSM support
-	HSM bool
-	// ModeratedSessions turns on moderated sessions
-	ModeratedSessions bool
-	// MachineID turns on MachineID
-	MachineID bool
-	// ResourceAccessRequests turns on resource access requests
-	ResourceAccessRequests bool
-}
-
-// ToProto converts Features into proto.Features
-func (f Features) ToProto() *proto.Features {
-	return &proto.Features{
-		AccessControls:          f.AccessControls,
-		AdvancedAccessWorkflows: f.AdvancedAccessWorkflows,
-		HSM:                     f.HSM,
-		ModeratedSessions:       f.ModeratedSessions,
-		MachineID:               f.MachineID,
-		ResourceAccessRequests:  f.ResourceAccessRequests,
-	}
-}
 
 // Modules defines interface that external libraries can implement customizing
 // default teleport behavior
@@ -68,8 +35,6 @@ type Modules interface {
 	PrintVersion()
 	// IsBoringBinary checks if the binary was compiled with BoringCrypto.
 	IsBoringBinary() bool
-	// Features returns supported features
-	Features() Features
 	// BuildType returns build type (OSS or Enterprise)
 	BuildType() string
 }
@@ -81,38 +46,11 @@ const (
 	BuildEnterprise = "ent"
 )
 
-// SetModules sets the modules interface
-func SetModules(m Modules) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	modules = m
-}
-
 // GetModules returns the modules interface
 func GetModules() Modules {
 	mutex.Lock()
 	defer mutex.Unlock()
 	return modules
-}
-
-// ValidateResource performs additional resource checks.
-func ValidateResource(res types.Resource) error {
-	switch r := res.(type) {
-	case types.AuthPreference:
-		switch r.GetSecondFactor() {
-		case constants.SecondFactorOff, constants.SecondFactorOptional:
-			return trace.BadParameter("cannot disable two-factor authentication on Cloud")
-		}
-	case types.SessionRecordingConfig:
-		switch r.GetMode() {
-		case types.RecordAtProxy, types.RecordAtProxySync:
-			return trace.BadParameter("cannot set proxy recording mode on Cloud")
-		}
-		if !r.GetProxyChecksHostKeys() {
-			return trace.BadParameter("cannot disable strict host key checking on Cloud")
-		}
-	}
-	return nil
 }
 
 type defaultModules struct{}
@@ -125,14 +63,6 @@ func (p *defaultModules) BuildType() string {
 // PrintVersion prints the Teleport version.
 func (p *defaultModules) PrintVersion() {
 	fmt.Printf("Teleport v%s git:%s %s\n", teleport.Version, teleport.Gitref, runtime.Version())
-}
-
-// Features returns supported features
-func (p *defaultModules) Features() Features {
-	return Features{
-		MachineID:         true,
-		ModeratedSessions: false, // moderated sessions is supported in enterprise only
-	}
 }
 
 func (p *defaultModules) IsBoringBinary() bool {
