@@ -1104,6 +1104,7 @@ func (process *TeleportProcess) initSSH() error {
 			regular.SetLimiter(limiter),
 			regular.SetShell(cfg.SSH.Shell),
 			regular.SetSessionServer(conn.Client),
+			regular.SetLabels(cfg.SSH.Labels, cfg.SSH.CmdLabels, nil),
 			regular.SetNamespace(namespace),
 			regular.SetPermitUserEnvironment(cfg.SSH.PermitUserEnvironment),
 			regular.SetCiphers(cfg.Ciphers),
