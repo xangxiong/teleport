@@ -434,40 +434,6 @@ func (p *authPreferenceParser) parse(event backend.Event) (types.Resource, error
 	}
 }
 
-func newSessionRecordingConfigParser() *sessionRecordingConfigParser {
-	return &sessionRecordingConfigParser{
-		baseParser: newBaseParser(backend.Key(clusterConfigPrefix, sessionRecordingPrefix)),
-	}
-}
-
-type sessionRecordingConfigParser struct {
-	baseParser
-}
-
-func (p *sessionRecordingConfigParser) parse(event backend.Event) (types.Resource, error) {
-	switch event.Type {
-	case types.OpDelete:
-		h, err := resourceHeader(event, types.KindSessionRecordingConfig, types.V2, 0)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		h.SetName(types.MetaNameSessionRecordingConfig)
-		return h, nil
-	case types.OpPut:
-		ap, err := services.UnmarshalSessionRecordingConfig(
-			event.Item.Value,
-			services.WithResourceID(event.Item.ID),
-			services.WithExpires(event.Item.Expires),
-		)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return ap, nil
-	default:
-		return nil, trace.BadParameter("event %v is not supported", event.Type)
-	}
-}
-
 func newClusterNameParser() *clusterNameParser {
 	return &clusterNameParser{
 		baseParser: newBaseParser(backend.Key(clusterConfigPrefix, namePrefix)),
