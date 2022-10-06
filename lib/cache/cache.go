@@ -117,7 +117,6 @@ type Cache struct {
 	// regularly called methods.
 	fnCache *utils.FnCache
 
-	trustCache         services.Trust
 	clusterConfigCache services.ClusterConfiguration
 	accessCache        services.Access
 	presenceCache      services.Presence
@@ -137,7 +136,6 @@ func (c *Cache) read() (readGuard, error) {
 	c.rw.RLock()
 	if c.ok {
 		return readGuard{
-			trust:         c.trustCache,
 			clusterConfig: c.clusterConfigCache,
 			access:        c.accessCache,
 			presence:      c.presenceCache,
@@ -323,7 +321,6 @@ func New(config Config) (*Cache, error) {
 		generation:         atomic.NewUint64(0),
 		initC:              make(chan struct{}),
 		fnCache:            fnCache,
-		trustCache:         local.NewCAService(config.Backend),
 		clusterConfigCache: clusterConfigCache,
 		accessCache:        local.NewAccessService(config.Backend),
 		presenceCache:      local.NewPresenceService(config.Backend),
