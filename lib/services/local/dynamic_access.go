@@ -55,50 +55,6 @@ func (s *DynamicAccessService) GetAccessRequest(ctx context.Context, name string
 	return req, nil
 }
 
-// GetAccessRequests gets all currently active access requests.
-func (s *DynamicAccessService) GetAccessRequests(ctx context.Context, filter types.AccessRequestFilter) ([]types.AccessRequest, error) {
-	// Filters which specify ID are a special case since they will match exactly zero or one
-	// possible requests.
-	if filter.ID != "" {
-		req, err := s.GetAccessRequest(ctx, filter.ID)
-		if err != nil {
-			// A filter with zero matches is still a success, it just
-			// happens to return an empty slice.
-			if trace.IsNotFound(err) {
-				return nil, nil
-			}
-			return nil, trace.Wrap(err)
-		}
-		if !filter.Match(req) {
-			// A filter with zero matches is still a success, it just
-			// happens to return an empty slice.
-			return nil, nil
-		}
-		return []types.AccessRequest{req}, nil
-	}
-	result, err := s.GetRange(ctx, backend.Key(accessRequestsPrefix), backend.RangeEnd(backend.Key(accessRequestsPrefix)), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var requests []types.AccessRequest
-	for _, item := range result.Items {
-		if !bytes.HasSuffix(item.Key, []byte(paramsPrefix)) {
-			// Item represents a different resource type in the
-			// same namespace.
-			continue
-		}
-		req, err := itemToAccessRequest(item)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if !filter.Match(req) {
-			continue
-		}
-		requests = append(requests, req)
-	}
-	return requests, nil
-}
-
 // DeleteAccessRequest deletes an access request.
 func (s *DynamicAccessService) DeleteAccessRequest(ctx context.Context, name string) error {
 	err := s.Delete(ctx, accessRequestKey(name))

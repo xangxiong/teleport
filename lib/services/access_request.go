@@ -83,8 +83,6 @@ func (r *RequestIDs) IsEmpty() bool {
 
 // DynamicAccessCore is the core functionality common to all DynamicAccess implementations.
 type DynamicAccessCore interface {
-	// GetAccessRequests gets all currently active access requests.
-	GetAccessRequests(ctx context.Context, filter types.AccessRequestFilter) ([]types.AccessRequest, error)
 	// DeleteAccessRequest deletes an access request.
 	DeleteAccessRequest(ctx context.Context, reqID string) error
 	// GetPluginData loads all plugin data matching the supplied filter.
