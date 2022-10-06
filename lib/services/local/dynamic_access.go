@@ -54,16 +54,6 @@ func (s *DynamicAccessService) GetAccessRequest(ctx context.Context, name string
 	return req, nil
 }
 
-// UpdatePluginData updates a per-resource PluginData entry.
-func (s *DynamicAccessService) UpdatePluginData(ctx context.Context, params types.PluginDataUpdateParams) error {
-	switch params.Kind {
-	case types.KindAccessRequest:
-		return trace.Wrap(s.updateAccessRequestPluginData(ctx, params))
-	default:
-		return trace.BadParameter("unsupported resource kind %q", params.Kind)
-	}
-}
-
 func (s *DynamicAccessService) updateAccessRequestPluginData(ctx context.Context, params types.PluginDataUpdateParams) error {
 	retryPeriod := retryPeriodMs * time.Millisecond
 	retry, err := utils.NewLinear(utils.LinearConfig{

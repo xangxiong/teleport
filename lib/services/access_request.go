@@ -17,8 +17,6 @@ limitations under the License.
 package services
 
 import (
-	"context"
-
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/teleport/lib/utils/parse"
@@ -79,24 +77,6 @@ func (r *RequestIDs) Check() error {
 
 func (r *RequestIDs) IsEmpty() bool {
 	return len(r.AccessRequests) < 1
-}
-
-// DynamicAccessCore is the core functionality common to all DynamicAccess implementations.
-type DynamicAccessCore interface {
-	// UpdatePluginData updates a per-resource PluginData entry.
-	UpdatePluginData(ctx context.Context, params types.PluginDataUpdateParams) error
-}
-
-// DynamicAccess is a service which manages dynamic RBAC.  Specifically, this is the
-// dynamic access interface implemented by remote clients.
-type DynamicAccess interface {
-	DynamicAccessCore
-}
-
-// DynamicAccessExt is an extended dynamic access interface
-// used to implement some auth server internals.
-type DynamicAccessExt interface {
-	DynamicAccessCore
 }
 
 // reviewAuthorContext is a simplified view of a user

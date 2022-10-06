@@ -25,6 +25,5 @@ type Services interface {
 	types.Events
 	ClusterConfiguration
 	Access
-	DynamicAccessCore
 	Presence
 }

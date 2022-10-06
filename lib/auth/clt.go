@@ -685,7 +685,6 @@ type ClientI interface {
 	events.IAuditLog
 	services.Presence
 	services.Access
-	services.DynamicAccess
 	session.Service
 	services.Status
 	services.ClusterConfiguration

@@ -121,7 +121,6 @@ type Cache struct {
 	clusterConfigCache services.ClusterConfiguration
 	provisionerCache   services.Provisioner
 	accessCache        services.Access
-	dynamicAccessCache services.DynamicAccessExt
 	presenceCache      services.Presence
 	eventsFanout       *services.FanoutSet
 
@@ -143,7 +142,6 @@ func (c *Cache) read() (readGuard, error) {
 			clusterConfig: c.clusterConfigCache,
 			provisioner:   c.provisionerCache,
 			access:        c.accessCache,
-			dynamicAccess: c.dynamicAccessCache,
 			presence:      c.presenceCache,
 			release:       c.rw.RUnlock,
 		}, nil
@@ -154,7 +152,6 @@ func (c *Cache) read() (readGuard, error) {
 		clusterConfig: c.Config.ClusterConfig,
 		provisioner:   c.Config.Provisioner,
 		access:        c.Config.Access,
-		dynamicAccess: c.Config.DynamicAccess,
 		presence:      c.Config.Presence,
 		release:       nil,
 	}, nil
@@ -169,7 +166,6 @@ type readGuard struct {
 	clusterConfig services.ClusterConfiguration
 	provisioner   services.Provisioner
 	access        services.Access
-	dynamicAccess services.DynamicAccessCore
 	presence      services.Presence
 	release       func()
 	released      bool
@@ -210,8 +206,6 @@ type Config struct {
 	Provisioner services.Provisioner
 	// Access is an access service
 	Access services.Access
-	// DynamicAccess is a dynamic access service
-	DynamicAccess services.DynamicAccessCore
 	// Presence is a presence service
 	Presence services.Presence
 	// Backend is a backend for local cache
@@ -335,7 +329,6 @@ func New(config Config) (*Cache, error) {
 		clusterConfigCache: clusterConfigCache,
 		provisionerCache:   local.NewProvisioningService(config.Backend),
 		accessCache:        local.NewAccessService(config.Backend),
-		dynamicAccessCache: local.NewDynamicAccessService(config.Backend),
 		presenceCache:      local.NewPresenceService(config.Backend),
 		eventsFanout:       services.NewFanoutSet(),
 		Entry: log.WithFields(log.Fields{
