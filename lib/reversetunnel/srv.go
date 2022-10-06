@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"net"
 	"strings"
 	"sync"
@@ -621,99 +620,9 @@ func (s *server) GetProxyPeerClient() *proxy.Client {
 	return s.PeerClient
 }
 
-// alwaysClose forces onSiteTunnelClose to remove and close
-// the site by always returning false from HasValidConnections.
-type alwaysClose struct {
-	RemoteSite
-}
-
-func (a *alwaysClose) HasValidConnections() bool {
-	return false
-}
-
-// siteCloser is used by onSiteTunnelClose to determine if a site should be closed
-// when a tunnel is closed
-type siteCloser interface {
-	GetName() string
-	HasValidConnections() bool
-	io.Closer
-}
-
-// onSiteTunnelClose will close and stop tracking the site with the given name
-// if it has 0 active tunnels. This is done here to ensure that no new tunnels
-// can be established while cleaning up a site.
-func (s *server) onSiteTunnelClose(site siteCloser) error {
-	s.Lock()
-	defer s.Unlock()
-
-	if site.HasValidConnections() {
-		return nil
-	}
-
-	return trace.NotFound("site %q is not found", site.GetName())
-}
-
 func (s *server) rejectRequest(ch ssh.NewChannel, reason ssh.RejectionReason, msg string) {
 	if err := ch.Reject(reason, msg); err != nil {
 		s.log.Warnf("Failed rejecting new channel request: %v", err)
-	}
-}
-
-// createRemoteAccessPoint creates a new access point for the remote cluster.
-// Checks if the cluster that is connecting is a pre-v8 cluster. If it is,
-// don't assume the newer organization of cluster configuration resources
-// (RFD 28) because older proxy servers will reject that causing the cache
-// to go into a re-sync loop.
-func createRemoteAccessPoint(srv *server, clt auth.ClientI, version, domainName string) (auth.RemoteProxyAccessPoint, error) {
-	ok, err := utils.MinVerWithoutPreRelease(version, utils.VersionBeforeAlpha("8.0.0"))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	accessPointFunc := srv.Config.NewCachingAccessPoint
-	if !ok {
-		srv.log.Debugf("cluster %q running %q is connecting, loading old cache policy.", domainName, version)
-		accessPointFunc = srv.Config.NewCachingAccessPointOldProxy
-	}
-
-	// Configure access to the cached subset of the Auth Server API of the remote
-	// cluster this remote site provides access to.
-	accessPoint, err := accessPointFunc(clt, []string{"reverse", domainName})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return accessPoint, nil
-}
-
-// getRemoteAuthVersion sends a version request to the remote agent.
-func getRemoteAuthVersion(ctx context.Context, sconn ssh.Conn) (string, error) {
-	errorCh := make(chan error, 1)
-	versionCh := make(chan string, 1)
-
-	go func() {
-		ok, payload, err := sconn.SendRequest(versionRequest, true, nil)
-		if err != nil {
-			errorCh <- err
-			return
-		}
-		if !ok {
-			errorCh <- trace.BadParameter("no response to %v request", versionRequest)
-			return
-		}
-
-		versionCh <- string(payload)
-	}()
-
-	select {
-	case ver := <-versionCh:
-		return ver, nil
-	case err := <-errorCh:
-		return "", trace.Wrap(err)
-	case <-time.After(defaults.WaitCopyTimeout):
-		return "", trace.BadParameter("timeout waiting for version")
-	case <-ctx.Done():
-		return "", trace.Wrap(ctx.Err())
 	}
 }
 
