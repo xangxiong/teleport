@@ -117,10 +117,9 @@ type Cache struct {
 	// regularly called methods.
 	fnCache *utils.FnCache
 
-	clusterConfigCache services.ClusterConfiguration
-	accessCache        services.Access
-	presenceCache      services.Presence
-	eventsFanout       *services.FanoutSet
+	accessCache   services.Access
+	presenceCache services.Presence
+	eventsFanout  *services.FanoutSet
 
 	// closed indicates that the cache has been closed
 	closed *atomic.Bool
@@ -136,10 +135,10 @@ func (c *Cache) read() (readGuard, error) {
 	c.rw.RLock()
 	if c.ok {
 		return readGuard{
-			clusterConfig: c.clusterConfigCache,
-			access:        c.accessCache,
-			presence:      c.presenceCache,
-			release:       c.rw.RUnlock,
+			// clusterConfig: c.clusterConfigCache,
+			access:   c.accessCache,
+			presence: c.presenceCache,
+			release:  c.rw.RUnlock,
 		}, nil
 	}
 	c.rw.RUnlock()
@@ -298,11 +297,6 @@ func New(config Config) (*Cache, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	clusterConfigCache, err := local.NewClusterConfigurationService(config.Backend)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	ctx, cancel := context.WithCancel(config.Context)
 	fnCache, err := utils.NewFnCache(utils.FnCacheConfig{
 		TTL:     time.Second,
@@ -315,16 +309,15 @@ func New(config Config) (*Cache, error) {
 	}
 
 	cs := &Cache{
-		ctx:                ctx,
-		cancel:             cancel,
-		Config:             config,
-		generation:         atomic.NewUint64(0),
-		initC:              make(chan struct{}),
-		fnCache:            fnCache,
-		clusterConfigCache: clusterConfigCache,
-		accessCache:        local.NewAccessService(config.Backend),
-		presenceCache:      local.NewPresenceService(config.Backend),
-		eventsFanout:       services.NewFanoutSet(),
+		ctx:           ctx,
+		cancel:        cancel,
+		Config:        config,
+		generation:    atomic.NewUint64(0),
+		initC:         make(chan struct{}),
+		fnCache:       fnCache,
+		accessCache:   local.NewAccessService(config.Backend),
+		presenceCache: local.NewPresenceService(config.Backend),
+		eventsFanout:  services.NewFanoutSet(),
 		Entry: log.WithFields(log.Fields{
 			trace.Component: config.Component,
 		}),
