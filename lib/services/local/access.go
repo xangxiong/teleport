@@ -20,8 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"sort"
-	"strings"
-	"time"
 
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/backend"
@@ -63,32 +61,6 @@ func (s *AccessService) GetRoles(ctx context.Context) ([]types.Role, error) {
 	return out, nil
 }
 
-// UpsertRole updates parameters about role
-func (s *AccessService) UpsertRole(ctx context.Context, role types.Role) error {
-	err := services.ValidateRoleName(role)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	value, err := services.MarshalRole(role)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	item := backend.Item{
-		Key:     backend.Key(rolesPrefix, role.GetName(), paramsPrefix),
-		Value:   value,
-		Expires: role.Expiry(),
-		ID:      role.GetResourceID(),
-	}
-
-	_, err = s.Put(ctx, item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // GetRole returns a role by name
 func (s *AccessService) GetRole(ctx context.Context, name string) (types.Role, error) {
 	if name == "" {
@@ -103,20 +75,6 @@ func (s *AccessService) GetRole(ctx context.Context, name string) (types.Role, e
 	}
 	return services.UnmarshalRole(item.Value,
 		services.WithResourceID(item.ID), services.WithExpires(item.Expires))
-}
-
-// DeleteRole deletes a role from the backend
-func (s *AccessService) DeleteRole(ctx context.Context, name string) error {
-	if name == "" {
-		return trace.BadParameter("missing role name")
-	}
-	err := s.Delete(ctx, backend.Key(rolesPrefix, name, paramsPrefix))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("role %q is not found", name)
-		}
-	}
-	return trace.Wrap(err)
 }
 
 // GetLock gets a lock by name.
@@ -165,95 +123,6 @@ func (s *AccessService) GetLocks(ctx context.Context, inForceOnly bool, targets 
 		}
 	}
 	return out, nil
-}
-
-// UpsertLock upserts a lock.
-func (s *AccessService) UpsertLock(ctx context.Context, lock types.Lock) error {
-	value, err := services.MarshalLock(lock)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(locksPrefix, lock.GetName()),
-		Value:   value,
-		Expires: lock.Expiry(),
-		ID:      lock.GetResourceID(),
-	}
-
-	if _, err = s.Put(ctx, item); err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-// DeleteLock deletes a lock.
-func (s *AccessService) DeleteLock(ctx context.Context, name string) error {
-	if name == "" {
-		return trace.BadParameter("missing lock name")
-	}
-	err := s.Delete(ctx, backend.Key(locksPrefix, name))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("lock %q is not found", name)
-		}
-	}
-	return trace.Wrap(err)
-}
-
-// ReplaceRemoteLocks replaces the set of locks associated with a remote cluster.
-func (s *AccessService) ReplaceRemoteLocks(ctx context.Context, clusterName string, newRemoteLocks []types.Lock) error {
-	return backend.RunWhileLocked(ctx, s.Backend, "ReplaceRemoteLocks/"+clusterName, time.Minute, func(ctx context.Context) error {
-		remoteLocksKey := backend.Key(locksPrefix, clusterName)
-		origRemoteLocks, err := s.GetRange(ctx, remoteLocksKey, backend.RangeEnd(remoteLocksKey), backend.NoLimit)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		newRemoteLocksToStore := make(map[string]backend.Item, len(newRemoteLocks))
-		for _, lock := range newRemoteLocks {
-			if !strings.HasPrefix(lock.GetName(), clusterName) {
-				lock.SetName(clusterName + "/" + lock.GetName())
-			}
-			value, err := services.MarshalLock(lock)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			item := backend.Item{
-				Key:     backend.Key(locksPrefix, lock.GetName()),
-				Value:   value,
-				Expires: lock.Expiry(),
-				ID:      lock.GetResourceID(),
-			}
-			newRemoteLocksToStore[string(item.Key)] = item
-		}
-
-		for _, origLockItem := range origRemoteLocks.Items {
-			// If one of the new remote locks to store is already known,
-			// perform a CompareAndSwap.
-			key := string(origLockItem.Key)
-			if newLockItem, ok := newRemoteLocksToStore[key]; ok {
-				if _, err := s.CompareAndSwap(ctx, origLockItem, newLockItem); err != nil {
-					return trace.Wrap(err)
-				}
-				delete(newRemoteLocksToStore, key)
-				continue
-			}
-
-			// If an originally stored lock is not among the new locks,
-			// delete it from the backend.
-			if err := s.Delete(ctx, origLockItem.Key); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-
-		// Store the remaining new locks.
-		for _, newLockItem := range newRemoteLocksToStore {
-			if _, err := s.Put(ctx, newLockItem); err != nil {
-				return trace.Wrap(err)
-			}
-		}
-		return nil
-	})
 }
 
 const (

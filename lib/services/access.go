@@ -38,7 +38,4 @@ type Access interface {
 	GetRole(ctx context.Context, name string) (types.Role, error)
 
 	LockGetter
-
-	// ReplaceRemoteLocks replaces the set of locks associated with a remote cluster.
-	ReplaceRemoteLocks(ctx context.Context, clusterName string, locks []types.Lock) error
 }
