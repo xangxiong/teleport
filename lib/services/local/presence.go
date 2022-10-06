@@ -21,7 +21,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/gravitational/teleport/api/client/proto"
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/backend"
@@ -86,38 +85,6 @@ func (s *PresenceService) getServers(ctx context.Context, kind, prefix string) (
 	// sorting helps with tests and makes it all deterministic
 	sort.Sort(services.SortedServers(servers))
 	return servers, nil
-}
-
-// DeleteAllNodes deletes all nodes in a namespace
-func (s *PresenceService) DeleteAllNodes(ctx context.Context, namespace string) error {
-	startKey := backend.Key(nodesPrefix, namespace)
-	return s.DeleteRange(ctx, startKey, backend.RangeEnd(startKey))
-}
-
-// DeleteNode deletes node
-func (s *PresenceService) DeleteNode(ctx context.Context, namespace string, name string) error {
-	key := backend.Key(nodesPrefix, namespace, name)
-	return s.Delete(ctx, key)
-}
-
-// GetNode returns a node by name and namespace.
-func (s *PresenceService) GetNode(ctx context.Context, namespace, name string) (types.Server, error) {
-	if namespace == "" {
-		return nil, trace.BadParameter("missing parameter namespace")
-	}
-	if name == "" {
-		return nil, trace.BadParameter("missing parameter name")
-	}
-	item, err := s.Get(ctx, backend.Key(nodesPrefix, namespace, name))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return services.UnmarshalServer(
-		item.Value,
-		types.KindNode,
-		services.WithResourceID(item.ID),
-		services.WithExpires(item.Expires),
-	)
 }
 
 // GetNodes returns a list of registered servers
@@ -208,24 +175,6 @@ func (s *PresenceService) GetProxies() ([]types.Server, error) {
 	return s.getServers(context.TODO(), types.KindProxy, proxiesPrefix)
 }
 
-// UpsertReverseTunnel upserts reverse tunnel entry temporarily or permanently
-func (s *PresenceService) UpsertReverseTunnel(tunnel types.ReverseTunnel) error {
-	if err := services.ValidateReverseTunnel(tunnel); err != nil {
-		return trace.Wrap(err)
-	}
-	value, err := services.MarshalReverseTunnel(tunnel)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	_, err = s.Put(context.TODO(), backend.Item{
-		Key:     backend.Key(reverseTunnelsPrefix, tunnel.GetName()),
-		Value:   value,
-		Expires: tunnel.Expiry(),
-		ID:      tunnel.GetResourceID(),
-	})
-	return trace.Wrap(err)
-}
-
 // GetReverseTunnels returns a list of registered servers
 func (s *PresenceService) GetReverseTunnels(ctx context.Context, opts ...services.MarshalOption) ([]types.ReverseTunnel, error) {
 	startKey := backend.Key(reverseTunnelsPrefix)
@@ -270,23 +219,6 @@ func (s *PresenceService) UpsertTunnelConnection(conn types.TunnelConnection) er
 		return trace.Wrap(err)
 	}
 	return nil
-}
-
-// GetTunnelConnection returns connection by cluster name and connection name
-func (s *PresenceService) GetTunnelConnection(clusterName, connectionName string, opts ...services.MarshalOption) (types.TunnelConnection, error) {
-	item, err := s.Get(context.TODO(), backend.Key(tunnelConnectionsPrefix, clusterName, connectionName))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return nil, trace.NotFound("trusted cluster connection %q is not found", connectionName)
-		}
-		return nil, trace.Wrap(err)
-	}
-	conn, err := services.UnmarshalTunnelConnection(item.Value,
-		services.AddOptions(opts, services.WithResourceID(item.ID), services.WithExpires(item.Expires))...)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return conn, nil
 }
 
 // DeleteTunnelConnection deletes tunnel connection by name
@@ -657,64 +589,6 @@ func (s *PresenceService) GetHostUserInteractionTime(ctx context.Context, name s
 		return time.Time{}, trace.Wrap(err)
 	}
 	return t, nil
-}
-
-// FakePaginate is used when we are working with an entire list of resources upfront but still requires pagination.
-// While applying filters, it will also deduplicate matches found.
-func FakePaginate(resources []types.ResourceWithLabels, req proto.ListResourcesRequest) (*types.ListResourcesResponse, error) {
-	if err := req.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	limit := int(req.Limit)
-	var filtered []types.ResourceWithLabels
-	filter := services.MatchResourceFilter{
-		ResourceKind:        req.ResourceType,
-		Labels:              req.Labels,
-		SearchKeywords:      req.SearchKeywords,
-		PredicateExpression: req.PredicateExpression,
-	}
-
-	// Iterate and filter every resource, deduplicating while matching.
-	seenResourceMap := make(map[services.ResourceSeenKey]struct{})
-	for _, resource := range resources {
-		switch match, err := services.MatchResourceByFilters(resource, filter, seenResourceMap); {
-		case err != nil:
-			return nil, trace.Wrap(err)
-		case !match:
-			continue
-		}
-
-		filtered = append(filtered, resource)
-	}
-
-	totalCount := len(filtered)
-	pageStart := 0
-	pageEnd := limit
-
-	// Trim resources that precede start key.
-	if req.StartKey != "" {
-		for i, resource := range filtered {
-			if backend.GetPaginationKey(resource) == req.StartKey {
-				pageStart = i
-				break
-			}
-		}
-		pageEnd = limit + pageStart
-	}
-
-	var nextKey string
-	if pageEnd >= len(filtered) {
-		pageEnd = len(filtered)
-	} else {
-		nextKey = backend.GetPaginationKey(filtered[pageEnd])
-	}
-
-	return &types.ListResourcesResponse{
-		Resources:  filtered[pageStart:pageEnd],
-		NextKey:    nextKey,
-		TotalCount: totalCount,
-	}, nil
 }
 
 const (

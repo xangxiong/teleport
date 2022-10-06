@@ -594,16 +594,6 @@ func (c *Cache) GetNamespace(name string) (*types.Namespace, error) {
 	return rg.presence.GetNamespace(name)
 }
 
-// GetNode finds and returns a node by name and namespace.
-func (c *Cache) GetNode(ctx context.Context, namespace, name string) (types.Server, error) {
-	rg, err := c.read()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer rg.Release()
-	return rg.presence.GetNode(ctx, namespace, name)
-}
-
 type getNodesCacheKey struct {
 	namespace string
 }

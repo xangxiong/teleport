@@ -40,9 +40,6 @@ type Presence interface {
 	// Semaphores is responsible for semaphore handling
 	types.Semaphores
 
-	// GetNode returns a node by name and namespace.
-	GetNode(ctx context.Context, namespace, name string) (types.Server, error)
-
 	// NodesGetter gets nodes
 	NodesGetter
 
@@ -52,9 +49,6 @@ type Presence interface {
 
 	// ProxyGetter gets a list of proxies
 	ProxyGetter
-
-	// UpsertReverseTunnel upserts reverse tunnel entry temporarily or permanently
-	UpsertReverseTunnel(tunnel types.ReverseTunnel) error
 
 	// GetReverseTunnels returns a list of registered servers
 	GetReverseTunnels(ctx context.Context, opts ...MarshalOption) ([]types.ReverseTunnel, error)
