@@ -55,18 +55,6 @@ func (s *DynamicAccessService) GetAccessRequest(ctx context.Context, name string
 	return req, nil
 }
 
-// DeleteAccessRequest deletes an access request.
-func (s *DynamicAccessService) DeleteAccessRequest(ctx context.Context, name string) error {
-	err := s.Delete(ctx, accessRequestKey(name))
-	if err != nil {
-		if trace.IsNotFound(err) {
-			return trace.NotFound("cannot delete access request %q (not found)", name)
-		}
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 func (s *DynamicAccessService) DeleteAllAccessRequests(ctx context.Context) error {
 	return trace.Wrap(s.DeleteRange(ctx, backend.Key(accessRequestsPrefix), backend.RangeEnd(backend.Key(accessRequestsPrefix))))
 }
