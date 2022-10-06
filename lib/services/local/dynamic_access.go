@@ -23,7 +23,6 @@ import (
 
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/api/types"
-	apiutils "github.com/gravitational/teleport/api/utils"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
@@ -39,75 +38,6 @@ type DynamicAccessService struct {
 // NewDynamicAccessService returns new dynamic access service instance
 func NewDynamicAccessService(backend backend.Backend) *DynamicAccessService {
 	return &DynamicAccessService{Backend: backend}
-}
-
-// SetAccessRequestState updates the state of an existing access request.
-func (s *DynamicAccessService) SetAccessRequestState(ctx context.Context, params types.AccessRequestUpdate) (types.AccessRequest, error) {
-	if err := params.Check(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	retryPeriod := retryPeriodMs * time.Millisecond
-	retry, err := utils.NewLinear(utils.LinearConfig{
-		Step: retryPeriod / 7,
-		Max:  retryPeriod,
-	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	// Setting state is attempted multiple times in the event of concurrent writes.
-	// The reason we bother to re-attempt is because state updates aren't meant
-	// to be "first come first serve".  Denials should overwrite approvals, but
-	// approvals should not overwrite denials.
-	for i := 0; i < maxCmpAttempts; i++ {
-		item, err := s.Get(ctx, accessRequestKey(params.RequestID))
-		if err != nil {
-			if trace.IsNotFound(err) {
-				return nil, trace.NotFound("cannot set state of access request %q (not found)", params.RequestID)
-			}
-			return nil, trace.Wrap(err)
-		}
-		req, err := itemToAccessRequest(*item)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if err := req.SetState(params.State); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		req.SetResolveReason(params.Reason)
-		req.SetResolveAnnotations(params.Annotations)
-		if len(params.Roles) > 0 {
-			for _, role := range params.Roles {
-				if !apiutils.SliceContainsStr(req.GetRoles(), role) {
-					return nil, trace.BadParameter("role %q not in original request, overrides must be a subset of original role list", role)
-				}
-			}
-			req.SetRoles(params.Roles)
-		}
-
-		// approved requests should have a resource expiry which matches
-		// the underlying access expiry.
-		if params.State.IsApproved() {
-			req.SetExpiry(req.GetAccessExpiry())
-		}
-		newItem, err := itemFromAccessRequest(req)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if _, err := s.CompareAndSwap(ctx, *item, newItem); err != nil {
-			if trace.IsCompareFailed(err) {
-				select {
-				case <-retry.After():
-					retry.Inc()
-					continue
-				case <-ctx.Done():
-					return nil, trace.Wrap(ctx.Err())
-				}
-			}
-			return nil, trace.Wrap(err)
-		}
-		return req, nil
-	}
-	return nil, trace.CompareFailed("too many concurrent writes to access request %s, try again later", params.RequestID)
 }
 
 func (s *DynamicAccessService) GetAccessRequest(ctx context.Context, name string) (types.AccessRequest, error) {

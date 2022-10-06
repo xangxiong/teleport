@@ -97,8 +97,6 @@ type DynamicAccessCore interface {
 // dynamic access interface implemented by remote clients.
 type DynamicAccess interface {
 	DynamicAccessCore
-	// SetAccessRequestState updates the state of an existing access request.
-	SetAccessRequestState(ctx context.Context, params types.AccessRequestUpdate) error
 }
 
 // DynamicAccessExt is an extended dynamic access interface
@@ -109,8 +107,6 @@ type DynamicAccessExt interface {
 	UpsertAccessRequest(ctx context.Context, req types.AccessRequest) error
 	// DeleteAllAccessRequests deletes all existent access requests.
 	DeleteAllAccessRequests(ctx context.Context) error
-	// SetAccessRequestState updates the state of an existing access request.
-	SetAccessRequestState(ctx context.Context, params types.AccessRequestUpdate) (types.AccessRequest, error)
 }
 
 // reviewAuthorContext is a simplified view of a user
