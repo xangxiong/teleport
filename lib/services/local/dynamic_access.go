@@ -17,7 +17,6 @@ limitations under the License.
 package local
 
 import (
-	"bytes"
 	"context"
 	"time"
 
@@ -53,54 +52,6 @@ func (s *DynamicAccessService) GetAccessRequest(ctx context.Context, name string
 		return nil, trace.Wrap(err)
 	}
 	return req, nil
-}
-
-func (s *DynamicAccessService) getAccessRequestPluginData(ctx context.Context, filter types.PluginDataFilter) ([]types.PluginData, error) {
-	// Filters which specify Resource are a special case since they will match exactly zero or one
-	// possible PluginData instances.
-	if filter.Resource != "" {
-		item, err := s.Get(ctx, pluginDataKey(types.KindAccessRequest, filter.Resource))
-		if err != nil {
-			// A filter with zero matches is still a success, it just
-			// happens to return an empty slice.
-			if trace.IsNotFound(err) {
-				return nil, nil
-			}
-			return nil, trace.Wrap(err)
-		}
-		data, err := itemToPluginData(*item)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if !filter.Match(data) {
-			// A filter with zero matches is still a success, it just
-			// happens to return an empty slice.
-			return nil, nil
-		}
-		return []types.PluginData{data}, nil
-	}
-	prefix := backend.Key(pluginDataPrefix, types.KindAccessRequest)
-	result, err := s.GetRange(ctx, prefix, backend.RangeEnd(prefix), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var matches []types.PluginData
-	for _, item := range result.Items {
-		if !bytes.HasSuffix(item.Key, []byte(paramsPrefix)) {
-			// Item represents a different resource type in the
-			// same namespace.
-			continue
-		}
-		data, err := itemToPluginData(item)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		if !filter.Match(data) {
-			continue
-		}
-		matches = append(matches, data)
-	}
-	return matches, nil
 }
 
 // UpdatePluginData updates a per-resource PluginData entry.
@@ -193,19 +144,6 @@ func (s *DynamicAccessService) updateAccessRequestPluginData(ctx context.Context
 		return nil
 	}
 	return trace.CompareFailed("too many concurrent writes to plugin data %s", params.Resource)
-}
-
-func itemFromAccessRequest(req types.AccessRequest) (backend.Item, error) {
-	value, err := services.MarshalAccessRequest(req)
-	if err != nil {
-		return backend.Item{}, trace.Wrap(err)
-	}
-	return backend.Item{
-		Key:     accessRequestKey(req.GetName()),
-		Value:   value,
-		Expires: req.Expiry(),
-		ID:      req.GetResourceID(),
-	}, nil
 }
 
 func itemToAccessRequest(item backend.Item, opts ...services.MarshalOption) (types.AccessRequest, error) {
