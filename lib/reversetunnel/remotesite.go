@@ -36,7 +36,6 @@ import (
 	"github.com/gravitational/teleport/api/utils/sshutils"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/srv/forward"
 	"github.com/gravitational/teleport/lib/utils"
 )
 
@@ -721,77 +720,6 @@ func (s *remoteSite) DialTCP(params DialParams) (net.Conn, error) {
 		ServerID: params.ServerID,
 		ConnType: params.ConnType,
 	})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return conn, nil
-}
-
-func (s *remoteSite) dialWithAgent(params DialParams) (net.Conn, error) {
-	if params.GetUserAgent == nil {
-		return nil, trace.BadParameter("user agent getter missing")
-	}
-	s.Debugf("Dialing with an agent from %v to %v.", params.From, params.To)
-
-	// request user agent connection
-	userAgent, err := params.GetUserAgent()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// Get a host certificate for the forwarding node from the cache.
-	hostCertificate, err := s.certificateCache.getHostCertificate(params.Address, params.Principals)
-	if err != nil {
-		userAgent.Close()
-		return nil, trace.Wrap(err)
-	}
-
-	targetConn, err := s.connThroughTunnel(&sshutils.DialReq{
-		Address:  params.To.String(),
-		ServerID: params.ServerID,
-		ConnType: params.ConnType,
-	})
-	if err != nil {
-		userAgent.Close()
-		return nil, trace.Wrap(err)
-	}
-
-	// Create a forwarding server that serves a single SSH connection on it. This
-	// server does not need to close, it will close and release all resources
-	// once conn is closed.
-	//
-	// Note: A localClient is passed to the forwarding server to make sure the
-	// session gets recorded in the local cluster instead of the remote cluster.
-	serverConfig := forward.ServerConfig{
-		AuthClient:      s.localClient,
-		UserAgent:       userAgent,
-		TargetConn:      targetConn,
-		SrcAddr:         params.From,
-		DstAddr:         params.To,
-		HostCertificate: hostCertificate,
-		Ciphers:         s.srv.Config.Ciphers,
-		KEXAlgorithms:   s.srv.Config.KEXAlgorithms,
-		MACAlgorithms:   s.srv.Config.MACAlgorithms,
-		DataDir:         s.srv.Config.DataDir,
-		Address:         params.Address,
-		UseTunnel:       UseTunnel(s.Logger, targetConn),
-		FIPS:            s.srv.FIPS,
-		HostUUID:        s.srv.ID,
-		ParentContext:   s.srv.Context,
-		LockWatcher:     s.srv.LockWatcher,
-		TargetID:        params.ServerID,
-		TargetAddr:      params.To.String(),
-		TargetHostname:  params.Address,
-	}
-	remoteServer, err := forward.New(serverConfig)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	go remoteServer.Serve()
-
-	// Return a connection to the forwarding server.
-	conn, err := remoteServer.Dial()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

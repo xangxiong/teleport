@@ -30,7 +30,6 @@ import (
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/proxy"
 	"github.com/gravitational/teleport/lib/services"
-	"github.com/gravitational/teleport/lib/srv/forward"
 	"github.com/gravitational/teleport/lib/utils"
 	proxyutils "github.com/gravitational/teleport/lib/utils/proxy"
 
@@ -222,71 +221,6 @@ func (s *localSite) adviseReconnect(ctx context.Context) {
 	}
 }
 
-func (s *localSite) dialWithAgent(params DialParams) (net.Conn, error) {
-	if params.GetUserAgent == nil {
-		return nil, trace.BadParameter("user agent getter missing")
-	}
-	s.log.Debugf("Dialing with an agent from %v to %v.", params.From, params.To)
-
-	// request user agent connection
-	userAgent, err := params.GetUserAgent()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// If server ID matches a node that has self registered itself over the tunnel,
-	// return a connection to that node. Otherwise net.Dial to the target host.
-	targetConn, useTunnel, err := s.getConn(params)
-	if err != nil {
-		userAgent.Close()
-		return nil, trace.Wrap(err)
-	}
-
-	// Get a host certificate for the forwarding node from the cache.
-	hostCertificate, err := s.certificateCache.getHostCertificate(params.Address, params.Principals)
-	if err != nil {
-		userAgent.Close()
-		return nil, trace.Wrap(err)
-	}
-
-	// Create a forwarding server that serves a single SSH connection on it. This
-	// server does not need to close, it will close and release all resources
-	// once conn is closed.
-	serverConfig := forward.ServerConfig{
-		AuthClient:      s.client,
-		UserAgent:       userAgent,
-		TargetConn:      targetConn,
-		SrcAddr:         params.From,
-		DstAddr:         params.To,
-		HostCertificate: hostCertificate,
-		Ciphers:         s.srv.Config.Ciphers,
-		KEXAlgorithms:   s.srv.Config.KEXAlgorithms,
-		MACAlgorithms:   s.srv.Config.MACAlgorithms,
-		DataDir:         s.srv.Config.DataDir,
-		Address:         params.Address,
-		UseTunnel:       useTunnel,
-		HostUUID:        s.srv.ID,
-		ParentContext:   s.srv.Context,
-		LockWatcher:     s.srv.LockWatcher,
-		TargetID:        params.ServerID,
-		TargetAddr:      params.To.String(),
-		TargetHostname:  params.Address,
-	}
-	remoteServer, err := forward.New(serverConfig)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	go remoteServer.Serve()
-
-	// Return a connection to the forwarding server.
-	conn, err := remoteServer.Dial()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	return conn, nil
-}
-
 // dialTunnel connects to the target host through a tunnel.
 func (s *localSite) dialTunnel(dreq *sshutils.DialReq) (net.Conn, error) {
 	rconn, err := s.getRemoteConn(dreq)
@@ -377,18 +311,11 @@ func (s *localSite) getConn(params DialParams) (conn net.Conn, useTunnel bool, e
 		directErr error
 	)
 
-	dialStart := s.srv.Clock.Now()
-
 	// If server ID matches a node that has self registered itself over the tunnel,
 	// return a tunnel connection to that node. Otherwise net.Dial to the target host.
 	conn, tunnelErr = s.dialTunnel(dreq)
 	if tunnelErr == nil {
-		dt := tunnel
-		if params.FromPeerProxy {
-			dt = peerTunnel
-		}
-
-		return newMetricConn(conn, dt, dialStart, s.srv.Clock), true, nil
+		return conn, true, nil
 	}
 	s.log.WithError(tunnelErr).WithField("address", dreq.Address).Debug("Error occurred while dialing through a tunnel.")
 
@@ -398,7 +325,7 @@ func (s *localSite) getConn(params DialParams) (conn net.Conn, useTunnel bool, e
 			params.ProxyIDs, params.ServerID, params.From, params.To, params.ConnType,
 		)
 		if peerErr == nil {
-			return newMetricConn(conn, peer, dialStart, s.srv.Clock), true, nil
+			return conn, true, nil
 		}
 		s.log.WithError(peerErr).WithField("address", dreq.Address).Debug("Error occurred while dialing over peer proxy.")
 	}
@@ -429,8 +356,7 @@ func (s *localSite) getConn(params DialParams) (conn net.Conn, useTunnel bool, e
 		return nil, false, trace.ConnectionProblem(aggregateErr, directMsg)
 	}
 
-	// Return a direct dialed connection.
-	return newMetricConn(conn, direct, dialStart, s.srv.Clock), false, nil
+	return conn, false, nil
 }
 
 func (s *localSite) addConn(nodeID string, connType types.TunnelType, conn net.Conn, sconn ssh.Conn) (*remoteConn, error) {
