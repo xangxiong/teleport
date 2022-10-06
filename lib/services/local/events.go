@@ -70,8 +70,6 @@ func (e *EventsService) NewWatcher(ctx context.Context, watch types.Watch) (type
 			parser = newClusterNetworkingConfigParser()
 		case types.KindClusterAuthPreference:
 			parser = newAuthPreferenceParser()
-		case types.KindSessionRecordingConfig:
-			parser = newSessionRecordingConfigParser()
 		case types.KindClusterName:
 			parser = newClusterNameParser()
 		case types.KindNamespace:
