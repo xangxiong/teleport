@@ -99,8 +99,6 @@ type DynamicAccess interface {
 // used to implement some auth server internals.
 type DynamicAccessExt interface {
 	DynamicAccessCore
-	// UpsertAccessRequest creates or updates an access request.
-	UpsertAccessRequest(ctx context.Context, req types.AccessRequest) error
 }
 
 // reviewAuthorContext is a simplified view of a user

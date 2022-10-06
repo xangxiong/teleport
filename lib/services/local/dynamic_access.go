@@ -55,20 +55,6 @@ func (s *DynamicAccessService) GetAccessRequest(ctx context.Context, name string
 	return req, nil
 }
 
-func (s *DynamicAccessService) UpsertAccessRequest(ctx context.Context, req types.AccessRequest) error {
-	if err := services.ValidateAccessRequest(req); err != nil {
-		return trace.Wrap(err)
-	}
-	item, err := itemFromAccessRequest(req)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if _, err := s.Put(ctx, item); err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // GetPluginData loads all plugin data matching the supplied filter.
 func (s *DynamicAccessService) GetPluginData(ctx context.Context, filter types.PluginDataFilter) ([]types.PluginData, error) {
 	switch filter.Kind {
