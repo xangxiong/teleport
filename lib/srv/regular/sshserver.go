@@ -39,7 +39,6 @@ import (
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/bpf"
-	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/inventory"
 	"github.com/gravitational/teleport/lib/labels"
@@ -778,33 +777,14 @@ func New(addr utils.NetAddr,
 	}
 	s.srv = server
 
-	var heartbeatMode = srv.HeartbeatModeNode
-
 	var heartbeat srv.HeartbeatI
-	if heartbeatMode == srv.HeartbeatModeNode && s.inventoryHandle != nil {
-		s.Logger.Info("debug -> starting control-stream based heartbeat.")
-		heartbeat, err = srv.NewSSHServerHeartbeat(srv.SSHServerHeartbeatConfig{
-			InventoryHandle: s.inventoryHandle,
-			GetServer:       s.getServerInfo,
-			Announcer:       s.authService,
-			OnHeartbeat:     s.onHeartbeat,
-		})
-	} else {
-		s.Logger.Info("debug -> starting legacy heartbeat.")
-		heartbeat, err = srv.NewHeartbeat(srv.HeartbeatConfig{
-			Mode:            heartbeatMode,
-			Context:         ctx,
-			Component:       component,
-			Announcer:       s.authService,
-			GetServerInfo:   s.getServerResource,
-			KeepAlivePeriod: apidefaults.ServerKeepAliveTTL(),
-			AnnouncePeriod:  apidefaults.ServerAnnounceTTL/2 + utils.RandomDuration(apidefaults.ServerAnnounceTTL/10),
-			ServerTTL:       apidefaults.ServerAnnounceTTL,
-			CheckPeriod:     defaults.HeartbeatCheckPeriod,
-			Clock:           s.clock,
-			OnHeartbeat:     s.onHeartbeat,
-		})
-	}
+	s.Logger.Info("debug -> starting control-stream based heartbeat.")
+	heartbeat, err = srv.NewSSHServerHeartbeat(srv.SSHServerHeartbeatConfig{
+		InventoryHandle: s.inventoryHandle,
+		GetServer:       s.getServerInfo,
+		Announcer:       s.authService,
+		OnHeartbeat:     s.onHeartbeat,
+	})
 	if err != nil {
 		s.srv.Close()
 		return nil, trace.Wrap(err)
@@ -962,10 +942,6 @@ func (s *Server) getServerInfo() *types.ServerV2 {
 	server.SetPublicAddr(s.proxyPublicAddr.String())
 	server.SetPeerAddr(s.peerAddr)
 	return server
-}
-
-func (s *Server) getServerResource() (types.Resource, error) {
-	return s.getServerInfo(), nil
 }
 
 // serveAgent will build the a sock path for this user and serve an SSH agent on unix socket.
