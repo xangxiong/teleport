@@ -119,7 +119,6 @@ type Cache struct {
 
 	trustCache         services.Trust
 	clusterConfigCache services.ClusterConfiguration
-	provisionerCache   services.Provisioner
 	accessCache        services.Access
 	presenceCache      services.Presence
 	eventsFanout       *services.FanoutSet
@@ -140,7 +139,6 @@ func (c *Cache) read() (readGuard, error) {
 		return readGuard{
 			trust:         c.trustCache,
 			clusterConfig: c.clusterConfigCache,
-			provisioner:   c.provisionerCache,
 			access:        c.accessCache,
 			presence:      c.presenceCache,
 			release:       c.rw.RUnlock,
@@ -327,7 +325,6 @@ func New(config Config) (*Cache, error) {
 		fnCache:            fnCache,
 		trustCache:         local.NewCAService(config.Backend),
 		clusterConfigCache: clusterConfigCache,
-		provisionerCache:   local.NewProvisioningService(config.Backend),
 		accessCache:        local.NewAccessService(config.Backend),
 		presenceCache:      local.NewPresenceService(config.Backend),
 		eventsFanout:       services.NewFanoutSet(),
